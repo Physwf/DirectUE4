@@ -1,0 +1,46 @@
+#ifndef __UniformBuffer_Primitive_Definition__
+#define __UniformBuffer_Primitive_Definition__
+cbuffer Primitive
+{
+	float4x4 Primitive_LocalToWorld;
+	float4x4 Primitive_WorldToLocal;
+	float4 Primitive_ObjectWorldPositionAndRadius;
+	float3 Primitive_ObjectBounds;
+	half Primitive_LocalToWorldDeterminantSign;
+	float3 Primitive_ActorWorldPosition;
+	half Primitive_DecalReceiverMask;
+	half Primitive_PerObjectGBufferData;
+	half Primitive_UseSingleSampleShadowFromStationaryLights;
+	half Primitive_UseVolumetricLightmapShadowFromStationaryLights;
+	half Primitive_UseEditorDepthTest;
+	half4 Primitive_ObjectOrientation;
+	half4 Primitive_NonUniformScale;
+	half4 Primitive_InvNonUniformScale;
+	float3 Primitive_LocalObjectBoundsMin;
+	float PrePadding_Primitive_252;
+	float3 Primitive_LocalObjectBoundsMax;
+	uint Primitive_LightingChannelMask;
+	float Primitive_LpvBiasMultiplier;
+}
+static const struct
+{
+	float4x4 LocalToWorld;
+	float4x4 WorldToLocal;
+	float4 ObjectWorldPositionAndRadius;
+	float3 ObjectBounds;
+	half LocalToWorldDeterminantSign;
+	float3 ActorWorldPosition;
+	half DecalReceiverMask;
+	half PerObjectGBufferData;
+	half UseSingleSampleShadowFromStationaryLights;
+	half UseVolumetricLightmapShadowFromStationaryLights;
+	half UseEditorDepthTest;
+	half4 ObjectOrientation;
+	half4 NonUniformScale;
+	half4 InvNonUniformScale;
+	float3 LocalObjectBoundsMin;
+	float3 LocalObjectBoundsMax;
+	uint LightingChannelMask;
+	float LpvBiasMultiplier;
+} Primitive = { Primitive_LocalToWorld,Primitive_WorldToLocal,Primitive_ObjectWorldPositionAndRadius,Primitive_ObjectBounds,Primitive_LocalToWorldDeterminantSign,Primitive_ActorWorldPosition,Primitive_DecalReceiverMask,Primitive_PerObjectGBufferData,Primitive_UseSingleSampleShadowFromStationaryLights,Primitive_UseVolumetricLightmapShadowFromStationaryLights,Primitive_UseEditorDepthTest,Primitive_ObjectOrientation,Primitive_NonUniformScale,Primitive_InvNonUniformScale,Primitive_LocalObjectBoundsMin,Primitive_LocalObjectBoundsMax,Primitive_LightingChannelMask,Primitive_LpvBiasMultiplier};
+#endif

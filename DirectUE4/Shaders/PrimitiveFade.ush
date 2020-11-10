@@ -1,0 +1,11 @@
+#ifndef __UniformBuffer_PrimitiveFade_Definition__
+#define __UniformBuffer_PrimitiveFade_Definition__
+cbuffer PrimitiveFade
+{
+	half2 PrimitiveFade_FadeTimeScaleBias;
+}
+static const struct
+{
+	half2 FadeTimeScaleBias;
+} PrimitiveFade = { PrimitiveFade_FadeTimeScaleBias};
+#endif

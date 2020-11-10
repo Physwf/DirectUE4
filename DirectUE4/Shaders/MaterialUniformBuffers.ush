@@ -1,0 +1,48 @@
+#ifndef __UniformBuffer_Material_Definition__
+#define __UniformBuffer_Material_Definition__
+cbuffer Material
+{
+	half4 Material_VectorExpressions[5];
+}
+Texture2D Material_Texture2D_0;
+SamplerState Material_Texture2D_0Sampler;
+Texture2D Material_Texture2D_1;
+SamplerState Material_Texture2D_1Sampler;
+Texture2D Material_Texture2D_2;
+SamplerState Material_Texture2D_2Sampler;
+Texture2D Material_Texture2D_3;
+SamplerState Material_Texture2D_3Sampler;
+SamplerState Material_Wrap_WorldGroupSettings;
+SamplerState Material_Clamp_WorldGroupSettings;
+static const struct
+{
+	half4 VectorExpressions[5];
+	Texture2D Texture2D_0;
+	SamplerState Texture2D_0Sampler;
+	Texture2D Texture2D_1;
+	SamplerState Texture2D_1Sampler;
+	Texture2D Texture2D_2;
+	SamplerState Texture2D_2Sampler;
+	Texture2D Texture2D_3;
+	SamplerState Texture2D_3Sampler;
+	SamplerState Wrap_WorldGroupSettings;
+	SamplerState Clamp_WorldGroupSettings;
+} Material = { Material_VectorExpressions,Material_Texture2D_0,Material_Texture2D_0Sampler,Material_Texture2D_1,Material_Texture2D_1Sampler,Material_Texture2D_2,Material_Texture2D_2Sampler,Material_Texture2D_3,Material_Texture2D_3Sampler,Material_Wrap_WorldGroupSettings,Material_Clamp_WorldGroupSettings};
+#endif
+
+
+#ifndef __UniformBuffer_Material_Definition__
+#define __UniformBuffer_Material_Definition__
+cbuffer Material
+{
+	half4 Material_VectorExpressions[3];
+}
+SamplerState Material_Wrap_WorldGroupSettings;
+SamplerState Material_Clamp_WorldGroupSettings;
+static const struct
+{
+	half4 VectorExpressions[3];
+	SamplerState Wrap_WorldGroupSettings;
+	SamplerState Clamp_WorldGroupSettings;
+} Material = { Material_VectorExpressions,Material_Wrap_WorldGroupSettings,Material_Clamp_WorldGroupSettings};
+#endif

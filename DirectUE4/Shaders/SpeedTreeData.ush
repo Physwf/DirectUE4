@@ -1,0 +1,85 @@
+#ifndef __UniformBuffer_SpeedTreeData_Definition__
+#define __UniformBuffer_SpeedTreeData_Definition__
+cbuffer SpeedTreeData
+{
+	float4 SpeedTreeData_WindVector;
+	float4 SpeedTreeData_WindGlobal;
+	float4 SpeedTreeData_WindBranch;
+	float4 SpeedTreeData_WindBranchTwitch;
+	float4 SpeedTreeData_WindBranchWhip;
+	float4 SpeedTreeData_WindBranchAnchor;
+	float4 SpeedTreeData_WindBranchAdherences;
+	float4 SpeedTreeData_WindTurbulences;
+	float4 SpeedTreeData_WindLeaf1Ripple;
+	float4 SpeedTreeData_WindLeaf1Tumble;
+	float4 SpeedTreeData_WindLeaf1Twitch;
+	float4 SpeedTreeData_WindLeaf2Ripple;
+	float4 SpeedTreeData_WindLeaf2Tumble;
+	float4 SpeedTreeData_WindLeaf2Twitch;
+	float4 SpeedTreeData_WindFrondRipple;
+	float4 SpeedTreeData_WindRollingBranch;
+	float4 SpeedTreeData_WindRollingLeafAndDirection;
+	float4 SpeedTreeData_WindRollingNoise;
+	float4 SpeedTreeData_WindAnimation;
+	float4 SpeedTreeData_PrevWindVector;
+	float4 SpeedTreeData_PrevWindGlobal;
+	float4 SpeedTreeData_PrevWindBranch;
+	float4 SpeedTreeData_PrevWindBranchTwitch;
+	float4 SpeedTreeData_PrevWindBranchWhip;
+	float4 SpeedTreeData_PrevWindBranchAnchor;
+	float4 SpeedTreeData_PrevWindBranchAdherences;
+	float4 SpeedTreeData_PrevWindTurbulences;
+	float4 SpeedTreeData_PrevWindLeaf1Ripple;
+	float4 SpeedTreeData_PrevWindLeaf1Tumble;
+	float4 SpeedTreeData_PrevWindLeaf1Twitch;
+	float4 SpeedTreeData_PrevWindLeaf2Ripple;
+	float4 SpeedTreeData_PrevWindLeaf2Tumble;
+	float4 SpeedTreeData_PrevWindLeaf2Twitch;
+	float4 SpeedTreeData_PrevWindFrondRipple;
+	float4 SpeedTreeData_PrevWindRollingBranch;
+	float4 SpeedTreeData_PrevWindRollingLeafAndDirection;
+	float4 SpeedTreeData_PrevWindRollingNoise;
+	float4 SpeedTreeData_PrevWindAnimation;
+}
+static const struct
+{
+	float4 WindVector;
+	float4 WindGlobal;
+	float4 WindBranch;
+	float4 WindBranchTwitch;
+	float4 WindBranchWhip;
+	float4 WindBranchAnchor;
+	float4 WindBranchAdherences;
+	float4 WindTurbulences;
+	float4 WindLeaf1Ripple;
+	float4 WindLeaf1Tumble;
+	float4 WindLeaf1Twitch;
+	float4 WindLeaf2Ripple;
+	float4 WindLeaf2Tumble;
+	float4 WindLeaf2Twitch;
+	float4 WindFrondRipple;
+	float4 WindRollingBranch;
+	float4 WindRollingLeafAndDirection;
+	float4 WindRollingNoise;
+	float4 WindAnimation;
+	float4 PrevWindVector;
+	float4 PrevWindGlobal;
+	float4 PrevWindBranch;
+	float4 PrevWindBranchTwitch;
+	float4 PrevWindBranchWhip;
+	float4 PrevWindBranchAnchor;
+	float4 PrevWindBranchAdherences;
+	float4 PrevWindTurbulences;
+	float4 PrevWindLeaf1Ripple;
+	float4 PrevWindLeaf1Tumble;
+	float4 PrevWindLeaf1Twitch;
+	float4 PrevWindLeaf2Ripple;
+	float4 PrevWindLeaf2Tumble;
+	float4 PrevWindLeaf2Twitch;
+	float4 PrevWindFrondRipple;
+	float4 PrevWindRollingBranch;
+	float4 PrevWindRollingLeafAndDirection;
+	float4 PrevWindRollingNoise;
+	float4 PrevWindAnimation;
+} SpeedTreeData = { SpeedTreeData_WindVector,SpeedTreeData_WindGlobal,SpeedTreeData_WindBranch,SpeedTreeData_WindBranchTwitch,SpeedTreeData_WindBranchWhip,SpeedTreeData_WindBranchAnchor,SpeedTreeData_WindBranchAdherences,SpeedTreeData_WindTurbulences,SpeedTreeData_WindLeaf1Ripple,SpeedTreeData_WindLeaf1Tumble,SpeedTreeData_WindLeaf1Twitch,SpeedTreeData_WindLeaf2Ripple,SpeedTreeData_WindLeaf2Tumble,SpeedTreeData_WindLeaf2Twitch,SpeedTreeData_WindFrondRipple,SpeedTreeData_WindRollingBranch,SpeedTreeData_WindRollingLeafAndDirection,SpeedTreeData_WindRollingNoise,SpeedTreeData_WindAnimation,SpeedTreeData_PrevWindVector,SpeedTreeData_PrevWindGlobal,SpeedTreeData_PrevWindBranch,SpeedTreeData_PrevWindBranchTwitch,SpeedTreeData_PrevWindBranchWhip,SpeedTreeData_PrevWindBranchAnchor,SpeedTreeData_PrevWindBranchAdherences,SpeedTreeData_PrevWindTurbulences,SpeedTreeData_PrevWindLeaf1Ripple,SpeedTreeData_PrevWindLeaf1Tumble,SpeedTreeData_PrevWindLeaf1Twitch,SpeedTreeData_PrevWindLeaf2Ripple,SpeedTreeData_PrevWindLeaf2Tumble,SpeedTreeData_PrevWindLeaf2Twitch,SpeedTreeData_PrevWindFrondRipple,SpeedTreeData_PrevWindRollingBranch,SpeedTreeData_PrevWindRollingLeafAndDirection,SpeedTreeData_PrevWindRollingNoise,SpeedTreeData_PrevWindAnimation};
+#endif
