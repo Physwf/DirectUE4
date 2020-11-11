@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ReferenceSkeleton.h"
+
 #include <vector>
 #include <string>
 
@@ -60,8 +62,16 @@ public:
 
 class USkeleton
 {
+	std::vector<struct FBoneNode> BoneTree;
 	std::vector<FVirtualBone> VirtualBones;
-
+	FReferenceSkeleton ReferenceSkeleton;
 public:
 	const std::vector<FVirtualBone>& GetVirtualBones() const { return VirtualBones; }
+
+	bool DoesParentChainMatch(int32 StartBoneTreeIndex, const SkeletalMesh* InSkelMesh) const;
+	bool IsCompatibleMesh(const SkeletalMesh* InSkelMesh) const;
+	bool CreateReferenceSkeletonFromMesh(const SkeletalMesh* InSkeletalMesh, const std::vector<int32>& RequiredRefBones);
+	bool MergeBonesToBoneTree(const SkeletalMesh* InSkeletalMesh, const std::vector<int32>& RequiredRefBones);
+	bool MergeAllBonesToBoneTree(const SkeletalMesh* InSkelMesh);
+	bool RecreateBoneTree(SkeletalMesh* InSkelMesh);
 };

@@ -2,6 +2,7 @@
 #include "log.h"
 #include "SkeletalMesh.h"
 #include "StaticMesh.h"
+#include "Skeleton.h"
 #include "mikktspace.h"
 #include <algorithm>
 
@@ -267,6 +268,7 @@ bool ProcessImportMeshSkeleton(const USkeleton* SkeletonAsset, FReferenceSkeleto
 
 	std::vector<int32> SkeletalDepths;
 	SkeletalDepths.clear();
+	//SkeletalDepths.AddZeroed(RefBonesBinary.Num());
 	SkeletalDepths.resize(RefBonesBinary.size());
 	for (int32 b = 0; b < RefSkeleton.GetRawBoneNum(); b++)
 	{
@@ -412,8 +414,30 @@ SkeletalMesh* FBXImporter::ImportSkeletalMesh(const char* pFileName)
 		std::vector<std::string> WarningNames;
 		// Create actual rendering data.
 		bool bBuildSuccess = BuildSkeletalMesh(*ImportedResource->LODModels[0], NewSekeletalMesh->RefSkeleton, LODInfluences, LODWedges, LODFaces, LODPoints, LODPointToRawMap, BuildOptions, &WarningMessages, &WarningNames);
+		
+		if (!bBuildSuccess)
+		{
+			return NULL;
+		}
 	}
 
+	const uint32 NumSections = LODModel.Sections.size();
+
+
+	if (/*ImportSkeletalMeshArgs.LodIndex == 0*/true)
+	{
+		// see if we have skeleton set up
+		// if creating skeleton, create skeleeton
+		//USkeleton* Skeleton = ImportOptions->SkeletonForAnimation;
+		//if (Skeleton == NULL)
+		{
+			//NewSekeletalMesh->Skeleton = new USkeleton();
+			USkeleton* Skeleton = new USkeleton();
+			NewSekeletalMesh->Skeleton = Skeleton;
+			Skeleton->RecreateBoneTree(NewSekeletalMesh);
+		}
+
+	}
 	return NewSekeletalMesh;
 }
 
@@ -3993,6 +4017,6 @@ void FBXImporter::BuildSkeletalModelFromChunks(SkeletalMeshLODModel& LODModel, c
 	Chunks.clear();
 
 	// Compute the required bones for this model.
-	//USkeletalMesh::CalculateRequiredBones(LODModel, RefSkeleton, NULL);
+	SkeletalMesh::CalculateRequiredBones(LODModel, RefSkeleton, NULL);
 }
 

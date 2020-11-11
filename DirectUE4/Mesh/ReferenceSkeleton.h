@@ -273,7 +273,7 @@ public:
 		if (BoneName != std::string(""))
 		{
 			auto it = RawNameToIndexMap.find(BoneName);
-			if (it == RawNameToIndexMap.end())
+			if (it != RawNameToIndexMap.end())
 			{
 				BoneIndex = it->second;
 			}
