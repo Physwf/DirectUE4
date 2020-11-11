@@ -22,11 +22,46 @@ typedef unsigned long long	uint64;
 #define BIG_NUMBER			(3.4e+38f)
 #define EULERS_NUMBER       (2.71828182845904523536f)
 
-#define DELTA			(0.00001f)
+// Copied from float.h
+#define MAX_FLT 3.402823466e+38F
 
+// Aux constants.
+#define INV_PI			(0.31830988618f)
+#define HALF_PI			(1.57079632679f)
+
+#define DELTA			(0.00001f)
+/**
+* Lengths of normalized vectors (These are half their maximum values
+* to assure that dot products with normalized vectors don't overflow).
+*/
+#define FLOAT_NORMAL_THRESH				(0.0001f)
+
+//
+// Magic numbers for numerical precision.
+//
+#define THRESH_POINT_ON_PLANE			(0.10f)		/* Thickness of plane for front/back/inside test */
+#define THRESH_POINT_ON_SIDE			(0.20f)		/* Thickness of polygon side's side-plane for point-inside/outside/on side test */
+#define THRESH_POINTS_ARE_SAME			(0.00002f)	/* Two points are same if within this distance */
+#define THRESH_POINTS_ARE_NEAR			(0.015f)	/* Two points are near if within this distance and can be combined if imprecise math is ok */
+#define THRESH_NORMALS_ARE_SAME			(0.00002f)	/* Two normal points are same if within this distance */
+#define THRESH_UVS_ARE_SAME			    (0.0009765625f)/* Two UV are same if within this threshold (1.0f/1024f) */
+/* Making this too large results in incorrect CSG classification and disaster */
+#define THRESH_VECTORS_ARE_NEAR			(0.0004f)	/* Two vectors are near if within this distance and can be combined if imprecise math is ok */
+/* Making this too large results in lighting problems due to inaccurate texture coordinates */
+#define THRESH_SPLIT_POLY_WITH_PLANE	(0.25f)		/* A plane splits a polygon in half */
+#define THRESH_SPLIT_POLY_PRECISELY		(0.01f)		/* A plane exactly splits a polygon */
+#define THRESH_ZERO_NORM_SQUARED		(0.0001f)	/* Size of a unit normal that is considered "zero", squared */
+#define THRESH_NORMALS_ARE_PARALLEL		(0.999845f)	/* Two unit vectors are parallel if abs(A dot B) is greater than or equal to this. This is roughly cosine(1.0 degrees). */
+#define THRESH_NORMALS_ARE_ORTHOGONAL	(0.017455f)	/* Two unit vectors are orthogonal (perpendicular) if abs(A dot B) is less than or equal this. This is roughly cosine(89.0 degrees). */
+
+#define THRESH_VECTOR_NORMALIZED		(0.01f)		/** Allowed error for a normalized vector (against squared magnitude) */
+#define THRESH_QUAT_NORMALIZED			(0.01f)		/** Allowed error for a normalized quaternion (against squared magnitude) */
 /**
 *	float4 vector register type, where the first float (X) is stored in the lowest 32 bits, and so on.
 */
+
+#define ZERO_ANIMWEIGHT_THRESH (0.00001f)
+
 struct VectorRegister
 {
 	float	V[4];
@@ -87,7 +122,7 @@ inline VectorRegister MakeVectorRegister(float X, float Y, float Z, float W)
 * Calculate Homogeneous transform.
 *
 * @param VecP			VectorRegister
-* @param MatrixM		FMatrix pointer to the Matrix to apply transform
+* @param MatrixM		Matrix pointer to the Matrix to apply transform
 * @return VectorRegister = VecP*MatrixM
 */
 inline VectorRegister VectorTransformVector(const VectorRegister&  VecP, const void* MatrixM)
@@ -104,10 +139,65 @@ inline VectorRegister VectorTransformVector(const VectorRegister&  VecP, const v
 
 	return Result.v;
 }
+// 40% faster version of the Quaternion multiplication.
+#define USE_FAST_QUAT_MUL 1
+inline void VectorQuaternionMultiply(void *Result, const void* Quat1, const void* Quat2)
+{
+	typedef float Float4[4];
+	const Float4& A = *((const Float4*)Quat1);
+	const Float4& B = *((const Float4*)Quat2);
+	Float4 & R = *((Float4*)Result);
 
+#if USE_FAST_QUAT_MUL
+	const float T0 = (A[2] - A[1]) * (B[1] - B[2]);
+	const float T1 = (A[3] + A[0]) * (B[3] + B[0]);
+	const float T2 = (A[3] - A[0]) * (B[1] + B[2]);
+	const float T3 = (A[1] + A[2]) * (B[3] - B[0]);
+	const float T4 = (A[2] - A[0]) * (B[0] - B[1]);
+	const float T5 = (A[2] + A[0]) * (B[0] + B[1]);
+	const float T6 = (A[3] + A[1]) * (B[3] - B[2]);
+	const float T7 = (A[3] - A[1]) * (B[3] + B[2]);
+	const float T8 = T5 + T6 + T7;
+	const float T9 = 0.5f * (T4 + T8);
+
+	R[0] = T1 + T9 - T8;
+	R[1] = T2 + T9 - T7;
+	R[2] = T3 + T9 - T6;
+	R[3] = T0 + T9 - T5;
+#else
+	// store intermediate results in temporaries
+	const float TX = A[3] * B[0] + A[0] * B[3] + A[1] * B[2] - A[2] * B[1];
+	const float TY = A[3] * B[1] - A[0] * B[2] + A[1] * B[3] + A[2] * B[0];
+	const float TZ = A[3] * B[2] + A[0] * B[1] - A[1] * B[0] + A[2] * B[3];
+	const float TW = A[3] * B[3] - A[0] * B[0] - A[1] * B[1] - A[2] * B[2];
+
+	// copy intermediate result to *this
+	R[0] = TX;
+	R[1] = TY;
+	R[2] = TZ;
+	R[3] = TW;
+#endif
+}
 
 #define VectorLoadAligned( Ptr )		MakeVectorRegister( ((const float*)(Ptr))[0], ((const float*)(Ptr))[1], ((const float*)(Ptr))[2], ((const float*)(Ptr))[3] )
 #define VectorStoreAligned( Vec, Ptr )	memcpy( Ptr, &(Vec), 16 )
+
+struct Rotator;
+struct FQuat;
+struct Vector4;
+struct Vector;
+struct Vector2;
+
+namespace EAxis
+{
+	enum Type
+	{
+		None,
+		X,
+		Y,
+		Z,
+	};
+}
 
 class Math
 {
@@ -150,6 +240,41 @@ public:
 	{
 		return X < Min ? Min : X < Max ? X : Max;
 	}
+	/** Multiples value by itself */
+	template< class T >
+	static inline T Square(const T A)
+	{
+		return A * A;
+	}
+	/** Performs a linear interpolation between two values, Alpha ranges from 0-1 */
+	template< class T, class U >
+	static inline T Lerp(const T& A, const T& B, const U& Alpha)
+	{
+		return (T)(A + Alpha * (B - A));
+	}
+	/** Performs a 2D linear interpolation between four values values, FracX, FracY ranges from 0-1 */
+	template< class T, class U >
+	static inline T BiLerp(const T& P00, const T& P10, const T& P01, const T& P11, const U& FracX, const U& FracY)
+	{
+		return Lerp(
+			Lerp(P00, P10, FracX),
+			Lerp(P01, P11, FracX),
+			FracY
+		);
+	}
+	template< class T, class U >
+	static inline T CubicInterp(const T& P0, const T& T0, const T& P1, const T& T1, const U& A)
+	{
+		const float A2 = A * A;
+		const float A3 = A2 * A;
+
+		return (T)(((2 * A3) - (3 * A2) + 1) * P0) + ((A3 - (2 * A2) + A) * T0) + ((A3 - A2) * T1) + (((-2 * A3) + (3 * A2)) * P1);
+	}
+	template< class U > static Rotator Lerp(const Rotator& A, const Rotator& B, const U& Alpha);
+	template< class U > static Rotator LerpRange(const Rotator& A, const Rotator& B, const U& Alpha);
+	template< class U > static FQuat Lerp(const FQuat& A, const FQuat& B, const U& Alpha);
+	template< class U > static FQuat BiLerp(const FQuat& P00, const FQuat& P10, const FQuat& P01, const FQuat& P11, float FracX, float FracY);
+	template< class U > static FQuat CubicInterp(const FQuat& P0, const FQuat& T0, const FQuat& P1, const FQuat& T1, const U& A);
 	static constexpr inline int32 TruncToInt(float F)
 	{
 		return (int32)F;
@@ -161,6 +286,18 @@ public:
 	static inline int32 FloorToInt(float F)
 	{
 		return TruncToInt(floorf(F));
+	}
+	static inline int32 RoundToInt(float F)
+	{
+		return FloorToInt(F + 0.5f);
+	}
+	static constexpr inline float TruncToFloat(float F)
+	{
+		return (float)TruncToInt(F);
+	}
+	static inline float FloorToFloat(float F)
+	{
+		return (float)FloorToInt(F);
 	}
 	/** Computes absolute value in a generic way */
 	template< class T >
@@ -197,6 +334,46 @@ public:
 		// Do the platform specific log and convert using the cached value
 		return Loge(Value) * LogToLog2;
 	}
+	static inline void SinCos(float* ScalarSin, float* ScalarCos, float  Value)
+	{
+		// Map Value to y in [-pi,pi], x = 2*pi*quotient + remainder.
+		float quotient = (INV_PI*0.5f)*Value;
+		if (Value >= 0.0f)
+		{
+			quotient = (float)((int)(quotient + 0.5f));
+		}
+		else
+		{
+			quotient = (float)((int)(quotient - 0.5f));
+		}
+		float y = Value - (2.0f*PI)*quotient;
+
+		// Map y to [-pi/2,pi/2] with sin(y) = sin(Value).
+		float sign;
+		if (y > HALF_PI)
+		{
+			y = PI - y;
+			sign = -1.0f;
+		}
+		else if (y < -HALF_PI)
+		{
+			y = -PI - y;
+			sign = -1.0f;
+		}
+		else
+		{
+			sign = +1.0f;
+		}
+
+		float y2 = y * y;
+
+		// 11-degree minimax approximation
+		*ScalarSin = (((((-2.3889859e-08f * y2 + 2.7525562e-06f) * y2 - 0.00019840874f) * y2 + 0.0083333310f) * y2 - 0.16666667f) * y2 + 1.0f) * y;
+
+		// 10-degree minimax approximation
+		float p = ((((-2.6051615e-07f * y2 + 2.4760495e-05f) * y2 - 0.0013888378f) * y2 + 0.041666638f) * y2 - 0.5f) * y2 + 1.0f;
+		*ScalarCos = sign * p;
+	}
 	static inline float Sin(float Value) { return sinf(Value); }
 	static inline float Asin(float Value) { return asinf((Value < -1.f) ? -1.f : ((Value < 1.f) ? Value : 1.f)); }
 	static inline float Sinh(float Value) { return sinhf(Value); }
@@ -221,6 +398,63 @@ public:
 	static inline int32 Rand() { return rand(); }
 	/** Seeds global random number functions Rand() and FRand() */
 	static inline void RandInit(int32 Seed) { srand(Seed); }
+	static constexpr inline double FloatSelect(double Comparand, double ValueGEZero, double ValueLTZero)
+	{
+		return Comparand >= 0.f ? ValueGEZero : ValueLTZero;
+	}
+	static inline float Fmod(float X, float Y)
+	{
+		if (fabsf(Y) <= 1.e-8f)
+		{
+			//FmodReportError(X, Y);
+			return 0.f;
+		}
+		const float Quotient = TruncToFloat(X / Y);
+		float IntPortion = Y * Quotient;
+
+		// Rounding and imprecision could cause IntPortion to exceed X and cause the result to be outside the expected range.
+		// For example Fmod(55.8, 9.3) would result in a very small negative value!
+		if (fabsf(IntPortion) > fabsf(X))
+		{
+			IntPortion = X;
+		}
+
+		const float Result = X - IntPortion;
+		return Result;
+	}
+	static inline float GridSnap(float Location, float Grid)
+	{
+		if (Grid == 0.f)	return Location;
+		else
+		{
+			return FloorToFloat((Location + 0.5f*Grid) / Grid)*Grid;
+		}
+	}
+#define FASTASIN_HALF_PI (1.5707963050f)
+	/**
+	* Computes the ASin of a scalar float.
+	*
+	* @param Value  input angle
+	* @return ASin of Value
+	*/
+	static inline float FastAsin(float Value)
+	{
+		// Clamp input to [-1,1].
+		bool nonnegative = (Value >= 0.0f);
+		float x = Math::Abs(Value);
+		float omx = 1.0f - x;
+		if (omx < 0.0f)
+		{
+			omx = 0.0f;
+		}
+		float root = Math::Sqrt(omx);
+		// 7-degree minimax approximation
+		float result = ((((((-0.0012624911f * x + 0.0066700901f) * x - 0.0170881256f) * x + 0.0308918810f) * x - 0.0501743046f) * x + 0.0889789874f) * x - 0.2145988016f) * x + FASTASIN_HALF_PI;
+		result *= root;  // acos(|x|)
+						 // acos(x) = pi - acos(-x) when x < 0, asin(x) = pi/2 - acos(x)
+		return (nonnegative ? FASTASIN_HALF_PI - result : result - FASTASIN_HALF_PI);
+	}
+#undef FASTASIN_HALF_PI
 };
 
 
@@ -398,6 +632,10 @@ struct Vector
 	float X, Y, Z;
 
 	static const Vector ZeroVector;
+	static const Vector OneVector;
+	static const Vector UpVector;
+	static const Vector ForwardVector;
+	static const Vector RightVector;
 
 	Vector() : X(0.0f), Y(0.0f), Z(0.0f) {}
 	explicit Vector(float V) : X(V), Y(V), Z(V) {}
@@ -411,6 +649,7 @@ struct Vector
 	Vector operator*(float Value) const;
 	Vector operator/(float Value) const;
 	Vector operator^(const Vector& rhs) const;
+	static Vector CrossProduct(const Vector& A, const Vector& B);
 	float operator|(const Vector& V) const;
 	Vector operator+=(const Vector& rhs);
 	Vector operator-=(const Vector& rhs);
@@ -428,7 +667,7 @@ struct Vector
 	float SizeSquared() const;
 	inline void Normalize();
 	static void CreateOrthonormalBasis(Vector& XAxis, Vector& YAxis, Vector& ZAxis);
-
+	static float Triple(const Vector& X, const Vector& Y, const Vector& Z);
 	friend inline Vector operator*(float Value, const Vector& rhs)
 	{
 		return rhs.operator*(Value);
@@ -440,6 +679,13 @@ struct Vector
 	struct Vector2 ToVector2() const;
 
 	float Size() const;
+	Vector GetSignVector() const;
+	float GetMax() const;
+	float GetAbsMax() const;
+	float GetMin() const;
+	float GetAbsMin() const;
+	inline bool Vector::ContainsNaN() const;
+	bool IsZero() const;
 };
 
 inline Vector::Vector(std::initializer_list<float> list)
@@ -451,7 +697,10 @@ inline Vector::Vector(std::initializer_list<float> list)
 		if (i++ > 2) break;
 	}
 }
-
+inline bool Vector::ContainsNaN() const
+{
+	return (!Math::IsFinite(X) || !Math::IsFinite(Y) || !Math::IsFinite(Z));
+}
 inline Vector Vector::operator+(const Vector& rhs) const
 {
 	return { X + rhs.X, Y + rhs.Y, Z + rhs.Z };
@@ -532,7 +781,10 @@ inline Vector Vector::operator^(const Vector& rhs) const
 		X * rhs.Y - Y * rhs.X,
 	};
 }
-
+inline Vector Vector::CrossProduct(const Vector& A, const Vector& B)
+{
+	return A ^ B;
+}
 inline float Vector::operator|(const Vector& V) const
 {
 	return X * V.X + Y * V.Y + Z * V.Z;
@@ -575,7 +827,31 @@ inline Vector Vector::GetSafeNormal(float Tolerance /*= SMALL_NUMBER*/) const
 	const float Scale = 1.f / std::sqrt(SquareSum);
 	return Vector(X*Scale, Y*Scale, Z*Scale);
 }
-
+inline Vector Vector::GetSignVector() const
+{
+	return Vector
+	(
+		(float)Math::FloatSelect(X, 1.f, -1.f),
+		(float)Math::FloatSelect(Y, 1.f, -1.f),
+		(float)Math::FloatSelect(Z, 1.f, -1.f)
+	);
+}
+inline float Vector::GetMax() const
+{
+	return Math::Max(Math::Max(X, Y), Z);
+}
+inline float Vector::GetAbsMax() const
+{
+	return Math::Max(Math::Max(Math::Abs(X), Math::Abs(Y)), Math::Abs(Z));
+}
+inline float Vector::GetMin() const
+{
+	return Math::Min(Math::Min(X, Y), Z);
+}
+inline float Vector::GetAbsMin() const
+{
+	return Math::Min(Math::Min(Math::Abs(X), Math::Abs(Y)), Math::Abs(Z));
+}
 struct Rotator
 {
 public:
@@ -586,8 +862,280 @@ public:
 	/** Rotation around the forward axis (around X axis), Tilting your head, 0=Straight, +Clockwise, -CCW. */
 	float Roll;
 
+	static const Rotator ZeroRotator;
 public:
+	inline Rotator() { }
+	explicit inline Rotator(float InF);
+	inline Rotator(float InPitch, float InYaw, float InRoll);
+	explicit  Rotator(const FQuat& Quat);
+public:
+	Rotator operator+(const Rotator& R) const;
+	Rotator operator-(const Rotator& R) const;
+	Rotator operator*(float Scale) const;
+	Rotator operator*=(float Scale);
+	bool operator==(const Rotator& R) const;
+	bool operator!=(const Rotator& V) const;
+	Rotator operator+=(const Rotator& R);
+	Rotator operator-=(const Rotator& R);
+public:
+	bool IsNearlyZero(float Tolerance = KINDA_SMALL_NUMBER) const;
+	bool IsZero() const;
+	bool Equals(const Rotator& R, float Tolerance = KINDA_SMALL_NUMBER) const;
+	Rotator Add(float DeltaPitch, float DeltaYaw, float DeltaRoll);
+	Rotator GetInverse() const;
+	Rotator GridSnap(const Rotator& RotGrid) const;
+	Vector FVector() const;
+	FQuat Quaternion() const;
+	Vector Euler() const;
+	Vector RotateVector(const Vector& V) const;
+	Vector UnrotateVector(const Vector& V) const;
+	Rotator Clamp() const;
+	Rotator GetNormalized() const;
+	Rotator GetDenormalized() const;
+	float GetComponentForAxis(EAxis::Type Axis) const;
+	void SetComponentForAxis(EAxis::Type Axis, float Component);
+	void Normalize();
+	void GetWindingAndRemainder(Rotator& Winding, Rotator& Remainder) const;
+	float GetManhattanDistance(const Rotator & R) const;
+	Rotator GetEquivalentRotator() const;
+	void SetClosestToMe(Rotator& MakeClosest) const;
+	bool ContainsNaN() const;
+public:
+	static float ClampAxis(float Angle);
+	static float NormalizeAxis(float Angle);
+	static uint8 CompressAxisToByte(float Angle);
+	static float DecompressAxisFromByte(uint8 Angle);
+	static uint16 CompressAxisToShort(float Angle);
+	static float DecompressAxisFromShort(uint16 Angle);
+	static Rotator MakeFromEuler(const Vector& Euler);
 };
+inline Rotator operator*(float Scale, const Rotator& R)
+{
+	return R.operator*(Scale);
+}
+inline Rotator::Rotator(float InF)
+	: Pitch(InF), Yaw(InF), Roll(InF)
+{
+	//DiagnosticCheckNaN();
+}
+inline Rotator::Rotator(float InPitch, float InYaw, float InRoll)
+	: Pitch(InPitch), Yaw(InYaw), Roll(InRoll)
+{
+	//DiagnosticCheckNaN();
+}
+inline Rotator Rotator::operator+(const Rotator& R) const
+{
+	return Rotator(Pitch + R.Pitch, Yaw + R.Yaw, Roll + R.Roll);
+}
+inline Rotator Rotator::operator-(const Rotator& R) const
+{
+	return Rotator(Pitch - R.Pitch, Yaw - R.Yaw, Roll - R.Roll);
+}
+inline Rotator Rotator::operator*(float Scale) const
+{
+	return Rotator(Pitch*Scale, Yaw*Scale, Roll*Scale);
+}
+inline Rotator Rotator::operator*= (float Scale)
+{
+	Pitch = Pitch * Scale; Yaw = Yaw * Scale; Roll = Roll * Scale;
+	//DiagnosticCheckNaN();
+	return *this;
+}
+inline bool Rotator::operator==(const Rotator& R) const
+{
+	return Pitch == R.Pitch && Yaw == R.Yaw && Roll == R.Roll;
+}
+inline bool Rotator::operator!=(const Rotator& V) const
+{
+	return Pitch != V.Pitch || Yaw != V.Yaw || Roll != V.Roll;
+}
+inline Rotator Rotator::operator+=(const Rotator& R)
+{
+	Pitch += R.Pitch; Yaw += R.Yaw; Roll += R.Roll;
+	//DiagnosticCheckNaN();
+	return *this;
+}
+inline Rotator Rotator::operator-=(const Rotator& R)
+{
+	Pitch -= R.Pitch; Yaw -= R.Yaw; Roll -= R.Roll;
+	//DiagnosticCheckNaN();
+	return *this;
+}
+inline bool Rotator::IsNearlyZero(float Tolerance) const
+{
+	return
+		Math::Abs(NormalizeAxis(Pitch)) <= Tolerance
+		&& Math::Abs(NormalizeAxis(Yaw)) <= Tolerance
+		&& Math::Abs(NormalizeAxis(Roll)) <= Tolerance;
+}
+inline bool Rotator::IsZero() const
+{
+	return (ClampAxis(Pitch) == 0.f) && (ClampAxis(Yaw) == 0.f) && (ClampAxis(Roll) == 0.f);
+}
+inline bool Rotator::Equals(const Rotator& R, float Tolerance) const
+{
+	return (Math::Abs(NormalizeAxis(Pitch - R.Pitch)) <= Tolerance)
+		&& (Math::Abs(NormalizeAxis(Yaw - R.Yaw)) <= Tolerance)
+		&& (Math::Abs(NormalizeAxis(Roll - R.Roll)) <= Tolerance);
+}
+inline Rotator Rotator::Add(float DeltaPitch, float DeltaYaw, float DeltaRoll)
+{
+	Yaw += DeltaYaw;
+	Pitch += DeltaPitch;
+	Roll += DeltaRoll;
+	//DiagnosticCheckNaN();
+	return *this;
+}
+inline Rotator Rotator::GridSnap(const Rotator& RotGrid) const
+{
+	return Rotator
+	(
+		Math::GridSnap(Pitch, RotGrid.Pitch),
+		Math::GridSnap(Yaw, RotGrid.Yaw),
+		Math::GridSnap(Roll, RotGrid.Roll)
+	);
+}
+inline Rotator Rotator::Clamp() const
+{
+	return Rotator(ClampAxis(Pitch), ClampAxis(Yaw), ClampAxis(Roll));
+}
+inline float Rotator::ClampAxis(float Angle)
+{
+	// returns Angle in the range (-360,360)
+	Angle = Math::Fmod(Angle, 360.f);
+
+	if (Angle < 0.f)
+	{
+		// shift to [0,360) range
+		Angle += 360.f;
+	}
+
+	return Angle;
+}
+inline float Rotator::NormalizeAxis(float Angle)
+{
+	// returns Angle in the range [0,360)
+	Angle = ClampAxis(Angle);
+
+	if (Angle > 180.f)
+	{
+		// shift to (-180,180]
+		Angle -= 360.f;
+	}
+
+	return Angle;
+}
+inline uint8 Rotator::CompressAxisToByte(float Angle)
+{
+	// map [0->360) to [0->256) and mask off any winding
+	return Math::RoundToInt(Angle * 256.f / 360.f) & 0xFF;
+}
+inline float Rotator::DecompressAxisFromByte(uint8 Angle)
+{
+	// map [0->256) to [0->360)
+	return (Angle * 360.f / 256.f);
+}
+inline uint16 Rotator::CompressAxisToShort(float Angle)
+{
+	// map [0->360) to [0->65536) and mask off any winding
+	return Math::RoundToInt(Angle * 65536.f / 360.f) & 0xFFFF;
+}
+inline float Rotator::DecompressAxisFromShort(uint16 Angle)
+{
+	// map [0->65536) to [0->360)
+	return (Angle * 360.f / 65536.f);
+}
+inline Rotator Rotator::GetNormalized() const
+{
+	Rotator Rot = *this;
+	Rot.Normalize();
+	return Rot;
+}
+inline Rotator Rotator::GetDenormalized() const
+{
+	Rotator Rot = *this;
+	Rot.Pitch = ClampAxis(Rot.Pitch);
+	Rot.Yaw = ClampAxis(Rot.Yaw);
+	Rot.Roll = ClampAxis(Rot.Roll);
+	return Rot;
+}
+inline void Rotator::Normalize()
+{
+	Pitch = NormalizeAxis(Pitch);
+	Yaw = NormalizeAxis(Yaw);
+	Roll = NormalizeAxis(Roll);
+	//DiagnosticCheckNaN();
+}
+inline float Rotator::GetComponentForAxis(EAxis::Type Axis) const
+{
+	switch (Axis)
+	{
+	case EAxis::X:
+		return Roll;
+	case EAxis::Y:
+		return Pitch;
+	case EAxis::Z:
+		return Yaw;
+	default:
+		return 0.f;
+	}
+}
+inline void Rotator::SetComponentForAxis(EAxis::Type Axis, float Component)
+{
+	switch (Axis)
+	{
+	case EAxis::X:
+		Roll = Component;
+		break;
+	case EAxis::Y:
+		Pitch = Component;
+		break;
+	case EAxis::Z:
+		Yaw = Component;
+		break;
+	}
+}
+inline bool Rotator::ContainsNaN() const
+{
+	return (!Math::IsFinite(Pitch) ||
+		!Math::IsFinite(Yaw) ||
+		!Math::IsFinite(Roll));
+}
+
+inline float Rotator::GetManhattanDistance(const Rotator & Rotator) const
+{
+	return Math::Abs<float>(Yaw - Rotator.Yaw) + Math::Abs<float>(Pitch - Rotator.Pitch) + Math::Abs<float>(Roll - Rotator.Roll);
+}
+
+inline Rotator Rotator::GetEquivalentRotator() const
+{
+	return Rotator(180.0f - Pitch, Yaw + 180.0f, Roll + 180.0f);
+}
+inline void Rotator::SetClosestToMe(Rotator& MakeClosest) const
+{
+	Rotator OtherChoice = MakeClosest.GetEquivalentRotator();
+	float FirstDiff = GetManhattanDistance(MakeClosest);
+	float SecondDiff = GetManhattanDistance(OtherChoice);
+	if (SecondDiff < FirstDiff)
+		MakeClosest = OtherChoice;
+}
+
+/* Math inline functions
+*****************************************************************************/
+
+template<class U>
+inline Rotator Math::Lerp(const Rotator& A, const Rotator& B, const U& Alpha)
+{
+	return A + (B - A).GetNormalized() * Alpha;
+}
+
+template<class U>
+inline Rotator Math::LerpRange(const Rotator& A, const Rotator& B, const U& Alpha)
+{
+	// Similar to Lerp, but does not take the shortest path. Allows interpolation over more than 180 degrees.
+	return (A * (1 - Alpha) + B * Alpha).GetNormalized();
+}
+
 
 inline Vector4::Vector4(const Vector& V, float InW/* = 1.f*/) : X(V.X), Y(V.Y), Z(V.Z), W(InW)
 {
@@ -597,6 +1145,9 @@ inline Vector4::Vector4(const Vector& V, float InW/* = 1.f*/) : X(V.X), Y(V.Y), 
 struct Vector2
 {
 	float X, Y;
+
+	static const Vector2 ZeroVector;
+	static const Vector2 UnitVector;
 
 	Vector2() : X(0.0f), Y(0.0f) {}
 	explicit Vector2(float V) : X(V), Y(V) {}
@@ -769,22 +1320,22 @@ struct LinearColor
 {
 	float R, G, B, A;
 
-	static float sRGBToLinearTable[256];
+	static double sRGBToLinearTable[256];
 
 	LinearColor() {}
 	LinearColor(float InR, float InG, float InB, float InA = 1.0f) : R(InR), G(InG), B(InB), A(InA) {}
-	LinearColor(struct Color);
+	LinearColor(struct FColor);
 };
 
-struct Color
+struct FColor
 {
 	union { struct { uint8 B, G, R, A; }; uint32 AlignmentDummy; };
 	uint32& DWColor(void) { return *((uint32*)this); }
 	const uint32& DWColor(void) const { return *((uint32*)this); }
 
-	Color() {}
-
-	Color(uint8 InR, uint8 InG, uint8 InB, uint8 InA = 255)
+	FColor() {}
+	static const FColor White;
+	FColor(uint8 InR, uint8 InG, uint8 InB, uint8 InA = 255)
 	{
 		// put these into the body for proper ordering with INTEL vs non-INTEL_BYTE_ORDER
 		R = InR;
@@ -793,11 +1344,19 @@ struct Color
 		A = InA;
 	}
 
-	explicit Color(uint32 InColor)
+	explicit FColor(uint32 InColor)
 	{
 		DWColor() = InColor;
 	}
+	bool operator==(const FColor &C) const
+	{
+		return DWColor() == C.DWColor();
+	}
 
+	bool operator!=(const FColor& C) const
+	{
+		return DWColor() != C.DWColor();
+	}
 };
 
 struct alignas(16) Plane : public Vector
@@ -812,16 +1371,7 @@ public:
 	{}
 };
 
-namespace EAxis
-{
-	enum Type
-	{
-		None,
-		X,
-		Y,
-		Z,
-	};
-}
+
 inline void VectorMatrixInverse(void* DstMatrix, const void* SrcMatrix);
 
 struct Matrix
@@ -837,6 +1387,7 @@ struct Matrix
 	Matrix() {}
 
 	Matrix(const Plane& InX, const Plane& InY, const Plane& InZ, const Plane& InW);
+	Matrix(const Vector& InX, const Vector& InY, const Vector& InZ, const Vector& InW);
 
 	void SetIndentity();
 
@@ -888,7 +1439,7 @@ struct Matrix
 		Matrix InvSelf = this->InverseFast();
 		return InvSelf.TransformPosition(V);
 	}
-
+	inline void Mirror(EAxis::Type MirrorAxis, EAxis::Type FlipAxis);
 	inline Matrix RemoveTranslation() const
 	{
 		Matrix Result = *this;
@@ -897,7 +1448,9 @@ struct Matrix
 		Result.M[3][2] = 0.0f;
 		return Result;
 	}
-
+	inline void		RemoveScaling(float Tolerance = SMALL_NUMBER);
+	inline Vector	ExtractScaling(float Tolerance = SMALL_NUMBER);
+	inline void		SetAxis(int32 i, const Vector& Axis);
 	static Matrix	FromScale(float Scale);
 	static Matrix	DXFromPitch(float fPitch);
 	static Matrix	DXFromYaw(float fYaw);
@@ -2173,3 +2726,568 @@ inline InverseRotationMatrix::InverseRotationMatrix(const Rotator& Rot)
 			Plane(0.0f, 0.0f, 0.0f, 1.0f))
 	)
 { }
+
+struct alignas(16) FQuat
+{
+public:
+
+	/** The quaternion's X-component. */
+	float X;
+
+	/** The quaternion's Y-component. */
+	float Y;
+
+	/** The quaternion's Z-component. */
+	float Z;
+
+	/** The quaternion's W-component. */
+	float W;
+
+public:
+	/** Identity quaternion. */
+	static  const FQuat Identity;
+public:
+	/** Default constructor (no initialization). */
+	inline FQuat() { }
+	inline FQuat(float InX, float InY, float InZ, float InW);
+	inline FQuat(const FQuat& Q);
+	explicit FQuat(const Matrix& M);
+	explicit FQuat(const Rotator& R);
+	FQuat(Vector Axis, float AngleRad);
+public:
+	inline FQuat& operator=(const FQuat& Other);
+	inline FQuat operator+(const FQuat& Q) const;
+	inline FQuat operator+=(const FQuat& Q);
+	inline FQuat operator-(const FQuat& Q) const;
+	inline bool Equals(const FQuat& Q, float Tolerance = KINDA_SMALL_NUMBER) const;
+	inline bool IsIdentity(float Tolerance = SMALL_NUMBER) const;
+	inline FQuat operator-=(const FQuat& Q);
+	inline FQuat operator*(const FQuat& Q) const;
+	inline FQuat operator*=(const FQuat& Q);
+	Vector operator*(const Vector& V) const;
+	Matrix operator*(const Matrix& M) const;
+	inline FQuat operator*=(const float Scale);
+	inline FQuat operator*(const float Scale) const;
+	inline FQuat operator/=(const float Scale);
+	inline FQuat operator/(const float Scale) const;
+	bool operator==(const FQuat& Q) const;
+	bool operator!=(const FQuat& Q) const;
+	float operator|(const FQuat& Q) const;
+public:
+	static  FQuat MakeFromEuler(const Vector& Euler);
+	 Vector Euler() const;
+	inline void Normalize(float Tolerance = SMALL_NUMBER);
+	inline FQuat GetNormalized(float Tolerance = SMALL_NUMBER) const;
+	bool IsNormalized() const;
+	inline float Size() const;
+	inline float SizeSquared() const;
+	inline float GetAngle() const;
+	void ToAxisAndAngle(Vector& Axis, float& Angle) const;
+	void ToSwingTwist(const Vector& InTwistAxis, FQuat& OutSwing, FQuat& OutTwist) const;
+	Vector RotateVector(Vector V) const;
+	Vector UnrotateVector(Vector V) const;
+	FQuat Log() const;
+	FQuat Exp() const;
+	inline FQuat Inverse() const;
+	void EnforceShortestArcWith(const FQuat& OtherQuat);
+	inline Vector GetAxisX() const;
+	inline Vector GetAxisY() const;
+	inline Vector GetAxisZ() const;
+	inline Vector GetForwardVector() const;
+	inline Vector GetRightVector() const;
+	inline Vector GetUpVector() const;
+	inline Vector FVector() const;
+	Rotator FRotator() const;
+	inline Vector GetRotationAxis() const;
+	inline float AngularDistance(const FQuat& Q) const;
+	bool ContainsNaN() const;
+public:
+	inline void DiagnosticCheckNaN() const
+	{
+		if (ContainsNaN())
+		{
+			//logOrEnsureNanError(TEXT("FQuat contains NaN: %s"), *ToString());
+			*const_cast<FQuat*>(this) = FQuat::Identity;
+		}
+	}
+
+	inline void DiagnosticCheckNaN(const wchar_t* Message) const
+	{
+		if (ContainsNaN())
+		{
+			//logOrEnsureNanError(TEXT("%s: FQuat contains NaN: %s"), Message, *ToString());
+			*const_cast<FQuat*>(this) = FQuat::Identity;
+		}
+	}
+
+public:
+	static inline FQuat FindBetween(const Vector& V1, const Vector& V2)
+	{
+		return FindBetweenVectors(V1, V2);
+	}
+	static  FQuat FindBetweenNormals(const Vector& Normal1, const Vector& Normal2);
+	static  FQuat FindBetweenVectors(const Vector& V1, const Vector& V2);
+	static inline float Error(const FQuat& Q1, const FQuat& Q2);
+	static inline float ErrorAutoNormalize(const FQuat& A, const FQuat& B);
+	static inline FQuat FastLerp(const FQuat& A, const FQuat& B, const float Alpha);
+	static inline FQuat FastBilerp(const FQuat& P00, const FQuat& P10, const FQuat& P01, const FQuat& P11, float FracX, float FracY);
+	static  FQuat Slerp_NotNormalized(const FQuat &Quat1, const FQuat &Quat2, float Slerp);
+	static inline FQuat Slerp(const FQuat &Quat1, const FQuat &Quat2, float Slerp)
+	{
+		return Slerp_NotNormalized(Quat1, Quat2, Slerp).GetNormalized();
+	}
+	static  FQuat SlerpFullPath_NotNormalized(const FQuat &quat1, const FQuat &quat2, float Alpha);
+	static inline FQuat SlerpFullPath(const FQuat &quat1, const FQuat &quat2, float Alpha)
+	{
+		return SlerpFullPath_NotNormalized(quat1, quat2, Alpha).GetNormalized();
+	}
+	static  FQuat Squad(const FQuat& quat1, const FQuat& tang1, const FQuat& quat2, const FQuat& tang2, float Alpha);
+	static  FQuat SquadFullPath(const FQuat& quat1, const FQuat& tang1, const FQuat& quat2, const FQuat& tang2, float Alpha);
+	static  void CalcTangents(const FQuat& PrevP, const FQuat& P, const FQuat& NextP, float Tension, FQuat& OutTan);
+public:
+};
+/* FQuat inline functions
+*****************************************************************************/
+inline FQuat::FQuat(const Matrix& M)
+{
+	// If Matrix is NULL, return Identity quaternion. If any of them is 0, you won't be able to construct rotation
+	// if you have two plane at least, we can reconstruct the frame using cross product, but that's a bit expensive op to do here
+	// for now, if you convert to matrix from 0 scale and convert back, you'll lose rotation. Don't do that. 
+	if (M.GetScaledAxis(EAxis::X).IsNearlyZero() || M.GetScaledAxis(EAxis::Y).IsNearlyZero() || M.GetScaledAxis(EAxis::Z).IsNearlyZero())
+	{
+		*this = FQuat::Identity;
+		return;
+	}
+
+	//const MeReal *const t = (MeReal *) tm;
+	float	s;
+
+	// Check diagonal (trace)
+	const float tr = M.M[0][0] + M.M[1][1] + M.M[2][2];
+
+	if (tr > 0.0f)
+	{
+		float InvS = Math::InvSqrt(tr + 1.f);
+		this->W = 0.5f * (1.f / InvS);
+		s = 0.5f * InvS;
+
+		this->X = (M.M[1][2] - M.M[2][1]) * s;
+		this->Y = (M.M[2][0] - M.M[0][2]) * s;
+		this->Z = (M.M[0][1] - M.M[1][0]) * s;
+	}
+	else
+	{
+		// diagonal is negative
+		int32 i = 0;
+
+		if (M.M[1][1] > M.M[0][0])
+			i = 1;
+
+		if (M.M[2][2] > M.M[i][i])
+			i = 2;
+
+		static const int32 nxt[3] = { 1, 2, 0 };
+		const int32 j = nxt[i];
+		const int32 k = nxt[j];
+
+		s = M.M[i][i] - M.M[j][j] - M.M[k][k] + 1.0f;
+
+		float InvS = Math::InvSqrt(s);
+
+		float qt[4];
+		qt[i] = 0.5f * (1.f / InvS);
+
+		s = 0.5f * InvS;
+
+		qt[3] = (M.M[j][k] - M.M[k][j]) * s;
+		qt[j] = (M.M[i][j] + M.M[j][i]) * s;
+		qt[k] = (M.M[i][k] + M.M[k][i]) * s;
+
+		this->X = qt[0];
+		this->Y = qt[1];
+		this->Z = qt[2];
+		this->W = qt[3];
+
+		DiagnosticCheckNaN();
+	}
+}
+inline FQuat::FQuat(const Rotator& R)
+{
+	*this = R.Quaternion();
+	DiagnosticCheckNaN();
+}
+inline Vector FQuat::operator*(const Vector& V) const
+{
+	return RotateVector(V);
+}
+inline Matrix FQuat::operator*(const Matrix& M) const
+{
+	Matrix Result;
+	FQuat VT, VR;
+	FQuat Inv = Inverse();
+	for (int32 I = 0; I<4; ++I)
+	{
+		FQuat VQ(M.M[I][0], M.M[I][1], M.M[I][2], M.M[I][3]);
+		VectorQuaternionMultiply(&VT, this, &VQ);
+		VectorQuaternionMultiply(&VR, &VT, &Inv);
+		Result.M[I][0] = VR.X;
+		Result.M[I][1] = VR.Y;
+		Result.M[I][2] = VR.Z;
+		Result.M[I][3] = VR.W;
+	}
+
+	return Result;
+}
+inline FQuat::FQuat(float InX, float InY, float InZ, float InW)
+	: X(InX)
+	, Y(InY)
+	, Z(InZ)
+	, W(InW)
+{
+	DiagnosticCheckNaN();
+}
+inline FQuat::FQuat(const FQuat& Q)
+	: X(Q.X)
+	, Y(Q.Y)
+	, Z(Q.Z)
+	, W(Q.W)
+{ }
+inline FQuat& FQuat::operator=(const FQuat& Other)
+{
+	this->X = Other.X;
+	this->Y = Other.Y;
+	this->Z = Other.Z;
+	this->W = Other.W;
+
+	return *this;
+}
+
+inline FQuat::FQuat(Vector Axis, float AngleRad)
+{
+	const float half_a = 0.5f * AngleRad;
+	float s, c;
+	Math::SinCos(&s, &c, half_a);
+
+	X = s * Axis.X;
+	Y = s * Axis.Y;
+	Z = s * Axis.Z;
+	W = c;
+
+	DiagnosticCheckNaN();
+}
+inline FQuat FQuat::operator+(const FQuat& Q) const
+{
+	return FQuat(X + Q.X, Y + Q.Y, Z + Q.Z, W + Q.W);
+}
+inline FQuat FQuat::operator+=(const FQuat& Q)
+{
+	this->X += Q.X;
+	this->Y += Q.Y;
+	this->Z += Q.Z;
+	this->W += Q.W;
+
+	DiagnosticCheckNaN();
+
+	return *this;
+}
+
+inline FQuat FQuat::operator-(const FQuat& Q) const
+{
+	return FQuat(X - Q.X, Y - Q.Y, Z - Q.Z, W - Q.W);
+}
+
+inline bool FQuat::Equals(const FQuat& Q, float Tolerance) const
+{
+	return (Math::Abs(X - Q.X) <= Tolerance && Math::Abs(Y - Q.Y) <= Tolerance && Math::Abs(Z - Q.Z) <= Tolerance && Math::Abs(W - Q.W) <= Tolerance)
+		|| (Math::Abs(X + Q.X) <= Tolerance && Math::Abs(Y + Q.Y) <= Tolerance && Math::Abs(Z + Q.Z) <= Tolerance && Math::Abs(W + Q.W) <= Tolerance);
+}
+
+inline bool FQuat::IsIdentity(float Tolerance) const
+{
+	return Equals(FQuat::Identity, Tolerance);
+}
+
+inline FQuat FQuat::operator-=(const FQuat& Q)
+{
+	this->X -= Q.X;
+	this->Y -= Q.Y;
+	this->Z -= Q.Z;
+	this->W -= Q.W;
+
+	DiagnosticCheckNaN();
+
+	return *this;
+}
+inline FQuat FQuat::operator*(const FQuat& Q) const
+{
+	FQuat Result;
+	VectorQuaternionMultiply(&Result, this, &Q);
+	Result.DiagnosticCheckNaN();
+	return Result;
+}
+
+
+inline FQuat FQuat::operator*=(const FQuat& Q)
+{
+	VectorRegister A = VectorLoadAligned(this);
+	VectorRegister B = VectorLoadAligned(&Q);
+	VectorRegister Result;
+	VectorQuaternionMultiply(&Result, &A, &B);
+	VectorStoreAligned(Result, this);
+
+	DiagnosticCheckNaN();
+
+	return *this;
+}
+inline FQuat FQuat::operator*=(const float Scale)
+{
+	X *= Scale;
+	Y *= Scale;
+	Z *= Scale;
+	W *= Scale;
+
+	DiagnosticCheckNaN();
+
+	return *this;
+}
+inline FQuat FQuat::operator*(const float Scale) const
+{
+	return FQuat(Scale * X, Scale * Y, Scale * Z, Scale * W);
+}
+inline FQuat FQuat::operator/=(const float Scale)
+{
+	const float Recip = 1.0f / Scale;
+	X *= Recip;
+	Y *= Recip;
+	Z *= Recip;
+	W *= Recip;
+	DiagnosticCheckNaN();
+	return *this;
+}
+
+
+inline FQuat FQuat::operator/(const float Scale) const
+{
+	const float Recip = 1.0f / Scale;
+	return FQuat(X * Recip, Y * Recip, Z * Recip, W * Recip);
+}
+
+
+inline bool FQuat::operator==(const FQuat& Q) const
+{
+	return X == Q.X && Y == Q.Y && Z == Q.Z && W == Q.W;
+}
+inline bool FQuat::operator!=(const FQuat& Q) const
+{
+	return X != Q.X || Y != Q.Y || Z != Q.Z || W != Q.W;
+}
+inline float FQuat::operator|(const FQuat& Q) const
+{
+	return X * Q.X + Y * Q.Y + Z * Q.Z + W * Q.W;
+}
+inline void FQuat::Normalize(float Tolerance)
+{
+	const float SquareSum = X * X + Y * Y + Z * Z + W * W;
+
+	if (SquareSum >= Tolerance)
+	{
+		const float Scale = Math::InvSqrt(SquareSum);
+
+		X *= Scale;
+		Y *= Scale;
+		Z *= Scale;
+		W *= Scale;
+	}
+	else
+	{
+		*this = FQuat::Identity;
+	}
+}
+inline FQuat FQuat::GetNormalized(float Tolerance) const
+{
+	FQuat Result(*this);
+	Result.Normalize(Tolerance);
+	return Result;
+}
+inline bool FQuat::IsNormalized() const
+{
+	return (Math::Abs(1.f - SizeSquared()) < THRESH_QUAT_NORMALIZED);
+}
+inline float FQuat::Size() const
+{
+	return Math::Sqrt(X * X + Y * Y + Z * Z + W * W);
+}
+inline float FQuat::SizeSquared() const
+{
+	return (X * X + Y * Y + Z * Z + W * W);
+}
+
+inline float FQuat::GetAngle() const
+{
+	return 2.f * Math::Acos(W);
+}
+inline void FQuat::ToAxisAndAngle(Vector& Axis, float& Angle) const
+{
+	Angle = GetAngle();
+	Axis = GetRotationAxis();
+}
+inline Vector FQuat::GetRotationAxis() const
+{
+	// Ensure we never try to sqrt a neg number
+	const float S = Math::Sqrt(Math::Max(1.f - (W * W), 0.f));
+
+	if (S >= 0.0001f)
+	{
+		return Vector(X / S, Y / S, Z / S);
+	}
+
+	return Vector(1.f, 0.f, 0.f);
+}
+float FQuat::AngularDistance(const FQuat& Q) const
+{
+	float InnerProd = X * Q.X + Y * Q.Y + Z * Q.Z + W * Q.W;
+	return Math::Acos((2 * InnerProd * InnerProd) - 1.f);
+}
+inline Vector FQuat::RotateVector(Vector V) const
+{
+	// http://people.csail.mit.edu/bkph/articles/Quaternions.pdf
+	// V' = V + 2w(Q x V) + (2Q x (Q x V))
+	// refactor:
+	// V' = V + w(2(Q x V)) + (Q x (2(Q x V)))
+	// T = 2(Q x V);
+	// V' = V + w*(T) + (Q x T)
+
+	const Vector Q(X, Y, Z);
+	const Vector T = 2.f * Vector::CrossProduct(Q, V);
+	const Vector Result = V + (W * T) + Vector::CrossProduct(Q, T);
+	return Result;
+}
+
+inline Vector FQuat::UnrotateVector(Vector V) const
+{
+	const Vector Q(-X, -Y, -Z); // Inverse
+	const Vector T = 2.f * Vector::CrossProduct(Q, V);
+	const Vector Result = V + (W * T) + Vector::CrossProduct(Q, T);
+	return Result;
+}
+
+
+inline FQuat FQuat::Inverse() const
+{
+	assert(IsNormalized());
+
+	return FQuat(-X, -Y, -Z, W);
+}
+inline void FQuat::EnforceShortestArcWith(const FQuat& OtherQuat)
+{
+	const float DotResult = (OtherQuat | *this);
+	const float Bias = (float)Math::FloatSelect(DotResult, 1.0f, -1.0f);
+
+	X *= Bias;
+	Y *= Bias;
+	Z *= Bias;
+	W *= Bias;
+}
+inline Vector FQuat::GetAxisX() const
+{
+	return RotateVector(Vector(1.f, 0.f, 0.f));
+}
+
+
+inline Vector FQuat::GetAxisY() const
+{
+	return RotateVector(Vector(0.f, 1.f, 0.f));
+}
+inline Vector FQuat::GetAxisZ() const
+{
+	return RotateVector(Vector(0.f, 0.f, 1.f));
+}
+
+inline Vector FQuat::GetForwardVector() const
+{
+	return GetAxisX();
+}
+inline Vector FQuat::GetRightVector() const
+{
+	return GetAxisY();
+}
+inline Vector FQuat::GetUpVector() const
+{
+	return GetAxisZ();
+}
+inline Vector FQuat::FVector() const
+{
+	return GetAxisX();
+}
+inline float FQuat::Error(const FQuat& Q1, const FQuat& Q2)
+{
+	const float cosom = Math::Abs(Q1.X * Q2.X + Q1.Y * Q2.Y + Q1.Z * Q2.Z + Q1.W * Q2.W);
+	return (Math::Abs(cosom) < 0.9999999f) ? Math::Acos(cosom)*(1.f / PI) : 0.0f;
+}
+
+
+inline float FQuat::ErrorAutoNormalize(const FQuat& A, const FQuat& B)
+{
+	FQuat Q1 = A;
+	Q1.Normalize();
+
+	FQuat Q2 = B;
+	Q2.Normalize();
+
+	return FQuat::Error(Q1, Q2);
+}
+
+inline FQuat FQuat::FastLerp(const FQuat& A, const FQuat& B, const float Alpha)
+{
+	// To ensure the 'shortest route', we make sure the dot product between the both rotations is positive.
+	const float DotResult = (A | B);
+	const float Bias = (float)Math::FloatSelect((double)DotResult, 1.0, -1.0);
+	return (B * Alpha) + (A * (Bias * (1.f - Alpha)));
+}
+
+
+inline FQuat FQuat::FastBilerp(const FQuat& P00, const FQuat& P10, const FQuat& P01, const FQuat& P11, float FracX, float FracY)
+{
+	return FQuat::FastLerp(
+		FQuat::FastLerp(P00, P10, FracX),
+		FQuat::FastLerp(P01, P11, FracX),
+		FracY
+	);
+}
+
+
+inline bool FQuat::ContainsNaN() const
+{
+	return (!Math::IsFinite(X) ||
+		!Math::IsFinite(Y) ||
+		!Math::IsFinite(Z) ||
+		!Math::IsFinite(W)
+		);
+}
+
+template<class U>
+inline FQuat Math::Lerp(const FQuat& A, const FQuat& B, const U& Alpha)
+{
+	return FQuat::Slerp(A, B, Alpha);
+}
+
+template<class U>
+inline FQuat Math::BiLerp(const FQuat& P00, const FQuat& P10, const FQuat& P01, const FQuat& P11, float FracX, float FracY)
+{
+	FQuat Result;
+
+	Result = Lerp(
+		FQuat::Slerp_NotNormalized(P00, P10, FracX),
+		FQuat::Slerp_NotNormalized(P01, P11, FracX),
+		FracY
+	);
+
+	return Result;
+}
+
+template<class U>
+inline FQuat Math::CubicInterp(const FQuat& P0, const FQuat& T0, const FQuat& P1, const FQuat& T1, const U& A)
+{
+	return FQuat::Squad(P0, T0, P1, T1, A);
+}
+

@@ -145,7 +145,7 @@ void BuildHZB(ViewInfo& View)
 		ID3D11SamplerState* TextureSampler = TStaticSamplerState<D3D11_FILTER_MIN_MAG_MIP_POINT, D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_CLAMP>::GetRHI();
 		D3D11DeviceContext->PSSetSamplers(TextureSamplerParam.BufferIndex, TextureSamplerParam.Size, &TextureSampler);
 
-		D3D11_VIEWPORT Viewport = { 0,0,DstSize.X,DstSize.Y,0.f,1.f };
+		D3D11_VIEWPORT Viewport = { 0,0,(float)DstSize.X,(float)DstSize.Y,0.f,1.f };
 		D3D11DeviceContext->RSSetViewports(1, &Viewport);
 
 		D3D11DeviceContext->DrawIndexed(6, 0, 0);

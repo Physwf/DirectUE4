@@ -1,7 +1,7 @@
 #include "ShadowRendering.h"
 #include "Scene.h"
 #include "DeferredShading.h"
-#include "Mesh.h"
+#include "StaticMesh.h"
 #include "RenderTargets.h"
 
 struct ShadowMapView

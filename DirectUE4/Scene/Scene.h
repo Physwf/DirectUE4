@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Mesh.h"
+#include "StaticMesh.h"
 #include "Light.h"
 #include "Camera.h"
 #include "SceneView.h"
@@ -356,7 +356,7 @@ class Scene
 {
 public:
 	void InitScene();
-	void AddMesh(Mesh* InMesh);
+	void AddMesh(StaticMesh* InMesh);
 public:
 	std::vector<MeshBatch> AllBatches;
 

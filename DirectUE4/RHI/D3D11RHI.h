@@ -106,7 +106,7 @@ public:
 		Desc.AddressW = AddressW;
 		Desc.MipLODBias = MipBias;
 		Desc.MaxAnisotropy = MaxAnisotroy;
-		LinearColor LC = Color(BorderColor);
+		LinearColor LC = FColor(BorderColor);
 		Desc.BorderColor[0] = LC.R;
 		Desc.BorderColor[1] = LC.G;
 		Desc.BorderColor[2] = LC.B;

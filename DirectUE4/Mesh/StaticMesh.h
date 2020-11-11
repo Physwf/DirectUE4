@@ -5,7 +5,7 @@
 #include "Actor.h"
 #include "UnrealMath.h"
 #include "MeshDescription.h"
-#include "fbxsdk.h"
+#include "FBXImporter.h"
 #include <unordered_map>
 
 struct StaticMeshBuildVertex
@@ -16,7 +16,7 @@ struct StaticMeshBuildVertex
 	float TangentYSign;
 	Vector TangentZ;
 
-	Color C;
+	FColor C;
 	Vector2 UVs;
 	Vector2 LightMapCoordinate;
 };
@@ -62,20 +62,6 @@ struct MeshLODResources
 	void ReleaseResource();
 };
 
-struct MeshRenderState
-{
-	ID3D11InputLayout* InputLayout = NULL;
-	ID3D11VertexShader* VertexShader = NULL;
-	ID3D11PixelShader* PixelShader = NULL;
-};
-
-
-struct FbxMaterial
-{
-	FbxSurfaceMaterial* fbxMaterial;
-
-	std::string GetName() const { return fbxMaterial ? fbxMaterial->GetName() : "None"; }
-};
 
 struct alignas(16) PrimitiveUniform
 {
@@ -127,12 +113,12 @@ struct MeshMaterial
 	ID3D11Texture2D* SpecularTexture;
 };
 
-class Mesh : public Actor
+class StaticMesh : public Actor
 {
 public:
-	Mesh(){}
-	Mesh(const char* ResourcePath);
-	~Mesh() {}
+	StaticMesh(){}
+	StaticMesh(const char* ResourcePath);
+	~StaticMesh() {}
 
 	void ImportFromFBX(const char* pFileName);
 	void GeneratePlane(float InWidth, float InHeight,int InNumSectionW, int InNumSectionH);

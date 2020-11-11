@@ -1,5 +1,4 @@
-#include "Mesh.h"
-#include "fbxsdk.h"
+#include "StaticMesh.h"
 #include "log.h"
 #include "D3D11RHI.h"
 #include <vector>
@@ -9,6 +8,7 @@
 #include "MeshDescriptionOperations.h"
 #include "Scene.h"
 #include "World.h"
+#include "FBXImporter.h"
 
 void MeshLODResources::InitResource()
 {
@@ -184,73 +184,6 @@ struct FBXUVs
 	int UniqueUVCount;
 };
 
-void FillFbxArray(FbxNode* pNode, std::vector<FbxNode*>& pOutMeshArray)
-{
-	if (pNode->GetMesh())
-	{
-		pOutMeshArray.push_back(pNode);
-	}
-
-	for (int i = 0; i < pNode->GetChildCount(); ++i)
-	{
-		FillFbxArray(pNode->GetChild(i),pOutMeshArray);
-	}
-}
-
-FbxAMatrix ComputeTotalMatrix(FbxScene* pScence, FbxNode* pNode, bool bTransformVertexToAbsolute,bool bBakePivotInVertex)
-{
-	FbxAMatrix Geometry;
-	FbxVector4 Translation, Rotation, Scaling;
-	Translation = pNode->GetGeometricTranslation(FbxNode::eSourcePivot);
-	Rotation = pNode->GetGeometricRotation(FbxNode::eSourcePivot);
-	Scaling = pNode->GetGeometricScaling(FbxNode::eSourcePivot);
-	Geometry.SetT(Translation);
-	Geometry.SetR(Rotation);
-	Geometry.SetS(Scaling);
-
-	FbxAMatrix& GlobalTransform = pScence->GetAnimationEvaluator()->GetNodeGlobalTransform(pNode);
-	if (!bTransformVertexToAbsolute)
-	{
-		if (bBakePivotInVertex)
-		{
-			FbxAMatrix PivotGeometry;
-			FbxVector4 RotationPivot = pNode->GetRotationPivot(FbxNode::eSourcePivot);
-			FbxVector4 FullPivot;
-			FullPivot[0] = -RotationPivot[0];
-			FullPivot[1] = -RotationPivot[1];
-			FullPivot[2] = -RotationPivot[2];
-			PivotGeometry.SetT(FullPivot);
-			Geometry = Geometry * PivotGeometry;
-		}
-		else
-		{
-			Geometry.SetIdentity();
-		}
-	}
-
-	FbxAMatrix TotalMatrix = bTransformVertexToAbsolute ? GlobalTransform * Geometry : Geometry;
-
-	return TotalMatrix;
-}
-
-Vector ConvertPos(FbxVector4 pPos)
-{
-	Vector Result;
-	Result.X = (float)pPos[0];
-	Result.Y = -(float)pPos[1];
-	Result.Z = (float)pPos[2];
-	return Result;
-}
-
-Vector ConvertDir(FbxVector4 Vec)
-{
-	Vector Result;
-	Result.X = (float)Vec[0];
-	Result.Y = -(float)Vec[1];
-	Result.Z = (float)Vec[2];
-	return Result;
-}
-
 void RegisterMeshAttributes(MeshDescription& MD)
 {
 	// Add basic vertex attributes
@@ -278,18 +211,13 @@ void RegisterMeshAttributes(MeshDescription& MD)
 	// Add basic polygon group attributes
 	MD.PolygonGroupAttributes().RegisterAttribute<std::string>(MeshAttribute::PolygonGroup::ImportedMaterialSlotName,1,std::string()); //The unique key to match the mesh material slot
 }
-struct A
-{
-	A(int i) { j = i; }
-	int j;
-};
 
-Mesh::Mesh(const char* ResourcePath)
+StaticMesh::StaticMesh(const char* ResourcePath)
 {
 	ImportFromFBX(ResourcePath);
 }
 
-void Mesh::ImportFromFBX(const char* pFileName)
+void StaticMesh::ImportFromFBX(const char* pFileName)
 {
 	FbxManager* lFbxManager = FbxManager::Create();
 
@@ -669,7 +597,7 @@ void Mesh::ImportFromFBX(const char* pFileName)
 	Build();
 }
 
-void Mesh::GeneratePlane(float InWidth, float InHeight, int InNumSectionW, int InNumSectionH)
+void StaticMesh::GeneratePlane(float InWidth, float InHeight, int InNumSectionW, int InNumSectionH)
 {
 	LODResource.Vertices.clear();
 	LODResource.Indices.clear();
@@ -713,7 +641,7 @@ void Mesh::GeneratePlane(float InWidth, float InHeight, int InNumSectionW, int I
 	LODResource.InitResource();
 }
 
-void Mesh::GnerateBox(float InSizeX, float InSizeY, float InSizeZ, int InNumSectionX, int InNumSectionY, int InNumSectionZ)
+void StaticMesh::GnerateBox(float InSizeX, float InSizeY, float InSizeZ, int InNumSectionX, int InNumSectionY, int InNumSectionZ)
 {
 
 }
@@ -771,7 +699,7 @@ inline PrimitiveUniform GetPrimitiveUniformShaderParameters(
 	return Result;
 }
 
-void Mesh::InitResource()
+void StaticMesh::InitResource()
 {
 	LODResource.InitResource();
 	PrimitiveUniform PU = GetPrimitiveUniformShaderParameters(
@@ -792,30 +720,30 @@ void Mesh::InitResource()
 	
 }
 
-void Mesh::ReleaseResource()
+void StaticMesh::ReleaseResource()
 {
 	LODResource.ReleaseResource();
 	if(PrimitiveUniformBuffer) PrimitiveUniformBuffer->Release();
 }
 
-void Mesh::Register()
+void StaticMesh::Register()
 {
 	InitResource();
 	DrawStaticElement(GetWorld()->mScene);
 }
 
-void Mesh::UnRegister()
+void StaticMesh::UnRegister()
 {
 	ReleaseResource();
 }
 
 
-void Mesh::Tick(float fDeltaTime)
+void StaticMesh::Tick(float fDeltaTime)
 {
 	UpdateUniformBuffer();
 }
 
-void Mesh::UpdateUniformBuffer()
+void StaticMesh::UpdateUniformBuffer()
 {
 	if (bTransformDirty)
 	{
@@ -838,7 +766,7 @@ void Mesh::UpdateUniformBuffer()
 	}
 }
 
-bool Mesh::GetMeshElement(int BatchIndex, int SectionIndex, MeshBatch& OutMeshBatch)
+bool StaticMesh::GetMeshElement(int BatchIndex, int SectionIndex, MeshBatch& OutMeshBatch)
 {
 	const StaticMeshSection& Section = LODResource.Sections[SectionIndex];
 	MeshElement Element;
@@ -850,7 +778,7 @@ bool Mesh::GetMeshElement(int BatchIndex, int SectionIndex, MeshBatch& OutMeshBa
 	return true;
 }
 
-void Mesh::DrawStaticElement(class Scene* InScene)
+void StaticMesh::DrawStaticElement(class Scene* InScene)
 {
 	for (size_t SectionIndex = 0; SectionIndex < LODResource.Sections.size();++SectionIndex)
 	{
@@ -869,7 +797,7 @@ void Mesh::DrawStaticElement(class Scene* InScene)
 	}
 }
 
-void Mesh::Build()
+void StaticMesh::Build()
 {
 
 	MeshDescription MD2;
@@ -930,7 +858,7 @@ void Mesh::Build()
 	}
 }
 
-void Mesh::BuildVertexBuffer(const MeshDescription& MD2, std::vector<std::vector<uint32> >& OutPerSectionIndices, std::vector<StaticMeshBuildVertex>& StaticMeshBuildVertices)
+void StaticMesh::BuildVertexBuffer(const MeshDescription& MD2, std::vector<std::vector<uint32> >& OutPerSectionIndices, std::vector<StaticMeshBuildVertex>& StaticMeshBuildVertices)
 {
 	const TMeshElementArray<MeshVertex>& Vertices = MD2.Vertices();
 	const TMeshElementArray<MeshVertexInstance>& VertexInstances = MD2.VertexInstances();
@@ -1013,7 +941,7 @@ void Mesh::BuildVertexBuffer(const MeshDescription& MD2, std::vector<std::vector
 	}
 }
 
-void Mesh::GetRenderMeshDescription(const MeshDescription& InOriginalMeshDescription, MeshDescription& OutRenderMeshDescription)
+void StaticMesh::GetRenderMeshDescription(const MeshDescription& InOriginalMeshDescription, MeshDescription& OutRenderMeshDescription)
 {
 	OutRenderMeshDescription = InOriginalMeshDescription;
 

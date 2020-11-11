@@ -1,6 +1,6 @@
 #include "BasePassRendering.h"
 #include "Scene.h"
-#include "Mesh.h"
+#include "StaticMesh.h"
 #include "RenderTargets.h"
 #include "DeferredShading.h"
 #include "GPUProfiler.h"

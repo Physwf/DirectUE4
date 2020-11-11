@@ -487,7 +487,7 @@ void Scene::InitScene()
 
 }
 
-void Scene::AddMesh(Mesh* InMesh)
+void Scene::AddMesh(StaticMesh* InMesh)
 {
 	InMesh->DrawStaticElement(this);
 }

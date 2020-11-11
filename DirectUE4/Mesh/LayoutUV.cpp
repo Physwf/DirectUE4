@@ -1087,9 +1087,9 @@ namespace MeshDescriptionOp
 		{
 			FMeshChart& Chart = Charts[i];
 
-			Chart.PackingScaleU /= TextureResolution;
-			Chart.PackingScaleV /= TextureResolution;
-			Chart.PackingBias /= TextureResolution;
+			Chart.PackingScaleU /= (float)TextureResolution;
+			Chart.PackingScaleV /= (float)TextureResolution;
+			Chart.PackingBias /= (float)TextureResolution;
 
 			for (uint32 Tri = Chart.FirstTri; Tri < Chart.LastTri; Tri++)
 			{

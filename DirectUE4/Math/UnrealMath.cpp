@@ -9,7 +9,13 @@ Matrix::Matrix(const Plane& InX, const Plane& InY, const Plane& InZ, const Plane
 	M[2][0] = InZ.X; M[2][1] = InZ.Y;  M[2][2] = InZ.Z;  M[2][3] = InZ.W;
 	M[3][0] = InW.X; M[3][1] = InW.Y;  M[3][2] = InW.Z;  M[3][3] = InW.W;
 }
-
+inline Matrix::Matrix(const Vector& InX, const Vector& InY, const Vector& InZ, const Vector& InW)
+{
+	M[0][0] = InX.X; M[0][1] = InX.Y;  M[0][2] = InX.Z;  M[0][3] = 0.0f;
+	M[1][0] = InY.X; M[1][1] = InY.Y;  M[1][2] = InY.Z;  M[1][3] = 0.0f;
+	M[2][0] = InZ.X; M[2][1] = InZ.Y;  M[2][2] = InZ.Z;  M[2][3] = 0.0f;
+	M[3][0] = InW.X; M[3][1] = InW.Y;  M[3][2] = InW.Z;  M[3][3] = 1.0f;
+}
 Matrix Matrix::GetTransposed() const
 {
 	Matrix	Result;
@@ -49,6 +55,134 @@ Vector4 Matrix::TransformFVector4(const Vector4& P) const
 Vector4 Matrix::TransformVector(const Vector& V) const
 {
 	return TransformFVector4(Vector4(V.X, V.Y, V.Z, 0.0f));
+}
+
+void Matrix::Mirror(EAxis::Type MirrorAxis, EAxis::Type FlipAxis)
+{
+	if (MirrorAxis == EAxis::X)
+	{
+		M[0][0] *= -1.f;
+		M[1][0] *= -1.f;
+		M[2][0] *= -1.f;
+
+		M[3][0] *= -1.f;
+	}
+	else if (MirrorAxis == EAxis::Y)
+	{
+		M[0][1] *= -1.f;
+		M[1][1] *= -1.f;
+		M[2][1] *= -1.f;
+
+		M[3][1] *= -1.f;
+	}
+	else if (MirrorAxis == EAxis::Z)
+	{
+		M[0][2] *= -1.f;
+		M[1][2] *= -1.f;
+		M[2][2] *= -1.f;
+
+		M[3][2] *= -1.f;
+	}
+
+	if (FlipAxis == EAxis::X)
+	{
+		M[0][0] *= -1.f;
+		M[0][1] *= -1.f;
+		M[0][2] *= -1.f;
+	}
+	else if (FlipAxis == EAxis::Y)
+	{
+		M[1][0] *= -1.f;
+		M[1][1] *= -1.f;
+		M[1][2] *= -1.f;
+	}
+	else if (FlipAxis == EAxis::Z)
+	{
+		M[2][0] *= -1.f;
+		M[2][1] *= -1.f;
+		M[2][2] *= -1.f;
+	}
+}
+
+void Matrix::RemoveScaling(float Tolerance /*= SMALL_NUMBER*/)
+{
+	const float SquareSum0 = (M[0][0] * M[0][0]) + (M[0][1] * M[0][1]) + (M[0][2] * M[0][2]);
+	const float SquareSum1 = (M[1][0] * M[1][0]) + (M[1][1] * M[1][1]) + (M[1][2] * M[1][2]);
+	const float SquareSum2 = (M[2][0] * M[2][0]) + (M[2][1] * M[2][1]) + (M[2][2] * M[2][2]);
+	const float Scale0 = (float)Math::FloatSelect(SquareSum0 - Tolerance, Math::InvSqrt(SquareSum0), 1.0f);
+	const float Scale1 = (float)Math::FloatSelect(SquareSum1 - Tolerance, Math::InvSqrt(SquareSum1), 1.0f);
+	const float Scale2 = (float)Math::FloatSelect(SquareSum2 - Tolerance, Math::InvSqrt(SquareSum2), 1.0f);
+	M[0][0] *= Scale0;
+	M[0][1] *= Scale0;
+	M[0][2] *= Scale0;
+	M[1][0] *= Scale1;
+	M[1][1] *= Scale1;
+	M[1][2] *= Scale1;
+	M[2][0] *= Scale2;
+	M[2][1] *= Scale2;
+	M[2][2] *= Scale2;
+}
+
+Vector Matrix::ExtractScaling(float Tolerance /*= SMALL_NUMBER*/)
+{
+	Vector Scale3D(0, 0, 0);
+
+	// For each row, find magnitude, and if its non-zero re-scale so its unit length.
+	const float SquareSum0 = (M[0][0] * M[0][0]) + (M[0][1] * M[0][1]) + (M[0][2] * M[0][2]);
+	const float SquareSum1 = (M[1][0] * M[1][0]) + (M[1][1] * M[1][1]) + (M[1][2] * M[1][2]);
+	const float SquareSum2 = (M[2][0] * M[2][0]) + (M[2][1] * M[2][1]) + (M[2][2] * M[2][2]);
+
+	if (SquareSum0 > Tolerance)
+	{
+		float Scale0 = Math::Sqrt(SquareSum0);
+		Scale3D[0] = Scale0;
+		float InvScale0 = 1.f / Scale0;
+		M[0][0] *= InvScale0;
+		M[0][1] *= InvScale0;
+		M[0][2] *= InvScale0;
+	}
+	else
+	{
+		Scale3D[0] = 0;
+	}
+
+	if (SquareSum1 > Tolerance)
+	{
+		float Scale1 = Math::Sqrt(SquareSum1);
+		Scale3D[1] = Scale1;
+		float InvScale1 = 1.f / Scale1;
+		M[1][0] *= InvScale1;
+		M[1][1] *= InvScale1;
+		M[1][2] *= InvScale1;
+	}
+	else
+	{
+		Scale3D[1] = 0;
+	}
+
+	if (SquareSum2 > Tolerance)
+	{
+		float Scale2 = Math::Sqrt(SquareSum2);
+		Scale3D[2] = Scale2;
+		float InvScale2 = 1.f / Scale2;
+		M[2][0] *= InvScale2;
+		M[2][1] *= InvScale2;
+		M[2][2] *= InvScale2;
+	}
+	else
+	{
+		Scale3D[2] = 0;
+	}
+
+	return Scale3D;
+}
+
+void Matrix::SetAxis(int32 i, const Vector& Axis)
+{
+	//checkSlow(i >= 0 && i <= 2);
+	M[i][0] = Axis.X;
+	M[i][1] = Axis.Y;
+	M[i][2] = Axis.Z;
 }
 
 Matrix Matrix::DXLookToLH(const Vector& To)
@@ -116,8 +250,6 @@ Matrix Matrix::DXFromOrthognalLH(float r, float l, float t, float b, float zf, f
 	return Result;
 }
 
-const Vector Vector::ZeroVector = Vector(0,0,0);
-
 float Vector::SizeSquared() const
 {
 	return X * X + Y * Y + Z * Z;
@@ -147,6 +279,14 @@ void Vector::CreateOrthonormalBasis(Vector& XAxis, Vector& YAxis, Vector& ZAxis)
 	ZAxis.Normalize();
 }
 
+float Vector::Triple(const Vector& X, const Vector& Y, const Vector& Z)
+{
+	return
+		((X.X * (Y.Y * Z.Z - Y.Z * Z.Y))
+			+ (X.Y * (Y.Z * Z.X - Y.X * Z.Z))
+			+ (X.Z * (Y.X * Z.Y - Y.Y * Z.X)));
+}
+
 bool Vector::Equals(const Vector& V, float Tolerance /*= KINDA_SMALL_NUMBER*/) const
 {
 	return Math::Abs(X - V.X) <= Tolerance && Math::Abs(Y - V.Y) <= Tolerance && Math::Abs(Z - V.Z) <= Tolerance;
@@ -162,17 +302,22 @@ float Vector::Size() const
 	return Math::Sqrt(X*X + Y * Y + Z * Z);
 }
 
+bool Vector::IsZero() const
+{
+	return X == 0.f && Y == 0.f && Z == 0.f;
+}
+
 static const float OneOver255 = 1.0f / 255.0f;
 
-LinearColor::LinearColor(struct Color InColor)
+LinearColor::LinearColor(struct FColor InColor)
 {
-	R = sRGBToLinearTable[InColor.R];
-	G = sRGBToLinearTable[InColor.G];
-	B = sRGBToLinearTable[InColor.B];
+	R = (float)sRGBToLinearTable[InColor.R];
+	G = (float)sRGBToLinearTable[InColor.G];
+	B = (float)sRGBToLinearTable[InColor.B];
 	A = float(InColor.A) * OneOver255;
 }
 
-float LinearColor::sRGBToLinearTable[256] =
+double LinearColor::sRGBToLinearTable[256] =
 {
 	0,
 	0.000303526983548838, 0.000607053967097675, 0.000910580950646512, 0.00121410793419535, 0.00151763491774419,
@@ -327,3 +472,81 @@ Vector4 Vector4::GetSafeNormal(float Tolerance /*= SMALL_NUMBER*/) const
 	}
 	return Vector4(0.f);
 }
+
+FQuat Rotator::Quaternion() const
+{
+	const float DEG_TO_RAD = PI / (180.f);
+	const float DIVIDE_BY_2 = DEG_TO_RAD / 2.f;
+	float SP, SY, SR;
+	float CP, CY, CR;
+
+	Math::SinCos(&SP, &CP, Pitch*DIVIDE_BY_2);
+	Math::SinCos(&SY, &CY, Yaw*DIVIDE_BY_2);
+	Math::SinCos(&SR, &CR, Roll*DIVIDE_BY_2);
+
+	FQuat RotationQuat;
+	RotationQuat.X = CR * SP*SY - SR * CP*CY;
+	RotationQuat.Y = -CR * SP*CY - SR * CP*SY;
+	RotationQuat.Z = CR * CP*SY - SR * SP*CY;
+	RotationQuat.W = CR * CP*CY + SR * SP*SY;
+	return RotationQuat;
+}
+
+Rotator FQuat::FRotator() const
+{
+	//SCOPE_CYCLE_COUNTER(STAT_MathConvertQuatToRotator);
+
+	DiagnosticCheckNaN();
+	const float SingularityTest = Z * X - W * Y;
+	const float YawY = 2.f*(W*Z + X * Y);
+	const float YawX = (1.f - 2.f*(Math::Square(Y) + Math::Square(Z)));
+
+	// reference 
+	// http://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
+	// http://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToEuler/
+
+	// this value was found from experience, the above websites recommend different values
+	// but that isn't the case for us, so I went through different testing, and finally found the case 
+	// where both of world lives happily. 
+	const float SINGULARITY_THRESHOLD = 0.4999995f;
+	const float RAD_TO_DEG = (180.f) / PI;
+	Rotator RotatorFromQuat;
+
+	if (SingularityTest < -SINGULARITY_THRESHOLD)
+	{
+		RotatorFromQuat.Pitch = -90.f;
+		RotatorFromQuat.Yaw = Math::Atan2(YawY, YawX) * RAD_TO_DEG;
+		RotatorFromQuat.Roll = Rotator::NormalizeAxis(-RotatorFromQuat.Yaw - (2.f * Math::Atan2(X, W) * RAD_TO_DEG));
+	}
+	else if (SingularityTest > SINGULARITY_THRESHOLD)
+	{
+		RotatorFromQuat.Pitch = 90.f;
+		RotatorFromQuat.Yaw = Math::Atan2(YawY, YawX) * RAD_TO_DEG;
+		RotatorFromQuat.Roll = Rotator::NormalizeAxis(RotatorFromQuat.Yaw - (2.f * Math::Atan2(X, W) * RAD_TO_DEG));
+	}
+	else
+	{
+		RotatorFromQuat.Pitch = Math::FastAsin(2.f*(SingularityTest)) * RAD_TO_DEG;
+		RotatorFromQuat.Yaw = Math::Atan2(YawY, YawX) * RAD_TO_DEG;
+		RotatorFromQuat.Roll = Math::Atan2(-2.f*(W*X + Y * Z), (1.f - 2.f*(Math::Square(X) + Math::Square(Y)))) * RAD_TO_DEG;
+	}
+
+	if (RotatorFromQuat.ContainsNaN())
+	{
+		//logOrEnsureNanError(TEXT("FQuat::Rotator(): Rotator result %s contains NaN! Quat = %s, YawY = %.9f, YawX = %.9f"), *RotatorFromQuat.ToString(), *this->ToString(), YawY, YawX);
+		RotatorFromQuat = Rotator::ZeroRotator;
+	}
+
+	return RotatorFromQuat;
+}
+
+const Vector Vector::ZeroVector(0.0f, 0.0f, 0.0f);
+const Vector Vector::OneVector(1.0f, 1.0f, 1.0f);
+const Vector Vector::UpVector(0.0f, 0.0f, 1.0f);
+const Vector Vector::ForwardVector(1.0f, 0.0f, 0.0f);
+const Vector Vector::RightVector(0.0f, 1.0f, 0.0f);
+const Vector2 Vector2::ZeroVector(0.0f, 0.0f);
+const Vector2 Vector2::UnitVector(1.0f, 1.0f);
+const Rotator Rotator::ZeroRotator(0.f, 0.f, 0.f);
+const FQuat FQuat::Identity(0, 0, 0, 1);
+const FColor FColor::White(255, 255, 255);

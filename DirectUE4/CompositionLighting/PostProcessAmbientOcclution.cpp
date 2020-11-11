@@ -75,7 +75,7 @@ void RCPassPostProcessAmbientOcclusionSetup::Process(ViewInfo& View)
 	else
 	{
 		const ParameterAllocation& PostprocessInput1SizeParam = PSParams["PostprocessInput1Size"];
-		Vector4 PostprocessInput1Size = Vector4(OutputExtent.X, OutputExtent.Y, 1.f / OutputExtent.X, 1.f / OutputExtent.Y);
+		Vector4 PostprocessInput1Size = Vector4((float)OutputExtent.X, (float)OutputExtent.Y, 1.f / (float)OutputExtent.X, 1.f / (float)OutputExtent.Y);
 		memcpy(GlobalConstantBufferData + PostprocessInput1SizeParam.BaseIndex, &PostprocessInput1Size, PostprocessInput1SizeParam.Size);
 		D3D11DeviceContext->UpdateSubresource(GlobalConstantBuffer, 0, NULL, GlobalConstantBufferData, 0, 0);
 		D3D11DeviceContext->PSSetConstantBuffers(PostprocessInput1SizeParam.BufferIndex, 1, &GlobalConstantBuffer);
@@ -291,7 +291,7 @@ void RCPassPostProcessAmbientOcclusion::ProcessPS(ID3D11RenderTargetView* DestRe
 		Vector4(2.00f, 0.005f, 0.00f, 0.60f),
 		Vector4(0.00f, 0.00f, 1.00f, 1.00f),
 		Vector4(0.0002f, -0.60f, 0.40f, 0.00f),
-		Vector4(ViewRect.Width(), ViewRect.Height(), ViewRect.Min.X, ViewRect.Min.Y),
+		Vector4((float)ViewRect.Width(), (float)ViewRect.Height(), (float)ViewRect.Min.X, (float)ViewRect.Min.Y),
 	};
 // 	Value[0] = FVector4(Settings.AmbientOcclusionPower, Settings.AmbientOcclusionBias / 1000.0f, 1.0f / Settings.AmbientOcclusionDistance_DEPRECATED, Settings.AmbientOcclusionIntensity);
 // 	Value[1] = FVector4(ViewportUVToRandomUV.X, ViewportUVToRandomUV.Y, AORadiusInShader, Ratio);
@@ -307,8 +307,8 @@ void RCPassPostProcessAmbientOcclusion::ProcessPS(ID3D11RenderTargetView* DestRe
 	D3D11DeviceContext->RSSetState(RasterState);
 	D3D11_VIEWPORT Viewport;
 	Viewport.TopLeftX = Viewport.TopLeftY = 0;
-	Viewport.Width = ViewRect.Max.X - ViewRect.Min.X;
-	Viewport.Height = ViewRect.Max.Y - ViewRect.Min.Y;
+	Viewport.Width = (float)ViewRect.Max.X - (float)ViewRect.Min.X;
+	Viewport.Height = (float)ViewRect.Max.Y - (float)ViewRect.Min.Y;
 	Viewport.MinDepth = 0;
 	Viewport.MaxDepth = 1;
 	D3D11DeviceContext->RSSetViewports(1, &Viewport);
@@ -409,7 +409,7 @@ void RCPassPostProcessBasePassAO::Process(ViewInfo& View)
 		Vector4(2.00f, 0.005f, 0.00f, 0.60f),
 		Vector4(0.00f, 0.00f, 1.00f, 1.00f),
 		Vector4(0.0002f, -0.60f, 0.40f, 0.00f),
-		Vector4(View.ViewRect.Width(), View.ViewRect.Height(), View.ViewRect.Min.X, View.ViewRect.Min.Y),
+		Vector4((float)View.ViewRect.Width(), (float)View.ViewRect.Height(), (float)View.ViewRect.Min.X, (float)View.ViewRect.Min.Y),
 	};
 	
 	memcpy(GlobalConstantBufferData + ScreenSpaceAOParamsParam.BaseIndex, &ScreenSpaceAOParams, ScreenSpaceAOParamsParam.Size);
@@ -418,8 +418,8 @@ void RCPassPostProcessBasePassAO::Process(ViewInfo& View)
 	D3D11DeviceContext->RSSetState(RasterState);
 	D3D11_VIEWPORT Viewport;
 	Viewport.TopLeftX = Viewport.TopLeftY = 0;
-	Viewport.Width = View.ViewRect.Max.X - View.ViewRect.Min.X;
-	Viewport.Height = View.ViewRect.Max.Y - View.ViewRect.Min.Y;
+	Viewport.Width = (float)View.ViewRect.Max.X - (float)View.ViewRect.Min.X;
+	Viewport.Height = (float)View.ViewRect.Max.Y - (float)View.ViewRect.Min.Y;
 	Viewport.MinDepth = 0;
 	Viewport.MaxDepth = 1;
 	D3D11DeviceContext->RSSetViewports(1, &Viewport);
