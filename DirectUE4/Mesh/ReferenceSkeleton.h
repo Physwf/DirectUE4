@@ -50,6 +50,36 @@ struct FVirtualBoneRefData
 	}
 };
 
+class USkeleton;
+
+struct FReferenceSkeleton;
+// Allow modifications to a reference skeleton while guaranteeing that virtual bones remain valid.
+struct FReferenceSkeletonModifier
+{
+private:
+	FReferenceSkeleton & RefSkeleton;
+	const USkeleton* Skeleton;
+public:
+	FReferenceSkeletonModifier(FReferenceSkeleton& InRefSkel, const USkeleton* InSkeleton) : RefSkeleton(InRefSkel), Skeleton(InSkeleton) {}
+	~FReferenceSkeletonModifier();
+
+	// Update the reference pose transform of the specified bone
+	void UpdateRefPoseTransform(const int32 BoneIndex, const FTransform& BonePose);
+
+	// Add a new bone. BoneName must not already exist! ParentIndex must be valid.
+	void Add(const FMeshBoneInfo& BoneInfo, const FTransform& BonePose);
+
+	/** Find Bone Index from BoneName. Precache as much as possible in speed critical sections! */
+	int32 FindBoneIndex(const std::string& BoneName) const;
+
+	/** Accessor to private data. Const so it can't be changed recklessly. */
+	const std::vector<FMeshBoneInfo> & GetRefBoneInfo() const;
+
+	const FReferenceSkeleton& GetReferenceSkeleton() const { return RefSkeleton; }
+
+};
+
+
 /** Reference Skeleton **/
 struct FReferenceSkeleton
 {
@@ -162,10 +192,10 @@ private:
 	}
 
 	// Help us translate a virtual bone source into a raw bone source (for evaluating virtual bone transform)
-	//int32 GetRawSourceBoneIndex(const USkeleton* Skeleton, const FName& SourceBoneName) const;
+	int32 GetRawSourceBoneIndex(const USkeleton* Skeleton, const std::string& SourceBoneName) const;
 
 public:
-	//void RebuildRefSkeleton(const USkeleton* Skeleton, bool bRebuildNameMap);
+	void RebuildRefSkeleton(const USkeleton* Skeleton, bool bRebuildNameMap);
 
 	/** Returns number of bones in Skeleton. */
 	int32 GetNum() const
@@ -362,4 +392,6 @@ public:
 
 	// very slow search function for all children
 	int32 GetDirectChildBones(int32 ParentBoneIndex, std::vector<int32> & Children) const;
+
+	friend FReferenceSkeletonModifier;
 };

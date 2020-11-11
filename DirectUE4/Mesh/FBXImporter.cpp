@@ -236,6 +236,59 @@ void FSkeletalMeshImportData::CopyLODImportData(std::vector<Vector>& LODPoints, 
 	LODPointToRawMap = PointToRawMap;
 }
 
+bool ProcessImportMeshSkeleton(const USkeleton* SkeletonAsset, FReferenceSkeleton& RefSkeleton, int32& SkeletalDepth, FSkeletalMeshImportData& ImportData)
+{
+	std::vector<VBone>&	RefBonesBinary = ImportData.RefBonesBinary;
+
+	// Setup skeletal hierarchy + names structure.
+	RefSkeleton.Empty();
+
+	FReferenceSkeletonModifier RefSkelModifier(RefSkeleton, SkeletonAsset);
+
+	// Digest bones to the serializable format.
+	for (uint32 b = 0; b < RefBonesBinary.size(); b++)
+	{
+		const VBone & BinaryBone = RefBonesBinary[b];
+		const std::string BoneName = BinaryBone.Name;
+		const FMeshBoneInfo BoneInfo(BoneName, BinaryBone.Name, BinaryBone.ParentIndex);
+		const FTransform BoneTransform(BinaryBone.BonePos.Transform);
+
+		if (RefSkeleton.FindRawBoneIndex(BoneInfo.Name) != -1)
+		{
+			X_LOG("Skeleton has non-unique bone names.\nBone named '%s' encountered more than once.", BoneInfo.Name.c_str());
+			return false;
+		}
+
+		RefSkelModifier.Add(BoneInfo, BoneTransform);
+	}
+
+	// Add hierarchy index to each bone and detect max depth.
+	SkeletalDepth = 0;
+
+	std::vector<int32> SkeletalDepths;
+	SkeletalDepths.clear();
+	SkeletalDepths.resize(RefBonesBinary.size());
+	for (int32 b = 0; b < RefSkeleton.GetRawBoneNum(); b++)
+	{
+		int32 Parent = RefSkeleton.GetRawParentIndex(b);
+		int32 Depth = 1;
+
+		SkeletalDepths[b] = 1;
+		if (Parent != -1)
+		{
+			Depth += SkeletalDepths[Parent];
+		}
+		if (SkeletalDepth < Depth)
+		{
+			SkeletalDepth = Depth;
+		}
+		SkeletalDepths[b] = Depth;
+	}
+
+	return true;
+}
+
+
 StaticMesh* FBXImporter::ImportStaticMesh(const char* pFileName)
 {
 	return NULL;
@@ -312,6 +365,23 @@ SkeletalMesh* FBXImporter::ImportSkeletalMesh(const char* pFileName)
 	}
 
 	SkeletalMesh* NewSekeletalMesh = new SkeletalMesh();
+
+	// process materials from import data
+	//ProcessImportMeshMaterials(SkeletalMesh->Materials, *SkelMeshImportDataPtr);
+
+	// process reference skeleton from import data
+	int32 SkeletalDepth = 0;
+	if (!ProcessImportMeshSkeleton(NewSekeletalMesh->Skeleton, NewSekeletalMesh->RefSkeleton, SkeletalDepth, *SkelMeshImportDataPtr))
+	{
+		//SkeletalMesh->ClearFlags(RF_Standalone);
+		//SkeletalMesh->Rename(NULL, GetTransientPackage());
+		return nullptr;
+	}
+
+
+	// process bone influences from import data
+	//ProcessImportMeshInfluences(*SkelMeshImportDataPtr);
+
 
 	SkeletalMeshModel *ImportedResource = NewSekeletalMesh->GetImportedModel();
 	assert(ImportedResource->LODModels.size() == 0);
@@ -835,27 +905,30 @@ bool FBXImporter::FillSkelMeshImporterFromFbx(FSkeletalMeshImportData& ImportDat
 
 	MaterialMapping.resize(MaterialCount);
 
-// 	for (int32 MaterialIndex = 0; MaterialIndex < MaterialCount; ++MaterialIndex)
-// 	{
-// 		FbxSurfaceMaterial* FbxMaterial = Node->GetMaterial(MaterialIndex);
-// 
-// 		int32 ExistingMatIndex = -1;
-// 		FbxMaterials.Find(FbxMaterial, ExistingMatIndex);
-// 		if (ExistingMatIndex != -1)
-// 		{
-// 			// Reuse existing material
-// 			MaterialMapping[MaterialIndex] = ExistingMatIndex;
-// 
-// 			if (Materials.size() > (MaterialIndex))
-// 			{
-// 				//ImportData.Materials[ExistingMatIndex].Material = Materials[MaterialIndex];
-// 			}
-// 		}
-// 		else
-// 		{
-// 			MaterialMapping[MaterialIndex] = 0;
-// 		}
-// 	}
+	for (int32 MaterialIndex = 0; MaterialIndex < MaterialCount; ++MaterialIndex)
+	{
+		FbxSurfaceMaterial* FbxMaterial = Node->GetMaterial(MaterialIndex);
+
+		int32 ExistingMatIndex = -1;
+		auto it = std::find(FbxMaterials.begin(), FbxMaterials.end(), FbxMaterial);
+		if (it != FbxMaterials.end())
+			ExistingMatIndex = it - FbxMaterials.begin();
+		//FbxMaterials.Find(FbxMaterial, ExistingMatIndex);
+		if (ExistingMatIndex != -1)
+		{
+			// Reuse existing material
+			MaterialMapping[MaterialIndex] = ExistingMatIndex;
+
+			//if (Materials.size() > (MaterialIndex))
+			{
+				//ImportData.Materials[ExistingMatIndex].Material = Materials[MaterialIndex];
+			}
+		}
+		else
+		{
+			MaterialMapping[MaterialIndex] = 0;
+		}
+	}
 
 
 	if (LayerCount > 0 && ImportOptions->bPreserveSmoothingGroups)

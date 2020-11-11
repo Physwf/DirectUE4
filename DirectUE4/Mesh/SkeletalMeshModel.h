@@ -55,6 +55,7 @@ public:
 	std::vector<uint32> IndexBuffer;//all Sections;
 
 	std::vector<FBoneIndexType> ActiveBoneIndices;
+	std::vector<FBoneIndexType> RequiredBones;
 	std::vector<int32>			MeshToImportVertexMap;
 	int32						MaxImportVertex;
 };

@@ -1448,9 +1448,9 @@ struct Matrix
 		Result.M[3][2] = 0.0f;
 		return Result;
 	}
-	inline void		RemoveScaling(float Tolerance = SMALL_NUMBER);
+	void			RemoveScaling(float Tolerance = SMALL_NUMBER);
 	inline Vector	ExtractScaling(float Tolerance = SMALL_NUMBER);
-	inline void		SetAxis(int32 i, const Vector& Axis);
+	void			SetAxis(int32 i, const Vector& Axis);
 	static Matrix	FromScale(float Scale);
 	static Matrix	DXFromPitch(float fPitch);
 	static Matrix	DXFromYaw(float fYaw);

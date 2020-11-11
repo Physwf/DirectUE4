@@ -17,7 +17,7 @@ public:
 
 	SkeletalMeshRenderData* GetResourceForRendering() const { return RenderdData.get(); }
 
-	Skeleton* mSkeleton;
+	USkeleton* Skeleton;
 
 	FReferenceSkeleton RefSkeleton;
 private:
