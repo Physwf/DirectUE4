@@ -40,3 +40,31 @@ void SkeletalMeshSection::CalcMaxBoneInfluences()
 	}
 }
 
+void SkeletalMeshLODModel::GetVertices(std::vector<SoftSkinVertex>& Vertices) const
+{
+	Vertices.clear();
+	Vertices.resize(NumVertices);
+
+	// Initialize the vertex data
+	// All chunks are combined into one (rigid first, soft next)
+	SoftSkinVertex* DestVertex = (SoftSkinVertex*)Vertices.data();
+	for (uint32 SectionIndex = 0; SectionIndex < Sections.size(); SectionIndex++)
+	{
+		const SkeletalMeshSection& Section = Sections[SectionIndex];
+		memcpy(DestVertex, Section.SoftVertices.data(), Section.SoftVertices.size() * sizeof(SoftSkinVertex));
+		DestVertex += Section.SoftVertices.size();
+	}
+}
+
+bool SkeletalMeshLODModel::DoSectionsNeedExtraBoneInfluences() const
+{
+	for (uint32 SectionIdx = 0; SectionIdx < Sections.size(); ++SectionIdx)
+	{
+		if (Sections[SectionIdx].HasExtraBoneInfluences())
+		{
+			return true;
+		}
+	}
+
+	return false;
+}

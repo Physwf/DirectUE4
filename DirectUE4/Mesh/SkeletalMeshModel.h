@@ -5,7 +5,12 @@
 #include <map>
 
 typedef uint16 FBoneIndexType;
-#define MAX_TOTAL_INFLUENCES 8
+
+/** Max number of bone influences that a single skinned vert can have. */
+#define MAX_TOTAL_INFLUENCES		8
+
+/** Max number of bone influences that a single skinned vert can have per vertex stream. */
+#define MAX_INFLUENCES_PER_STREAM	4
 
 struct SoftSkinVertex
 {
@@ -43,6 +48,11 @@ struct SkeletalMeshSection
 	std::map<int32, std::vector<int32>> OverlappingVertices;
 
 	void CalcMaxBoneInfluences();
+
+	inline bool HasExtraBoneInfluences() const
+	{
+		return MaxBoneInfluences > MAX_INFLUENCES_PER_STREAM;
+	}
 };
 
 class SkeletalMeshLODModel
@@ -58,6 +68,10 @@ public:
 	std::vector<FBoneIndexType> RequiredBones;
 	std::vector<int32>			MeshToImportVertexMap;
 	int32						MaxImportVertex;
+
+	void GetVertices(std::vector<SoftSkinVertex>& Vertices) const;
+
+	bool DoSectionsNeedExtraBoneInfluences() const;
 };
 
 

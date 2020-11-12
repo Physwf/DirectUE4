@@ -22,9 +22,17 @@ public:
 	FReferenceSkeleton RefSkeleton;
 
 	static void CalculateRequiredBones(SkeletalMeshLODModel& LODModel, const struct FReferenceSkeleton& RefSkeleton, const std::map<FBoneIndexType, FBoneIndexType>* BonesToRemove);
+
+	void PostLoad();
+
+	void InitResources();
+	void ReleaseResources();
+
+	void AllocateResourceForRendering();
 private:
 	std::shared_ptr<SkeletalMeshModel> ImportedModel;
 
 	std::unique_ptr<SkeletalMeshRenderData> RenderdData;
 
+	void CacheDerivedData();
 };

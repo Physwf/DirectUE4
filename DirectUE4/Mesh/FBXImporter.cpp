@@ -438,6 +438,9 @@ SkeletalMesh* FBXImporter::ImportSkeletalMesh(const char* pFileName)
 		}
 
 	}
+
+	NewSekeletalMesh->PostLoad();
+
 	return NewSekeletalMesh;
 }
 

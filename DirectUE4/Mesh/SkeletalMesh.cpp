@@ -5,7 +5,6 @@ SkeletalMesh::SkeletalMesh()
 	: Skeleton(NULL)
 {
 	ImportedModel = std::make_unique<SkeletalMeshModel>();
-
 }
 
 void SkeletalMesh::CalculateRequiredBones(SkeletalMeshLODModel& LODModel, const struct FReferenceSkeleton& RefSkeleton, const std::map<FBoneIndexType, FBoneIndexType>* BonesToRemove)
@@ -24,4 +23,38 @@ void SkeletalMesh::CalculateRequiredBones(SkeletalMeshLODModel& LODModel, const 
 	}
 
 	//LODModel.RequiredBones.Shrink();
+}
+
+void SkeletalMesh::PostLoad()
+{
+	CacheDerivedData();
+}
+
+void SkeletalMesh::InitResources()
+{
+	//UpdateUVChannelData(false);
+
+	SkeletalMeshRenderData* SkelMeshRenderData = GetResourceForRendering();
+
+	if (SkelMeshRenderData)
+	{
+		SkelMeshRenderData->InitResources(/*bHasVertexColors, MorphTargets*/);
+	}
+}
+
+void SkeletalMesh::ReleaseResources()
+{
+
+}
+
+void SkeletalMesh::AllocateResourceForRendering()
+{
+	RenderdData = std::make_unique<SkeletalMeshRenderData>();
+}
+
+void SkeletalMesh::CacheDerivedData()
+{
+	AllocateResourceForRendering();
+	RenderdData->Cache(this);
+	//PostMeshCached.Broadcast(this);
 }
