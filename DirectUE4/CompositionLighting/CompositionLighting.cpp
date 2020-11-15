@@ -13,6 +13,7 @@ RCPassPostProcessBasePassAO BasePassAO;
 
 void CompositionLighting::Init()
 {
+	/*
 	int Levels = 2;
 
 	RenderTargets& SceneContext = RenderTargets::Get();
@@ -58,6 +59,8 @@ void CompositionLighting::Init()
 	AO0.Init(false);
 
 	BasePassAO.Init();
+
+	*/
 }
 
 void CompositionLighting::ProcessBeforeBasePass(ViewInfo& View)

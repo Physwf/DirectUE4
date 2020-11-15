@@ -3,7 +3,7 @@
 #include "D3D11RHI.h"
 #include "UnrealMath.h"
 
-class Scene;
+class FScene;
 
 class AtmosphericFogSceneInfo
 {
@@ -30,7 +30,7 @@ public:
 	//class FAtmosphereTextureResource* InscatterResource;
 	
 	/** Initialization constructor. */
-	explicit AtmosphericFogSceneInfo(/*UAtmosphericFogComponent* InComponent,*/ const class Scene* InScene);
+	explicit AtmosphericFogSceneInfo(/*UAtmosphericFogComponent* InComponent,*/ const class FScene* InScene);
 	~AtmosphericFogSceneInfo();
 
 

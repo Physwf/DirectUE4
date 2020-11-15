@@ -15,10 +15,11 @@
 ID3D11Buffer* GlobalConstantBuffer;
 char GlobalConstantBufferData[4096];
 
-Scene* GScene;
+FScene* GScene;
 
 void InitShading()
 {
+	/*
 	GlobalConstantBuffer = CreateConstantBuffer(false,4096);
 	memset(GlobalConstantBufferData, 0, sizeof(GlobalConstantBufferData));
 
@@ -35,10 +36,11 @@ void InitShading()
 	GCompositionLighting.Init();
 	InitLightPass();
 	InitAtomosphereFog();
+	*/
 }
 
 SceneRenderer::SceneRenderer(SceneViewFamily& InViewFamily)
-	:mScene(InViewFamily.mScene),
+	:Scene(InViewFamily.Scene),
 	ViewFamily(InViewFamily)
 {
 	for (uint32 ViewIndex = 0; ViewIndex < InViewFamily.Views.size(); ViewIndex++)
@@ -83,5 +85,24 @@ void SceneRenderer::Render()
 
 	RenderTargets& SceneContex = RenderTargets::Get();
 	SceneContex.FinishRendering();
+}
+
+IntPoint SceneRenderer::GetDesiredInternalBufferSize(const SceneViewFamily& ViewFamily)
+{
+	// If not supporting screen percentage, bypass all computation.
+	//if (!ViewFamily.SupportsScreenPercentage())
+	{
+		IntPoint FamilySizeUpperBound(0, 0);
+
+		for (const SceneView* View : ViewFamily.Views)
+		{
+			FamilySizeUpperBound.X = Math::Max(FamilySizeUpperBound.X, View->UnscaledViewRect.Max.X);
+			FamilySizeUpperBound.Y = Math::Max(FamilySizeUpperBound.Y, View->UnscaledViewRect.Max.Y);
+		}
+
+		IntPoint DesiredBufferSize;
+		QuantizeSceneBufferSize(FamilySizeUpperBound, DesiredBufferSize);
+		return DesiredBufferSize;
+	}
 }
 

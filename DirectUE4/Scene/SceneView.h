@@ -340,6 +340,6 @@ public:
 class SceneViewFamily
 {
 public:
-	class Scene* mScene;
+	class FScene* Scene;
 	std::vector<const SceneView*> Views;
 };

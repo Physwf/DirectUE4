@@ -30,6 +30,7 @@ std::map<std::string, ParameterAllocation> PSParams1;
 
 void InitHZB()
 {
+	/*
 	const int32 NumMipsX = Math::Max(Math::CeilToInt(Math::Log2(float(WindowWidth))) - 1, 1);
 	const int32 NumMipsY = Math::Max(Math::CeilToInt(Math::Log2(float(WindowHeight))) - 1, 1);
 	NumMips = Math::Max(NumMipsX, NumMipsY);
@@ -60,10 +61,12 @@ void InitHZB()
 	BlendState = TStaticBlendState<>::GetRHI();
 	RasterizerState = TStaticRasterizerState<>::GetRHI();
 	DepthStencilState = TStaticDepthStencilState<FALSE, D3D11_COMPARISON_ALWAYS>::GetRHI();
+	*/
 }
 
 void BuildHZB(ViewInfo& View)
 {
+	/*
 	D3D11DeviceContext->OMSetRenderTargets(1, &HZBRTVs[0], NULL);
 	D3D11DeviceContext->IASetInputLayout(GFilterInputLayout);
 	D3D11DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -160,6 +163,7 @@ void BuildHZB(ViewInfo& View)
 	ID3D11SamplerState* Sampler = NULL;
 	D3D11DeviceContext->PSSetShaderResources(SceneDepthTextureParam.BaseIndex, SceneDepthTextureParam.Size, &SRV);
 	D3D11DeviceContext->PSSetSamplers(SceneDepthTextureSamplerParam.BaseIndex, SceneDepthTextureSamplerParam.Size, &Sampler);
+	*/
 }
 
 void SceneRenderer::RenderHzb()

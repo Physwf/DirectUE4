@@ -30,7 +30,7 @@ void SkeletalMesh::PostLoad()
 	CacheDerivedData();
 }
 
-void SkeletalMesh::InitResources()
+void SkeletalMesh::InitResource()
 {
 	//UpdateUVChannelData(false);
 
@@ -42,7 +42,7 @@ void SkeletalMesh::InitResources()
 	}
 }
 
-void SkeletalMesh::ReleaseResources()
+void SkeletalMesh::ReleaseResource()
 {
 
 }
@@ -51,6 +51,7 @@ void SkeletalMesh::AllocateResourceForRendering()
 {
 	RenderdData = std::make_unique<SkeletalMeshRenderData>();
 }
+
 
 void SkeletalMesh::CacheDerivedData()
 {

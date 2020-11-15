@@ -5,8 +5,8 @@
 
 void World::InitWorld()
 {
-	mScene = new Scene();
-	extern Scene* GScene;
+	mScene = new FScene();
+	extern FScene* GScene;
 	GScene = mScene;
 
 	//Mesh* m1 = SpawnActor<Mesh>("Primitives/Sphere.fbx");
@@ -42,7 +42,6 @@ void World::Tick(float fDeltaSeconds)
 
 void World::DestroyActor(Actor* InActor)
 {
-	InActor->UnRegister();
 	auto it = std::find(mAllActors.begin(), mAllActors.end(), InActor);
 	if (it != mAllActors.end())
 	{

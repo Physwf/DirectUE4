@@ -28,7 +28,7 @@ void ViewInfo::SetupUniformBufferParameters(
 	RenderTargets& SceneContext, 
 	const ViewMatrices& InViewMatrices, 
 	const ViewMatrices& InPrevViewMatrices, 
-	Box* OutTranslucentCascadeBoundsArray, 
+	FBox* OutTranslucentCascadeBoundsArray, 
 	int32 NumTranslucentCascades, 
 	ViewUniformShaderParameters& ViewUniformParameters) const
 {
@@ -52,7 +52,7 @@ void ViewInfo::SetupUniformBufferParameters(
 	//const bool bCheckerboardSubsurfaceRendering = FRCPassPostProcessSubsurface::RequiresCheckerboardSubsurfaceRendering(SceneContext.GetSceneColorFormat());
 	//ViewUniformParameters.bCheckerboardSubsurfaceProfileRendering = bCheckerboardSubsurfaceRendering ? 1.0f : 0.0f;
 
-	extern Scene* GScene;
+	extern FScene* GScene;
 	if (GScene)
 	{
 // 		if (Scene->SimpleDirectionalLight)
@@ -394,7 +394,7 @@ enum ETranslucencyVolumeCascade
 
 void ViewInfo::InitRHIResources()
 {
-	Box VolumeBounds[TVC_MAX];
+	FBox VolumeBounds[TVC_MAX];
 
 	CachedViewUniformShaderParameters = new ViewUniformShaderParameters();
 
@@ -419,7 +419,25 @@ void ViewInfo::SetupSkyIrradianceEnvironmentMapConstants(Vector4* OutSkyIrradian
 	OutSkyIrradianceEnvironmentMap[5] = { 0.00666f, -0.00231f, -0.07398f, -0.01038f };
 	OutSkyIrradianceEnvironmentMap[6] = { -0.00346f, -0.00294f, -0.00201f, 1.00f };
 }
-void Scene::InitScene()
+
+
+FStaticMesh::~FStaticMesh()
+{
+
+}
+
+void FStaticMesh::AddToDrawLists(/*FRHICommandListImmediate& RHICmdList,*/ FScene* Scene)
+{
+	FDepthDrawingPolicyFactory::AddStaticMesh(Scene, this);
+}
+
+
+void FStaticMesh::RemoveFromDrawLists()
+{
+
+}
+
+void FScene::InitScene()
 {
 	/*
 	//Matrix::DXFromPerspectiveFovLH(3.1415926f / 2, 1.0, 1.0f, 10000.f);
@@ -484,12 +502,20 @@ void Scene::InitScene()
 	VU.ScreenToTranslatedWorld.Transpose();
 	*/
 	AtmosphericFog = new AtmosphericFogSceneInfo(this);
-
 }
 
-void Scene::AddMesh(StaticMesh* InMesh)
+void FScene::AddPrimitive(MeshPrimitive* Primitive)
 {
-	InMesh->DrawStaticElement(this);
+	Primitives.push_back(Primitive);
+	Primitive->AddToScene();
+}
+
+void FScene::RemovePrimitive(MeshPrimitive* Primitive)
+{
+	auto it = std::find(Primitives.begin(), Primitives.end(), Primitive);
+	if(it!=Primitives.end())
+		Primitives.erase(it);
+	Primitive->RemoveFromScene();
 }
 
 void UpdateView()
@@ -556,4 +582,3 @@ void UpdateView()
 	D3D11DeviceContext->UpdateSubresource(ViewUniformBuffer, 0, NULL, &VU, 0, 0);
 	*/
 }
-

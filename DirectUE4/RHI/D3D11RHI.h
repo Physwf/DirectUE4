@@ -4,6 +4,8 @@
 #include <d3d11.h>
 #include <wrl/client.h>
 
+#include "UnrealMath.h"
+
 #include <map>
 #include <string>
 #include <vector>
@@ -21,13 +23,11 @@ extern ID3D11DeviceContext*	D3D11DeviceContext;
 
 extern ID3D11Texture2D* BackBuffer;
 extern ID3D11RenderTargetView* BackBufferRTV;
-extern D3D11_VIEWPORT GViewport;
 
 extern LONG WindowWidth;
 extern LONG WindowHeight;
 
 bool InitRHI();
-void D3D11Present();
 
 struct ParameterAllocation
 {
@@ -418,4 +418,676 @@ public:
 	}
 };
 
+class FExclusiveDepthStencil
+{
+public:
+	enum Type
+	{
+		// don't use those directly, use the combined versions below
+		// 4 bits are used for depth and 4 for stencil to make the hex value readable and non overlapping
+		DepthNop = 0x00,
+		DepthRead = 0x01,
+		DepthWrite = 0x02,
+		DepthMask = 0x0f,
+		StencilNop = 0x00,
+		StencilRead = 0x10,
+		StencilWrite = 0x20,
+		StencilMask = 0xf0,
 
+		// use those:
+		DepthNop_StencilNop = DepthNop + StencilNop,
+		DepthRead_StencilNop = DepthRead + StencilNop,
+		DepthWrite_StencilNop = DepthWrite + StencilNop,
+		DepthNop_StencilRead = DepthNop + StencilRead,
+		DepthRead_StencilRead = DepthRead + StencilRead,
+		DepthWrite_StencilRead = DepthWrite + StencilRead,
+		DepthNop_StencilWrite = DepthNop + StencilWrite,
+		DepthRead_StencilWrite = DepthRead + StencilWrite,
+		DepthWrite_StencilWrite = DepthWrite + StencilWrite,
+	};
+
+private:
+	Type Value;
+
+public:
+	// constructor
+	FExclusiveDepthStencil(Type InValue = DepthNop_StencilNop)
+		: Value(InValue)
+	{
+	}
+
+	inline bool IsUsingDepthStencil() const
+	{
+		return Value != DepthNop_StencilNop;
+	}
+	inline bool IsUsingDepth() const
+	{
+		return (ExtractDepth() != DepthNop);
+	}
+	inline bool IsUsingStencil() const
+	{
+		return (ExtractStencil() != StencilNop);
+	}
+	inline bool IsDepthWrite() const
+	{
+		return ExtractDepth() == DepthWrite;
+	}
+	inline bool IsStencilWrite() const
+	{
+		return ExtractStencil() == StencilWrite;
+	}
+
+	inline bool IsAnyWrite() const
+	{
+		return IsDepthWrite() || IsStencilWrite();
+	}
+
+	inline void SetDepthWrite()
+	{
+		Value = (Type)(ExtractStencil() | DepthWrite);
+	}
+	inline void SetStencilWrite()
+	{
+		Value = (Type)(ExtractDepth() | StencilWrite);
+	}
+	inline void SetDepthStencilWrite(bool bDepth, bool bStencil)
+	{
+		Value = DepthNop_StencilNop;
+
+		if (bDepth)
+		{
+			SetDepthWrite();
+		}
+		if (bStencil)
+		{
+			SetStencilWrite();
+		}
+	}
+	bool operator==(const FExclusiveDepthStencil& rhs) const
+	{
+		return Value == rhs.Value;
+	}
+
+	bool operator != (const FExclusiveDepthStencil& RHS) const
+	{
+		return Value != RHS.Value;
+	}
+
+	inline bool IsValid(FExclusiveDepthStencil& Current) const
+	{
+		Type Depth = ExtractDepth();
+
+		if (Depth != DepthNop && Depth != Current.ExtractDepth())
+		{
+			return false;
+		}
+
+		Type Stencil = ExtractStencil();
+
+		if (Stencil != StencilNop && Stencil != Current.ExtractStencil())
+		{
+			return false;
+		}
+
+		return true;
+	}
+
+	uint32 GetIndex() const
+	{
+		// Note: The array to index has views created in that specific order.
+
+		// we don't care about the Nop versions so less views are needed
+		// we combine Nop and Write
+		switch (Value)
+		{
+		case DepthWrite_StencilNop:
+		case DepthNop_StencilWrite:
+		case DepthWrite_StencilWrite:
+		case DepthNop_StencilNop:
+			return 0; // old DSAT_Writable
+
+		case DepthRead_StencilNop:
+		case DepthRead_StencilWrite:
+			return 1; // old DSAT_ReadOnlyDepth
+
+		case DepthNop_StencilRead:
+		case DepthWrite_StencilRead:
+			return 2; // old DSAT_ReadOnlyStencil
+
+		case DepthRead_StencilRead:
+			return 3; // old DSAT_ReadOnlyDepthAndStencil
+		}
+		// should never happen
+		assert(0);
+		return -1;
+	}
+	static const uint32 MaxIndex = 4;
+
+private:
+	inline Type ExtractDepth() const
+	{
+		return (Type)(Value & DepthMask);
+	}
+	inline Type ExtractStencil() const
+	{
+		return (Type)(Value & StencilMask);
+	}
+};
+
+enum class EClearBinding
+{
+	ENoneBound, //no clear color associated with this target.  Target will not do hardware clears on most platforms
+	EColorBound, //target has a clear color bound.  Clears will use the bound color, and do hardware clears.
+	EDepthStencilBound, //target has a depthstencil value bound.  Clears will use the bound values and do hardware clears.
+};
+enum class ERHIZBuffer
+{
+	// Before changing this, make sure all math & shader assumptions are correct! Also wrap your C++ assumptions with
+	//		static_assert(ERHIZBuffer::IsInvertedZBuffer(), ...);
+	// Shader-wise, make sure to update Definitions.usf, HAS_INVERTED_Z_BUFFER
+	FarPlane = 0,
+	NearPlane = 1,
+
+	// 'bool' for knowing if the API is using Inverted Z buffer
+	IsInverted = (int32)((int32)ERHIZBuffer::FarPlane < (int32)ERHIZBuffer::NearPlane),
+};
+struct FClearValueBinding
+{
+	struct DSVAlue
+	{
+		float Depth;
+		uint32 Stencil;
+	};
+
+	FClearValueBinding()
+		: ColorBinding(EClearBinding::EColorBound)
+	{
+		Value.Color[0] = 0.0f;
+		Value.Color[1] = 0.0f;
+		Value.Color[2] = 0.0f;
+		Value.Color[3] = 0.0f;
+	}
+
+	FClearValueBinding(EClearBinding NoBinding)
+		: ColorBinding(NoBinding)
+	{
+		assert(ColorBinding == EClearBinding::ENoneBound);
+	}
+
+	explicit FClearValueBinding(const LinearColor& InClearColor)
+		: ColorBinding(EClearBinding::EColorBound)
+	{
+		Value.Color[0] = InClearColor.R;
+		Value.Color[1] = InClearColor.G;
+		Value.Color[2] = InClearColor.B;
+		Value.Color[3] = InClearColor.A;
+	}
+
+	explicit FClearValueBinding(float DepthClearValue, uint32 StencilClearValue = 0)
+		: ColorBinding(EClearBinding::EDepthStencilBound)
+	{
+		Value.DSValue.Depth = DepthClearValue;
+		Value.DSValue.Stencil = StencilClearValue;
+	}
+
+	LinearColor GetClearColor() const
+	{
+		assert(ColorBinding == EClearBinding::EColorBound);
+		return LinearColor(Value.Color[0], Value.Color[1], Value.Color[2], Value.Color[3]);
+	}
+
+	void GetDepthStencil(float& OutDepth, uint32& OutStencil) const
+	{
+		assert(ColorBinding == EClearBinding::EDepthStencilBound);
+		OutDepth = Value.DSValue.Depth;
+		OutStencil = Value.DSValue.Stencil;
+	}
+
+	bool operator==(const FClearValueBinding& Other) const
+	{
+		if (ColorBinding == Other.ColorBinding)
+		{
+			if (ColorBinding == EClearBinding::EColorBound)
+			{
+				return
+					Value.Color[0] == Other.Value.Color[0] &&
+					Value.Color[1] == Other.Value.Color[1] &&
+					Value.Color[2] == Other.Value.Color[2] &&
+					Value.Color[3] == Other.Value.Color[3];
+
+			}
+			if (ColorBinding == EClearBinding::EDepthStencilBound)
+			{
+				return
+					Value.DSValue.Depth == Other.Value.DSValue.Depth &&
+					Value.DSValue.Stencil == Other.Value.DSValue.Stencil;
+			}
+			return true;
+		}
+		return false;
+	}
+
+	EClearBinding ColorBinding;
+
+	union ClearValueType
+	{
+		float Color[4];
+		DSVAlue DSValue;
+	} Value;
+
+	// common clear values
+	static const FClearValueBinding None;
+	static const FClearValueBinding Black;
+	static const FClearValueBinding White;
+	static const FClearValueBinding Transparent;
+	static const FClearValueBinding DepthOne;
+	static const FClearValueBinding DepthZero;
+	static const FClearValueBinding DepthNear;
+	static const FClearValueBinding DepthFar;
+	static const FClearValueBinding Green;
+	static const FClearValueBinding DefaultNormal8Bit;
+};
+#undef PF_MAX
+enum EPixelFormat
+{
+	PF_Unknown = 0,
+	PF_A32B32G32R32F = 1,
+	PF_B8G8R8A8 = 2,
+	PF_G8 = 3,
+	PF_G16 = 4,
+	PF_DXT1 = 5,
+	PF_DXT3 = 6,
+	PF_DXT5 = 7,
+	PF_UYVY = 8,
+	PF_FloatRGB = 9,
+	PF_FloatRGBA = 10,
+	PF_DepthStencil = 11,
+	PF_ShadowDepth = 12,
+	PF_R32_FLOAT = 13,
+	PF_G16R16 = 14,
+	PF_G16R16F = 15,
+	PF_G16R16F_FILTER = 16,
+	PF_G32R32F = 17,
+	PF_A2B10G10R10 = 18,
+	PF_A16B16G16R16 = 19,
+	PF_D24 = 20,
+	PF_R16F = 21,
+	PF_R16F_FILTER = 22,
+	PF_BC5 = 23,
+	PF_V8U8 = 24,
+	PF_A1 = 25,
+	PF_FloatR11G11B10 = 26,
+	PF_A8 = 27,
+	PF_R32_UINT = 28,
+	PF_R32_SINT = 29,
+	PF_PVRTC2 = 30,
+	PF_PVRTC4 = 31,
+	PF_R16_UINT = 32,
+	PF_R16_SINT = 33,
+	PF_R16G16B16A16_UINT = 34,
+	PF_R16G16B16A16_SINT = 35,
+	PF_R5G6B5_UNORM = 36,
+	PF_R8G8B8A8 = 37,
+	PF_A8R8G8B8 = 38,	// Only used for legacy loading; do NOT use!
+	PF_BC4 = 39,
+	PF_R8G8 = 40,
+	PF_ATC_RGB = 41,
+	PF_ATC_RGBA_E = 42,
+	PF_ATC_RGBA_I = 43,
+	PF_X24_G8 = 44,	// Used for creating SRVs to alias a DepthStencil buffer to read Stencil. Don't use for creating textures.
+	PF_ETC1 = 45,
+	PF_ETC2_RGB = 46,
+	PF_ETC2_RGBA = 47,
+	PF_R32G32B32A32_UINT = 48,
+	PF_R16G16_UINT = 49,
+	PF_ASTC_4x4 = 50,	// 8.00 bpp
+	PF_ASTC_6x6 = 51,	// 3.56 bpp
+	PF_ASTC_8x8 = 52,	// 2.00 bpp
+	PF_ASTC_10x10 = 53,	// 1.28 bpp
+	PF_ASTC_12x12 = 54,	// 0.89 bpp
+	PF_BC6H = 55,
+	PF_BC7 = 56,
+	PF_R8_UINT = 57,
+	PF_L8 = 58,
+	PF_XGXR8 = 59,
+	PF_R8G8B8A8_UINT = 60,
+	PF_R8G8B8A8_SNORM = 61,
+	PF_R16G16B16A16_UNORM = 62,
+	PF_R16G16B16A16_SNORM = 63,
+	PF_MAX = 64,
+
+};
+
+/** Information about a pixel format. */
+struct FPixelFormatInfo
+{
+	const wchar_t*	Name;
+	int32			BlockSizeX,
+					BlockSizeY,
+					BlockSizeZ,
+					BlockBytes,
+					NumComponents;
+	/** Platform specific token, e.g. D3DFORMAT with D3DDrv										*/
+	uint32			PlatformFormat;
+	/** Whether the texture format is supported on the current platform/ rendering combination	*/
+	bool			Supported;
+	EPixelFormat	UnrealFormat;
+};
+
+
+class FD3D11Texture2D
+{
+public:
+	FD3D11Texture2D(
+		uint32 InSizeX, 
+		uint32 InSizeY, 
+		uint32 InNumMips, 
+		uint32 InNumSamples, 
+		EPixelFormat InFormat,
+		uint32 InFlags, 
+		const FClearValueBinding& InClearValue,
+		ID3D11Texture2D* InResource,
+		ID3D11ShaderResourceView* InShaderResourceView,
+		int32 InRTVArraySize,
+		bool bInCreatedRTVsPerSlice,
+		const std::vector<ComPtr<ID3D11RenderTargetView>>& InRenderTargetViews,
+		ComPtr<ID3D11DepthStencilView>* InDepthStencilViews
+		) 
+	: SizeX(InSizeX)
+	, SizeY(InSizeY)
+	, ClearValue(InClearValue)
+	, NumMips(InNumMips)
+	, NumSamples(InNumSamples)
+	, Format(InFormat)
+	, Flags(InFlags)
+	, MemorySize(0)
+	, Resource(InResource)
+	, ShaderResourceView(InShaderResourceView)
+	, RenderTargetViews(InRenderTargetViews)
+	, bCreatedRTVsPerSlice(bInCreatedRTVsPerSlice)
+	, RTVArraySize(InRTVArraySize)
+	, NumDepthStencilViews(0)
+	{}
+
+	uint32 GetSizeX() const { return SizeX; }
+	uint32 GetSizeY() const { return SizeY; }
+	inline IntPoint GetSizeXY() const { return IntPoint(SizeX, SizeY); }
+	uint32 GetNumMips() const { return NumMips; }
+	EPixelFormat GetFormat() const { return Format; }
+	uint32 GetFlags() const { return Flags; }
+	uint32 GetNumSamples() const { return NumSamples; }
+	bool IsMultisampled() const { return NumSamples > 1; }
+	
+	ID3D11Texture2D* GetResource() const { return Resource.Get(); }
+	ID3D11ShaderResourceView* GetShaderResourceView() const { return ShaderResourceView.Get(); }
+	ID3D11RenderTargetView* GetRenderTargetView(int32 MipIndex, int32 ArraySliceIndex) const
+	{
+		int32 ArrayIndex = MipIndex;
+
+		if (bCreatedRTVsPerSlice)
+		{
+			assert(ArraySliceIndex >= 0);
+			ArrayIndex = MipIndex * RTVArraySize + ArraySliceIndex;
+		}
+		else
+		{
+			// Catch attempts to use a specific slice without having created the texture to support it
+			assert(ArraySliceIndex == -1 || ArraySliceIndex == 0);
+		}
+
+		if ((uint32)ArrayIndex < (uint32)RenderTargetViews.size())
+		{
+			return RenderTargetViews[ArrayIndex].Get();
+		}
+		return 0;
+	}
+	ID3D11DepthStencilView* GetDepthStencilView(FExclusiveDepthStencil AccessType) const
+	{
+		return DepthStencilViews[AccessType.GetIndex()].Get();
+	}
+	// New Monolithic Graphics drivers have optional "fast calls" replacing various D3d functions
+	// You can't use fast version of XXSetShaderResources (called XXSetFastShaderResource) on dynamic or d/s targets
+	bool HasDepthStencilView()
+	{
+		return (NumDepthStencilViews > 0);
+	}
+	bool HasClearValue() const
+	{
+		return ClearValue.ColorBinding != EClearBinding::ENoneBound;
+	}
+	LinearColor GetClearColor() const
+	{
+		return ClearValue.GetClearColor();
+	}
+	void GetDepthStencilClearValue(float& OutDepth, uint32& OutStencil) const
+	{
+		return ClearValue.GetDepthStencil(OutDepth, OutStencil);
+	}
+	float GetDepthClearValue() const
+	{
+		float Depth;
+		uint32 Stencil;
+		ClearValue.GetDepthStencil(Depth, Stencil);
+		return Depth;
+	}
+	uint32 GetStencilClearValue() const
+	{
+		float Depth;
+		uint32 Stencil;
+		ClearValue.GetDepthStencil(Depth, Stencil);
+		return Stencil;
+	}
+	const FClearValueBinding GetClearBinding() const
+	{
+		return ClearValue;
+	}
+
+	void Release()
+	{
+
+	}
+private:
+	uint32 SizeX;
+	uint32 SizeY;
+	FClearValueBinding ClearValue;
+	uint32 NumMips;
+	uint32 NumSamples;
+	EPixelFormat Format;
+	uint32 Flags;
+
+	int32 MemorySize;
+	ComPtr<ID3D11Texture2D> Resource;
+	ComPtr<ID3D11ShaderResourceView> ShaderResourceView;
+	std::vector<ComPtr<ID3D11RenderTargetView>> RenderTargetViews;
+	bool bCreatedRTVsPerSlice;
+	int32 RTVArraySize;
+	ComPtr<ID3D11DepthStencilView> DepthStencilViews[FExclusiveDepthStencil::MaxIndex];
+	/** Number of Depth Stencil Views - used for fast call tracking. */
+	uint32	NumDepthStencilViews;
+
+};
+
+/** Flags used for texture creation */
+enum ETextureCreateFlags
+{
+	TexCreate_None = 0,
+
+	// Texture can be used as a render target
+	TexCreate_RenderTargetable = 1 << 0,
+	// Texture can be used as a resolve target
+	TexCreate_ResolveTargetable = 1 << 1,
+	// Texture can be used as a depth-stencil target.
+	TexCreate_DepthStencilTargetable = 1 << 2,
+	// Texture can be used as a shader resource.
+	TexCreate_ShaderResource = 1 << 3,
+
+	// Texture is encoded in sRGB gamma space
+	TexCreate_SRGB = 1 << 4,
+	// Texture will be created without a packed miptail
+	TexCreate_NoMipTail = 1 << 5,
+	// Texture will be created with an un-tiled format
+	TexCreate_NoTiling = 1 << 6,
+	// Texture that may be updated every frame
+	TexCreate_Dynamic = 1 << 8,
+	// Allow silent texture creation failure
+	TexCreate_AllowFailure = 1 << 9,
+	// Disable automatic defragmentation if the initial texture memory allocation fails.
+	TexCreate_DisableAutoDefrag = 1 << 10,
+	// Create the texture with automatic -1..1 biasing
+	TexCreate_BiasNormalMap = 1 << 11,
+	// Create the texture with the flag that allows mip generation later, only applicable to D3D11
+	TexCreate_GenerateMipCapable = 1 << 12,
+
+	// The texture can be partially allocated in fastvram
+	TexCreate_FastVRAMPartialAlloc = 1 << 13,
+	// UnorderedAccessView (DX11 only)
+	// Warning: Causes additional synchronization between draw calls when using a render target allocated with this flag, use sparingly
+	// See: GCNPerformanceTweets.pdf Tip 37
+	TexCreate_UAV = 1 << 16,
+	// Render target texture that will be displayed on screen (back buffer)
+	TexCreate_Presentable = 1 << 17,
+	// Texture data is accessible by the CPU
+	TexCreate_CPUReadback = 1 << 18,
+	// Texture was processed offline (via a texture conversion process for the current platform)
+	TexCreate_OfflineProcessed = 1 << 19,
+	// Texture needs to go in fast VRAM if available (HINT only)
+	TexCreate_FastVRAM = 1 << 20,
+	// by default the texture is not showing up in the list - this is to reduce clutter, using the FULL option this can be ignored
+	TexCreate_HideInVisualizeTexture = 1 << 21,
+	// Texture should be created in virtual memory, with no physical memory allocation made
+	// You must make further calls to RHIVirtualTextureSetFirstMipInMemory to allocate physical memory
+	// and RHIVirtualTextureSetFirstMipVisible to map the first mip visible to the GPU
+	TexCreate_Virtual = 1 << 22,
+	// Creates a RenderTargetView for each array slice of the texture
+	// Warning: if this was specified when the resource was created, you can't use SV_RenderTargetArrayIndex to route to other slices!
+	TexCreate_TargetArraySlicesIndependently = 1 << 23,
+	// Texture that may be shared with DX9 or other devices
+	TexCreate_Shared = 1 << 24,
+	// RenderTarget will not use full-texture fast clear functionality.
+	TexCreate_NoFastClear = 1 << 25,
+	// Texture is a depth stencil resolve target
+	TexCreate_DepthStencilResolveTarget = 1 << 26,
+	// Flag used to indicted this texture is a streamable 2D texture, and should be counted towards the texture streaming pool budget.
+	TexCreate_Streamable = 1 << 27,
+	// Render target will not FinalizeFastClear; Caches and meta data will be flushed, but clearing will be skipped (avoids potentially trashing metadata)
+	TexCreate_NoFastClearFinalize = 1 << 28,
+	// Hint to the driver that this resource is managed properly by the engine for Alternate-Frame-Rendering in mGPU usage.
+	TexCreate_AFRManual = 1 << 29,
+	// Workaround for 128^3 volume textures getting bloated 4x due to tiling mode on PS4
+	TexCreate_ReduceMemoryWithTilingMode = 1 << 30,
+	/** Texture should be allocated from transient memory. */
+	TexCreate_Transient = 1 << 31
+};
+
+FD3D11Texture2D* CreateD3D11Texture2D(uint32 SizeX, uint32 SizeY, uint32 SizeZ, bool bTextureArray, bool bCubeTexture, EPixelFormat Format, uint32 NumMips, uint32 NumSamples, uint32 Flags, FClearValueBinding ClearBindingValue = FClearValueBinding::Transparent, void* BulkData = nullptr, uint32 BulkDataSize = 0);
+ID3D11ShaderResourceView* RHICreateShaderResourceView(FD3D11Texture2D* Texture2DRHI, uint16 MipLevel);
+
+inline FD3D11Texture2D* RHICreateTexture2D(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 NumSamples, uint32 Flags, FClearValueBinding ClearBindingValue = FClearValueBinding::Transparent, void* BulkData = nullptr, uint32 BulkDataSize = 0)
+{
+	return CreateD3D11Texture2D(SizeX, SizeY,0,false,false, (EPixelFormat)Format, NumMips, NumSamples, Flags, ClearBindingValue, BulkData, BulkDataSize);
+}
+
+enum class ERenderTargetLoadAction : uint8
+{
+	ENoAction,
+	ELoad,
+	EClear,
+
+	Num,
+	NumBits = 2,
+};
+inline void RHICreateTargetableShaderResource2D(
+	uint32 SizeX,
+	uint32 SizeY,
+	uint8 Format,
+	uint32 NumMips,
+	uint32 Flags,
+	uint32 TargetableTextureFlags,
+	bool bForceSeparateTargetAndShaderResource,
+	FClearValueBinding ClearValue,
+	FD3D11Texture2D*& OutTargetableTexture,
+	FD3D11Texture2D*& OutShaderResourceTexture,
+	uint32 NumSamples = 1
+)
+{
+	// Ensure none of the usage flags are passed in.
+	assert(!(Flags & TexCreate_RenderTargetable));
+	assert(!(Flags & TexCreate_ResolveTargetable));
+	assert(!(Flags & TexCreate_ShaderResource));
+
+	// Ensure that all of the flags provided for the targetable texture are not already passed in Flags.
+	assert(!(Flags & TargetableTextureFlags));
+
+	// Ensure that the targetable texture is either render or depth-stencil targetable.
+	assert(TargetableTextureFlags & (TexCreate_RenderTargetable | TexCreate_DepthStencilTargetable | TexCreate_UAV));
+
+	if (NumSamples > 1)
+	{
+		bForceSeparateTargetAndShaderResource = true; // RHISupportsSeparateMSAAAndResolveTextures(GMaxRHIShaderPlatform);
+	}
+
+	if (!bForceSeparateTargetAndShaderResource/* && GSupportsRenderDepthTargetableShaderResources*/)
+	{
+		// Create a single texture that has both TargetableTextureFlags and TexCreate_ShaderResource set.
+		OutTargetableTexture = OutShaderResourceTexture = RHICreateTexture2D(SizeX, SizeY, Format, NumMips, NumSamples, Flags | TargetableTextureFlags | TexCreate_ShaderResource, ClearValue);
+	}
+	else
+	{
+		uint32 ResolveTargetableTextureFlags = TexCreate_ResolveTargetable;
+		if (TargetableTextureFlags & TexCreate_DepthStencilTargetable)
+		{
+			ResolveTargetableTextureFlags |= TexCreate_DepthStencilResolveTarget;
+		}
+		// Create a texture that has TargetableTextureFlags set, and a second texture that has TexCreate_ResolveTargetable and TexCreate_ShaderResource set.
+		OutTargetableTexture = RHICreateTexture2D(SizeX, SizeY, Format, NumMips, NumSamples, Flags | TargetableTextureFlags, ClearValue);
+		OutShaderResourceTexture = RHICreateTexture2D(SizeX, SizeY, Format, NumMips, 1, Flags | ResolveTargetableTextureFlags | TexCreate_ShaderResource, ClearValue);
+	}
+}
+extern FPixelFormatInfo GPixelFormats[PF_MAX];
+/** RHI representation of a single stream out element. */
+struct FStreamOutElement
+{
+	/** Index of the output stream from the geometry shader. */
+	uint32 Stream;
+
+	/** Semantic name of the output element as defined in the geometry shader.  This should not contain the semantic number. */
+	const char* SemanticName;
+
+	/** Semantic index of the output element as defined in the geometry shader.  For example "TEXCOORD5" in the shader would give a SemanticIndex of 5. */
+	uint32 SemanticIndex;
+
+	/** Start component index of the shader output element to stream out. */
+	uint8 StartComponent;
+
+	/** Number of components of the shader output element to stream out. */
+	uint8 ComponentCount;
+
+	/** Stream output target slot, corresponding to the streams set by RHISetStreamOutTargets. */
+	uint8 OutputSlot;
+
+	FStreamOutElement() {}
+	FStreamOutElement(uint32 InStream, const char* InSemanticName, uint32 InSemanticIndex, uint8 InComponentCount, uint8 InOutputSlot) :
+		Stream(InStream),
+		SemanticName(InSemanticName),
+		SemanticIndex(InSemanticIndex),
+		StartComponent(0),
+		ComponentCount(InComponentCount),
+		OutputSlot(InOutputSlot)
+	{}
+};
+
+typedef std::vector<FStreamOutElement> FStreamOutElementList;
+
+enum EShaderFrequency
+{
+	SF_Vertex = 0,
+	SF_Hull = 1,
+	SF_Domain = 2,
+	SF_Pixel = 3,
+	SF_Geometry = 4,
+	SF_Compute = 5,
+
+	SF_NumFrequencies = 6,
+
+	SF_NumBits = 3,
+};

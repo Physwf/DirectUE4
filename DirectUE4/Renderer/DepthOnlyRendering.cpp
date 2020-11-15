@@ -40,12 +40,27 @@ void InitPrePass()
 	PrePassBlendState = TStaticBlendState<>::GetRHI();
 }
 
-void RenderPrePassView(ViewInfo& View)
+void SceneRenderer::RenderPrePassView(ViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState)
 {
 	SCOPED_DRAW_EVENT_FORMAT(EventPrePass, TEXT("PrePass"));
 
 	RenderTargets& SceneContex = RenderTargets::Get();
 	SceneContex.BeginRenderingPrePass(true);
+
+	D3D11DeviceContext->RSSetScissorRects(0, NULL);
+	D3D11_VIEWPORT VP = { 
+		(float)View.ViewRect.Min.X, 
+		(float)View.ViewRect.Min.Y, 
+		(float)(View.ViewRect.Max.X - View.ViewRect.Min.X),
+		(float)(View.ViewRect.Max.Y - View.ViewRect.Min.Y),
+		0.f,1.f 
+	};
+	D3D11DeviceContext->RSSetViewports(1, &VP);
+
+	Scene->PositionOnlyDepthDrawList.DrawVisible(D3D11DeviceContext, View, DrawRenderState);
+	Scene->DepthDrawList.DrawVisible(D3D11DeviceContext, View, DrawRenderState);
+	/*
+	
 
 	const ParameterAllocation& ViewParams = PrePassVSParams.at("View");
 	const ParameterAllocation& PrimitiveParams = PrePassVSParams.at("Primitive");
@@ -77,12 +92,97 @@ void RenderPrePassView(ViewInfo& View)
 			D3D11DeviceContext->DrawIndexed(MB.Elements[Element].NumTriangles * 3, MB.Elements[Element].FirstIndex, 0);
 		}
 	}
+	*/
 }
 
 void SceneRenderer::RenderPrePass()
 {
+
 	for (uint32 ViewIndex = 0; ViewIndex < Views.size(); ++ViewIndex)
 	{
-		RenderPrePassView(Views[ViewIndex]);
+// 		FSceneTexturesUniformParameters SceneTextureParameters;
+// 		SetupSceneTextureUniformParameters(SceneContext, View.FeatureLevel, ESceneTextureSetupMode::None, SceneTextureParameters);
+// 		TUniformBufferRef<FSceneTexturesUniformParameters> PassUniformBuffer = TUniformBufferRef<FSceneTexturesUniformParameters>::CreateUniformBufferImmediate(SceneTextureParameters, UniformBuffer_SingleFrame);
+// 		FDrawingPolicyRenderState DrawRenderState(View, PassUniformBuffer);
+
+// 
+
+// 		RenderPrePassView(Views[ViewIndex]);
+
 	}
+}
+
+FDepthDrawingPolicy::FDepthDrawingPolicy(
+	const FVertexFactory* InVertexFactory, 
+	/*const FMaterialRenderProxy* InMaterialRenderProxy, */ 
+	/*const FMaterial& InMaterialResource, */ 
+	/*const FMeshDrawingPolicyOverrideSettings& InOverrideSettings, */ 
+	/*ERHIFeatureLevel::Type InFeatureLevel, */ 
+	float MobileColorValue)
+	: FMeshDrawingPolicy(InVertexFactory)
+{
+	VertexShader;
+	PixelShader;
+	BaseVertexShader = VertexShader;
+}
+
+void FDepthDrawingPolicy::SetMeshRenderState(
+	ID3D11DeviceContext* Context, 
+	const SceneView& View, 
+	/*const FPrimitiveSceneProxy* PrimitiveSceneProxy, */ 
+	const FMeshBatch& Mesh, 
+	int32 BatchElementIndex,  
+const FDrawingPolicyRenderState& DrawRenderState/*,  */
+/*const ElementDataType& ElementData, */ 
+/*const ContextDataType PolicyContext */) const
+{
+
+}
+
+
+FPositionOnlyDepthDrawingPolicy::FPositionOnlyDepthDrawingPolicy(
+	const FVertexFactory* InVertexFactory/*, */ 
+	/*const FMaterialRenderProxy* InMaterialRenderProxy, */ 
+	/*const FMaterial& InMaterialResource, */ 
+	/*const FMeshDrawingPolicyOverrideSettings& InOverrideSettings */
+) : FMeshDrawingPolicy(InVertexFactory/*, InMaterialRenderProxy, InMaterialResource, InOverrideSettings, DVSM_None*/)
+{
+
+}
+
+void FPositionOnlyDepthDrawingPolicy::SetSharedState(ID3D11DeviceContext* Context, const FDrawingPolicyRenderState& DrawRenderState, const SceneView* View/*, const ContextDataType PolicyContext*/) const
+{
+
+}
+
+void FPositionOnlyDepthDrawingPolicy::SetMeshRenderState(ID3D11DeviceContext* Context, const SceneView& View, /*const FPrimitiveSceneProxy* PrimitiveSceneProxy, */ const FMeshBatch& Mesh, int32 BatchElementIndex,  const FDrawingPolicyRenderState& DrawRenderState/*,*/  /*const ElementDataType& ElementData, */ /*const ContextDataType PolicyContext */) const
+{
+
+}
+
+void FDepthDrawingPolicyFactory::AddStaticMesh(FScene* Scene, FStaticMesh* StaticMesh)
+{
+	FPositionOnlyDepthDrawingPolicy DrawingPolicy(StaticMesh->VertexFactory//,
+		//DefaultProxy,
+		//*DefaultProxy->GetMaterial(Scene->GetFeatureLevel()),
+		//OverrideSettings
+	);
+
+	// Add the static mesh to the position-only depth draw list.
+	Scene->PositionOnlyDepthDrawList.AddMesh(
+		StaticMesh,
+		/*FPositionOnlyDepthDrawingPolicy::ElementDataType(),*/
+		DrawingPolicy//,
+		/*FeatureLevel*/
+	);
+}
+
+bool FDepthDrawingPolicyFactory::DrawDynamicMesh(ID3D11DeviceContext* Context, const ViewInfo& View, /*ContextType DrawingContext, */ const FMeshBatch& Mesh, /*bool bPreFog, */ /*const FDrawingPolicyRenderState& DrawRenderState, */ /*const FPrimitiveSceneProxy* PrimitiveSceneProxy, */ /*FHitProxyId HitProxyId, */ /*const bool bIsInstancedStereo = false, */ const bool bIsInstancedStereoEmulated /*= false */)
+{
+	return false;
+}
+
+bool FDepthDrawingPolicyFactory::DrawStaticMesh(ID3D11DeviceContext* Context, const ViewInfo& View, /*ContextType DrawingContext, */ const FStaticMesh& StaticMesh, const uint64& BatchElementMask, /*bool bPreFog, */ /*const FDrawingPolicyRenderState& DrawRenderState, */ /*const FPrimitiveSceneProxy* PrimitiveSceneProxy, */ /*FHitProxyId HitProxyId, */ /*const bool bIsInstancedStereo = false, */ const bool bIsInstancedStereoEmulated /*= false */)
+{
+	return false;
 }

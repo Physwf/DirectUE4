@@ -37,7 +37,7 @@ find_library(DirectXTexLib DirectXTex HINTS ${DirectXTexDir}DirectXTex/Bin/Deskt
 
 #https://www.jianshu.com/p/66df9650a9e2
 ADD_CUSTOM_COMMAND(TARGET DirectUE4
-        PRE_BUILD
+        POST_BUILD
         COMMENT "Copy Shaders"
         COMMAND @if exist $(TargetDir)\\Shaders\\ (@echo "No Need mkdir") else ( @mkdir  $(TargetDir)\\Shaders\\ )
         COMMAND @copy $(SolutionDir)..\\DirectUE4\\Shaders\\*.hlsl  $(TargetDir)\\Shaders\\

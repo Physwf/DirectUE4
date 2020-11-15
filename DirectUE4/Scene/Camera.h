@@ -18,8 +18,6 @@ public:
 	SceneView* CalcSceneView(SceneViewFamily& ViewFamily, Viewport& VP);
 
 	virtual void Tick(float fDeltaSeconds) override;
-	virtual void Register() override {};
-	virtual void UnRegister() override {};
 public:
 	Vector FaceDir;
 	Vector Up;

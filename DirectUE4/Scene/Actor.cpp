@@ -8,11 +8,6 @@ Actor::~Actor()
 {
 }
 
-void Actor::Register()
-{
-
-}
-
 void Actor::SetPosition(Vector InPosition)
 {
 	Position = InPosition;

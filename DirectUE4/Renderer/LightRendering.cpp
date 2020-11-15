@@ -150,6 +150,7 @@ std::map<std::string, ParameterAllocation> LightPassPSParams;
 
 void InitLightPass()
 {
+	/*
 	LightPassVSByteCode = CompileVertexShader(TEXT("./Shaders/DeferredLightVertexShader.hlsl"), "VS_Main");
 	LightPassPSByteCode = CompilePixelShader(TEXT("./Shaders/DeferredLightPixelShader.hlsl"), "PS_Main");
 	GetShaderParameterAllocations(LightPassVSByteCode, LightPassVSParams);
@@ -186,7 +187,7 @@ void InitLightPass()
 	
 	LightAttenuationSRV = CreateShaderResourceView2D(ShadowProjectionRT, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 0);
 	LightAttenuationSampleState = TStaticSamplerState<>::GetRHI();
-
+	*/
 	/*
 
 	DLU.LightPosition = Vector(0.0f, 0.0f, 0.0f);
@@ -214,6 +215,7 @@ void InitLightPass()
 
 void SceneRenderer::RenderLight()
 {
+	/*
 	for (uint32 ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
 	{
 		ViewInfo& View = Views[ViewIndex];
@@ -279,6 +281,7 @@ void SceneRenderer::RenderLight()
 			D3D11DeviceContext->PSSetSamplers(GBufferATextureSamplerParam.BaseIndex + i, 1, &Sampler);
 		}
 	}
+	*/
 }
 
 void SceneRenderer::RenderLights()

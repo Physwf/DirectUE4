@@ -59,17 +59,16 @@ void SkeletalMeshLODRenderData::BuildFromLODModel(const SkeletalMeshLODModel* Im
 
 	// init vertex buffer with the vertex array
 	StaticVertexBuffers.PositionVertexBuffer.resize(Vertices.size());
-	size_t StaticMeshVertexBufferStride = 3 * sizeof(Vector) / sizeof(float) + ImportedModel->NumTexCoords * sizeof(Vector2) / sizeof(float);
+	size_t StaticMeshVertexBufferStride = 2 * sizeof(Vector4) / sizeof(float) + ImportedModel->NumTexCoords * sizeof(Vector2) / sizeof(float);//2个Vector4给tangent,NumTexCoords个Vector2给UV
 	StaticVertexBuffers.StaticMeshVertexBuffer.resize(Vertices.size() * StaticMeshVertexBufferStride);
 
 	for (uint32 i = 0; i < Vertices.size(); i++)
 	{
 		StaticVertexBuffers.PositionVertexBuffer[i] = Vertices[i].Position;
-		Vector* TangentStart = (Vector*)(StaticVertexBuffers.StaticMeshVertexBuffer.data() + i * StaticMeshVertexBufferStride);
-		Vector2* TexCoordsStart = (Vector2*)(StaticVertexBuffers.StaticMeshVertexBuffer.data() + i * StaticMeshVertexBufferStride + 3 * sizeof(Vector) / sizeof(float));
+		Vector4* TangentStart = (Vector4*)(StaticVertexBuffers.StaticMeshVertexBuffer.data() + i * StaticMeshVertexBufferStride);
+		Vector2* TexCoordsStart = (Vector2*)(StaticVertexBuffers.StaticMeshVertexBuffer.data() + i * StaticMeshVertexBufferStride + 2 * sizeof(Vector4) / sizeof(float));
 		TangentStart[0] = Vertices[i].TangentX;
-		TangentStart[1] = Vertices[i].TangentY;
-		TangentStart[2] = Vertices[i].TangentZ;
+		TangentStart[1] = Vector4(Vertices[i].TangentZ, GetBasisDeterminantSign(Vertices[i].TangentX, Vertices[i].TangentY, Vertices[i].TangentZ));
 		//StaticVertexBuffers.StaticMeshVertexBuffer[i].SetVertexTangents(i, Vertices[i].TangentX, Vertices[i].TangentY, Vertices[i].TangentZ);
 		for (uint32 j = 0; j < ImportedModel->NumTexCoords; j++)
 		{

@@ -93,6 +93,7 @@ std::map<std::string, ParameterAllocation> BasePassPSParams;
 
 void InitBasePass()
 {
+	/*
 	//LightMapRendering.cpp
 	const Vector2 LightmapCoordinateScale = { 0.484375000 ,0.968750000 };// LightMapInteraction.GetCoordinateScale();// LightmapCoordinateScale = { X = 0.484375000 Y = 0.968750000 } LightmapCoordinateBias = { X = 0.00781250000 Y = 0.0156250000 }
 	const Vector2 LightmapCoordinateBias = { 0.00781250000 ,0156250000 }; //LightMapInteraction.GetCoordinateBias();
@@ -194,9 +195,11 @@ void InitBasePass()
 		// 		ID3D11SamplerState* PrecomputedLighting_IndirectLightingCacheTextureSampler1;
 		// 		ID3D11SamplerState* PrecomputedLighting_IndirectLightingCacheTextureSampler2;
 	}
+	*/
 }
 void RenderBasePassView(ViewInfo& View)
 {
+	/*
 	RenderTargets& SceneContext = RenderTargets::Get();
 	SceneContext.BeginRenderingGBuffer(true);
 
@@ -257,10 +260,12 @@ void RenderBasePassView(ViewInfo& View)
 		}
 
 	}
+	*/
 }
 
 void SceneRenderer::RenderBasePass()
 {
+	/*
 	SCOPED_DRAW_EVENT_FORMAT(RenderBasePass, TEXT("BasePass"));
 	for (uint32 ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
 	{
@@ -272,4 +277,5 @@ void SceneRenderer::RenderBasePass()
 		//CreateOpaqueBasePassUniformBuffer(RHICmdList, View, ForwardScreenSpaceShadowMask, BasePassUniformBuffer);
 		RenderBasePassView(View);
 	}
+	*/
 }

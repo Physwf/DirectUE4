@@ -187,6 +187,9 @@ struct FQuat;
 struct Vector4;
 struct Vector;
 struct Vector2;
+struct FBox;
+class FSphere;
+struct FTransform;
 
 namespace EAxis
 {
@@ -455,6 +458,12 @@ public:
 		return (nonnegative ? FASTASIN_HALF_PI - result : result - FASTASIN_HALF_PI);
 	}
 #undef FASTASIN_HALF_PI
+	static bool SphereAABBIntersection(const Vector& SphereCenter, const float RadiusSquared, const FBox& AABB);
+	static bool SphereAABBIntersection(const FSphere& Sphere, const FBox& AABB);
+	static FSphere ComputeBoundingSphereForCone(Vector const& ConeOrigin, Vector const& ConeDirection, float ConeRadius, float CosConeAngle, float SinConeAngle);
+	static bool PointBoxIntersection(const Vector& Point, const FBox& Box);
+	static bool LineBoxIntersection(const FBox& Box, const Vector& Start, const Vector& End, const Vector& Direction);
+	static bool LineBoxIntersection(const FBox& Box, const Vector& Start, const Vector& End, const Vector& Direction, const Vector& OneOverDirection);
 };
 
 
@@ -646,6 +655,7 @@ struct Vector
 	Vector operator+(const Vector& rhs) const;
 	Vector operator-(const Vector& rhs) const;
 	Vector operator*(const Vector& rhs) const;
+	Vector operator+(float Bias) const;
 	Vector operator*(float Value) const;
 	Vector operator/(float Value) const;
 	Vector operator^(const Vector& rhs) const;
@@ -686,7 +696,10 @@ struct Vector
 	float GetAbsMin() const;
 	inline bool Vector::ContainsNaN() const;
 	bool IsZero() const;
+	Vector Reciprocal() const;
 };
+
+float ComputeSquaredDistanceFromBoxToPoint(const Vector& Mins, const Vector& Maxs, const Vector& Point);
 
 inline Vector::Vector(std::initializer_list<float> list)
 {
@@ -743,7 +756,10 @@ inline Vector Vector::operator*=(const Vector& rhs)
 	X *= rhs.X; Y *= rhs.Y; Z *= rhs.Z;;
 	return *this;
 }
-
+inline Vector Vector::operator+(float Bias) const
+{
+	return Vector(X + Bias, Y + Bias, Z + Bias);
+}
 inline Vector Vector::operator*=(float Value)
 {
 	X *= Value; Y *= Value; Z *= Value;
@@ -1380,45 +1396,26 @@ struct Matrix
 	{
 		alignas(16) float M[4][4];
 	};
-
-
 	static alignas(16) const Matrix Identity;
-
 	Matrix() {}
-
 	Matrix(const Plane& InX, const Plane& InY, const Plane& InZ, const Plane& InW);
 	Matrix(const Vector& InX, const Vector& InY, const Vector& InZ, const Vector& InW);
-
 	void SetIndentity();
-
 	void Transpose();
-
 	Matrix GetTransposed() const;
-
 	inline Matrix Inverse() const;
-
 	inline Vector GetScaledAxis(EAxis::Type Axis) const;
-
 	inline float Determinant() const;
-
 	Matrix operator* (const Matrix& Other) const;
-
 	void operator*=(const Matrix& Other);
-
 	Matrix operator+ (const Matrix& Other) const;
-
 	void operator+=(const Matrix& Other);
-
 	Matrix operator* (float Other) const;
-
 	void operator*=(float Other);
-
 	 bool operator==(const Matrix& Other) const;
-
 	inline bool operator!=(const Matrix& Other) const;
-
 	Vector Transform(const Vector& InVector) const;
-
+	inline Vector GetUnitAxis(EAxis::Type Axis) const;
 	inline Matrix InverseFast() const
 	{
 		Matrix Result;
@@ -2030,69 +2027,415 @@ inline bool Matrix::operator!=(const Matrix& Other) const
 	return false;
 }
 
-struct Box
+struct FBox
 {
+public:
 	Vector Min;
 	Vector Max;
 	uint8 IsValid;
 
-	Box(): IsValid(0) {}
+public:
 
-	Box(const Vector& InMin, const Vector& InMax)
-		:Min(InMin)
-		,Max(InMax)
-		,IsValid(1)
+	FBox() { }
+
+	FBox(const Vector& InMin, const Vector& InMax)
+		: Min(InMin)
+		, Max(InMax)
+		, IsValid(1)
 	{ }
-
-	inline Box& operator+=(const Vector& Other)
+	 FBox(const Vector* Points, int32 Count);
+public:
+	 bool operator==(const FBox& Other) const
 	{
-		if (IsValid)
-		{
-			Min.X = fminf(Min.X, Other.X);
-			Min.Y = fminf(Min.Y, Other.Y);
-			Min.Z = fminf(Min.Z, Other.Z);
+		return (Min == Other.Min) && (Max == Other.Max);
+	}
+	 FBox& operator+=(const Vector &Other);
+	 FBox operator+(const Vector& Other) const
+	{
+		return FBox(*this) += Other;
+	}
+	 FBox& operator+=(const FBox& Other);
+	 FBox operator+(const FBox& Other) const
+	{
+		return FBox(*this) += Other;
+	}
+	 Vector& operator[](int32 Index)
+	{
+		assert((Index >= 0) && (Index < 2));
 
-			Max.X = fmaxf(Max.X, Other.X);
-			Max.Y = fmaxf(Max.Y, Other.Y);
-			Max.Z = fmaxf(Max.Z, Other.Z);
+		if (Index == 0)
+		{
+			return Min;
+		}
+
+		return Max;
+	}
+
+public:
+	 float ComputeSquaredDistanceToPoint(const Vector& Point) const
+	{
+		return ComputeSquaredDistanceFromBoxToPoint(Min, Max, Point);
+	}
+	 FBox ExpandBy(float W) const
+	{
+		return FBox(Min - Vector(W, W, W), Max + Vector(W, W, W));
+	}
+	 FBox ExpandBy(const Vector& V) const
+	{
+		return FBox(Min - V, Max + V);
+	}
+	FBox ExpandBy(const Vector& Neg, const Vector& Pos) const
+	{
+		return FBox(Min - Neg, Max + Pos);
+	}
+	 FBox ShiftBy(const Vector& Offset) const
+	{
+		return FBox(Min + Offset, Max + Offset);
+	}
+	 FBox MoveTo(const Vector& Destination) const
+	{
+		const Vector Offset = Destination - GetCenter();
+		return FBox(Min + Offset, Max + Offset);
+	}
+	 Vector GetCenter() const
+	{
+		return Vector((Min + Max) * 0.5f);
+	}
+	 void GetCenterAndExtents(Vector& center, Vector& Extents) const
+	{
+		Extents = GetExtent();
+		center = Min + Extents;
+	}
+	 Vector GetClosestPointTo(const Vector& Point) const;
+	 Vector GetExtent() const
+	{
+		return 0.5f * (Max - Min);
+	}
+	 Vector& GetExtrema(int PointIndex)
+	{
+		return (&Min)[PointIndex];
+	}
+	 const Vector& GetExtrema(int PointIndex) const
+	{
+		return (&Min)[PointIndex];
+	}
+	 Vector GetSize() const
+	{
+		return (Max - Min);
+	}
+	 float GetVolume() const
+	{
+		return ((Max.X - Min.X) * (Max.Y - Min.Y) * (Max.Z - Min.Z));
+	}
+	 void Init()
+	{
+		Min = Max = Vector::ZeroVector;
+		IsValid = 0;
+	}
+	 bool Intersect(const FBox& other) const;
+	 bool IntersectXY(const FBox& Other) const;
+	 FBox Overlap(const FBox& Other) const;
+	 FBox InverseTransformBy(const FTransform& M) const;
+	 bool IsInside(const Vector& In) const
+	{
+		return ((In.X > Min.X) && (In.X < Max.X) && (In.Y > Min.Y) && (In.Y < Max.Y) && (In.Z > Min.Z) && (In.Z < Max.Z));
+	}
+	 bool IsInsideOrOn(const Vector& In) const
+	{
+		return ((In.X >= Min.X) && (In.X <= Max.X) && (In.Y >= Min.Y) && (In.Y <= Max.Y) && (In.Z >= Min.Z) && (In.Z <= Max.Z));
+	}
+	 bool IsInside(const FBox& Other) const
+	{
+		return (IsInside(Other.Min) && IsInside(Other.Max));
+	}
+	 bool IsInsideXY(const Vector& In) const
+	{
+		return ((In.X > Min.X) && (In.X < Max.X) && (In.Y > Min.Y) && (In.Y < Max.Y));
+	}
+	 bool IsInsideXY(const FBox& Other) const
+	{
+		return (IsInsideXY(Other.Min) && IsInsideXY(Other.Max));
+	}
+	 FBox TransformBy(const Matrix& M) const;
+	 FBox TransformBy(const FTransform& M) const;
+	 FBox TransformProjectBy(const Matrix& ProjM) const;
+public:
+
+	static FBox BuildAABB(const Vector& Origin, const Vector& Extent)
+	{
+		FBox NewBox(Origin - Extent, Origin + Extent);
+
+		return NewBox;
+	}
+};
+ inline FBox& FBox::operator+=(const Vector &Other)
+{
+	if (IsValid)
+	{
+		Min.X = Math::Min(Min.X, Other.X);
+		Min.Y = Math::Min(Min.Y, Other.Y);
+		Min.Z = Math::Min(Min.Z, Other.Z);
+
+		Max.X = Math::Max(Max.X, Other.X);
+		Max.Y = Math::Max(Max.Y, Other.Y);
+		Max.Z = Math::Max(Max.Z, Other.Z);
+	}
+	else
+	{
+		Min = Max = Other;
+		IsValid = 1;
+	}
+
+	return *this;
+}
+
+
+ inline FBox& FBox::operator+=(const FBox& Other)
+{
+	if (IsValid && Other.IsValid)
+	{
+		Min.X = Math::Min(Min.X, Other.Min.X);
+		Min.Y = Math::Min(Min.Y, Other.Min.Y);
+		Min.Z = Math::Min(Min.Z, Other.Min.Z);
+
+		Max.X = Math::Max(Max.X, Other.Max.X);
+		Max.Y = Math::Max(Max.Y, Other.Max.Y);
+		Max.Z = Math::Max(Max.Z, Other.Max.Z);
+	}
+	else if (Other.IsValid)
+	{
+		*this = Other;
+	}
+
+	return *this;
+}
+
+
+ inline Vector FBox::GetClosestPointTo(const Vector& Point) const
+{
+	// start by considering the point inside the box
+	Vector ClosestPoint = Point;
+
+	// now clamp to inside box if it's outside
+	if (Point.X < Min.X)
+	{
+		ClosestPoint.X = Min.X;
+	}
+	else if (Point.X > Max.X)
+	{
+		ClosestPoint.X = Max.X;
+	}
+
+	// now clamp to inside box if it's outside
+	if (Point.Y < Min.Y)
+	{
+		ClosestPoint.Y = Min.Y;
+	}
+	else if (Point.Y > Max.Y)
+	{
+		ClosestPoint.Y = Max.Y;
+	}
+
+	// Now clamp to inside box if it's outside.
+	if (Point.Z < Min.Z)
+	{
+		ClosestPoint.Z = Min.Z;
+	}
+	else if (Point.Z > Max.Z)
+	{
+		ClosestPoint.Z = Max.Z;
+	}
+
+	return ClosestPoint;
+}
+
+
+ inline bool FBox::Intersect(const FBox& Other) const
+{
+	if ((Min.X > Other.Max.X) || (Other.Min.X > Max.X))
+	{
+		return false;
+	}
+
+	if ((Min.Y > Other.Max.Y) || (Other.Min.Y > Max.Y))
+	{
+		return false;
+	}
+
+	if ((Min.Z > Other.Max.Z) || (Other.Min.Z > Max.Z))
+	{
+		return false;
+	}
+
+	return true;
+}
+
+
+ inline bool FBox::IntersectXY(const FBox& Other) const
+{
+	if ((Min.X > Other.Max.X) || (Other.Min.X > Max.X))
+	{
+		return false;
+	}
+
+	if ((Min.Y > Other.Max.Y) || (Other.Min.Y > Max.Y))
+	{
+		return false;
+	}
+
+	return true;
+}
+
+/* Math inline functions
+*****************************************************************************/
+
+inline bool Math::PointBoxIntersection
+(
+	const Vector&	Point,
+	const FBox&		Box
+)
+{
+	if (Point.X >= Box.Min.X && Point.X <= Box.Max.X &&
+		Point.Y >= Box.Min.Y && Point.Y <= Box.Max.Y &&
+		Point.Z >= Box.Min.Z && Point.Z <= Box.Max.Z)
+		return 1;
+	else
+		return 0;
+}
+
+inline bool Math::LineBoxIntersection
+(
+	const FBox& Box,
+	const Vector& Start,
+	const Vector& End,
+	const Vector& StartToEnd
+)
+{
+	return LineBoxIntersection(Box, Start, End, StartToEnd, StartToEnd.Reciprocal());
+}
+
+inline bool Math::LineBoxIntersection
+(
+	const FBox&		Box,
+	const Vector&	Start,
+	const Vector&	End,
+	const Vector&	StartToEnd,
+	const Vector&	OneOverStartToEnd
+)
+{
+	Vector	Time;
+	bool	bStartIsOutside = false;
+
+	if (Start.X < Box.Min.X)
+	{
+		bStartIsOutside = true;
+		if (End.X >= Box.Min.X)
+		{
+			Time.X = (Box.Min.X - Start.X) * OneOverStartToEnd.X;
 		}
 		else
 		{
-			Min = Max = Other;
-			IsValid = 1;
+			return false;
 		}
-		return *this;
 	}
-
-	inline Box& operator+=(const Box& Other)
+	else if (Start.X > Box.Max.X)
 	{
-		if (IsValid && Other.IsValid)
+		bStartIsOutside = true;
+		if (End.X <= Box.Max.X)
 		{
-			Min.X = fminf(Min.X, Other.Min.X);
-			Min.Y = fminf(Min.Y, Other.Min.Y);
-			Min.Z = fminf(Min.Z, Other.Min.Z);
-
-			Max.X = fmaxf(Max.X, Other.Max.X);
-			Max.Y = fmaxf(Max.Y, Other.Max.Y);
-			Max.Z = fmaxf(Max.Z, Other.Max.Z);
+			Time.X = (Box.Max.X - Start.X) * OneOverStartToEnd.X;
 		}
-		else if (Other.IsValid)
+		else
 		{
-			*this = Other;
+			return false;
 		}
-		return *this;
+	}
+	else
+	{
+		Time.X = 0.0f;
 	}
 
-	inline Box operator+(const Vector& Other)
+	if (Start.Y < Box.Min.Y)
 	{
-		return Box(*this) += Other;
+		bStartIsOutside = true;
+		if (End.Y >= Box.Min.Y)
+		{
+			Time.Y = (Box.Min.Y - Start.Y) * OneOverStartToEnd.Y;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	else if (Start.Y > Box.Max.Y)
+	{
+		bStartIsOutside = true;
+		if (End.Y <= Box.Max.Y)
+		{
+			Time.Y = (Box.Max.Y - Start.Y) * OneOverStartToEnd.Y;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	else
+	{
+		Time.Y = 0.0f;
 	}
 
-	inline Box operator+(const Box& Other)
+	if (Start.Z < Box.Min.Z)
 	{
-		return Box(*this) += Other;
+		bStartIsOutside = true;
+		if (End.Z >= Box.Min.Z)
+		{
+			Time.Z = (Box.Min.Z - Start.Z) * OneOverStartToEnd.Z;
+		}
+		else
+		{
+			return false;
+		}
 	}
-};
+	else if (Start.Z > Box.Max.Z)
+	{
+		bStartIsOutside = true;
+		if (End.Z <= Box.Max.Z)
+		{
+			Time.Z = (Box.Max.Z - Start.Z) * OneOverStartToEnd.Z;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	else
+	{
+		Time.Z = 0.0f;
+	}
+
+	if (bStartIsOutside)
+	{
+		const float	MaxTime = Max3(Time.X, Time.Y, Time.Z);
+
+		if (MaxTime >= 0.0f && MaxTime <= 1.0f)
+		{
+			const Vector Hit = Start + StartToEnd * MaxTime;
+			const float BOX_SIDE_THRESHOLD = 0.1f;
+			if (Hit.X > Box.Min.X - BOX_SIDE_THRESHOLD && Hit.X < Box.Max.X + BOX_SIDE_THRESHOLD &&
+				Hit.Y > Box.Min.Y - BOX_SIDE_THRESHOLD && Hit.Y < Box.Max.Y + BOX_SIDE_THRESHOLD &&
+				Hit.Z > Box.Min.Z - BOX_SIDE_THRESHOLD && Hit.Z < Box.Max.Z + BOX_SIDE_THRESHOLD)
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+}
 
 inline float GetBasisDeterminantSign(const Vector& XAxis, const Vector& YAxis, const Vector& ZAxis)
 {
@@ -2187,8 +2530,8 @@ struct Frustum
 	}
 
 	Box2D GetBounds2D(const Matrix& ViewMatrix, const Vector& Axis1, const Vector& Axis2);
-	Box GetBounds(const Matrix& TransformMatrix);
-	Box GetBounds();
+	FBox GetBounds(const Matrix& TransformMatrix);
+	FBox GetBounds();
 };
 
 struct IntPoint
@@ -3290,4 +3633,251 @@ inline FQuat Math::CubicInterp(const FQuat& P0, const FQuat& T0, const FQuat& P1
 {
 	return FQuat::Squad(P0, T0, P1, T1, A);
 }
+/**
+* Implements a basic sphere.
+*/
+class FSphere
+{
+public:
+	Vector Center;
+	float W;
+public:
+	FSphere() { }
+	FSphere(int32)
+		: Center(0.0f, 0.0f, 0.0f)
+		, W(0)
+	{ }
+	FSphere(Vector InV, float InW)
+		: Center(InV)
+		, W(InW)
+	{ }
+	FSphere(const Vector* Pts, int32 Count);
 
+public:
+	bool Equals(const FSphere& Sphere, float Tolerance = KINDA_SMALL_NUMBER) const
+	{
+		return Center.Equals(Sphere.Center, Tolerance) && Math::Abs(W - Sphere.W) <= Tolerance;
+	}
+	bool IsInside(const FSphere& Other, float Tolerance = KINDA_SMALL_NUMBER) const
+	{
+		if (W > Other.W + Tolerance)
+		{
+			return false;
+		}
+
+		return (Center - Other.Center).SizeSquared() <= Math::Square(Other.W + Tolerance - W);
+	}
+	bool IsInside(const Vector& In, float Tolerance = KINDA_SMALL_NUMBER) const
+	{
+		return (Center - In).SizeSquared() <= Math::Square(W + Tolerance);
+	}
+	inline bool Intersects(const FSphere& Other, float Tolerance = KINDA_SMALL_NUMBER) const
+	{
+		return (Center - Other.Center).SizeSquared() <= Math::Square(Math::Max(0.f, Other.W + W + Tolerance));
+	}
+	FSphere TransformBy(const Matrix& M) const;
+	FSphere TransformBy(const FTransform& M) const;
+	float GetVolume() const;
+	FSphere& operator+=(const FSphere& Other);
+	FSphere operator+(const FSphere& Other) const
+	{
+		return FSphere(*this) += Other;
+	}
+};
+
+/* Math inline functions
+*****************************************************************************/
+
+/**
+* Converts a sphere into a point plus radius squared for the test above
+*/
+inline bool Math::SphereAABBIntersection(const FSphere& Sphere, const FBox& AABB)
+{
+	float RadiusSquared = Math::Square(Sphere.W);
+	// If the distance is less than or equal to the radius, they intersect
+	return SphereAABBIntersection(Sphere.Center, RadiusSquared, AABB);
+}
+
+/**
+* Computes minimal bounding sphere encompassing given cone
+*/
+inline FSphere Math::ComputeBoundingSphereForCone(Vector const& ConeOrigin, Vector const& ConeDirection, float ConeRadius, float CosConeAngle, float SinConeAngle)
+{
+	// Based on: https://bartwronski.com/2017/04/13/cull-that-cone/
+	const float COS_PI_OVER_4 = 0.707107f; // Cos(Pi/4);
+	if (CosConeAngle < COS_PI_OVER_4)
+	{
+		return FSphere(ConeOrigin + ConeDirection * ConeRadius * CosConeAngle, ConeRadius * SinConeAngle);
+	}
+	else
+	{
+		const float BoundingRadius = ConeRadius / (2.0f * CosConeAngle);
+		return FSphere(ConeOrigin + ConeDirection * BoundingRadius, BoundingRadius);
+	}
+}
+struct FBoxSphereBounds
+{
+	Vector	Origin;
+	Vector BoxExtent;
+	float SphereRadius;
+public:
+	FBoxSphereBounds() { }
+	FBoxSphereBounds(const Vector& InOrigin, const Vector& InBoxExtent, float InSphereRadius)
+		: Origin(InOrigin)
+		, BoxExtent(InBoxExtent)
+		, SphereRadius(InSphereRadius)
+	{
+		DiagnosticCheckNaN();
+	}
+	FBoxSphereBounds(const FBox& B, const FSphere& Sphere)
+	{
+		B.GetCenterAndExtents(Origin, BoxExtent);
+		SphereRadius = Math::Min(BoxExtent.Size(), (Sphere.Center - Origin).Size() + Sphere.W);
+
+		DiagnosticCheckNaN();
+	}
+	FBoxSphereBounds(const FBox& B)
+	{
+		B.GetCenterAndExtents(Origin, BoxExtent);
+		SphereRadius = BoxExtent.Size();
+
+		DiagnosticCheckNaN();
+	}
+	FBoxSphereBounds(const FSphere& Sphere)
+	{
+		Origin = Sphere.Center;
+		BoxExtent = Vector(Sphere.W);
+		SphereRadius = Sphere.W;
+
+		DiagnosticCheckNaN();
+	}
+	FBoxSphereBounds(const Vector* Points, uint32 NumPoints);
+public:
+	inline FBoxSphereBounds operator+(const FBoxSphereBounds& Other) const;
+	inline bool operator==(const FBoxSphereBounds& Other) const;
+	inline bool operator!=(const FBoxSphereBounds& Other) const;
+public:
+	inline float ComputeSquaredDistanceFromBoxToPoint(const Vector& Point) const
+	{
+		Vector Mins = Origin - BoxExtent;
+		Vector Maxs = Origin + BoxExtent;
+
+		return ::ComputeSquaredDistanceFromBoxToPoint(Mins, Maxs, Point);
+	}
+	inline static bool SpheresIntersect(const FBoxSphereBounds& A, const FBoxSphereBounds& B, float Tolerance = KINDA_SMALL_NUMBER)
+	{
+		return (A.Origin - B.Origin).SizeSquared() <= Math::Square(Math::Max(0.f, A.SphereRadius + B.SphereRadius + Tolerance));
+	}
+	inline static bool BoxesIntersect(const FBoxSphereBounds& A, const FBoxSphereBounds& B)
+	{
+		return A.GetBox().Intersect(B.GetBox());
+	}
+	inline FBox GetBox() const
+	{
+		return FBox(Origin - BoxExtent, Origin + BoxExtent);
+	}
+	Vector GetBoxExtrema(uint32 Extrema) const
+	{
+		if (Extrema)
+		{
+			return Origin + BoxExtent;
+		}
+
+		return Origin - BoxExtent;
+	}
+	inline FSphere GetSphere() const
+	{
+		return FSphere(Origin, SphereRadius);
+	}
+	inline FBoxSphereBounds ExpandBy(float ExpandAmount) const
+	{
+		return FBoxSphereBounds(Origin, BoxExtent + ExpandAmount, SphereRadius + ExpandAmount);
+	}
+	FBoxSphereBounds TransformBy(const Matrix& M) const;
+	FBoxSphereBounds TransformBy(const FTransform& M) const;
+	friend FBoxSphereBounds Union(const FBoxSphereBounds& A, const FBoxSphereBounds& B)
+	{
+		FBox BoundingBox;
+
+		BoundingBox += (A.Origin - A.BoxExtent);
+		BoundingBox += (A.Origin + A.BoxExtent);
+		BoundingBox += (B.Origin - B.BoxExtent);
+		BoundingBox += (B.Origin + B.BoxExtent);
+
+		// Build a bounding sphere from the bounding box's origin and the radii of A and B.
+		FBoxSphereBounds Result(BoundingBox);
+
+		Result.SphereRadius = Math::Min(Result.SphereRadius, Math::Max((A.Origin - Result.Origin).Size() + A.SphereRadius, (B.Origin - Result.Origin).Size() + B.SphereRadius));
+		Result.DiagnosticCheckNaN();
+
+		return Result;
+	}
+	inline void DiagnosticCheckNaN() const {}
+	inline bool ContainsNaN() const
+	{
+		return Origin.ContainsNaN() || BoxExtent.ContainsNaN() || !Math::IsFinite(SphereRadius);
+	}
+};
+inline FBoxSphereBounds::FBoxSphereBounds(const Vector* Points, uint32 NumPoints)
+{
+	FBox BoundingBox;
+
+	// find an axis aligned bounding box for the points.
+	for (uint32 PointIndex = 0; PointIndex < NumPoints; PointIndex++)
+	{
+		BoundingBox += Points[PointIndex];
+	}
+
+	BoundingBox.GetCenterAndExtents(Origin, BoxExtent);
+
+	// using the center of the bounding box as the origin of the sphere, find the radius of the bounding sphere.
+	SphereRadius = 0.0f;
+
+	for (uint32 PointIndex = 0; PointIndex < NumPoints; PointIndex++)
+	{
+		SphereRadius = Math::Max(SphereRadius, (Points[PointIndex] - Origin).Size());
+	}
+
+	DiagnosticCheckNaN();
+}
+inline FBoxSphereBounds FBoxSphereBounds::operator+(const FBoxSphereBounds& Other) const
+{
+	FBox BoundingBox;
+
+	BoundingBox += (this->Origin - this->BoxExtent);
+	BoundingBox += (this->Origin + this->BoxExtent);
+	BoundingBox += (Other.Origin - Other.BoxExtent);
+	BoundingBox += (Other.Origin + Other.BoxExtent);
+
+	// build a bounding sphere from the bounding box's origin and the radii of A and B.
+	FBoxSphereBounds Result(BoundingBox);
+
+	Result.SphereRadius = Math::Min(Result.SphereRadius, Math::Max((Origin - Result.Origin).Size() + SphereRadius, (Other.Origin - Result.Origin).Size() + Other.SphereRadius));
+	Result.DiagnosticCheckNaN();
+
+	return Result;
+}
+inline bool FBoxSphereBounds::operator==(const FBoxSphereBounds& Other) const
+{
+	return Origin == Other.Origin && BoxExtent == Other.BoxExtent &&  SphereRadius == Other.SphereRadius;
+}
+inline bool FBoxSphereBounds::operator!=(const FBoxSphereBounds& Other) const
+{
+	return !(*this == Other);
+}
+//https://stackoverflow.com/questions/27939882/fast-crc-algorithm
+/* CRC-32C (iSCSI) polynomial in reversed bit order. */
+#define POLY 0x82f63b78
+/* CRC-32 (Ethernet, ZIP, etc.) polynomial in reversed bit order. */
+/* #define POLY 0xedb88320 */
+inline uint32 crc32c(const uint8 *buf, size_t len, uint32 crc = 0)
+{
+	int k;
+	crc = ~crc;
+	while (len--) {
+		crc ^= *buf++;
+		for (k = 0; k < 8; k++)
+			crc = crc & 1 ? (crc >> 1) ^ POLY : crc >> 1;
+	}
+	return ~crc;
+}

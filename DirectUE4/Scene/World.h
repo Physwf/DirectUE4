@@ -5,7 +5,7 @@
 
 class Actor;
 class Camera;
-class Scene;
+class FScene;
 
 class World
 {
@@ -18,8 +18,7 @@ public:
 	{
 		T* NewActor = new T(std::forward<ArgTypes>(Args)...);
 		mAllActors.push_back(NewActor);
-		NewActor->mWorld = this;
-		NewActor->Register();
+		//NewActor->mWorld = this;
 		return NewActor;
 	}
 	void DestroyActor(Actor* InActor);
@@ -29,7 +28,7 @@ private:
 	DirectionalLight* mDirLight;
 	std::vector<Actor*> mAllActors;
 public:
-	Scene* mScene;
+	FScene* mScene;
 };
 
 extern World GWorld;

@@ -67,12 +67,14 @@ const PooledRenderTargetDesc& PooledRenderTarget::GetDesc() const
 	return Desc;
 }
 
+RenderTargetPool GRenderTargetPool;
+
 RenderTargetPool::RenderTargetPool()
 {
 
 }
 
-bool RenderTargetPool::FindFreeElement(const PooledRenderTargetDesc& InputDesc, ComPtr<PooledRenderTarget> &Out)
+bool RenderTargetPool::FindFreeElement(const PooledRenderTargetDesc& InputDesc, ComPtr<PooledRenderTarget> &Out, const wchar_t* DebugName)
 {
 	if (!InputDesc.IsValid())
 	{
@@ -86,16 +88,17 @@ bool RenderTargetPool::FindFreeElement(const PooledRenderTargetDesc& InputDesc, 
 	//ensure(!IsDepthOrStencilFormat(InputDesc.Format) || (InputDesc.ClearValue.ColorBinding == EClearBinding::ENoneBound || InputDesc.ClearValue.ColorBinding == EClearBinding::EDepthStencilBound));
 
 	// If we're doing aliasing, we may need to override Transient flags, depending on the input format and mode
-// 	FPooledRenderTargetDesc ModifiedDesc;
-// 	bool bMakeTransient = DoesTargetNeedTransienceOverride(InputDesc, TransienceHint);
-// 	if (bMakeTransient)
-// 	{
-// 		ModifiedDesc = InputDesc;
-// 		ModifiedDesc.Flags |= TexCreate_Transient;
-// 	}
-// 
-// 	// Override the descriptor if necessary
-// 	const FPooledRenderTargetDesc& Desc = bMakeTransient ? ModifiedDesc : InputDesc;// if we can keep the current one, do that
+	// 	FPooledRenderTargetDesc ModifiedDesc;
+	// 	bool bMakeTransient = DoesTargetNeedTransienceOverride(InputDesc, TransienceHint);
+	// 	if (bMakeTransient)
+	// 	{
+	// 		ModifiedDesc = InputDesc;
+	// 		ModifiedDesc.Flags |= TexCreate_Transient;
+	// 	}
+	// 
+	// 	// Override the descriptor if necessary
+	// 	const FPooledRenderTargetDesc& Desc = bMakeTransient ? ModifiedDesc : InputDesc;	// if we can keep the current one, do that
+
 	const PooledRenderTargetDesc& Desc = InputDesc;
 	if (Out.Get())
 	{
@@ -111,9 +114,9 @@ bool RenderTargetPool::FindFreeElement(const PooledRenderTargetDesc& InputDesc, 
 // 			Current->Desc.DebugName = InDebugName;
 // 			RHIBindDebugLabelName(Current->GetRenderTargetItem().TargetableTexture, InDebugName);
 			assert(!Out->IsFree());
-// #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-// 			ClobberAllocatedRenderTarget(RHICmdList, Desc, Out);
-// #endif
+			// #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+			// 			ClobberAllocatedRenderTarget(RHICmdList, Desc, Out);
+			// #endif
 			return true;
 		}
 		else
@@ -202,51 +205,49 @@ Done:
 			{
 				if (!Desc.IsArray())
 				{
-					Found->TargetableTexture = CreateTexture2D(Desc.Extent.X, Desc.Extent.Y, Desc.Format, Desc.NumMips, NULL);
-					Found->ShaderResourceTexture = CreateTexture2D(Desc.Extent.X, Desc.Extent.Y, Desc.Format, Desc.NumMips, NULL);
-					// 					RHICreateTargetableShaderResource2D(
-					// 						Desc.Extent.X,
-					// 						Desc.Extent.Y,
-					// 						Desc.Format,
-					// 						Desc.NumMips,
-					// 						Desc.Flags,
-					// 						Desc.TargetableFlags,
-					// 						Desc.bForceSeparateTargetAndShaderResource,
-					// 						CreateInfo,
-					// 						(FTexture2DRHIRef&)Found->RenderTargetItem.TargetableTexture,
-					// 						(FTexture2DRHIRef&)Found->RenderTargetItem.ShaderResourceTexture,
-					// 						Desc.NumSamples
-					// 					);
+					RHICreateTargetableShaderResource2D(
+						Desc.Extent.X,
+						Desc.Extent.Y,
+						Desc.Format,
+						Desc.NumMips,
+						Desc.Flags,
+						Desc.TargetableFlags,
+						Desc.bForceSeparateTargetAndShaderResource,
+						FClearValueBinding::Transparent,
+						Found->TargetableTexture,
+						Found->ShaderResourceTexture,
+						Desc.NumSamples
+					);
 				}
 				else
 				{
-					// 					RHICreateTargetableShaderResource2DArray(
-					// 						Desc.Extent.X,
-					// 						Desc.Extent.Y,
-					// 						Desc.ArraySize,
-					// 						Desc.Format,
-					// 						Desc.NumMips,
-					// 						Desc.Flags,
-					// 						Desc.TargetableFlags,
-					// 						CreateInfo,
-					// 						(FTexture2DArrayRHIRef&)Found->RenderTargetItem.TargetableTexture,
-					// 						(FTexture2DArrayRHIRef&)Found->RenderTargetItem.ShaderResourceTexture,
-					// 						Desc.NumSamples
-					// 					);
+// 					RHICreateTargetableShaderResource2DArray(
+// 						Desc.Extent.X,
+// 						Desc.Extent.Y,
+// 						Desc.ArraySize,
+// 						Desc.Format,
+// 						Desc.NumMips,
+// 						Desc.Flags,
+// 						Desc.TargetableFlags,
+// 						CreateInfo,
+// 						(FTexture2DArrayRHIRef&)Found->RenderTargetItem.TargetableTexture,
+// 						(FTexture2DArrayRHIRef&)Found->RenderTargetItem.ShaderResourceTexture,
+// 						Desc.NumSamples
+// 					);
 				}
 
-				// 				if (GSupportsRenderTargetWriteMask && Desc.bCreateRenderTargetWriteMask)
-				// 				{
-				// 					Found->RenderTargetItem.RTWriteMaskDataBufferRHI = RHICreateRTWriteMaskBuffer((FTexture2DRHIRef&)Found->RenderTargetItem.TargetableTexture);
-				// 					Found->RenderTargetItem.RTWriteMaskBufferRHI_SRV = RHICreateShaderResourceView(Found->RenderTargetItem.RTWriteMaskDataBufferRHI);
-				// 				}
+// 				if (GSupportsRenderTargetWriteMask && Desc.bCreateRenderTargetWriteMask)
+// 				{
+// 					Found->RenderTargetItem.RTWriteMaskDataBufferRHI = RHICreateRTWriteMaskBuffer((FTexture2DRHIRef&)Found->RenderTargetItem.TargetableTexture);
+// 					Found->RenderTargetItem.RTWriteMaskBufferRHI_SRV = RHICreateShaderResourceView(Found->RenderTargetItem.RTWriteMaskDataBufferRHI);
+// 				}
 
 				if (Desc.NumMips > 1)
 				{
 					Found->MipSRVs.resize(Desc.NumMips);
 					for (uint16 i = 0; i < Desc.NumMips; i++)
 					{
-						Found->MipSRVs[i] = CreateShaderResourceView2D((ID3D11Texture2D*)Found->ShaderResourceTexture, Desc.Format, Desc.NumMips, i);
+						Found->MipSRVs[i] = RHICreateShaderResourceView(Found->ShaderResourceTexture,i); 
 					}
 				}
 			}

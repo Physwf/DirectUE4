@@ -83,7 +83,7 @@ void Viewport::Draw(bool bShouldPresent /*= true*/)
 	Renderer.Render();
 	if (bShouldPresent)
 	{
-		D3D11Present();
+		DXGISwapChain->Present(0, 0);
 	}
 }
 

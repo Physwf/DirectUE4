@@ -43,6 +43,11 @@ Matrix Matrix::GetTransposed() const
 	return Result;
 }
 
+inline Vector Matrix::GetUnitAxis(EAxis::Type Axis) const
+{
+	return GetScaledAxis(Axis).GetSafeNormal();
+}
+
 Vector4 Matrix::TransformFVector4(const Vector4& P) const
 {
 	Vector4 Result;
@@ -307,6 +312,36 @@ bool Vector::IsZero() const
 	return X == 0.f && Y == 0.f && Z == 0.f;
 }
 
+Vector Vector::Reciprocal() const
+{
+	Vector RecVector;
+	if (X != 0.f)
+	{
+		RecVector.X = 1.f / X;
+	}
+	else
+	{
+		RecVector.X = BIG_NUMBER;
+	}
+	if (Y != 0.f)
+	{
+		RecVector.Y = 1.f / Y;
+	}
+	else
+	{
+		RecVector.Y = BIG_NUMBER;
+	}
+	if (Z != 0.f)
+	{
+		RecVector.Z = 1.f / Z;
+	}
+	else
+	{
+		RecVector.Z = BIG_NUMBER;
+	}
+	return RecVector;
+}
+
 static const float OneOver255 = 1.0f / 255.0f;
 
 LinearColor::LinearColor(struct FColor InColor)
@@ -387,9 +422,9 @@ Box2D Frustum::GetBounds2D(const Matrix& ViewMatrix, const Vector& Axis1, const 
 	return Result;
 }
 
-Box Frustum::GetBounds(const Matrix& TransformMatrix)
+FBox Frustum::GetBounds(const Matrix& TransformMatrix)
 {
-	Box Result;
+	FBox Result;
 	for (const Vector& V : Vertices)
 	{
 		Result += TransformMatrix.Transform(V);
@@ -397,9 +432,9 @@ Box Frustum::GetBounds(const Matrix& TransformMatrix)
 	return Result;
 }
 
-Box Frustum::GetBounds()
+FBox Frustum::GetBounds()
 {
-	Box Result;
+	FBox Result;
 	for (const Vector& V : Vertices)
 	{
 		Result += V;
@@ -460,6 +495,39 @@ float Math::Atan2(float Y, float X)
 	t3 = (Y < 0.0f) ? -t3 : t3;
 
 	return t3;
+}
+
+bool Math::SphereAABBIntersection(const Vector& SphereCenter, const float RadiusSquared, const FBox& AABB)
+{
+	float DistSquared = 0.f;
+	// Check each axis for min/max and add the distance accordingly
+	// NOTE: Loop manually unrolled for > 2x speed up
+	if (SphereCenter.X < AABB.Min.X)
+	{
+		DistSquared += Math::Square(SphereCenter.X - AABB.Min.X);
+	}
+	else if (SphereCenter.X > AABB.Max.X)
+	{
+		DistSquared += Math::Square(SphereCenter.X - AABB.Max.X);
+	}
+	if (SphereCenter.Y < AABB.Min.Y)
+	{
+		DistSquared += Math::Square(SphereCenter.Y - AABB.Min.Y);
+	}
+	else if (SphereCenter.Y > AABB.Max.Y)
+	{
+		DistSquared += Math::Square(SphereCenter.Y - AABB.Max.Y);
+	}
+	if (SphereCenter.Z < AABB.Min.Z)
+	{
+		DistSquared += Math::Square(SphereCenter.Z - AABB.Min.Z);
+	}
+	else if (SphereCenter.Z > AABB.Max.Z)
+	{
+		DistSquared += Math::Square(SphereCenter.Z - AABB.Max.Z);
+	}
+	// If the distance is less than or equal to the radius, they intersect
+	return DistSquared <= RadiusSquared;
 }
 
 Vector4 Vector4::GetSafeNormal(float Tolerance /*= SMALL_NUMBER*/) const
@@ -550,3 +618,40 @@ const Vector2 Vector2::UnitVector(1.0f, 1.0f);
 const Rotator Rotator::ZeroRotator(0.f, 0.f, 0.f);
 const FQuat FQuat::Identity(0, 0, 0, 1);
 const FColor FColor::White(255, 255, 255);
+
+float ComputeSquaredDistanceFromBoxToPoint(const Vector& Mins, const Vector& Maxs, const Vector& Point)
+{
+	// Accumulates the distance as we iterate axis
+	float DistSquared = 0.f;
+
+	// Check each axis for min/max and add the distance accordingly
+	// NOTE: Loop manually unrolled for > 2x speed up
+	if (Point.X < Mins.X)
+	{
+		DistSquared += Math::Square(Point.X - Mins.X);
+	}
+	else if (Point.X > Maxs.X)
+	{
+		DistSquared += Math::Square(Point.X - Maxs.X);
+	}
+
+	if (Point.Y < Mins.Y)
+	{
+		DistSquared += Math::Square(Point.Y - Mins.Y);
+	}
+	else if (Point.Y > Maxs.Y)
+	{
+		DistSquared += Math::Square(Point.Y - Maxs.Y);
+	}
+
+	if (Point.Z < Mins.Z)
+	{
+		DistSquared += Math::Square(Point.Z - Mins.Z);
+	}
+	else if (Point.Z > Maxs.Z)
+	{
+		DistSquared += Math::Square(Point.Z - Maxs.Z);
+	}
+
+	return DistSquared;
+}

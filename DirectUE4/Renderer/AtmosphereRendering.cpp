@@ -38,6 +38,7 @@ bool ShouldRenderAtmosphere(/*const FSceneViewFamily& Family*/)
 
 void InitAtomosphereFog()
 {
+	/*
 	Vector2 Vertices[] = {
 		Vector2(-1,-1),
 		Vector2(-1,+1),
@@ -99,10 +100,12 @@ void InitAtomosphereFog()
 			AtmosphereInscatterTextureSampler = TStaticSamplerState<D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT>::GetRHI();
 		}
 	}
+	*/
 }
 
 void SceneRenderer::RenderAtmosphereFog()
 {
+	/*
 	SCOPED_DRAW_EVENT_FORMAT(RenderAtmosphereFog, TEXT("AtmosphereFog"));
 
 	RenderTargets& SceneContext = RenderTargets::Get();
@@ -162,9 +165,10 @@ void SceneRenderer::RenderAtmosphereFog()
 		D3D11DeviceContext->PSSetSamplers(AtmosphereTransmittanceTextureSamplerParam.BaseIndex, AtmosphereTransmittanceTextureSamplerParam.Size, &NULLSampler);
 
 	}
+	*/
 }
 
-AtmosphericFogSceneInfo::AtmosphericFogSceneInfo(/*UAtmosphericFogComponent* InComponent,*/ const Scene* InScene)
+AtmosphericFogSceneInfo::AtmosphericFogSceneInfo(/*UAtmosphericFogComponent* InComponent,*/ const FScene* InScene)
 {
 	SunMultiplier = 1.0f;
 	FogMultiplier = 1.0f;

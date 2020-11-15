@@ -21,7 +21,5 @@ public:
 	float LightSourceSoftAngle;	//0.0
 
 	virtual void Tick(float fDeltaSeconds) override {};
-	virtual void Register() override {};
-	virtual void UnRegister() override {};
 };
 

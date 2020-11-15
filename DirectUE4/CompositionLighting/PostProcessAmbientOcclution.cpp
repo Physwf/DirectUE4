@@ -10,6 +10,7 @@ using namespace DirectX;
 
 void RCPassPostProcessAmbientOcclusionSetup::Init()
 {
+	/*
 	const D3D_SHADER_MACRO Macros[] = { { "INITIAL_PASS", IsInitialPass() ? "1" : "0" } };
 	PSBytecode = CompilePixelShader(TEXT("./Shaders/PostProcessAmbientOcclusion.hlsl"), "MainSetupPS", Macros, sizeof(Macros)/ sizeof(D3D_SHADER_MACRO));
 	GetShaderParameterAllocations(PSBytecode, PSParams);
@@ -33,10 +34,12 @@ void RCPassPostProcessAmbientOcclusionSetup::Init()
 	OutputExtent = IntPoint::DivideAndRoundUp(InputExtent, 2);
 	Output = CreateTexture2D(OutputExtent.X, OutputExtent.Y, DXGI_FORMAT_R32G32B32A32_FLOAT,true, true,false,1);
 	OutputRTV = CreateRenderTargetView2D(Output, DXGI_FORMAT_R32G32B32A32_FLOAT, 0);
+	*/
 }
 
 void RCPassPostProcessAmbientOcclusionSetup::Process(ViewInfo& View)
 {
+	/*
 	D3D11DeviceContext->OMSetRenderTargets(1, &OutputRTV, NULL);
 
 	D3D11DeviceContext->IASetInputLayout(GFilterInputLayout);
@@ -102,23 +105,25 @@ void RCPassPostProcessAmbientOcclusionSetup::Process(ViewInfo& View)
 	D3D11DeviceContext->PSSetSamplers(GBufferATextureSamplerParam.BaseIndex, GBufferATextureSamplerParam.Size, &Sampler);
 	D3D11DeviceContext->PSSetShaderResources(SceneDepthTextureParam.BaseIndex, SceneDepthTextureParam.Size, &SRV);
 	D3D11DeviceContext->PSSetSamplers(SceneDepthTextureSamplerParam.BaseIndex, SceneDepthTextureSamplerParam.Size, &Sampler);
+	*/
 }
 
 bool RCPassPostProcessAmbientOcclusionSetup::IsInitialPass() const
 {
-	if (!Inputs[0] && Inputs[1])
-	{
-		return false;
-	}
-	if (Inputs[0] && !Inputs[1])
-	{
-		return true;
-	}
+// 	if (!Inputs[0] && Inputs[1])
+// 	{
+// 		return false;
+// 	}
+// 	if (Inputs[0] && !Inputs[1])
+// 	{
+// 		return true;
+// 	}
 	return false;
 }
 
 void RCPassPostProcessAmbientOcclusion::Init(bool InAOSetupAsInput)
 {
+	/*
 	bAOSetupAsInput = InAOSetupAsInput;
 	bool bDoUpsample = (Inputs[2] != 0);
 	const D3D_SHADER_MACRO Macros[] = { { "COMPUTE_SHADER",  "0" } , {"SHADER_QUALITY", "2" }, {"USE_UPSAMPLE", bDoUpsample ? "1" : "0" },  { "USE_AO_SETUP_AS_INPUT" , bAOSetupAsInput ? "1" : "0" } };
@@ -178,10 +183,12 @@ void RCPassPostProcessAmbientOcclusion::Init(bool InAOSetupAsInput)
 // 	}
 	PostprocessInput3 = HZBSRV;
 	PostprocessInput3Sampler = TStaticSamplerState<>::GetRHI();
+	*/
 }
 
 void RCPassPostProcessAmbientOcclusion::Process(ViewInfo& View)
 {
+	/*
 	ID3D11RenderTargetView* DestRenderTarget = NULL;
 	RenderTargets& SceneContext = RenderTargets::Get();
 
@@ -200,6 +207,7 @@ void RCPassPostProcessAmbientOcclusion::Process(ViewInfo& View)
 	const ParameterAllocation& ViewParam = PSParams["View"];
 	D3D11DeviceContext->PSSetConstantBuffers(ViewParam.BufferIndex, 1, &View.ViewUniformBuffer);
 	ProcessPS(DestRenderTarget, View, ViewRect, TexSize, ShaderQuality, bDoUpsample);
+	*/
 }
 
 Vector4 GetHZBValue(const ViewInfo& View)
@@ -221,6 +229,7 @@ Vector4 GetHZBValue(const ViewInfo& View)
 
 void RCPassPostProcessAmbientOcclusion::ProcessPS(ID3D11RenderTargetView* DestRenderTarget, ViewInfo& View, const IntRect& ViewRect, const IntPoint& TexSize, int32 ShaderQuality, bool bDoUpsample)
 {
+	/*
 	D3D11DeviceContext->OMSetRenderTargets(1, &DestRenderTarget, NULL);
 
 	D3D11DeviceContext->IASetInputLayout(GFilterInputLayout);
@@ -351,10 +360,12 @@ void RCPassPostProcessAmbientOcclusion::ProcessPS(ID3D11RenderTargetView* DestRe
 		D3D11DeviceContext->PSSetShaderResources(PostprocessInput0Param.BaseIndex, PostprocessInput0Param.Size, &SRV);
 		D3D11DeviceContext->PSSetSamplers(PostprocessInput0SamplerParam.BaseIndex, PostprocessInput0SamplerParam.Size, &Sampler);
 	}
+	*/
 }
 
 void RCPassPostProcessBasePassAO::Init()
 {
+	/*
 	PSBytecode = CompilePixelShader(TEXT("./Shaders/PostProcessAmbientOcclusion.hlsl"), "BasePassAOPS");
 	GetShaderParameterAllocations(PSBytecode, PSParams);
 	PS = CreatePixelShader(PSBytecode);
@@ -370,10 +381,12 @@ void RCPassPostProcessBasePassAO::Init()
 	DepthStencilState = TStaticDepthStencilState<FALSE, D3D11_COMPARISON_ALWAYS>::GetRHI();
 	//GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_DestColor, BF_Zero, BO_Add, BF_DestAlpha, BF_Zero>::GetRHI();
 	BlendState = TStaticBlendState<FALSE,FALSE,0x07+0x08, D3D11_BLEND_OP_ADD, D3D11_BLEND_DEST_COLOR, D3D11_BLEND_ZERO, D3D11_BLEND_OP_ADD, D3D11_BLEND_DEST_ALPHA, D3D11_BLEND_ZERO>::GetRHI();
+	*/
 }
 
 void RCPassPostProcessBasePassAO::Process(ViewInfo& View)
 {
+	/*
 	RenderTargets& SceneContext = RenderTargets::Get();
 	SceneContext.BeginRenderingSceneColor();
 
@@ -436,4 +449,5 @@ void RCPassPostProcessBasePassAO::Process(ViewInfo& View)
 	D3D11DeviceContext->PSSetSamplers(GBufferCTextureSamplerParam.BaseIndex, GBufferCTextureSamplerParam.Size, &Sampler);
 	D3D11DeviceContext->PSSetShaderResources(GBufferAOTextureParam.BaseIndex, GBufferAOTextureParam.Size, &SRV);
 	D3D11DeviceContext->PSSetSamplers(GBufferAOTextureSamplerParam.BaseIndex, GBufferAOTextureSamplerParam.Size, &Sampler);
+	*/
 }
