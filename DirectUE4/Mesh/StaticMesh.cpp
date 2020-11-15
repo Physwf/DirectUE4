@@ -80,7 +80,7 @@ StaticMesh::StaticMesh()
 }
 
 
-void StaticMesh::InitResource()
+void StaticMesh::InitResources()
 {
 	RenderData->InitResources(this);
 
@@ -101,7 +101,7 @@ void StaticMesh::InitResource()
 	//PrimitiveUniformBuffer = CreateConstantBuffer(false,sizeof(PU),&PU);
 }
 
-void StaticMesh::ReleaseResource()
+void StaticMesh::ReleaseResources()
 {
 	RenderData->ReleaseResources();
 	if(PrimitiveUniformBuffer) PrimitiveUniformBuffer->Release();
@@ -169,6 +169,8 @@ void StaticMesh::DrawStaticElements()
 void StaticMesh::PostLoad()
 {
 	CacheDerivedData();
+
+	InitResources();
 }
 
 void StaticMesh::GetRenderMeshDescription(const MeshDescription& InOriginalMeshDescription, MeshDescription& OutRenderMeshDescription)

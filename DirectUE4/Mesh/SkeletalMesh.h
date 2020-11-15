@@ -26,8 +26,8 @@ public:
 
 	void PostLoad();
 
-	virtual void InitResource();
-	virtual void ReleaseResource();
+	virtual void InitResources();
+	virtual void ReleaseResources();
 	virtual void UpdateTransform() {};
 	virtual void GetDynamicMeshElements(const std::vector<const SceneView*>& Views, const SceneViewFamily& ViewFamily, uint32 VisibilityMap/*, FMeshElementCollector& Collector*/) const override {} ;
 	virtual FPrimitiveViewRelevance GetViewRelevance(const SceneView* View) const override { return FPrimitiveViewRelevance(); };

@@ -28,9 +28,10 @@ void SkeletalMesh::CalculateRequiredBones(SkeletalMeshLODModel& LODModel, const 
 void SkeletalMesh::PostLoad()
 {
 	CacheDerivedData();
+	InitResources();
 }
 
-void SkeletalMesh::InitResource()
+void SkeletalMesh::InitResources()
 {
 	//UpdateUVChannelData(false);
 
@@ -42,7 +43,7 @@ void SkeletalMesh::InitResource()
 	}
 }
 
-void SkeletalMesh::ReleaseResource()
+void SkeletalMesh::ReleaseResources()
 {
 
 }

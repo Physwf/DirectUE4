@@ -22,8 +22,8 @@ public:
 	virtual void Register();
 	virtual void UnRegister();
 
-	virtual void InitResource() = 0;
-	virtual void ReleaseResource() = 0;
+	virtual void InitResources() = 0;
+	virtual void ReleaseResources() = 0;
 
 	virtual void UpdateTransform() = 0;
 

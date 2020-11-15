@@ -11,14 +11,12 @@ MeshPrimitive::MeshPrimitive()
 
 void MeshPrimitive::Register()
 {
-	InitResource();
 	Scene->AddPrimitive(this);
 }
 
 void MeshPrimitive::UnRegister()
 {
 	Scene->RemovePrimitive(this);
-	ReleaseResource();
 }
 
 void MeshPrimitive::AddToScene(/*FRHICommandListImmediate& RHICmdList, bool bUpdateStaticDrawLists, bool bAddToStaticDrawLists = true*/)

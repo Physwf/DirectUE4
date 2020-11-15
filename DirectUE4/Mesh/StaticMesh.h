@@ -44,8 +44,8 @@ public:
 
 	MeshDescription& GetMeshDescription() { return MD; }
 
-	void InitResource();
-	void ReleaseResource();
+	virtual void InitResources();
+	virtual void ReleaseResources();
 	virtual void UpdateTransform() {};
 	void UpdateUniformBuffer();
 	int GetNumberBatches() { return 1; }

@@ -821,6 +821,8 @@ StaticMesh* FBXImporter::ImportStaticMesh(const char* pFileName)
 	delete GeometryConverter;
 	GeometryConverter = nullptr;
 
+	Mesh->PostLoad();
+
 	return Mesh;
 }
 
@@ -4683,7 +4685,7 @@ void FBXImporter::BuildVertexBuffer(const MeshDescription& MD2, FStaticMeshLODRe
 	}
 	StaticMeshLOD.VertexBuffers.PositionVertexBuffer.resize(StaticMeshBuildVertices.size());
 	size_t StaticMeshVertexBufferStride = 2 * sizeof(Vector4) / sizeof(float) + 2 * sizeof(Vector2) / sizeof(float);//2个Vector4给tangent,2个Vector2给UV
-	StaticMeshLOD.VertexBuffers.StaticMeshVertexBuffer.resize(Vertices.Num() * StaticMeshVertexBufferStride);
+	StaticMeshLOD.VertexBuffers.StaticMeshVertexBuffer.resize(StaticMeshBuildVertices.size() * StaticMeshVertexBufferStride);
 	for (size_t i = 0; i < StaticMeshBuildVertices.size(); ++i)
 	{
 		StaticMeshLOD.VertexBuffers.PositionVertexBuffer[i] = StaticMeshBuildVertices[i].Position;
