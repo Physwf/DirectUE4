@@ -13,7 +13,7 @@ Camera::Camera():Near(1.0f), Far(1000.0f)
 	Size = { 1.f,1.f };
 }
 
-void Camera::LookAt(Vector Target)
+void Camera::LookAt(FVector Target)
 {
 	FaceDir = Target - Position;
 	FaceDir.Normalize();
@@ -43,7 +43,7 @@ SceneView* Camera::CalcSceneView(SceneViewFamily& ViewFamily, Viewport& VP)
 	InitOptions.SetViewRectangle(UnconstrainedRectangle);
 
 	InitOptions.ViewOrigin = Position;
-	InitOptions.ViewRotationMatrix = InverseRotationMatrix(Rotation) * Matrix(
+	InitOptions.ViewRotationMatrix = InverseRotationMatrix(Rotation) * FMatrix(
 		Plane(0, 0, 1, 0),
 		Plane(1, 0, 0, 0),
 		Plane(0, 1, 0, 0),

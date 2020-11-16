@@ -216,7 +216,7 @@ private:
 using AttributeTypes = std::tuple
 <
 	Vector4,
-	Vector,
+	FVector,
 	Vector2,
 	float,
 	int,
@@ -242,7 +242,7 @@ class AttributeSet
 	std::tuple
 		<
 		std::map<std::string, std::vector<std::vector<Vector4>>>,
-		std::map<std::string, std::vector<std::vector<Vector>>>,
+		std::map<std::string, std::vector<std::vector<FVector>>>,
 		std::map<std::string, std::vector<std::vector<Vector2>>>,
 		std::map<std::string, std::vector<std::vector<float>>>,
 		std::map<std::string, std::vector<std::vector<int>>>,
@@ -347,11 +347,11 @@ public:
 		}
 		for (auto& Pair : std::get<1>(Containers))
 		{
-			for (std::vector<Vector>& Attributes : Pair.second)
+			for (std::vector<FVector>& Attributes : Pair.second)
 			{
 				if (ElementID >= (int)Attributes.size())
 				{
-					Attributes.resize(ElementID + 1, Vector());
+					Attributes.resize(ElementID + 1, FVector());
 				}
 			}
 		}
@@ -421,11 +421,11 @@ public:
 		}
 		for (auto& Pair : std::get<1>(Containers))
 		{
-			for (std::vector<Vector>& Attributes : Pair.second)
+			for (std::vector<FVector>& Attributes : Pair.second)
 			{
 				if (ElementID >= (int)Attributes.size())
 				{
-					Attributes[ElementID] = Vector();
+					Attributes[ElementID] = FVector();
 				}
 			}
 		}
@@ -492,7 +492,7 @@ public:
 		}
 		for (auto& Pair : std::get<1>(Containers))
 		{
-			for (std::vector<Vector>& Attributes : Pair.second)
+			for (std::vector<FVector>& Attributes : Pair.second)
 			{
 				Attributes.resize(NumElements);
 			}

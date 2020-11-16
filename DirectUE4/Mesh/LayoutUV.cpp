@@ -176,7 +176,7 @@ namespace MeshDescriptionOp
 
 		std::map< uint32, int32 > DisjointSetToChartMap;
 
-		const std::vector<Vector>& VertexPositions = MD.VertexAttributes().GetAttributes<Vector>(MeshAttribute::Vertex::Position);
+		const std::vector<FVector>& VertexPositions = MD.VertexAttributes().GetAttributes<FVector>(MeshAttribute::Vertex::Position);
 
 		// Build Charts
 		for (uint32 Tri = 0; Tri < NumTris; )
@@ -200,7 +200,7 @@ namespace MeshDescriptionOp
 			for (; Tri < NumTris && DisjointSet[SortedTris[Tri]] == ChartID; Tri++)
 			{
 				// Calculate chart bounds
-				Vector		Positions[3];
+				FVector		Positions[3];
 				Vector2		UVs[3];
 				for (int k = 0; k < 3; k++)
 				{
@@ -216,8 +216,8 @@ namespace MeshDescriptionOp
 					Chart.MaxUV.Y = FMath::Max(Chart.MaxUV.Y, UVs[k].Y);
 				}
 
-				Vector Edge1 = Positions[1] - Positions[0];
-				Vector Edge2 = Positions[2] - Positions[0];
+				FVector Edge1 = Positions[1] - Positions[0];
+				FVector Edge2 = Positions[2] - Positions[0];
 				float Area = 0.5f * (Edge1 ^ Edge2).Size();
 
 				Vector2 EdgeUV1 = UVs[1] - UVs[0];

@@ -44,7 +44,7 @@ public:
 	virtual void GetDynamicMeshElements(const std::vector<const SceneView*>& Views, const SceneViewFamily& ViewFamily, uint32 VisibilityMap/*, FMeshElementCollector& Collector*/) const = 0;
 	virtual FPrimitiveViewRelevance GetViewRelevance(const SceneView* View) const = 0;
 	//FPrimitiveSceneProxy
-	inline const Matrix& GetLocalToWorld() const { return LocalToWorld; }
+	inline const FMatrix& GetLocalToWorld() const { return LocalToWorld; }
 	//inline const FBoxSphereBounds& GetBounds() const { return Bounds; }
 	//inline const FBoxSphereBounds& GetLocalBounds() const { return LocalBounds; }
 	inline const TUniformBuffer<FPrimitiveUniformShaderParameters>& GetUniformBuffer() const
@@ -56,7 +56,7 @@ public:
 	std::vector<FStaticMesh*> StaticMeshes;
 private:
 
-	Matrix LocalToWorld;
+	FMatrix LocalToWorld;
 
 	/** The primitive's bounds. */
 	//FBoxSphereBounds Bounds;
@@ -65,7 +65,7 @@ private:
 	//FBoxSphereBounds LocalBounds;
 
 	/** The component's actor's position. */
-	Vector ActorPosition;
+	FVector ActorPosition;
 
 
 	TUniformBuffer<FPrimitiveUniformShaderParameters> UniformBuffer;

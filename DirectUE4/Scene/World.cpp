@@ -15,16 +15,16 @@ void World::InitWorld()
 	//m1->SetRotation(-3.14f / 2.0f, 0, 0);
 
 	mDirLight = SpawnActor<DirectionalLight>();
-	mDirLight->Color = Vector(1.0f, 1.0f, 1.0f);
-	mDirLight->Direction = Vector(1.0f, 1.0f, 1.0f);
+	mDirLight->Color = FVector(1.0f, 1.0f, 1.0f);
+	mDirLight->Direction = FVector(1.0f, 1.0f, 1.0f);
 	mDirLight->Intencity = 1000.f;
 	mDirLight->LightSourceAngle = 0.5357f;
 	mDirLight->LightSourceSoftAngle = 0.0f;
 	mDirLight->Direction.Normalize();
 
 	Camera* C = SpawnActor<Camera>();
-	C->SetPosition(Vector(-400, 0,  0));
-	C->LookAt(Vector(0, 0, 0));
+	C->SetPosition(FVector(-400, 0,  0));
+	C->LookAt(FVector(0, 0, 0));
 	C->SetFOV(90.f);
 	mCameras.push_back(C);
 }

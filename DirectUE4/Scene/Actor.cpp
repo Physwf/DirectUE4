@@ -8,7 +8,7 @@ Actor::~Actor()
 {
 }
 
-void Actor::SetPosition(Vector InPosition)
+void Actor::SetPosition(FVector InPosition)
 {
 	Position = InPosition;
 }
@@ -18,14 +18,14 @@ void Actor::SetRotation(FRotator InRotation)
 	Rotation = InRotation;
 }
 
-Matrix Actor::GetWorldMatrix()
+FMatrix Actor::GetWorldMatrix()
 {
-	Matrix R = Matrix(
+	FMatrix R = FMatrix(
 		Plane(0, 0, 1, 0),
 		Plane(1, 0, 0, 0),
 		Plane(0, 1, 0, 0),
-		Plane(0, 0, 0, 1)) *Matrix::DXFormRotation(Rotation);
-	Matrix T = Matrix::DXFromTranslation(Position);
+		Plane(0, 0, 0, 1)) *FMatrix::DXFormRotation(Rotation);
+	FMatrix T = FMatrix::DXFromTranslation(Position);
 	R.Transpose();
 	T.Transpose();
 	return  T * R;

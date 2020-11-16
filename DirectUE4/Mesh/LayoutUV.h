@@ -99,7 +99,7 @@ namespace MeshDescriptionOp
 		const int VertexIDA = MD.GetVertexInstanceVertex(VertexInstanceIDA);
 		const int VertexIDB = MD.GetVertexInstanceVertex(VertexInstanceIDB);
 
-		const std::vector<Vector>& VertexPositions = MD.VertexAttributes().GetAttributes<Vector>(MeshAttribute::Vertex::Position);
+		const std::vector<FVector>& VertexPositions = MD.VertexAttributes().GetAttributes<FVector>(MeshAttribute::Vertex::Position);
 		return VertexPositions[VertexIDA].Equals(VertexPositions[VertexIDB], THRESH_POINTS_ARE_SAME);
 	}
 
@@ -117,7 +117,7 @@ namespace MeshDescriptionOp
 		const int VertexInstanceIDA(RemapVerts[a]);
 		const int VertexInstanceIDB(RemapVerts[b]);
 
-		const std::vector<Vector>& VertexNormals = MD.VertexInstanceAttributes().GetAttributes<Vector>(MeshAttribute::VertexInstance::Normal);
+		const std::vector<FVector>& VertexNormals = MD.VertexInstanceAttributes().GetAttributes<FVector>(MeshAttribute::VertexInstance::Normal);
 		return VertexNormals[VertexInstanceIDA].Equals(VertexNormals[VertexInstanceIDB], THRESH_NORMALS_ARE_SAME);
 	}
 

@@ -23,11 +23,11 @@ struct FbxMaterial
 };
 void SetJointPostConversionMatrix(FbxAMatrix ConversionMatrix);
 const FbxAMatrix &GetJointPostConversionMatrix();
-Vector ConvertPos(FbxVector4 pPos);
-Vector ConvertDir(FbxVector4 Vec);
+FVector ConvertPos(FbxVector4 pPos);
+FVector ConvertDir(FbxVector4 Vec);
 float ConvertDist(FbxDouble Distance);
 FQuat ConvertRotToQuat(FbxQuaternion Quaternion);
-Vector ConvertScale(FbxDouble3 V);
+FVector ConvertScale(FbxDouble3 V);
 
 class StaticMesh;
 class SkeletalMesh;
@@ -44,9 +44,9 @@ struct FMeshFace
 	uint32		iWedge[3];
 	// Source Material (= texture plus unique flags) index.
 	uint16		MeshMaterialIndex;
-	Vector	TangentX[3];
-	Vector	TangentY[3];
-	Vector	TangentZ[3];
+	FVector	TangentX[3];
+	FVector	TangentY[3];
+	FVector	TangentZ[3];
 	// 32-bit flag for smoothing groups.
 	uint32   SmoothingGroups;
 };
@@ -73,9 +73,9 @@ struct VTriangle
 	// 32-bit flag for smoothing groups.
 	uint32   SmoothingGroups;
 
-	Vector	TangentX[3];
-	Vector	TangentY[3];
-	Vector	TangentZ[3];
+	FVector	TangentX[3];
+	FVector	TangentY[3];
+	FVector	TangentZ[3];
 
 
 	VTriangle& operator=(const VTriangle& Other)
@@ -151,7 +151,7 @@ struct VVertex
 // Points: regular Vectors (for now..)
 struct VPoint
 {
-	Vector	Point; // Change into packed integer later IF necessary, for 3x size reduction...
+	FVector	Point; // Change into packed integer later IF necessary, for 3x size reduction...
 };
 
 /**
@@ -161,7 +161,7 @@ class FSkeletalMeshImportData
 {
 public:
 	std::vector<VMaterial>			Materials;		// Materials
-	std::vector<Vector>				Points;			// 3D Points
+	std::vector<FVector>				Points;			// 3D Points
 	std::vector<VVertex>			Wedges;			// Wedges
 	std::vector<VTriangle>			Faces;			// Faces
 	std::vector<VBone>				RefBonesBinary;	// Reference Skeleton
@@ -187,7 +187,7 @@ public:
 
 	}
 	void CopyLODImportData(
-		std::vector<Vector>& LODPoints,
+		std::vector<FVector>& LODPoints,
 		std::vector<FMeshWedge>& LODWedges,
 		std::vector<FMeshFace>& LODFaces,
 		std::vector<FVertInfluence>& LODInfluences,
@@ -370,10 +370,10 @@ struct FReferenceSkeleton;
 // 	int32 NumTexCoords;
 // };
 #define MAX_TOTAL_INFLUENCES 8
-typedef Vector FPackedNormal;
+typedef FVector FPackedNormal;
 struct FSoftSkinBuildVertex
 {
-	Vector			Position;
+	FVector			Position;
 	FPackedNormal	TangentX,	// Tangent, U-direction
 		TangentY,	// Binormal, V-direction
 		TangentZ;	// Normal
@@ -471,7 +471,7 @@ public:
 	FbxAMatrix ComputeSkeletalMeshTotalMatrix(FbxNode* Node, FbxNode *RootSkeletalNode);
 	bool IsOddNegativeScale(FbxAMatrix& TotalMatrix);
 
-	bool BuildSkeletalMesh(SkeletalMeshLODModel& LODModel, const FReferenceSkeleton& RefSkeleton, const std::vector<FVertInfluence>& Influences, const std::vector<FMeshWedge>& Wedges, const std::vector<FMeshFace>& Faces, const std::vector<Vector>& Points, const std::vector<int32>& PointToOriginalMap, const MeshBuildOptions& BuildOptions = MeshBuildOptions(), std::vector<std::string> * OutWarningMessages = NULL, std::vector<std::string> * OutWarningNames = NULL);
+	bool BuildSkeletalMesh(SkeletalMeshLODModel& LODModel, const FReferenceSkeleton& RefSkeleton, const std::vector<FVertInfluence>& Influences, const std::vector<FMeshWedge>& Wedges, const std::vector<FMeshFace>& Faces, const std::vector<FVector>& Points, const std::vector<int32>& PointToOriginalMap, const MeshBuildOptions& BuildOptions = MeshBuildOptions(), std::vector<std::string> * OutWarningMessages = NULL, std::vector<std::string> * OutWarningNames = NULL);
 	void BuildSkeletalModelFromChunks(SkeletalMeshLODModel& LODModel, const FReferenceSkeleton& RefSkeleton, std::vector<FSkinnedMeshChunk*>& Chunks, const std::vector<int32>& PointToOriginalMap);
 
 	bool BuildStaticMesh(FStaticMeshRenderData& OutRenderData, StaticMesh* Mesh/*, const FStaticMeshLODGroup& LODGroup */);
@@ -511,8 +511,8 @@ enum class ELightmapUVVersion : int32
 struct FBoneVertInfo
 {
 	// Invariant: Arrays should be same length!
-	std::vector<Vector>	Positions;
-	std::vector<Vector>	Normals;
+	std::vector<FVector>	Positions;
+	std::vector<FVector>	Normals;
 };
 
 /**

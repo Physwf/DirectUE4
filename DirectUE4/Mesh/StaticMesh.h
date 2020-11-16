@@ -12,11 +12,11 @@
 
 struct StaticMeshBuildVertex
 {
-	Vector Position;
+	FVector Position;
 
-	Vector TangentX;
+	FVector TangentX;
 	float TangentYSign;
-	Vector TangentZ;
+	FVector TangentZ;
 
 	FColor C;
 	Vector2 UVs;

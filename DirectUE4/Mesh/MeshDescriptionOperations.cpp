@@ -14,13 +14,13 @@ namespace MeshDescriptionOperationNamespace
 	{
 		float Z;
 		int32 Index;
-		const Vector *OriginalVector;
+		const FVector *OriginalVector;
 
 		/** Default constructor. */
 		FIndexAndZ() {}
 
 		/** Initialization constructor. */
-		FIndexAndZ(int32 InIndex, const Vector& V)
+		FIndexAndZ(int32 InIndex, const FVector& V)
 		{
 			Z = 0.30f * V.X + 0.33f * V.Y + 0.37f * V.Z;
 			Index = InIndex;
@@ -37,11 +37,11 @@ namespace MeshDescriptionOperationNamespace
 
 void MeshDescriptionOperations::CreatePolygonNTB(MeshDescription& MD, float ComparisonThreshold)
 {
-	const std::vector<Vector>& VertexPositions = MD.VertexAttributes().GetAttributes<Vector>(MeshAttribute::Vertex::Position);
+	const std::vector<FVector>& VertexPositions = MD.VertexAttributes().GetAttributes<FVector>(MeshAttribute::Vertex::Position);
 	std::vector<Vector2>& VertexUVs = MD.VertexInstanceAttributes().GetAttributes<Vector2>(MeshAttribute::VertexInstance::TextureCoordinate, 0);
-	std::vector<Vector>& PolygonNormals = MD.PolygonAttributes().GetAttributes<Vector>(MeshAttribute::Polygon::Normal);
-	std::vector<Vector>& PolygonTangents = MD.PolygonAttributes().GetAttributes<Vector>(MeshAttribute::Polygon::Tangent);
-	std::vector<Vector>& PolygonBinormals = MD.PolygonAttributes().GetAttributes<Vector>(MeshAttribute::Polygon::Binormal);
+	std::vector<FVector>& PolygonNormals = MD.PolygonAttributes().GetAttributes<FVector>(MeshAttribute::Polygon::Normal);
+	std::vector<FVector>& PolygonTangents = MD.PolygonAttributes().GetAttributes<FVector>(MeshAttribute::Polygon::Tangent);
+	std::vector<FVector>& PolygonBinormals = MD.PolygonAttributes().GetAttributes<FVector>(MeshAttribute::Polygon::Binormal);
 
 	TMeshElementArray<MeshVertexInstance>& VertexInstanceArray = MD.VertexInstances();
 	TMeshElementArray<MeshVertex>& VertexArray = MD.Vertices();
@@ -55,15 +55,15 @@ void MeshDescriptionOperations::CreatePolygonNTB(MeshDescription& MD, float Comp
 		}
 
 		const std::vector<MeshTriangle> MeshTriangles = MD.GetPolygonTriangles(PolygonID);
-		Vector TangentX(0.0f);
-		Vector TangentY(0.0f);
-		Vector TangentZ(0.0f);
+		FVector TangentX(0.0f);
+		FVector TangentY(0.0f);
+		FVector TangentZ(0.0f);
 
 		for (const MeshTriangle& MT : MeshTriangles)
 		{
 			int UVIndex = 0;
 
-			Vector P[3];
+			FVector P[3];
 			Vector2 UVs[3];
 
 			for (int32 i = 0; i < 3; ++i)
@@ -73,17 +73,17 @@ void MeshDescriptionOperations::CreatePolygonNTB(MeshDescription& MD, float Comp
 				P[i] = VertexPositions[MD.GetVertexInstanceVertex(VertexInstanceID)];
 			}
 
-			const Vector Normal = ((P[1] - P[2]) ^ (P[0] - P[2])).GetSafeNormal(ComparisonThreshold);
+			const FVector Normal = ((P[1] - P[2]) ^ (P[0] - P[2])).GetSafeNormal(ComparisonThreshold);
 			if (!Normal.IsNearlyZero(ComparisonThreshold))
 			{
-				Matrix ParameterToLocal(
+				FMatrix ParameterToLocal(
 					Plane(P[1].X - P[0].X, P[1].Y - P[0].Y, P[1].Z - P[0].Z, 0),
 					Plane(P[2].X - P[0].X, P[2].Y - P[0].Y, P[2].Z - P[0].Z, 0),
 					Plane(P[0].X, P[0].Y, P[0].Z, 0),
 					Plane(0, 0, 0, 1)
 				);
 
-				Matrix ParameterToTexture(
+				FMatrix ParameterToTexture(
 					Plane(UVs[1].X - UVs[0].X, UVs[1].Y - UVs[0].Y, 0, 0),
 					Plane(UVs[2].X - UVs[0].X, UVs[2].Y - UVs[0].Y, 0, 0),
 					Plane(UVs[0].X, UVs[0].Y, 1, 0),
@@ -91,15 +91,15 @@ void MeshDescriptionOperations::CreatePolygonNTB(MeshDescription& MD, float Comp
 				);
 
 				// Use InverseSlow to catch singular matrices.  Inverse can miss this sometimes.
-				const Matrix TextureToLocal = ParameterToTexture.Inverse() * ParameterToLocal;
+				const FMatrix TextureToLocal = ParameterToTexture.Inverse() * ParameterToLocal;
 
-				Vector TmpTangentX(0.0f);
-				Vector TmpTangentY(0.0f);
-				Vector TmpTangentZ(0.0f);
-				TmpTangentX = TextureToLocal.Transform(Vector(1, 0, 0)).GetSafeNormal();
-				TmpTangentY = TextureToLocal.Transform(Vector(0, 1, 0)).GetSafeNormal();
+				FVector TmpTangentX(0.0f);
+				FVector TmpTangentY(0.0f);
+				FVector TmpTangentZ(0.0f);
+				TmpTangentX = TextureToLocal.Transform(FVector(1, 0, 0)).GetSafeNormal();
+				TmpTangentY = TextureToLocal.Transform(FVector(0, 1, 0)).GetSafeNormal();
 				TmpTangentZ = Normal;
-				Vector::CreateOrthonormalBasis(TmpTangentX, TmpTangentY, TmpTangentZ);
+				FVector::CreateOrthonormalBasis(TmpTangentX, TmpTangentY, TmpTangentZ);
 				TangentX += TmpTangentX;
 				TangentY += TmpTangentY;
 				TangentZ += TmpTangentZ;
@@ -107,9 +107,9 @@ void MeshDescriptionOperations::CreatePolygonNTB(MeshDescription& MD, float Comp
 			else
 			{
 				//This will force a recompute of the normals and tangents
-				TangentX = Vector(0.0f);
-				TangentY = Vector(0.0f);
-				TangentZ = Vector(0.0f);
+				TangentX = FVector(0.0f);
+				TangentY = FVector(0.0f);
+				TangentZ = FVector(0.0f);
 				break;
 			}
 			TangentX.Normalize();
@@ -166,7 +166,7 @@ void MeshDescriptionOperations::FindOverlappingCorners(std::multimap<int, int>& 
 	std::vector<MeshDescriptionOperationNamespace::FIndexAndZ> VertIndexAndZ;
 	VertIndexAndZ.reserve(NumWedges);
 
-	const std::vector<Vector>& VertexPositions = MD.VertexAttributes().GetAttributes<Vector>(MeshAttribute::Vertex::Position);
+	const std::vector<FVector>& VertexPositions = MD.VertexAttributes().GetAttributes<FVector>(MeshAttribute::Vertex::Position);
 
 	for (const int VertexInstanceID : VertexInstanceArray.GetElementIDs())
 	{
@@ -187,8 +187,8 @@ void MeshDescriptionOperations::FindOverlappingCorners(std::multimap<int, int>& 
 			if (FMath::Abs(VertIndexAndZ[j].Z - VertIndexAndZ[i].Z) > ComparisonThreshold)
 				break; // can't be any more dups
 
-			const Vector& PositionA = *(VertIndexAndZ[i].OriginalVector);
-			const Vector& PositionB = *(VertIndexAndZ[j].OriginalVector);
+			const FVector& PositionA = *(VertIndexAndZ[i].OriginalVector);
+			const FVector& PositionB = *(VertIndexAndZ[j].OriginalVector);
 
 			if (PositionA.Equals(PositionB, ComparisonThreshold))
 			{
@@ -221,7 +221,7 @@ namespace MeshDescriptionMikktSpaceInterface
 		const MeshPolygon& Polygon = MD->GetPolygon(FaceIdx);
 		const int VertexInstanceID = Polygon.PerimeterContour.VertexInstanceIDs[VertIdx];
 		const int VertexID = MD->GetVertexInstanceVertex(VertexInstanceID);
-		const Vector& VertexPosition = MD->VertexAttributes().GetAttribute<Vector>(VertexID, MeshAttribute::Vertex::Position);
+		const FVector& VertexPosition = MD->VertexAttributes().GetAttribute<FVector>(VertexID, MeshAttribute::Vertex::Position);
 		Position[0] = VertexPosition.X;
 		Position[1] = VertexPosition.Y;
 		Position[2] = VertexPosition.Z;
@@ -232,7 +232,7 @@ namespace MeshDescriptionMikktSpaceInterface
 		MeshDescription* MD = (MeshDescription*)(Context->m_pUserData);
 		const MeshPolygon& Polygon = MD->GetPolygon(FaceIdx);
 		const int VertexInstanceID = Polygon.PerimeterContour.VertexInstanceIDs[VertIdx];
-		const Vector& VertexNormal = MD->VertexInstanceAttributes().GetAttribute<Vector>(VertexInstanceID, MeshAttribute::VertexInstance::Normal);
+		const FVector& VertexNormal = MD->VertexInstanceAttributes().GetAttribute<FVector>(VertexInstanceID, MeshAttribute::VertexInstance::Normal);
 		Normal[0] = VertexNormal.X;
 		Normal[1] = VertexNormal.Y;
 		Normal[2] = VertexNormal.Z;
@@ -243,8 +243,8 @@ namespace MeshDescriptionMikktSpaceInterface
 		MeshDescription* MD = (MeshDescription*)(Context->m_pUserData);
 		const MeshPolygon& Polygon = MD->GetPolygon(FaceIdx);
 		const int VertexInstanceID = Polygon.PerimeterContour.VertexInstanceIDs[VertIdx];
-		const Vector VertexTangent(Tangent[0], Tangent[1], Tangent[2]);
-		MD->VertexInstanceAttributes().SetAttribute<Vector>(VertexInstanceID, MeshAttribute::VertexInstance::Tangent, 0, VertexTangent);
+		const FVector VertexTangent(Tangent[0], Tangent[1], Tangent[2]);
+		MD->VertexInstanceAttributes().SetAttribute<FVector>(VertexInstanceID, MeshAttribute::VertexInstance::Tangent, 0, VertexTangent);
 		MD->VertexInstanceAttributes().SetAttribute<float>(VertexInstanceID, MeshAttribute::VertexInstance::BinormalSign, 0, -BitangentSign);
 	}
 

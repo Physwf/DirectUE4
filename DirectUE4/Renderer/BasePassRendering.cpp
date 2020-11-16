@@ -26,17 +26,17 @@ static const int32 MAX_NUM_LIGHTMAP_COEF = 2;
 #pragma pack(1)
 struct PrecomputedLightingUniform
 {
-	Vector IndirectLightingCachePrimitiveAdd;// FCachedVolumeIndirectLightingPolicy
+	FVector IndirectLightingCachePrimitiveAdd;// FCachedVolumeIndirectLightingPolicy
 	float Pading01;
-	Vector IndirectLightingCachePrimitiveScale;// FCachedVolumeIndirectLightingPolicy
+	FVector IndirectLightingCachePrimitiveScale;// FCachedVolumeIndirectLightingPolicy
 	float Pading02;
-	Vector IndirectLightingCacheMinUV;// FCachedVolumeIndirectLightingPolicy
+	FVector IndirectLightingCacheMinUV;// FCachedVolumeIndirectLightingPolicy
 	float Pading03;
-	Vector IndirectLightingCacheMaxUV;// FCachedVolumeIndirectLightingPolicy
+	FVector IndirectLightingCacheMaxUV;// FCachedVolumeIndirectLightingPolicy
 	float Pading04;
 	Vector4 PointSkyBentNormal;// FCachedPointIndirectLightingPolicy
 	float DirectionalLightShadowing;// FCachedPointIndirectLightingPolicy
-	Vector Pading05;
+	FVector Pading05;
 	Vector4 StaticShadowMapMasks;// TDistanceFieldShadowsAndLightMapPolicy
 	Vector4 InvUniformPenumbraSizes;// TDistanceFieldShadowsAndLightMapPolicy
 	Vector4 IndirectLightingSHCoefficients0[3]; // FCachedPointIndirectLightingPolicy

@@ -6,12 +6,12 @@ struct alignas(16) FPrimitiveUniformShaderParameters
 {
 	struct ConstantStruct
 	{
-		Matrix LocalToWorld;
-		Matrix WorldToLocal;
+		FMatrix LocalToWorld;
+		FMatrix WorldToLocal;
 		Vector4 ObjectWorldPositionAndRadius; // needed by some materials
-		Vector ObjectBounds;
+		FVector ObjectBounds;
 		float LocalToWorldDeterminantSign;
-		Vector ActorWorldPosition;
+		FVector ActorWorldPosition;
 		float DecalReceiverMask;
 		float PerObjectGBufferData;
 		float UseSingleSampleShadowFromStationaryLights;
@@ -20,9 +20,9 @@ struct alignas(16) FPrimitiveUniformShaderParameters
 		Vector4 ObjectOrientation;
 		Vector4 NonUniformScale;
 		Vector4 InvNonUniformScale;
-		Vector LocalObjectBoundsMin;
+		FVector LocalObjectBoundsMin;
 		float PrePadding_Primitive_252;
-		Vector LocalObjectBoundsMax;
+		FVector LocalObjectBoundsMax;
 		uint32 LightingChannelMask;
 		float LpvBiasMultiplier;
 	} Constants;
@@ -46,8 +46,8 @@ struct alignas(16) FPrimitiveUniformShaderParameters
 
 /** Initializes the primitive uniform shader parameters. */
 inline FPrimitiveUniformShaderParameters GetPrimitiveUniformShaderParameters(
-	const Matrix& LocalToWorld,
-	Vector ActorPosition,
+	const FMatrix& LocalToWorld,
+	FVector ActorPosition,
 	const FBoxSphereBounds& WorldBounds,
 	const FBoxSphereBounds& LocalBounds,
 	bool bReceivesDecals,
@@ -77,9 +77,9 @@ inline FPrimitiveUniformShaderParameters GetPrimitiveUniformShaderParameters(
 		Vector4 WorldX = Vector4(LocalToWorld.M[0][0], LocalToWorld.M[0][1], LocalToWorld.M[0][2], 0);
 		Vector4 WorldY = Vector4(LocalToWorld.M[1][0], LocalToWorld.M[1][1], LocalToWorld.M[1][2], 0);
 		Vector4 WorldZ = Vector4(LocalToWorld.M[2][0], LocalToWorld.M[2][1], LocalToWorld.M[2][2], 0);
-		float ScaleX = Vector(WorldX).Size();
-		float ScaleY = Vector(WorldY).Size();
-		float ScaleZ = Vector(WorldZ).Size();
+		float ScaleX = FVector(WorldX).Size();
+		float ScaleY = FVector(WorldY).Size();
+		float ScaleZ = FVector(WorldZ).Size();
 		Result.Constants.NonUniformScale = Vector4(ScaleX, ScaleY, ScaleZ, 0);
 		Result.Constants.InvNonUniformScale = Vector4(
 			ScaleX > KINDA_SMALL_NUMBER ? 1.0f / ScaleX : 0.0f,
@@ -99,7 +99,7 @@ inline FPrimitiveUniformShaderParameters GetPrimitiveUniformShaderParameters(
 }
 
 inline ID3D11Buffer* CreatePrimitiveUniformBufferImmediate(
-	const Matrix& LocalToWorld,
+	const FMatrix& LocalToWorld,
 	const FBoxSphereBounds& WorldBounds,
 	const FBoxSphereBounds& LocalBounds,
 	bool bReceivesDecals,

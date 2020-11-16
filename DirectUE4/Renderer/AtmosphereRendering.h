@@ -22,7 +22,7 @@ public:
 	float DistanceOffset;
 	float SunDiscScale;
 	FLinearColor DefaultSunColor;
-	Vector DefaultSunDirection;
+	FVector DefaultSunDirection;
 	uint32 RenderFlag;
 	uint32 InscatterAltitudeSampleNum;
 	//class FAtmosphereTextureResource* TransmittanceResource;

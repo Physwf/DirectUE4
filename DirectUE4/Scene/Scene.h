@@ -9,7 +9,7 @@
 #include "DepthOnlyRendering.h"
 #include <memory>
 
-Vector4 CreateInvDeviceZToWorldZTransform(const Matrix& ProjMatrix);
+Vector4 CreateInvDeviceZToWorldZTransform(const FMatrix& ProjMatrix);
 
 class RenderTargets;
 class MeshPrimitive;

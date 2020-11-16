@@ -14,9 +14,9 @@ typedef uint16 FBoneIndexType;
 
 struct SoftSkinVertex
 {
-	Vector Position;
-	Vector TangentX;//Tangent
-	Vector TangentY;//Binomal
+	FVector Position;
+	FVector TangentX;//Tangent
+	FVector TangentY;//Binomal
 	Vector4 TangentZ;//Normal
 
 	Vector2 UVs[4];

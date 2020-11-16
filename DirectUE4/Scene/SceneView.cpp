@@ -5,24 +5,24 @@ float GMinClipZ = 0.f;
 /** The sign to apply to the Y axis of projection matrices. */
 float GProjectionSignY = 1.f;
 
-inline Matrix AdjustProjectionMatrixForRHI(const Matrix& InProjectionMatrix)
+inline FMatrix AdjustProjectionMatrixForRHI(const FMatrix& InProjectionMatrix)
 {
-	ScaleMatrix ClipSpaceFixScale(Vector(1.0f, GProjectionSignY, 1.0f - GMinClipZ));
-	TranslationMatrix ClipSpaceFixTranslate(Vector(0.0f, 0.0f, GMinClipZ));
+	FScaleMatrix ClipSpaceFixScale(FVector(1.0f, GProjectionSignY, 1.0f - GMinClipZ));
+	FTranslationMatrix ClipSpaceFixTranslate(FVector(0.0f, 0.0f, GMinClipZ));
 	return InProjectionMatrix * ClipSpaceFixScale * ClipSpaceFixTranslate;
 }
 
 ViewMatrices::ViewMatrices(const ViewInitOptions& InitOptions)
 {
-	Vector LocalViewOrigin = InitOptions.ViewOrigin;
-	Matrix ViewRotationMatrix = InitOptions.ViewRotationMatrix;
+	FVector LocalViewOrigin = InitOptions.ViewOrigin;
+	FMatrix ViewRotationMatrix = InitOptions.ViewRotationMatrix;
 	if (!ViewRotationMatrix.GetOrigin().IsNearlyZero(0.0f))
 	{
-		LocalViewOrigin += ViewRotationMatrix.InverseTransformPosition(Vector::ZeroVector);
+		LocalViewOrigin += ViewRotationMatrix.InverseTransformPosition(FVector::ZeroVector);
 		ViewRotationMatrix = ViewRotationMatrix.RemoveTranslation();
 	}
 
-	ViewMatrix = TranslationMatrix(-LocalViewOrigin) * ViewRotationMatrix;
+	ViewMatrix = FTranslationMatrix(-LocalViewOrigin) * ViewRotationMatrix;
 
 	// Adjust the projection matrix for the current RHI.
 	ProjectionMatrix = AdjustProjectionMatrixForRHI(InitOptions.ProjectionMatrix);
@@ -32,7 +32,7 @@ ViewMatrices::ViewMatrices(const ViewInitOptions& InitOptions)
 	ViewProjectionMatrix = GetViewMatrix() * GetProjectionMatrix();
 
 	// For precision reasons the view matrix inverse is calculated independently.
-	InvViewMatrix = ViewRotationMatrix.GetTransposed() * TranslationMatrix(LocalViewOrigin);
+	InvViewMatrix = ViewRotationMatrix.GetTransposed() * FTranslationMatrix(LocalViewOrigin);
 	InvViewProjectionMatrix = InvProjectionMatrix * InvViewMatrix;
 
 	bool bApplyPreViewTranslation = true;
@@ -45,21 +45,21 @@ ViewMatrices::ViewMatrices(const ViewInitOptions& InitOptions)
 	}
 	else
 	{
-		this->ViewOrigin = Vector4(InvViewMatrix.TransformVector(Vector(0, 0, -1)).GetSafeNormal(), 0);
+		this->ViewOrigin = Vector4(InvViewMatrix.TransformVector(FVector(0, 0, -1)).GetSafeNormal(), 0);
 		// to avoid issues with view dependent effect (e.g. Frensel)
 		bApplyPreViewTranslation = false;
 	}
 
 	/** The view transform, starting from world-space points translated by -ViewOrigin. */
-	Matrix LocalTranslatedViewMatrix = ViewRotationMatrix;
-	Matrix LocalInvTranslatedViewMatrix = LocalTranslatedViewMatrix.GetTransposed();
+	FMatrix LocalTranslatedViewMatrix = ViewRotationMatrix;
+	FMatrix LocalInvTranslatedViewMatrix = LocalTranslatedViewMatrix.GetTransposed();
 
 	// Translate world-space so its origin is at ViewOrigin for improved precision.
 	// Note that this isn't exactly right for orthogonal projections (See the above special case), but we still use ViewOrigin
 	// in that case so the same value may be used in shaders for both the world-space translation and the camera's world position.
 	if (bApplyPreViewTranslation)
 	{
-		PreViewTranslation = -Vector(LocalViewOrigin);
+		PreViewTranslation = -FVector(LocalViewOrigin);
 	}
 	else
 	{
@@ -71,8 +71,8 @@ ViewMatrices::ViewMatrices(const ViewInitOptions& InitOptions)
 	// When the view origin is fudged for faux ortho view position the translations don't cancel out.
 	if (bViewOriginIsFudged)
 	{
-		LocalTranslatedViewMatrix = TranslationMatrix(-PreViewTranslation)
-			* TranslationMatrix(-LocalViewOrigin) * ViewRotationMatrix;
+		LocalTranslatedViewMatrix = FTranslationMatrix(-PreViewTranslation)
+			* FTranslationMatrix(-LocalViewOrigin) * ViewRotationMatrix;
 		LocalInvTranslatedViewMatrix = LocalTranslatedViewMatrix.Inverse();
 	}
 
@@ -80,8 +80,8 @@ ViewMatrices::ViewMatrices(const ViewInitOptions& InitOptions)
 	TranslatedViewMatrix = LocalTranslatedViewMatrix;
 	InvTranslatedViewMatrix = LocalInvTranslatedViewMatrix;
 
-	OverriddenTranslatedViewMatrix = TranslationMatrix(-GetPreViewTranslation()) * GetViewMatrix();
-	OverriddenInvTranslatedViewMatrix = GetInvViewMatrix() * TranslationMatrix(GetPreViewTranslation());
+	OverriddenTranslatedViewMatrix = FTranslationMatrix(-GetPreViewTranslation()) * GetViewMatrix();
+	OverriddenInvTranslatedViewMatrix = GetInvViewMatrix() * FTranslationMatrix(GetPreViewTranslation());
 
 	TranslatedViewProjectionMatrix = LocalTranslatedViewMatrix * ProjectionMatrix;
 	InvTranslatedViewProjectionMatrix = InvProjectionMatrix * LocalInvTranslatedViewMatrix;
@@ -97,7 +97,7 @@ ViewMatrices::ViewMatrices(const ViewInitOptions& InitOptions)
 //	);
 }
 
-Vector4 CreateInvDeviceZToWorldZTransform(const Matrix& ProjMatrix)
+Vector4 CreateInvDeviceZToWorldZTransform(const FMatrix& ProjMatrix)
 {
 	/*
 	00, 01, 02, 03
@@ -196,7 +196,7 @@ void SceneView::SetupViewRectUniformBufferParameters(
 		// http://stackoverflow.com/questions/9010546/java-transformation-matrix-operations
 
 		ViewUniformParameters.Constants.SVPositionToTranslatedWorld =
-			Matrix(Plane(Mx, 0, 0, 0),
+			FMatrix(Plane(Mx, 0, 0, 0),
 				Plane(0, My, 0, 0),
 				Plane(0, 0, 1, 0),
 				Plane(Ax, Ay, 0, 1)) * InViewMatrices.GetInvTranslatedViewProjectionMatrix();
@@ -240,7 +240,7 @@ void SceneView::SetupCommonViewUniformBufferParameters(
 	//ViewUniformParameters.HMDViewNoRollUp = InViewMatrices.GetHMDViewMatrixNoRoll().GetColumn(1);
 	//ViewUniformParameters.HMDViewNoRollRight = InViewMatrices.GetHMDViewMatrixNoRoll().GetColumn(0);
 	ViewUniformParameters.Constants.InvDeviceZToWorldZTransform = InvDeviceZToWorldZTransform;
-	ViewUniformParameters.Constants.WorldViewOrigin = InViewMatrices.GetOverriddenInvTranslatedViewMatrix().TransformPosition(Vector(0)) - InViewMatrices.GetPreViewTranslation();
+	ViewUniformParameters.Constants.WorldViewOrigin = InViewMatrices.GetOverriddenInvTranslatedViewMatrix().TransformPosition(FVector(0)) - InViewMatrices.GetPreViewTranslation();
 	ViewUniformParameters.Constants.WorldCameraOrigin = InViewMatrices.GetViewOrigin();
 	ViewUniformParameters.Constants.TranslatedWorldCameraOrigin = InViewMatrices.GetViewOrigin() + InViewMatrices.GetPreViewTranslation();
 	ViewUniformParameters.Constants.PreViewTranslation = InViewMatrices.GetPreViewTranslation();
@@ -283,14 +283,14 @@ void SceneView::SetupCommonViewUniformBufferParameters(
 // 
 // 	ViewUniformParameters.bCheckerboardSubsurfaceProfileRendering = 0;
 
-	ViewUniformParameters.Constants.ScreenToWorld = Matrix(
+	ViewUniformParameters.Constants.ScreenToWorld = FMatrix(
 		Plane(1, 0, 0, 0),
 		Plane(0, 1, 0, 0),
 		Plane(0, 0, ProjectionMatrixUnadjustedForRHI.M[2][2], 1),
 		Plane(0, 0, ProjectionMatrixUnadjustedForRHI.M[3][2], 0))
 		* InViewMatrices.GetInvViewProjectionMatrix();
 
-	ViewUniformParameters.Constants.ScreenToTranslatedWorld = Matrix(
+	ViewUniformParameters.Constants.ScreenToTranslatedWorld = FMatrix(
 		Plane(1, 0, 0, 0),
 		Plane(0, 1, 0, 0),
 		Plane(0, 0, ProjectionMatrixUnadjustedForRHI.M[2][2], 1),

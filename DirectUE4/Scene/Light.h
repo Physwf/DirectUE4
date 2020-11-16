@@ -14,9 +14,9 @@ class PointLight : public Actor
 class DirectionalLight : public Actor
 {
 public:
-	Vector Direction;
+	FVector Direction;
 	float Intencity;
-	Vector Color;
+	FVector Color;
 	float LightSourceAngle;		// Defaults to 0.5357 which is the angle for our sun.
 	float LightSourceSoftAngle;	//0.0
 	virtual void PostLoad() override {}

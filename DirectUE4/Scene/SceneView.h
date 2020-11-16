@@ -6,11 +6,11 @@
 struct ViewInitOptions
 {
 	/** The view origin. */
-	Vector ViewOrigin;
+	FVector ViewOrigin;
 	/** Rotation matrix transforming from world space to view space. */
-	Matrix ViewRotationMatrix;
+	FMatrix ViewRotationMatrix;
 	/** UE4 projection matrix projects such that clip space Z=1 is the near plane, and Z=0 is the infinite far plane. */
-	Matrix ProjectionMatrix;
+	FMatrix ProjectionMatrix;
 
 	const class Actor* ViewActor;
 
@@ -41,84 +41,84 @@ struct ViewMatrices
 		TranslatedViewMatrix.SetIndentity();
 		TranslatedViewProjectionMatrix.SetIndentity();
 		InvTranslatedViewMatrix.SetIndentity();
-		PreViewTranslation = Vector(0.0f, 0.0f, 0.0f);
-		ViewOrigin = Vector(0.0f, 0.0f, 0.0f);
+		PreViewTranslation = FVector(0.0f, 0.0f, 0.0f);
+		ViewOrigin = FVector(0.0f, 0.0f, 0.0f);
 	}
 	ViewMatrices(const ViewInitOptions& InitOptions);
 private:
-	Matrix ProjectionMatrix;//ViewToClip
-	Matrix InvProjectionMatrix;//ClipToView
-	Matrix ViewMatrix;//WorldToView
-	Matrix InvViewMatrix;//ViewToWorld
-	Matrix ViewProjectionMatrix;//WorldToClip
-	Matrix InvViewProjectionMatrix;//ClipToWorld
+	FMatrix ProjectionMatrix;//ViewToClip
+	FMatrix InvProjectionMatrix;//ClipToView
+	FMatrix ViewMatrix;//WorldToView
+	FMatrix InvViewMatrix;//ViewToWorld
+	FMatrix ViewProjectionMatrix;//WorldToClip
+	FMatrix InvViewProjectionMatrix;//ClipToWorld
 
-	Matrix TranslatedViewMatrix;//
-	Matrix InvTranslatedViewMatrix;//
-	Matrix OverriddenTranslatedViewMatrix;//
-	Matrix OverriddenInvTranslatedViewMatrix;//
-	Matrix TranslatedViewProjectionMatrix;//
-	Matrix InvTranslatedViewProjectionMatrix;//
+	FMatrix TranslatedViewMatrix;//
+	FMatrix InvTranslatedViewMatrix;//
+	FMatrix OverriddenTranslatedViewMatrix;//
+	FMatrix OverriddenInvTranslatedViewMatrix;//
+	FMatrix TranslatedViewProjectionMatrix;//
+	FMatrix InvTranslatedViewProjectionMatrix;//
 
-	Vector PreViewTranslation;
-	Vector ViewOrigin;
+	FVector PreViewTranslation;
+	FVector ViewOrigin;
 
 public:
-	inline const Matrix& GetProjectionMatrix() const
+	inline const FMatrix& GetProjectionMatrix() const
 	{
 		return ProjectionMatrix;
 	}
-	inline const Matrix& GetInvProjectionMatrix() const
+	inline const FMatrix& GetInvProjectionMatrix() const
 	{
 		return InvProjectionMatrix;
 	}
-	inline const Matrix& GetViewMatrix() const
+	inline const FMatrix& GetViewMatrix() const
 	{
 		return ViewMatrix;
 	}
-	inline const Matrix& GetInvViewMatrix() const
+	inline const FMatrix& GetInvViewMatrix() const
 	{
 		return InvViewMatrix;
 	}
-	inline const Matrix& GetViewProjectionMatrix() const
+	inline const FMatrix& GetViewProjectionMatrix() const
 	{
 		return ViewProjectionMatrix;
 	}
-	inline const Matrix& GetInvViewProjectionMatrix() const
+	inline const FMatrix& GetInvViewProjectionMatrix() const
 	{
 		return InvViewProjectionMatrix;
 	}
 
-	inline const Matrix& GetTranslatedViewMatrix() const
+	inline const FMatrix& GetTranslatedViewMatrix() const
 	{
 		return TranslatedViewMatrix;
 	}
-	inline const Matrix& GetInvTranslatedViewMatrix() const
+	inline const FMatrix& GetInvTranslatedViewMatrix() const
 	{
 		return InvTranslatedViewMatrix;
 	}
-	inline const Matrix& GetOverriddenTranslatedViewMatrix() const
+	inline const FMatrix& GetOverriddenTranslatedViewMatrix() const
 	{
 		return OverriddenTranslatedViewMatrix;
 	}
-	inline const Matrix& GetOverriddenInvTranslatedViewMatrix() const
+	inline const FMatrix& GetOverriddenInvTranslatedViewMatrix() const
 	{
 		return OverriddenInvTranslatedViewMatrix;
 	}
-	inline const Matrix& GetTranslatedViewProjectionMatrix() const
+	inline const FMatrix& GetTranslatedViewProjectionMatrix() const
 	{
 		return TranslatedViewProjectionMatrix;
 	}
-	inline const Matrix& GetInvTranslatedViewProjectionMatrix() const
+	inline const FMatrix& GetInvTranslatedViewProjectionMatrix() const
 	{
 		return InvTranslatedViewProjectionMatrix;
 	}
 
-	inline const Vector& GetPreViewTranslation() const
+	inline const FVector& GetPreViewTranslation() const
 	{
 		return PreViewTranslation;
 	}
-	inline const Vector& GetViewOrigin() const
+	inline const FVector& GetViewOrigin() const
 	{
 		return ViewOrigin;
 	}
@@ -127,7 +127,7 @@ public:
 	{
 		return ProjectionMatrix.M[3][3] < 1.0f;
 	}
-	static const Matrix InvertProjectionMatrix(const Matrix& M)
+	static const FMatrix InvertProjectionMatrix(const FMatrix& M)
 	{
 		if (M.M[1][0] == 0.0f &&
 			M.M[3][0] == 0.0f &&
@@ -156,7 +156,7 @@ public:
 			float s = M.M[2][0];
 			float t = M.M[2][1];
 
-			return Matrix(
+			return FMatrix(
 				Plane(1.0f / a, 0.0f, 0.0f, 0.0f),
 				Plane(0.0f, 1.0f / b, 0.0f, 0.0f),
 				Plane(0.0f, 0.0f, 0.0f, 1.0f / d),
@@ -260,46 +260,46 @@ struct alignas(16) FViewUniformShaderParameters
 		Vector VolumetricLightmapBrickTexelSize;
 		*/
 
-		Matrix TranslatedWorldToClip;
-		Matrix WorldToClip;
-		Matrix TranslatedWorldToView;
-		Matrix ViewToTranslatedWorld;
-		Matrix TranslatedWorldToCameraView;
-		Matrix CameraViewToTranslatedWorld;
-		Matrix ViewToClip;
-		Matrix ViewToClipNoAA;
-		Matrix ClipToView;
-		Matrix ClipToTranslatedWorld;
-		Matrix SVPositionToTranslatedWorld;
-		Matrix ScreenToWorld;
-		Matrix ScreenToTranslatedWorld;
-		Vector ViewForward;//EShaderPrecisionModifier::Half;;
-		Vector ViewUp;//EShaderPrecisionModifier::Half;;
-		Vector ViewRight;//EShaderPrecisionModifier::Half;;
-		Vector HMDViewNoRollUp;//EShaderPrecisionModifier::Half;;
-		Vector HMDViewNoRollRight;//EShaderPrecisionModifier::Half;;
+		FMatrix TranslatedWorldToClip;
+		FMatrix WorldToClip;
+		FMatrix TranslatedWorldToView;
+		FMatrix ViewToTranslatedWorld;
+		FMatrix TranslatedWorldToCameraView;
+		FMatrix CameraViewToTranslatedWorld;
+		FMatrix ViewToClip;
+		FMatrix ViewToClipNoAA;
+		FMatrix ClipToView;
+		FMatrix ClipToTranslatedWorld;
+		FMatrix SVPositionToTranslatedWorld;
+		FMatrix ScreenToWorld;
+		FMatrix ScreenToTranslatedWorld;
+		FVector ViewForward;//EShaderPrecisionModifier::Half;;
+		FVector ViewUp;//EShaderPrecisionModifier::Half;;
+		FVector ViewRight;//EShaderPrecisionModifier::Half;;
+		FVector HMDViewNoRollUp;//EShaderPrecisionModifier::Half;;
+		FVector HMDViewNoRollRight;//EShaderPrecisionModifier::Half;;
 		Vector4 InvDeviceZToWorldZTransform;
 		Vector4 ScreenPositionScaleBias;//EShaderPrecisionModifier::Half;;
-		Vector WorldCameraOrigin;
-		Vector TranslatedWorldCameraOrigin;
-		Vector WorldViewOrigin;
-		Vector PreViewTranslation;
-		Matrix PrevProjection;
-		Matrix PrevViewProj;
-		Matrix PrevViewRotationProj;
-		Matrix PrevViewToClip;
-		Matrix PrevClipToView;
-		Matrix PrevTranslatedWorldToClip;
-		Matrix PrevTranslatedWorldToView;
-		Matrix PrevViewToTranslatedWorld;
-		Matrix PrevTranslatedWorldToCameraView;
-		Matrix PrevCameraViewToTranslatedWorld;
-		Vector PrevWorldCameraOrigin;
-		Vector PrevWorldViewOrigin;
-		Vector PrevPreViewTranslation;
-		Matrix PrevInvViewProj;
-		Matrix PrevScreenToTranslatedWorld;
-		Matrix ClipToPrevClip;
+		FVector WorldCameraOrigin;
+		FVector TranslatedWorldCameraOrigin;
+		FVector WorldViewOrigin;
+		FVector PreViewTranslation;
+		FMatrix PrevProjection;
+		FMatrix PrevViewProj;
+		FMatrix PrevViewRotationProj;
+		FMatrix PrevViewToClip;
+		FMatrix PrevClipToView;
+		FMatrix PrevTranslatedWorldToClip;
+		FMatrix PrevTranslatedWorldToView;
+		FMatrix PrevViewToTranslatedWorld;
+		FMatrix PrevTranslatedWorldToCameraView;
+		FMatrix PrevCameraViewToTranslatedWorld;
+		FVector PrevWorldCameraOrigin;
+		FVector PrevWorldViewOrigin;
+		FVector PrevPreViewTranslation;
+		FMatrix PrevInvViewProj;
+		FMatrix PrevScreenToTranslatedWorld;
+		FMatrix ClipToPrevClip;
 		Vector4 TemporalAAJitter;
 		Vector4 GlobalClippingPlane;
 		Vector2 FieldOfViewWideAngles;
@@ -318,7 +318,7 @@ struct alignas(16) FViewUniformShaderParameters
 		float PrevFrameGameTime;
 		float PrevFrameRealTime;
 		float OutOfBoundsMask;//EShaderPrecisionModifier::Half;;
-		Vector WorldCameraMovementSinceLastFrame;
+		FVector WorldCameraMovementSinceLastFrame;
 		float CullingSign;
 		float NearPlane;//EShaderPrecisionModifier::Half;;
 		float AdaptiveTessellationFactor;
@@ -332,7 +332,7 @@ struct alignas(16) FViewUniformShaderParameters
 		float CameraCut;//EShaderPrecisionModifier::Half;;
 		float UnlitViewmodeMask;//EShaderPrecisionModifier::Half;;
 		FLinearColor DirectionalLightColor;//EShaderPrecisionModifier::Half;;
-		Vector DirectionalLightDirection;//EShaderPrecisionModifier::Half;;
+		FVector DirectionalLightDirection;//EShaderPrecisionModifier::Half;;
 		Vector4 TranslucencyLightingVolumeMin[TVC_MAX];
 		Vector4 TranslucencyLightingVolumeInvSize[TVC_MAX];
 		Vector4 TemporalAAParams;
@@ -348,9 +348,9 @@ struct alignas(16) FViewUniformShaderParameters
 		float bSubsurfacePostprocessEnabled;
 		float GeneralPurposeTweak;
 		float DemosaicVposOffset;//EShaderPrecisionModifier::Half;;
-		Vector IndirectLightingColorScale;
+		FVector IndirectLightingColorScale;
 		float HDR32bppEncodingMode;//EShaderPrecisionModifier::Half;;
-		Vector AtmosphericFogSunDirection;
+		FVector AtmosphericFogSunDirection;
 		float AtmosphericFogSunPower;//EShaderPrecisionModifier::Half;;
 		float AtmosphericFogPower;//EShaderPrecisionModifier::Half;;
 		float AtmosphericFogDensityScale;//EShaderPrecisionModifier::Half;;
@@ -365,7 +365,7 @@ struct alignas(16) FViewUniformShaderParameters
 		uint32 AtmosphericFogRenderMask;
 		uint32 AtmosphericFogInscatterAltitudeSampleNum;
 		FLinearColor AtmosphericFogSunColor;
-		Vector NormalCurvatureToRoughnessScaleBias;
+		FVector NormalCurvatureToRoughnessScaleBias;
 		float RenderingReflectionCaptureMask;
 		FLinearColor AmbientCubemapTint;
 		float AmbientCubemapIntensity;
@@ -378,7 +378,7 @@ struct alignas(16) FViewUniformShaderParameters
 		float ShowDecalsMask;
 		uint32 DistanceFieldAOSpecularOcclusionMode;
 		float IndirectCapsuleSelfShadowingIntensity;
-		Vector ReflectionEnvironmentRoughnessMixingScaleBiasAndLargestWeight;
+		FVector ReflectionEnvironmentRoughnessMixingScaleBiasAndLargestWeight;
 		int32 StereoPassIndex;
 		Vector4 GlobalVolumeCenterAndExtent[GMaxGlobalDistanceFieldClipmaps];
 		Vector4 GlobalVolumeWorldToUVAddAndMul[GMaxGlobalDistanceFieldClipmaps];
@@ -386,15 +386,15 @@ struct alignas(16) FViewUniformShaderParameters
 		float GlobalVolumeTexelSize;
 		float MaxGlobalDistance;
 		float bCheckerboardSubsurfaceProfileRendering;
-		Vector VolumetricFogInvGridSize;
-		Vector VolumetricFogGridZParams;
+		FVector VolumetricFogInvGridSize;
+		FVector VolumetricFogGridZParams;
 		Vector2 VolumetricFogSVPosToVolumeUV;
 		float VolumetricFogMaxDistance;
-		Vector VolumetricLightmapWorldToUVScale;
-		Vector VolumetricLightmapWorldToUVAdd;
-		Vector VolumetricLightmapIndirectionTextureSize;
+		FVector VolumetricLightmapWorldToUVScale;
+		FVector VolumetricLightmapWorldToUVAdd;
+		FVector VolumetricLightmapIndirectionTextureSize;
 		float VolumetricLightmapBrickSize;
-		Vector VolumetricLightmapBrickTexelSize;
+		FVector VolumetricLightmapBrickTexelSize;
 		float StereoIPD;
 	} Constants;
 
@@ -546,12 +546,12 @@ public:
 	/* Raw view size (in pixels), used for screen space calculations */
 	IntRect UnconstrainedViewRect;
 
-	Vector	ViewLocation;
+	FVector	ViewLocation;
 	FRotator	ViewRotation;
 
 	ViewMatrices ShadowViewMatrices;
 
-	Matrix ProjectionMatrixUnadjustedForRHI;
+	FMatrix ProjectionMatrixUnadjustedForRHI;
 
 	/** Actual field of view and that desired by the camera originally */
 	float FOV;

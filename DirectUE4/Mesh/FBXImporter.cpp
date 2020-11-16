@@ -82,17 +82,17 @@ const FbxAMatrix & GetJointPostConversionMatrix()
 	return JointPostConversionMatrix;
 }
 
-Vector ConvertPos(FbxVector4 pPos)
+FVector ConvertPos(FbxVector4 pPos)
 {
-	Vector Result;
+	FVector Result;
 	Result.X = (float)pPos[0];
 	Result.Y = -(float)pPos[1];
 	Result.Z = (float)pPos[2];
 	return Result;
 }
-Vector ConvertDir(FbxVector4 Vec)
+FVector ConvertDir(FbxVector4 Vec)
 {
-	Vector Result;
+	FVector Result;
 	Result.X = (float)Vec[0];
 	Result.Y = -(float)Vec[1];
 	Result.Z = (float)Vec[2];
@@ -114,9 +114,9 @@ FQuat ConvertRotToQuat(FbxQuaternion Quaternion)
 
 	return UnrealQuat;
 }
-Vector ConvertScale(FbxDouble3 V)
+FVector ConvertScale(FbxDouble3 V)
 {
-	Vector Out;
+	FVector Out;
 	Out[0] = (float)V[0];
 	Out[1] = (float)V[1];
 	Out[2] = (float)V[2];
@@ -173,7 +173,7 @@ bool IsUnrealBone(FbxNode* Link)
 	return false;
 }
 
-void FSkeletalMeshImportData::CopyLODImportData(std::vector<Vector>& LODPoints, std::vector<FMeshWedge>& LODWedges, std::vector<FMeshFace>& LODFaces, std::vector<FVertInfluence>& LODInfluences, std::vector<int32>& LODPointToRawMap) const
+void FSkeletalMeshImportData::CopyLODImportData(std::vector<FVector>& LODPoints, std::vector<FMeshWedge>& LODWedges, std::vector<FMeshFace>& LODFaces, std::vector<FVertInfluence>& LODInfluences, std::vector<int32>& LODPointToRawMap) const
 {
 	// Copy vertex data.
 	LODPoints.clear();
@@ -601,10 +601,10 @@ StaticMesh* FBXImporter::ImportStaticMesh(const char* pFileName)
 			TotalMatrixForNormal = TotalMatrix.Inverse();
 			TotalMatrixForNormal = TotalMatrixForNormal.Transpose();
 
-			std::vector<Vector>& VertexPositions = MD.VertexAttributes().GetAttributes<Vector>(MeshAttribute::Vertex::Position);
+			std::vector<FVector>& VertexPositions = MD.VertexAttributes().GetAttributes<FVector>(MeshAttribute::Vertex::Position);
 
-			std::vector<Vector>& VertexInstanceNormals = MD.VertexInstanceAttributes().GetAttributes<Vector>(MeshAttribute::VertexInstance::Normal);
-			std::vector<Vector>& VertexInstanceTangents = MD.VertexInstanceAttributes().GetAttributes<Vector>(MeshAttribute::VertexInstance::Tangent);
+			std::vector<FVector>& VertexInstanceNormals = MD.VertexInstanceAttributes().GetAttributes<FVector>(MeshAttribute::VertexInstance::Normal);
+			std::vector<FVector>& VertexInstanceTangents = MD.VertexInstanceAttributes().GetAttributes<FVector>(MeshAttribute::VertexInstance::Tangent);
 			std::vector<float>& VertexInstanceBinormalSigns = MD.VertexInstanceAttributes().GetAttributes<float>(MeshAttribute::VertexInstance::BinormalSign);
 			std::vector<Vector4>& VertexInstanceColors = MD.VertexInstanceAttributes().GetAttributes<Vector4>(MeshAttribute::VertexInstance::Color);
 			std::vector<std::vector<Vector2>>& VertexInstanceUVs = MD.VertexInstanceAttributes().GetAttributesSet<Vector2>(MeshAttribute::VertexInstance::TextureCoordinate);
@@ -647,7 +647,7 @@ StaticMesh* FBXImporter::ImportStaticMesh(const char* pFileName)
 				int RealVertexIndex = VertexOffset + VertexIndex;
 				FbxVector4 FbxPosition = lMesh->GetControlPoints()[VertexIndex];
 				FbxPosition = TotalMatrix.MultT(FbxPosition);
-				Vector const VectorPositon = ConvertPos(FbxPosition);
+				FVector const VectorPositon = ConvertPos(FbxPosition);
 				int VertexID = MD.CreateVertex();
 				VertexPositions[VertexID] = VectorPositon;
 			}
@@ -660,8 +660,8 @@ StaticMesh* FBXImporter::ImportStaticMesh(const char* pFileName)
 			for (auto PolygonIndex = 0; PolygonIndex < PolygonCount; ++PolygonIndex)
 			{
 				int PolygonVertexCount = lMesh->GetPolygonSize(PolygonIndex);
-				std::vector<Vector> P;
-				P.resize(PolygonVertexCount, Vector());
+				std::vector<FVector> P;
+				P.resize(PolygonVertexCount, FVector());
 				for (int32 CornerIndex = 0; CornerIndex < PolygonVertexCount; CornerIndex++)
 				{
 					const int ControlPointIndex = lMesh->GetPolygonVertex(PolygonIndex, CornerIndex);
@@ -683,7 +683,7 @@ StaticMesh* FBXImporter::ImportStaticMesh(const char* pFileName)
 					CornerInstanceIDs[CornerIndex] = VertexInstanceID;
 					const int ControlPointIndex = lMesh->GetPolygonVertex(PolygonIndex, CornerIndex);
 					const int VertexID = VertexOffset + ControlPointIndex;
-					const Vector VertexPostion = VertexPositions[VertexID];
+					const FVector VertexPostion = VertexPositions[VertexID];
 					CornerVerticesIDs[CornerIndex] = VertexID;
 
 					int AddedVertexInstanceId = MD.CreateVertexInstance(VertexID);
@@ -716,7 +716,7 @@ StaticMesh* FBXImporter::ImportStaticMesh(const char* pFileName)
 						int NormalValueIndex = (NormalReferenceMode == FbxLayerElement::eDirect) ? NormalMapIndex : LayerElementNormal->GetIndexArray().GetAt(NormalMapIndex);
 						FbxVector4 TempValue = LayerElementNormal->GetDirectArray().GetAt(NormalValueIndex);
 						TempValue = TotalMatrixForNormal.MultT(TempValue);
-						Vector TangentZ = ConvertDir(TempValue);
+						FVector TangentZ = ConvertDir(TempValue);
 						VertexInstanceNormals[AddedVertexInstanceId] = TangentZ;
 
 						if (bHasNTBInfomation)
@@ -726,7 +726,7 @@ StaticMesh* FBXImporter::ImportStaticMesh(const char* pFileName)
 
 							TempValue = LayerElementTangent->GetDirectArray().GetAt(TangentValueIndex);
 							TempValue = TotalMatrixForNormal.MultT(TempValue);
-							Vector TangentX = ConvertDir(TempValue);
+							FVector TangentX = ConvertDir(TempValue);
 							VertexInstanceTangents[AddedVertexInstanceId] = TangentX;
 
 							int BinormalMapIndex = (BinormalMappingMode == FbxLayerElement::eByControlPoint) ? ControlPointIndex : RealFbxVertexIndex;
@@ -734,7 +734,7 @@ StaticMesh* FBXImporter::ImportStaticMesh(const char* pFileName)
 
 							TempValue = LayerElementBinormal->GetDirectArray().GetAt(BinormalValueIndex);
 							TempValue = TotalMatrixForNormal.MultT(TempValue);
-							Vector TangentY = -ConvertDir(TempValue);
+							FVector TangentY = -ConvertDir(TempValue);
 							VertexInstanceBinormalSigns[AddedVertexInstanceId] = GetBasisDeterminantSign(TangentX.GetSafeNormal(), TangentY.GetSafeNormal(), TangentZ.GetSafeNormal());
 						}
 					}
@@ -926,7 +926,7 @@ SkeletalMesh* FBXImporter::ImportSkeletalMesh(const char* pFileName)
 
 	if (/*ImportSkeletalMeshArgs.bCreateRenderData*/true)
 	{
-		std::vector<Vector> LODPoints;
+		std::vector<FVector> LODPoints;
 		std::vector<FMeshWedge> LODWedges;
 		std::vector<FMeshFace> LODFaces;
 		std::vector<FVertInfluence> LODInfluences;
@@ -1781,9 +1781,9 @@ bool FBXImporter::FillSkelMeshImporterFromFbx(FSkeletalMeshImportData& ImportDat
 				int32 NormalIndex;
 				for (NormalIndex = 0; NormalIndex < 3; ++NormalIndex)
 				{
-					Triangle.TangentX[NormalIndex] = Vector::ZeroVector;
-					Triangle.TangentY[NormalIndex] = Vector::ZeroVector;
-					Triangle.TangentZ[NormalIndex] = Vector::ZeroVector;
+					Triangle.TangentX[NormalIndex] = FVector::ZeroVector;
+					Triangle.TangentY[NormalIndex] = FVector::ZeroVector;
+					Triangle.TangentZ[NormalIndex] = FVector::ZeroVector;
 				}
 			}
 		}
@@ -2051,7 +2051,7 @@ bool FBXImporter::FillSkeletalMeshImportPoints(FSkeletalMeshImportData* OutData,
 
 		FbxVector4 FinalPosition;
 		FinalPosition = TotalMatrix.MultT(Position);
-		Vector ConvertedPosition = ConvertPos(FinalPosition);
+		FVector ConvertedPosition = ConvertPos(FinalPosition);
 
 		// ensure user when this happens if attached to debugger
 		if (!(ConvertedPosition.ContainsNaN() == false))
@@ -2061,7 +2061,7 @@ bool FBXImporter::FillSkeletalMeshImportPoints(FSkeletalMeshImportData* OutData,
 				bInvalidPositionFound = true;
 			}
 
-			ConvertedPosition = Vector::ZeroVector;
+			ConvertedPosition = FVector::ZeroVector;
 		}
 
 		OutData->Points[ControlPointsIndex + ExistPointNum] = ConvertedPosition;
@@ -2529,15 +2529,15 @@ public:
 	virtual uint32 GetWedgeIndex(uint32 FaceIndex, uint32 TriIndex) = 0;
 	virtual uint32 GetVertexIndex(uint32 WedgeIndex) = 0;
 	virtual uint32 GetVertexIndex(uint32 FaceIndex, uint32 TriIndex) = 0;
-	virtual Vector GetVertexPosition(uint32 WedgeIndex) = 0;
-	virtual Vector GetVertexPosition(uint32 FaceIndex, uint32 TriIndex) = 0;
+	virtual FVector GetVertexPosition(uint32 WedgeIndex) = 0;
+	virtual FVector GetVertexPosition(uint32 FaceIndex, uint32 TriIndex) = 0;
 	virtual Vector2 GetVertexUV(uint32 FaceIndex, uint32 TriIndex, uint32 UVIndex) = 0;
 	virtual uint32 GetFaceSmoothingGroups(uint32 FaceIndex) = 0;
 
 	virtual uint32 GetNumFaces() = 0;
 	virtual uint32 GetNumWedges() = 0;
 
-	virtual std::vector<Vector>& GetTangentArray(uint32 Axis) = 0;
+	virtual std::vector<FVector>& GetTangentArray(uint32 Axis) = 0;
 	virtual void ValidateTangentArraySize() = 0;
 
 	virtual SMikkTSpaceInterface* GetMikkTInterface() = 0;
@@ -2583,20 +2583,20 @@ class MikkTSpace_Skeletal_Mesh
 public:
 	const std::vector<FMeshWedge>	&wedges;			//Reference to wedge list.
 	const std::vector<FMeshFace>		&faces;				//Reference to face list.	Also contains normal/tangent/bitanget/UV coords for each vertex of the face.
-	const std::vector<Vector>		&points;			//Reference to position list.
+	const std::vector<FVector>		&points;			//Reference to position list.
 	bool						bComputeNormals;	//Copy of bComputeNormals.
-	std::vector<Vector>				&TangentsX;			//Reference to newly created tangents list.
-	std::vector<Vector>				&TangentsY;			//Reference to newly created bitangents list.
-	std::vector<Vector>				&TangentsZ;			//Reference to computed normals, will be empty otherwise.
+	std::vector<FVector>				&TangentsX;			//Reference to newly created tangents list.
+	std::vector<FVector>				&TangentsY;			//Reference to newly created bitangents list.
+	std::vector<FVector>				&TangentsZ;			//Reference to computed normals, will be empty otherwise.
 
 	MikkTSpace_Skeletal_Mesh(
 		const std::vector<FMeshWedge>	&Wedges,
 		const std::vector<FMeshFace>		&Faces,
-		const std::vector<Vector>		&Points,
+		const std::vector<FVector>		&Points,
 		bool						bInComputeNormals,
-		std::vector<Vector>				&VertexTangentsX,
-		std::vector<Vector>				&VertexTangentsY,
-		std::vector<Vector>				&VertexTangentsZ
+		std::vector<FVector>				&VertexTangentsX,
+		std::vector<FVector>				&VertexTangentsY,
+		std::vector<FVector>				&VertexTangentsZ
 	)
 		:
 		wedges(Wedges),
@@ -2625,7 +2625,7 @@ static int MikkGetNumVertsOfFace_Skeletal(const SMikkTSpaceContext* Context, con
 static void MikkGetPosition_Skeletal(const SMikkTSpaceContext* Context, float Position[3], const int FaceIdx, const int VertIdx)
 {
 	MikkTSpace_Skeletal_Mesh *UserData = (MikkTSpace_Skeletal_Mesh*)(Context->m_pUserData);
-	const Vector &VertexPosition = UserData->points[UserData->wedges[UserData->faces[FaceIdx].iWedge[VertIdx]].iVertex];
+	const FVector &VertexPosition = UserData->points[UserData->wedges[UserData->faces[FaceIdx].iWedge[VertIdx]].iVertex];
 	Position[0] = VertexPosition.X;
 	Position[1] = VertexPosition.Y;
 	Position[2] = VertexPosition.Z;
@@ -2636,14 +2636,14 @@ static void MikkGetNormal_Skeletal(const SMikkTSpaceContext* Context, float Norm
 	MikkTSpace_Skeletal_Mesh *UserData = (MikkTSpace_Skeletal_Mesh*)(Context->m_pUserData);
 	// Get different normals depending on whether they've been calculated or not.
 	if (UserData->bComputeNormals) {
-		Vector &VertexNormal = UserData->TangentsZ[FaceIdx * 3 + VertIdx];
+		FVector &VertexNormal = UserData->TangentsZ[FaceIdx * 3 + VertIdx];
 		Normal[0] = VertexNormal.X;
 		Normal[1] = VertexNormal.Y;
 		Normal[2] = VertexNormal.Z;
 	}
 	else
 	{
-		const Vector &VertexNormal = UserData->faces[FaceIdx].TangentZ[VertIdx];
+		const FVector &VertexNormal = UserData->faces[FaceIdx].TangentZ[VertIdx];
 		Normal[0] = VertexNormal.X;
 		Normal[1] = VertexNormal.Y;
 		Normal[2] = VertexNormal.Z;
@@ -2653,21 +2653,21 @@ static void MikkGetNormal_Skeletal(const SMikkTSpaceContext* Context, float Norm
 static void MikkSetTSpaceBasic_Skeletal(const SMikkTSpaceContext* Context, const float Tangent[3], const float BitangentSign, const int FaceIdx, const int VertIdx)
 {
 	MikkTSpace_Skeletal_Mesh *UserData = (MikkTSpace_Skeletal_Mesh*)(Context->m_pUserData);
-	Vector &VertexTangent = UserData->TangentsX[FaceIdx * 3 + VertIdx];
+	FVector &VertexTangent = UserData->TangentsX[FaceIdx * 3 + VertIdx];
 	VertexTangent.X = Tangent[0];
 	VertexTangent.Y = Tangent[1];
 	VertexTangent.Z = Tangent[2];
 
-	Vector Bitangent;
+	FVector Bitangent;
 	// Get different normals depending on whether they've been calculated or not.
 	if (UserData->bComputeNormals) {
-		Bitangent = BitangentSign * Vector::CrossProduct(UserData->TangentsZ[FaceIdx * 3 + VertIdx], VertexTangent);
+		Bitangent = BitangentSign * FVector::CrossProduct(UserData->TangentsZ[FaceIdx * 3 + VertIdx], VertexTangent);
 	}
 	else
 	{
-		Bitangent = BitangentSign * Vector::CrossProduct(UserData->faces[FaceIdx].TangentZ[VertIdx], VertexTangent);
+		Bitangent = BitangentSign * FVector::CrossProduct(UserData->faces[FaceIdx].TangentZ[VertIdx], VertexTangent);
 	}
-	Vector &VertexBitangent = UserData->TangentsY[FaceIdx * 3 + VertIdx];
+	FVector &VertexBitangent = UserData->TangentsY[FaceIdx * 3 + VertIdx];
 	// Switch the tangent space swizzle to X+Y-Z+ for legacy reasons.
 	VertexBitangent.X = -Bitangent[0];
 	VertexBitangent.Y = -Bitangent[1];
@@ -2694,7 +2694,7 @@ public:
 		const std::vector<FVertInfluence>& InInfluences,
 		const std::vector<FMeshWedge>& InWedges,
 		const std::vector<FMeshFace>& InFaces,
-		const std::vector<Vector>& InPoints,
+		const std::vector<FVector>& InPoints,
 		const std::vector<int32>& InPointToOriginalMap,
 		const MeshBuildOptions& InBuildOptions,
 		std::vector<std::string>* InWarningMessages,
@@ -2765,12 +2765,12 @@ public:
 		return Wedges[Faces[FaceIndex].iWedge[TriIndex]].iVertex;
 	}
 
-	virtual Vector GetVertexPosition(uint32 WedgeIndex) override
+	virtual FVector GetVertexPosition(uint32 WedgeIndex) override
 	{
 		return Points[Wedges[WedgeIndex].iVertex];
 	}
 
-	virtual Vector GetVertexPosition(uint32 FaceIndex, uint32 TriIndex) override
+	virtual FVector GetVertexPosition(uint32 FaceIndex, uint32 TriIndex) override
 	{
 		return Points[Wedges[Faces[FaceIndex].iWedge[TriIndex]].iVertex];
 	}
@@ -2795,7 +2795,7 @@ public:
 		return Wedges.size();
 	}
 
-	virtual std::vector<Vector>& GetTangentArray(uint32 Axis) override
+	virtual std::vector<FVector>& GetTangentArray(uint32 Axis) override
 	{
 		if (Axis == 0)
 		{
@@ -2826,9 +2826,9 @@ public:
 		return (void*)&MikkTUserData;
 	}
 
-	std::vector<Vector> TangentX;
-	std::vector<Vector> TangentY;
-	std::vector<Vector> TangentZ;
+	std::vector<FVector> TangentX;
+	std::vector<FVector> TangentY;
+	std::vector<FVector> TangentZ;
 	std::vector<FSkinnedMeshChunk*> Chunks;
 
 	SMikkTSpaceInterface MikkTInterface;
@@ -2839,14 +2839,14 @@ public:
 	const std::vector<FVertInfluence>& Influences;
 	const std::vector<FMeshWedge>& Wedges;
 	const std::vector<FMeshFace>& Faces;
-	const std::vector<Vector>& Points;
+	const std::vector<FVector>& Points;
 	const std::vector<int32>& PointToOriginalMap;
 };
 
 /**
 * Returns true if the specified points are about equal
 */
-inline bool PointsEqual(const Vector& V1, const Vector& V2, float ComparisonThreshold)
+inline bool PointsEqual(const FVector& V1, const FVector& V2, float ComparisonThreshold)
 {
 	if (FMath::Abs(V1.X - V2.X) > ComparisonThreshold
 		|| FMath::Abs(V1.Y - V2.Y) > ComparisonThreshold
@@ -2856,7 +2856,7 @@ inline bool PointsEqual(const Vector& V1, const Vector& V2, float ComparisonThre
 	}
 	return true;
 }
-inline bool PointsEqual(const Vector& V1, const Vector& V2, const FOverlappingThresholds& OverlappingThreshold)
+inline bool PointsEqual(const FVector& V1, const FVector& V2, const FOverlappingThresholds& OverlappingThreshold)
 {
 	const float Epsilon = OverlappingThreshold.ThresholdPosition;
 	return FMath::Abs(V1.X - V2.X) <= Epsilon && FMath::Abs(V1.Y - V2.Y) <= Epsilon && FMath::Abs(V1.Z - V2.Z) <= Epsilon;
@@ -2864,12 +2864,12 @@ inline bool PointsEqual(const Vector& V1, const Vector& V2, const FOverlappingTh
 /**
 * Returns true if the specified points are about equal
 */
-inline bool PointsEqual(const Vector& V1, const Vector& V2, bool bUseEpsilonCompare = true)
+inline bool PointsEqual(const FVector& V1, const FVector& V2, bool bUseEpsilonCompare = true)
 {
 	const float Epsilon = bUseEpsilonCompare ? THRESH_POINTS_ARE_SAME : 0.0f;
 	return FMath::Abs(V1.X - V2.X) <= Epsilon && FMath::Abs(V1.Y - V2.Y) <= Epsilon && FMath::Abs(V1.Z - V2.Z) <= Epsilon;
 }
-inline bool NormalsEqual(const Vector& V1, const Vector& V2, const FOverlappingThresholds& OverlappingThreshold)
+inline bool NormalsEqual(const FVector& V1, const FVector& V2, const FOverlappingThresholds& OverlappingThreshold)
 {
 	const float Epsilon = OverlappingThreshold.ThresholdTangentNormal;
 	return FMath::Abs(V1.X - V2.X) <= Epsilon && FMath::Abs(V1.Y - V2.Y) <= Epsilon && FMath::Abs(V1.Z - V2.Z) <= Epsilon;
@@ -2922,7 +2922,7 @@ struct FIndexAndZ
 	FIndexAndZ() {}
 
 	/** Initialization constructor. */
-	FIndexAndZ(int32 InIndex, Vector V)
+	FIndexAndZ(int32 InIndex, FVector V)
 	{
 		Z = 0.30f * V.X + 0.33f * V.Y + 0.37f * V.Z;
 		Index = InIndex;
@@ -2980,8 +2980,8 @@ public:
 				if (FMath::Abs(VertIndexAndZ[j].Z - VertIndexAndZ[i].Z) > ComparisonThreshold)
 					break; // can't be any more dups
 
-				Vector PositionA = BuildData->GetVertexPosition(VertIndexAndZ[i].Index);
-				Vector PositionB = BuildData->GetVertexPosition(VertIndexAndZ[j].Index);
+				FVector PositionA = BuildData->GetVertexPosition(VertIndexAndZ[i].Index);
+				FVector PositionB = BuildData->GetVertexPosition(VertIndexAndZ[j].Index);
 
 				if (PointsEqual(PositionA, PositionB, ComparisonThreshold))
 				{
@@ -2994,9 +2994,9 @@ public:
 	}
 
 	void Skeletal_ComputeTriangleTangents(
-		std::vector<Vector>& TriangleTangentX,
-		std::vector<Vector>& TriangleTangentY,
-		std::vector<Vector>& TriangleTangentZ,
+		std::vector<FVector>& TriangleTangentX,
+		std::vector<FVector>& TriangleTangentY,
+		std::vector<FVector>& TriangleTangentZ,
 		IMeshBuildData* BuildData,
 		float ComparisonThreshold
 	)
@@ -3009,15 +3009,15 @@ public:
 		for (int32 TriangleIndex = 0; TriangleIndex < NumTriangles; TriangleIndex++)
 		{
 			const int32 UVIndex = 0;
-			Vector P[3];
+			FVector P[3];
 
 			for (int32 i = 0; i < 3; ++i)
 			{
 				P[i] = BuildData->GetVertexPosition(TriangleIndex, i);
 			}
 
-			const Vector Normal = ((P[1] - P[2]) ^ (P[0] - P[2])).GetSafeNormal(ComparisonThreshold);
-			Matrix	ParameterToLocal(
+			const FVector Normal = ((P[1] - P[2]) ^ (P[0] - P[2])).GetSafeNormal(ComparisonThreshold);
+			FMatrix	ParameterToLocal(
 				Plane(P[1].X - P[0].X, P[1].Y - P[0].Y, P[1].Z - P[0].Z, 0),
 				Plane(P[2].X - P[0].X, P[2].Y - P[0].Y, P[2].Z - P[0].Z, 0),
 				Plane(P[0].X, P[0].Y, P[0].Z, 0),
@@ -3027,7 +3027,7 @@ public:
 			Vector2 T1 = BuildData->GetVertexUV(TriangleIndex, 0, UVIndex);
 			Vector2 T2 = BuildData->GetVertexUV(TriangleIndex, 1, UVIndex);
 			Vector2 T3 = BuildData->GetVertexUV(TriangleIndex, 2, UVIndex);
-			Matrix ParameterToTexture(
+			FMatrix ParameterToTexture(
 				Plane(T2.X - T1.X, T2.Y - T1.Y, 0, 0),
 				Plane(T3.X - T1.X, T3.Y - T1.Y, 0, 0),
 				Plane(T1.X, T1.Y, 1, 0),
@@ -3035,13 +3035,13 @@ public:
 			);
 
 			// Use InverseSlow to catch singular matrices.  Inverse can miss this sometimes.
-			const Matrix TextureToLocal = ParameterToTexture.Inverse() * ParameterToLocal;
+			const FMatrix TextureToLocal = ParameterToTexture.Inverse() * ParameterToLocal;
 
-			TriangleTangentX.push_back(TextureToLocal.TransformVector(Vector(1, 0, 0)).GetSafeNormal());
-			TriangleTangentY.push_back(TextureToLocal.TransformVector(Vector(0, 1, 0)).GetSafeNormal());
+			TriangleTangentX.push_back(TextureToLocal.TransformVector(FVector(1, 0, 0)).GetSafeNormal());
+			TriangleTangentY.push_back(TextureToLocal.TransformVector(FVector(0, 1, 0)).GetSafeNormal());
 			TriangleTangentZ.push_back(Normal);
 
-			Vector::CreateOrthonormalBasis(
+			FVector::CreateOrthonormalBasis(
 				TriangleTangentX[TriangleIndex],
 				TriangleTangentY[TriangleIndex],
 				TriangleTangentZ[TriangleIndex]
@@ -3058,9 +3058,9 @@ public:
 		bool bIgnoreDegenerateTriangles = BuildData->BuildOptions.bRemoveDegenerateTriangles;
 
 		// Compute per-triangle tangents.
-		std::vector<Vector> TriangleTangentX;
-		std::vector<Vector> TriangleTangentY;
-		std::vector<Vector> TriangleTangentZ;
+		std::vector<FVector> TriangleTangentX;
+		std::vector<FVector> TriangleTangentY;
+		std::vector<FVector> TriangleTangentZ;
 
 		Skeletal_ComputeTriangleTangents(
 			TriangleTangentX,
@@ -3070,9 +3070,9 @@ public:
 			bIgnoreDegenerateTriangles ? SMALL_NUMBER : 0.0f
 		);
 
-		std::vector<Vector>& WedgeTangentX = BuildData->GetTangentArray(0);
-		std::vector<Vector>& WedgeTangentY = BuildData->GetTangentArray(1);
-		std::vector<Vector>& WedgeTangentZ = BuildData->GetTangentArray(2);
+		std::vector<FVector>& WedgeTangentX = BuildData->GetTangentArray(0);
+		std::vector<FVector>& WedgeTangentY = BuildData->GetTangentArray(1);
+		std::vector<FVector>& WedgeTangentZ = BuildData->GetTangentArray(2);
 
 		// Declare these out here to avoid reallocations.
 		std::vector<FFanFace> RelevantFacesForCorner[3];
@@ -3102,16 +3102,16 @@ public:
 		for (int32 FaceIndex = 0; FaceIndex < NumFaces; FaceIndex++)
 		{
 			int32 WedgeOffset = FaceIndex * 3;
-			Vector CornerPositions[3];
-			Vector CornerTangentX[3];
-			Vector CornerTangentY[3];
-			Vector CornerTangentZ[3];
+			FVector CornerPositions[3];
+			FVector CornerTangentX[3];
+			FVector CornerTangentY[3];
+			FVector CornerTangentZ[3];
 
 			for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++)
 			{
-				CornerTangentX[CornerIndex] = Vector::ZeroVector;
-				CornerTangentY[CornerIndex] = Vector::ZeroVector;
-				CornerTangentZ[CornerIndex] = Vector::ZeroVector;
+				CornerTangentX[CornerIndex] = FVector::ZeroVector;
+				CornerTangentY[CornerIndex] = FVector::ZeroVector;
+				CornerTangentZ[CornerIndex] = FVector::ZeroVector;
 				CornerPositions[CornerIndex] = BuildData->GetVertexPosition(FaceIndex, CornerIndex);
 				RelevantFacesForCorner[CornerIndex].clear();
 			}
@@ -3138,7 +3138,7 @@ public:
 			}
 
 			// Calculate smooth vertex normals.
-			float Determinant = Vector::Triple(
+			float Determinant = FVector::Triple(
 				TriangleTangentX[FaceIndex],
 				TriangleTangentY[FaceIndex],
 				TriangleTangentZ[FaceIndex]
@@ -3279,7 +3279,7 @@ public:
 											// Only blend tangents if there is no UV seam along the edge with this face.
 											if (OtherFace.bBlendTangents && CommonTangentVertices > 1)
 											{
-												float OtherDeterminant = Vector::Triple(
+												float OtherDeterminant = FVector::Triple(
 													TriangleTangentX[NextFace.FaceIndex],
 													TriangleTangentY[NextFace.FaceIndex],
 													TriangleTangentZ[NextFace.FaceIndex]
@@ -3381,9 +3381,9 @@ public:
 		bool bIgnoreDegenerateTriangles = BuildData->BuildOptions.bRemoveDegenerateTriangles;
 
 		// Compute per-triangle tangents.
-		std::vector<Vector> TriangleTangentX;
-		std::vector<Vector> TriangleTangentY;
-		std::vector<Vector> TriangleTangentZ;
+		std::vector<FVector> TriangleTangentX;
+		std::vector<FVector> TriangleTangentY;
+		std::vector<FVector> TriangleTangentZ;
 
 		Skeletal_ComputeTriangleTangents(
 			TriangleTangentX,
@@ -3393,9 +3393,9 @@ public:
 			bIgnoreDegenerateTriangles ? SMALL_NUMBER : 0.0f
 		);
 
-		std::vector<Vector>& WedgeTangentX = BuildData->GetTangentArray(0);
-		std::vector<Vector>& WedgeTangentY = BuildData->GetTangentArray(1);
-		std::vector<Vector>& WedgeTangentZ = BuildData->GetTangentArray(2);
+		std::vector<FVector>& WedgeTangentX = BuildData->GetTangentArray(0);
+		std::vector<FVector>& WedgeTangentY = BuildData->GetTangentArray(1);
+		std::vector<FVector>& WedgeTangentZ = BuildData->GetTangentArray(2);
 
 		// Declare these out here to avoid reallocations.
 		std::vector<FFanFace> RelevantFacesForCorner[3];
@@ -3430,12 +3430,12 @@ public:
 		for (int32 FaceIndex = 0; FaceIndex < NumFaces; FaceIndex++)
 		{
 			int32 WedgeOffset = FaceIndex * 3;
-			Vector CornerPositions[3];
-			Vector CornerNormal[3];
+			FVector CornerPositions[3];
+			FVector CornerNormal[3];
 
 			for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++)
 			{
-				CornerNormal[CornerIndex] = Vector::ZeroVector;
+				CornerNormal[CornerIndex] = FVector::ZeroVector;
 				CornerPositions[CornerIndex] = BuildData->GetVertexPosition(FaceIndex, CornerIndex);
 				RelevantFacesForCorner[CornerIndex].clear();
 			}
@@ -3678,8 +3678,8 @@ public:
 		// Dump normals and tangents if we are recomputing them.
 		if (bRecomputeTangents)
 		{
-			std::vector<Vector>& TangentX = BuildData->GetTangentArray(0);
-			std::vector<Vector>& TangentY = BuildData->GetTangentArray(1);
+			std::vector<FVector>& TangentX = BuildData->GetTangentArray(0);
+			std::vector<FVector>& TangentY = BuildData->GetTangentArray(1);
 
 			TangentX.clear();
 			TangentX.resize(NumWedges);
@@ -3688,7 +3688,7 @@ public:
 		}
 		if (bRecomputeNormals)
 		{
-			std::vector<Vector>& TangentZ = BuildData->GetTangentArray(2);
+			std::vector<FVector>& TangentZ = BuildData->GetTangentArray(2);
 			TangentZ.clear();
 			TangentZ.resize(NumWedges);
 		}
@@ -3776,7 +3776,7 @@ public:
 
 				Vertex.Position = BuildData.GetVertexPosition(FaceIndex, VertexIndex);
 
-				Vector TangentX, TangentY, TangentZ;
+				FVector TangentX, TangentY, TangentZ;
 				TangentX = BuildData.TangentX[WedgeIndex].GetSafeNormal();
 				TangentY = BuildData.TangentY[WedgeIndex].GetSafeNormal();
 				TangentZ = BuildData.TangentZ[WedgeIndex].GetSafeNormal();
@@ -4274,7 +4274,7 @@ void SkeletalMeshTools::ChunkSkinnedVertices(std::vector<FSkinnedMeshChunk*>& Ch
 	}
 }
 
-bool FBXImporter::BuildSkeletalMesh(SkeletalMeshLODModel& LODModel, const FReferenceSkeleton& RefSkeleton, const std::vector<FVertInfluence>& Influences, const std::vector<FMeshWedge>& Wedges, const std::vector<FMeshFace>& Faces, const std::vector<Vector>& Points, const std::vector<int32>& PointToOriginalMap, const MeshBuildOptions& BuildOptions /*= MeshBuildOptions()*/, std::vector<std::string> * OutWarningMessages /*= NULL*/, std::vector<std::string> * OutWarningNames /*= NULL*/)
+bool FBXImporter::BuildSkeletalMesh(SkeletalMeshLODModel& LODModel, const FReferenceSkeleton& RefSkeleton, const std::vector<FVertInfluence>& Influences, const std::vector<FMeshWedge>& Wedges, const std::vector<FMeshFace>& Faces, const std::vector<FVector>& Points, const std::vector<int32>& PointToOriginalMap, const MeshBuildOptions& BuildOptions /*= MeshBuildOptions()*/, std::vector<std::string> * OutWarningMessages /*= NULL*/, std::vector<std::string> * OutWarningNames /*= NULL*/)
 {
 	auto UpdateOverlappingVertices = [](SkeletalMeshLODModel& InLODModel)
 	{
@@ -4611,9 +4611,9 @@ void FBXImporter::BuildVertexBuffer(const MeshDescription& MD2, FStaticMeshLODRe
 
 	const std::vector<std::string>& PolygonGroupImportedMaterialSlotNames = MD2.PolygonGroupAttributes().GetAttributes<std::string>(MeshAttribute::PolygonGroup::ImportedMaterialSlotName);
 
-	const std::vector<Vector>& VertexPositions = MD2.VertexAttributes().GetAttributes<Vector>(MeshAttribute::Vertex::Position);
-	const std::vector<Vector>& VertexInstanceNormals = MD2.VertexInstanceAttributes().GetAttributes<Vector>(MeshAttribute::VertexInstance::Normal);
-	const std::vector<Vector>& VertexInstanceTangents = MD2.VertexInstanceAttributes().GetAttributes<Vector>(MeshAttribute::VertexInstance::Tangent);
+	const std::vector<FVector>& VertexPositions = MD2.VertexAttributes().GetAttributes<FVector>(MeshAttribute::Vertex::Position);
+	const std::vector<FVector>& VertexInstanceNormals = MD2.VertexInstanceAttributes().GetAttributes<FVector>(MeshAttribute::VertexInstance::Normal);
+	const std::vector<FVector>& VertexInstanceTangents = MD2.VertexInstanceAttributes().GetAttributes<FVector>(MeshAttribute::VertexInstance::Tangent);
 	const std::vector<float>& VertexInstanceBinormalSigns = MD2.VertexInstanceAttributes().GetAttributes<float>(MeshAttribute::VertexInstance::BinormalSign);
 	const std::vector<Vector4>& VertexInstanceColors = MD2.VertexInstanceAttributes().GetAttributes<Vector4>(MeshAttribute::VertexInstance::Color);
 	const std::vector<std::vector<Vector2>>& VertexInstanceUVs = MD2.VertexInstanceAttributes().GetAttributesSet<Vector2>(MeshAttribute::VertexInstance::TextureCoordinate);
@@ -4650,7 +4650,7 @@ void FBXImporter::BuildVertexBuffer(const MeshDescription& MD2, FStaticMeshLODRe
 		for (int TriangleIndex = 0; TriangleIndex < (int)PolygonTriangles.size(); ++TriangleIndex)
 		{
 			const MeshTriangle& Triangle = PolygonTriangles[TriangleIndex];
-			Vector CornerPositions[3];
+			FVector CornerPositions[3];
 			for (int TriVert = 0; TriVert < 3; ++TriVert)
 			{
 				const int VertexInstanceID = Triangle.GetVertexInstanceID(TriVert);
@@ -4662,9 +4662,9 @@ void FBXImporter::BuildVertexBuffer(const MeshDescription& MD2, FStaticMeshLODRe
 			{
 				const int VertexInstanceID = Triangle.GetVertexInstanceID(TriVert);
 				const int VertexInstanceValue = VertexInstanceID;
-				const Vector& VertexPosition = CornerPositions[TriVert];
-				const Vector& VertexNormal = VertexInstanceNormals[VertexInstanceID];
-				const Vector& VertexTangent = VertexInstanceTangents[VertexInstanceID];
+				const FVector& VertexPosition = CornerPositions[TriVert];
+				const FVector& VertexNormal = VertexInstanceNormals[VertexInstanceID];
+				const FVector& VertexTangent = VertexInstanceTangents[VertexInstanceID];
 				const float VertexInstanceBinormalSign = VertexInstanceBinormalSigns[VertexInstanceID];
 				Vector2 UVs = VertexInstanceUVs[0][VertexInstanceID];
 				Vector2 LightMapCoordinate = VertexInstanceUVs[1][VertexInstanceID];

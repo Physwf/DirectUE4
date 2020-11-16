@@ -12,7 +12,7 @@ public:
 	~Camera() {};
 
 	void SetFOV(float InFOV) { FOV = InFOV; }
-	void LookAt(Vector Target);
+	void LookAt(FVector Target);
 	void SetLen(float fNear, float fFar);
 
 	SceneView* CalcSceneView(SceneViewFamily& ViewFamily, Viewport& VP);
@@ -20,8 +20,8 @@ public:
 	virtual void PostLoad() override {}
 	virtual void Tick(float fDeltaSeconds) override;
 public:
-	Vector FaceDir;
-	Vector Up;
+	FVector FaceDir;
+	FVector Up;
 
 	float Near;
 	float Far;

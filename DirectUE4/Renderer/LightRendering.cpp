@@ -8,13 +8,13 @@
 #pragma pack(1)
 struct DeferredLightUniforms
 {
-	Vector LightPosition;
+	FVector LightPosition;
 	float LightInvRadius;
-	Vector LightColor;
+	FVector LightColor;
 	float LightFalloffExponent;
-	Vector NormalizedLightDirection;
+	FVector NormalizedLightDirection;
 	float DeferredLightUniformsPading01;
-	Vector NormalizedLightTangent;
+	FVector NormalizedLightTangent;
 	float DeferredLightUniformsPading02;
 	Vector2 SpotAngles;
 	float SpecularScale;

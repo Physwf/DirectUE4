@@ -1,24 +1,24 @@
 #include "UnrealMath.h"
 
-alignas(16) const Matrix Matrix::Identity(Plane(1, 0, 0, 0), Plane(0, 1, 0, 0), Plane(0, 0, 1, 0), Plane(0, 0, 0, 1));
+alignas(16) const FMatrix FMatrix::Identity(Plane(1, 0, 0, 0), Plane(0, 1, 0, 0), Plane(0, 0, 1, 0), Plane(0, 0, 0, 1));
 
-Matrix::Matrix(const Plane& InX, const Plane& InY, const Plane& InZ, const Plane& InW)
+FMatrix::FMatrix(const Plane& InX, const Plane& InY, const Plane& InZ, const Plane& InW)
 {
 	M[0][0] = InX.X; M[0][1] = InX.Y;  M[0][2] = InX.Z;  M[0][3] = InX.W;
 	M[1][0] = InY.X; M[1][1] = InY.Y;  M[1][2] = InY.Z;  M[1][3] = InY.W;
 	M[2][0] = InZ.X; M[2][1] = InZ.Y;  M[2][2] = InZ.Z;  M[2][3] = InZ.W;
 	M[3][0] = InW.X; M[3][1] = InW.Y;  M[3][2] = InW.Z;  M[3][3] = InW.W;
 }
-inline Matrix::Matrix(const Vector& InX, const Vector& InY, const Vector& InZ, const Vector& InW)
+inline FMatrix::FMatrix(const FVector& InX, const FVector& InY, const FVector& InZ, const FVector& InW)
 {
 	M[0][0] = InX.X; M[0][1] = InX.Y;  M[0][2] = InX.Z;  M[0][3] = 0.0f;
 	M[1][0] = InY.X; M[1][1] = InY.Y;  M[1][2] = InY.Z;  M[1][3] = 0.0f;
 	M[2][0] = InZ.X; M[2][1] = InZ.Y;  M[2][2] = InZ.Z;  M[2][3] = 0.0f;
 	M[3][0] = InW.X; M[3][1] = InW.Y;  M[3][2] = InW.Z;  M[3][3] = 1.0f;
 }
-Matrix Matrix::GetTransposed() const
+FMatrix FMatrix::GetTransposed() const
 {
-	Matrix	Result;
+	FMatrix	Result;
 
 	Result.M[0][0] = M[0][0];
 	Result.M[0][1] = M[1][0];
@@ -43,12 +43,12 @@ Matrix Matrix::GetTransposed() const
 	return Result;
 }
 
-inline Vector Matrix::GetUnitAxis(EAxis::Type Axis) const
+inline FVector FMatrix::GetUnitAxis(EAxis::Type Axis) const
 {
 	return GetScaledAxis(Axis).GetSafeNormal();
 }
 
-Vector4 Matrix::TransformFVector4(const Vector4& P) const
+Vector4 FMatrix::TransformFVector4(const Vector4& P) const
 {
 	Vector4 Result;
 	VectorRegister VecP = VectorLoadAligned(&P);
@@ -57,12 +57,12 @@ Vector4 Matrix::TransformFVector4(const Vector4& P) const
 	return Result;
 }
 
-Vector4 Matrix::TransformVector(const Vector& V) const
+Vector4 FMatrix::TransformVector(const FVector& V) const
 {
 	return TransformFVector4(Vector4(V.X, V.Y, V.Z, 0.0f));
 }
 
-void Matrix::Mirror(EAxis::Type MirrorAxis, EAxis::Type FlipAxis)
+void FMatrix::Mirror(EAxis::Type MirrorAxis, EAxis::Type FlipAxis)
 {
 	if (MirrorAxis == EAxis::X)
 	{
@@ -109,7 +109,7 @@ void Matrix::Mirror(EAxis::Type MirrorAxis, EAxis::Type FlipAxis)
 	}
 }
 
-void Matrix::RemoveScaling(float Tolerance /*= SMALL_NUMBER*/)
+void FMatrix::RemoveScaling(float Tolerance /*= SMALL_NUMBER*/)
 {
 	const float SquareSum0 = (M[0][0] * M[0][0]) + (M[0][1] * M[0][1]) + (M[0][2] * M[0][2]);
 	const float SquareSum1 = (M[1][0] * M[1][0]) + (M[1][1] * M[1][1]) + (M[1][2] * M[1][2]);
@@ -128,9 +128,9 @@ void Matrix::RemoveScaling(float Tolerance /*= SMALL_NUMBER*/)
 	M[2][2] *= Scale2;
 }
 
-Vector Matrix::ExtractScaling(float Tolerance /*= SMALL_NUMBER*/)
+FVector FMatrix::ExtractScaling(float Tolerance /*= SMALL_NUMBER*/)
 {
-	Vector Scale3D(0, 0, 0);
+	FVector Scale3D(0, 0, 0);
 
 	// For each row, find magnitude, and if its non-zero re-scale so its unit length.
 	const float SquareSum0 = (M[0][0] * M[0][0]) + (M[0][1] * M[0][1]) + (M[0][2] * M[0][2]);
@@ -182,7 +182,7 @@ Vector Matrix::ExtractScaling(float Tolerance /*= SMALL_NUMBER*/)
 	return Scale3D;
 }
 
-void Matrix::SetAxis(int32 i, const Vector& Axis)
+void FMatrix::SetAxis(int32 i, const FVector& Axis)
 {
 	//checkSlow(i >= 0 && i <= 2);
 	M[i][0] = Axis.X;
@@ -190,20 +190,20 @@ void Matrix::SetAxis(int32 i, const Vector& Axis)
 	M[i][2] = Axis.Z;
 }
 
-Matrix Matrix::DXLookToLH(const Vector& To)
+FMatrix FMatrix::DXLookToLH(const FVector& To)
 {
 	srand(unsigned int(To.SizeSquared()));
-	Vector XDir = Vector((float)rand(), (float)rand(), (float)rand());
+	FVector XDir = FVector((float)rand(), (float)rand(), (float)rand());
 	XDir.Normalize();
-	Vector ZDir = To;
+	FVector ZDir = To;
 	ZDir.Normalize();
-	Vector YDir = -ZDir ^ XDir;
+	FVector YDir = -ZDir ^ XDir;
 	XDir = YDir ^ -ZDir;
 	XDir.Normalize();
 	YDir.Normalize();
 	ZDir.Normalize();
 	//Vector::CreateOrthonormalBasis(XDir, YDir, ZDir);
-	return Matrix
+	return FMatrix
 	(
 		Plane(YDir, 0.0f),
 		Plane(ZDir, 0.0f),
@@ -212,7 +212,7 @@ Matrix Matrix::DXLookToLH(const Vector& To)
 	);
 }
 
-Matrix Matrix::DXReversedZFromPerspectiveFovLH(float fieldOfViewY, float aspectRatio, float zNearPlane, float zFarPlane)
+FMatrix FMatrix::DXReversedZFromPerspectiveFovLH(float fieldOfViewY, float aspectRatio, float zNearPlane, float zFarPlane)
 {
 	/*
 	xScale     0          0               0
@@ -224,7 +224,7 @@ Matrix Matrix::DXReversedZFromPerspectiveFovLH(float fieldOfViewY, float aspectR
 
 	xScale = yScale / aspect ratio
 	*/
-	Matrix Result;
+	FMatrix Result;
 	float Cot = 1.0f / tanf(0.5f * fieldOfViewY);
 	float InverNF = zNearPlane / (zNearPlane - zFarPlane);
 
@@ -235,9 +235,9 @@ Matrix Matrix::DXReversedZFromPerspectiveFovLH(float fieldOfViewY, float aspectR
 	return Result;
 }
 
-Matrix Matrix::DXFromOrthognalLH(float w, float h, float zn, float zf)
+FMatrix FMatrix::DXFromOrthognalLH(float w, float h, float zn, float zf)
 {
-	Matrix Result;
+	FMatrix Result;
 	Result.M[0][0] = 2 * zn / w;		Result.M[0][1] = 0.0f;				Result.M[0][2] = 0.0f;									Result.M[0][3] = -1.0f;
 	Result.M[1][0] = 0.0f;				Result.M[1][1] = 2.0f * zn / h;		Result.M[1][2] = 0.0f;									Result.M[1][3] = -1.0f;
 	Result.M[2][0] = 0.0f;				Result.M[2][1] = 0.0f;				Result.M[2][2] = 1 / (zf - zn);							Result.M[2][3] = 1.0f;
@@ -245,9 +245,9 @@ Matrix Matrix::DXFromOrthognalLH(float w, float h, float zn, float zf)
 	return Result;
 }
 
-Matrix Matrix::DXFromOrthognalLH(float r, float l, float t, float b, float zf, float zn)
+FMatrix FMatrix::DXFromOrthognalLH(float r, float l, float t, float b, float zf, float zn)
 {
-	Matrix Result;
+	FMatrix Result;
 	Result.M[0][0] = 2.0f / (r - l);		Result.M[0][1] = 0.0f;					Result.M[0][2] = 0.0f;							Result.M[0][3] = 0.0f;
 	Result.M[1][0] = 0.0f;					Result.M[1][1] = 2.0f / (t - b);		Result.M[1][2] = 0.0f;							Result.M[1][3] = 0.0f;
 	Result.M[2][0] = 0.0f;					Result.M[2][1] = 0.0f;					Result.M[2][2] = 1.0f / (zf - zn);				Result.M[2][3] = 0.0f;
@@ -255,12 +255,12 @@ Matrix Matrix::DXFromOrthognalLH(float r, float l, float t, float b, float zf, f
 	return Result;
 }
 
-float Vector::SizeSquared() const
+float FVector::SizeSquared() const
 {
 	return X * X + Y * Y + Z * Z;
 }
 
-void Vector::CreateOrthonormalBasis(Vector& XAxis, Vector& YAxis, Vector& ZAxis)
+void FVector::CreateOrthonormalBasis(FVector& XAxis, FVector& YAxis, FVector& ZAxis)
 {
 	// Project the X and Y axes onto the plane perpendicular to the Z axis.
 	XAxis -= (XAxis | ZAxis) / (ZAxis | ZAxis) * ZAxis;
@@ -284,7 +284,7 @@ void Vector::CreateOrthonormalBasis(Vector& XAxis, Vector& YAxis, Vector& ZAxis)
 	ZAxis.Normalize();
 }
 
-float Vector::Triple(const Vector& X, const Vector& Y, const Vector& Z)
+float FVector::Triple(const FVector& X, const FVector& Y, const FVector& Z)
 {
 	return
 		((X.X * (Y.Y * Z.Z - Y.Z * Z.Y))
@@ -292,29 +292,29 @@ float Vector::Triple(const Vector& X, const Vector& Y, const Vector& Z)
 			+ (X.Z * (Y.X * Z.Y - Y.Y * Z.X)));
 }
 
-bool Vector::Equals(const Vector& V, float Tolerance /*= KINDA_SMALL_NUMBER*/) const
+bool FVector::Equals(const FVector& V, float Tolerance /*= KINDA_SMALL_NUMBER*/) const
 {
 	return FMath::Abs(X - V.X) <= Tolerance && FMath::Abs(Y - V.Y) <= Tolerance && FMath::Abs(Z - V.Z) <= Tolerance;
 }
 
-struct Vector2 Vector::ToVector2() const
+struct Vector2 FVector::ToVector2() const
 {
 	return Vector2(X,Y);
 }
 
-float Vector::Size() const
+float FVector::Size() const
 {
 	return FMath::Sqrt(X*X + Y * Y + Z * Z);
 }
 
-bool Vector::IsZero() const
+bool FVector::IsZero() const
 {
 	return X == 0.f && Y == 0.f && Z == 0.f;
 }
 
-Vector Vector::Reciprocal() const
+FVector FVector::Reciprocal() const
 {
-	Vector RecVector;
+	FVector RecVector;
 	if (X != 0.f)
 	{
 		RecVector.X = 1.f / X;
@@ -342,13 +342,13 @@ Vector Vector::Reciprocal() const
 	return RecVector;
 }
 
-Vector Vector::GetUnsafeNormal() const
+FVector FVector::GetUnsafeNormal() const
 {
 	const float Scale = FMath::InvSqrt(X*X + Y * Y + Z * Z);
-	return Vector(X*Scale, Y*Scale, Z*Scale);
+	return FVector(X*Scale, Y*Scale, Z*Scale);
 }
 
-Vector Vector::RotateAngleAxis(const float AngleDeg, const Vector& Axis) const
+FVector FVector::RotateAngleAxis(const float AngleDeg, const FVector& Axis) const
 {
 	float S, C;
 	FMath::SinCos(&S, &C, FMath::DegreesToRadians(AngleDeg));
@@ -367,19 +367,19 @@ Vector Vector::RotateAngleAxis(const float AngleDeg, const Vector& Axis) const
 
 	const float OMC = 1.f - C;
 
-	return Vector(
+	return FVector(
 		(OMC * XX + C) * X + (OMC * XY - ZS) * Y + (OMC * ZX + YS) * Z,
 		(OMC * XY + ZS) * X + (OMC * YY + C) * Y + (OMC * YZ - XS) * Z,
 		(OMC * ZX - YS) * X + (OMC * YZ + XS) * Y + (OMC * ZZ + C) * Z
 	);
 }
 
-FRotator Vector::Rotation() const
+FRotator FVector::Rotation() const
 {
 	return ToOrientationRotator();
 }
 
-FRotator Vector::ToOrientationRotator() const
+FRotator FVector::ToOrientationRotator() const
 {
 	FRotator R;
 	// Find yaw.
@@ -457,24 +457,24 @@ double FLinearColor::sRGBToLinearTable[256] =
 	0.964686244552961, 0.973445287039244, 0.982250546956257, 0.991102093719252, 1.0,
 };
 
-Box2D Frustum::GetBounds2D(const Matrix& ViewMatrix, const Vector& Axis1, const Vector& Axis2)
+Box2D Frustum::GetBounds2D(const FMatrix& ViewMatrix, const FVector& Axis1, const FVector& Axis2)
 {
 	Box2D Result;
-	for (Vector V : Vertices)
+	for (FVector V : Vertices)
 	{
 		V = ViewMatrix.Transform(V);
-		Vector PrjectV1 = V * Axis1;
-		Vector PrjectV2 = V * Axis2;
+		FVector PrjectV1 = V * Axis1;
+		FVector PrjectV2 = V * Axis2;
 		Result += PrjectV1.ToVector2();
 		Result += PrjectV2.ToVector2();
 	}
 	return Result;
 }
 
-FBox Frustum::GetBounds(const Matrix& TransformMatrix)
+FBox Frustum::GetBounds(const FMatrix& TransformMatrix)
 {
 	FBox Result;
-	for (const Vector& V : Vertices)
+	for (const FVector& V : Vertices)
 	{
 		Result += TransformMatrix.Transform(V);
 	}
@@ -484,7 +484,7 @@ FBox Frustum::GetBounds(const Matrix& TransformMatrix)
 FBox Frustum::GetBounds()
 {
 	FBox Result;
-	for (const Vector& V : Vertices)
+	for (const FVector& V : Vertices)
 	{
 		Result += V;
 	}
@@ -546,7 +546,7 @@ float FMath::Atan2(float Y, float X)
 	return t3;
 }
 
-bool FMath::SphereAABBIntersection(const Vector& SphereCenter, const float RadiusSquared, const FBox& AABB)
+bool FMath::SphereAABBIntersection(const FVector& SphereCenter, const float RadiusSquared, const FBox& AABB)
 {
 	float DistSquared = 0.f;
 	// Check each axis for min/max and add the distance accordingly
@@ -657,18 +657,18 @@ FRotator FQuat::Rotator() const
 	return RotatorFromQuat;
 }
 
-const Vector Vector::ZeroVector(0.0f, 0.0f, 0.0f);
-const Vector Vector::OneVector(1.0f, 1.0f, 1.0f);
-const Vector Vector::UpVector(0.0f, 0.0f, 1.0f);
-const Vector Vector::ForwardVector(1.0f, 0.0f, 0.0f);
-const Vector Vector::RightVector(0.0f, 1.0f, 0.0f);
+const FVector FVector::ZeroVector(0.0f, 0.0f, 0.0f);
+const FVector FVector::OneVector(1.0f, 1.0f, 1.0f);
+const FVector FVector::UpVector(0.0f, 0.0f, 1.0f);
+const FVector FVector::ForwardVector(1.0f, 0.0f, 0.0f);
+const FVector FVector::RightVector(0.0f, 1.0f, 0.0f);
 const Vector2 Vector2::ZeroVector(0.0f, 0.0f);
 const Vector2 Vector2::UnitVector(1.0f, 1.0f);
 const FRotator FRotator::ZeroRotator(0.f, 0.f, 0.f);
 const FQuat FQuat::Identity(0, 0, 0, 1);
 const FColor FColor::White(255, 255, 255);
 
-float ComputeSquaredDistanceFromBoxToPoint(const Vector& Mins, const Vector& Maxs, const Vector& Point)
+float ComputeSquaredDistanceFromBoxToPoint(const FVector& Mins, const FVector& Maxs, const FVector& Point)
 {
 	// Accumulates the distance as we iterate axis
 	float DistSquared = 0.f;
@@ -705,7 +705,7 @@ float ComputeSquaredDistanceFromBoxToPoint(const Vector& Mins, const Vector& Max
 	return DistSquared;
 }
 
-FRotationTranslationMatrix::FRotationTranslationMatrix(const FRotator& Rot, const Vector& Origin)
+FRotationTranslationMatrix::FRotationTranslationMatrix(const FRotator& Rot, const FVector& Origin)
 {
 	float SP, SY, SR;
 	float CP, CY, CR;

@@ -8,7 +8,7 @@ struct FStaticMeshVertexBuffers
 	std::vector<Vector4> TangentsVertexBuffer;
 	std::vector<Vector2> TexCoordVertexBuffer;
 	/** The buffer containing the position vertex data. */
-	std::vector<Vector> PositionVertexBuffer;
+	std::vector<FVector> PositionVertexBuffer;
 	/** The buffer containing the vertex color data. */
 	std::vector<FColor> ColorVertexBuffer;
 

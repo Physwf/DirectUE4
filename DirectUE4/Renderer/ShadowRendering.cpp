@@ -6,14 +6,14 @@
 
 struct ShadowMapView
 {
-	Matrix View;
-	Matrix Projection;
+	FMatrix View;
+	FMatrix Projection;
 };
 
-Matrix ShadowMapProjectionMatrix;
+FMatrix ShadowMapProjectionMatrix;
 ID3D11Buffer* ShadowMapProjectionUniformBuffer;
 
-Matrix ScreenToShadowMatrix;
+FMatrix ScreenToShadowMatrix;
 
 ID3D11InputLayout* ShadowProjectionInputLayout;
 

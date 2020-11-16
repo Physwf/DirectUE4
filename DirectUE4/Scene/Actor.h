@@ -11,14 +11,14 @@ public:
 	virtual void Tick(float fDeltaSeconds) = 0;
 	virtual void PostLoad() = 0;
 
-	void SetPosition(Vector InPosition);
+	void SetPosition(FVector InPosition);
 	void SetRotation(FRotator InRotation);
 
 	class World* GetWorld() { return WorldPrivite; }
 protected:
-	Matrix GetWorldMatrix();
+	FMatrix GetWorldMatrix();
 
-	Vector Position;
+	FVector Position;
 	FRotator Rotation;
 	bool bTransformDirty = false;
 

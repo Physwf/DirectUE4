@@ -1,6 +1,6 @@
 #include "Transform.h"
 
-const FTransform FTransform::Identity(FQuat(0.f, 0.f, 0.f, 1.f), Vector(0.f), Vector(1.f));
+const FTransform FTransform::Identity(FQuat(0.f, 0.f, 0.f, 1.f), FVector(0.f), FVector(1.f));
 
 FTransform FTransform::GetRelativeTransform(const FTransform& Other) const
 {
@@ -19,7 +19,7 @@ FTransform FTransform::GetRelativeTransform(const FTransform& Other) const
 	}
 	else
 	{
-		Vector SafeRecipScale3D = GetSafeScaleReciprocal(Other.Scale3D, SMALL_NUMBER);
+		FVector SafeRecipScale3D = GetSafeScaleReciprocal(Other.Scale3D, SMALL_NUMBER);
 		Result.Scale3D = Scale3D * SafeRecipScale3D;
 
 		if (Other.Rotation.IsNormalized() == false)
@@ -42,11 +42,11 @@ void FTransform::GetRelativeTransformUsingMatrixWithScale(FTransform* OutTransfo
 {
 	// the goal of using M is to get the correct orientation
 	// but for translation, we still need scale
-	Matrix AM = Base->ToMatrixWithScale();
-	Matrix BM = Relative->ToMatrixWithScale();
+	FMatrix AM = Base->ToMatrixWithScale();
+	FMatrix BM = Relative->ToMatrixWithScale();
 	// get combined scale
-	Vector SafeRecipScale3D = GetSafeScaleReciprocal(Relative->Scale3D, SMALL_NUMBER);
-	Vector DesiredScale3D = Base->Scale3D*SafeRecipScale3D;
+	FVector SafeRecipScale3D = GetSafeScaleReciprocal(Relative->Scale3D, SMALL_NUMBER);
+	FVector DesiredScale3D = Base->Scale3D*SafeRecipScale3D;
 	ConstructTransformFromMatrixWithDesiredScale(AM, BM.Inverse(), DesiredScale3D, *OutTransform);
 }
 

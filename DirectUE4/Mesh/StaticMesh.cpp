@@ -13,7 +13,7 @@
 
 void FStaticMeshLODResources::InitResources()
 {
-	VertexBuffers.PositionVertexBufferRHI = CreateVertexBuffer(false, VertexBuffers.PositionVertexBuffer.size() * sizeof(Vector), VertexBuffers.PositionVertexBuffer.data());
+	VertexBuffers.PositionVertexBufferRHI = CreateVertexBuffer(false, VertexBuffers.PositionVertexBuffer.size() * sizeof(FVector), VertexBuffers.PositionVertexBuffer.data());
 	VertexBuffers.TangentsVertexBufferRHI = CreateVertexBuffer(false, VertexBuffers.TangentsVertexBuffer.size() * sizeof(Vector4), VertexBuffers.TangentsVertexBuffer.data());
 	VertexBuffers.TexCoordVertexBufferRHI = CreateVertexBuffer(false, VertexBuffers.TexCoordVertexBuffer.size() * sizeof(Vector2), VertexBuffers.TexCoordVertexBuffer.data());
 
@@ -32,9 +32,9 @@ void FStaticMeshLODResources::ReleaseResources()
 void FStaticMeshVertexFactories::InitResources(const FStaticMeshLODResources& LodResources, const StaticMesh* Parent)
 {
 	FLocalVertexFactory::FDataType Data;
-	Data.PositionComponent = FVertexStreamComponent(LodResources.VertexBuffers.PositionVertexBufferRHI.Get(), 0, sizeof(Vector), DXGI_FORMAT_R32G32B32_FLOAT);
-	Data.TangentBasisComponents[0] = FVertexStreamComponent(LodResources.VertexBuffers.TangentsVertexBufferRHI.Get(), 0, sizeof(Vector), DXGI_FORMAT_R32G32B32A32_FLOAT);
-	Data.TangentBasisComponents[1] = FVertexStreamComponent(LodResources.VertexBuffers.TangentsVertexBufferRHI.Get(), 12, sizeof(Vector), DXGI_FORMAT_R32G32B32A32_FLOAT);
+	Data.PositionComponent = FVertexStreamComponent(LodResources.VertexBuffers.PositionVertexBufferRHI.Get(), 0, sizeof(FVector), DXGI_FORMAT_R32G32B32_FLOAT);
+	Data.TangentBasisComponents[0] = FVertexStreamComponent(LodResources.VertexBuffers.TangentsVertexBufferRHI.Get(), 0, sizeof(FVector), DXGI_FORMAT_R32G32B32A32_FLOAT);
+	Data.TangentBasisComponents[1] = FVertexStreamComponent(LodResources.VertexBuffers.TangentsVertexBufferRHI.Get(), 12, sizeof(FVector), DXGI_FORMAT_R32G32B32A32_FLOAT);
 	Data.TextureCoordinates = FVertexStreamComponent(LodResources.VertexBuffers.TexCoordVertexBufferRHI.Get(), 0, sizeof(Vector2), DXGI_FORMAT_R32G32_FLOAT);
 	Data.LightMapCoordinateComponent = FVertexStreamComponent(LodResources.VertexBuffers.TexCoordVertexBufferRHI.Get(), 8, sizeof(Vector2), DXGI_FORMAT_R32G32_FLOAT);
 	VertexFactory.SetData(Data);
@@ -186,8 +186,8 @@ void StaticMesh::GetRenderMeshDescription(const MeshDescription& InOriginalMeshD
 	MeshDescriptionOperations::CreatePolygonNTB(OutRenderMeshDescription, 0.f);
 
 	TMeshElementArray<MeshVertexInstance>& VertexInstanceArray = OutRenderMeshDescription.VertexInstances();
-	std::vector<Vector>& Normals = OutRenderMeshDescription.VertexInstanceAttributes().GetAttributes<Vector>(MeshAttribute::VertexInstance::Normal);
-	std::vector<Vector>& Tangents = OutRenderMeshDescription.VertexInstanceAttributes().GetAttributes<Vector>(MeshAttribute::VertexInstance::Tangent);
+	std::vector<FVector>& Normals = OutRenderMeshDescription.VertexInstanceAttributes().GetAttributes<FVector>(MeshAttribute::VertexInstance::Normal);
+	std::vector<FVector>& Tangents = OutRenderMeshDescription.VertexInstanceAttributes().GetAttributes<FVector>(MeshAttribute::VertexInstance::Tangent);
 	std::vector<float>& BinormalSigns = OutRenderMeshDescription.VertexInstanceAttributes().GetAttributes<float>(MeshAttribute::VertexInstance::BinormalSign);
 
 	MeshDescriptionOperations::FindOverlappingCorners(OverlappingCorners, OutRenderMeshDescription, ComparisonThreshold);
@@ -250,13 +250,13 @@ void StaticMesh::CacheDerivedData()
 void RegisterMeshAttributes(MeshDescription& MD)
 {
 	// Add basic vertex attributes
-	MD.VertexAttributes().RegisterAttribute<Vector>(MeshAttribute::Vertex::Position, 1, Vector());
+	MD.VertexAttributes().RegisterAttribute<FVector>(MeshAttribute::Vertex::Position, 1, FVector());
 	MD.VertexAttributes().RegisterAttribute<float>(MeshAttribute::Vertex::CornerSharpness, 1, 0.0f);
 
 	// Add basic vertex instance attributes
 	MD.VertexInstanceAttributes().RegisterAttribute<Vector2>(MeshAttribute::VertexInstance::TextureCoordinate, 1, Vector2());
-	MD.VertexInstanceAttributes().RegisterAttribute<Vector>(MeshAttribute::VertexInstance::Normal, 1, Vector());
-	MD.VertexInstanceAttributes().RegisterAttribute<Vector>(MeshAttribute::VertexInstance::Tangent, 1, Vector());
+	MD.VertexInstanceAttributes().RegisterAttribute<FVector>(MeshAttribute::VertexInstance::Normal, 1, FVector());
+	MD.VertexInstanceAttributes().RegisterAttribute<FVector>(MeshAttribute::VertexInstance::Tangent, 1, FVector());
 	MD.VertexInstanceAttributes().RegisterAttribute<float>(MeshAttribute::VertexInstance::BinormalSign, 1, 0.0f);
 	MD.VertexInstanceAttributes().RegisterAttribute<Vector4>(MeshAttribute::VertexInstance::Color, 1, Vector4(1.0f));
 
@@ -266,10 +266,10 @@ void RegisterMeshAttributes(MeshDescription& MD)
 	MD.EdgeAttributes().RegisterAttribute<float>(MeshAttribute::Edge::CreaseSharpness, 1, 0.0f);
 
 	// Add basic polygon attributes
-	MD.PolygonAttributes().RegisterAttribute<Vector>(MeshAttribute::Polygon::Normal, 1, Vector());
-	MD.PolygonAttributes().RegisterAttribute<Vector>(MeshAttribute::Polygon::Tangent, 1, Vector());
-	MD.PolygonAttributes().RegisterAttribute<Vector>(MeshAttribute::Polygon::Binormal, 1, Vector());
-	MD.PolygonAttributes().RegisterAttribute<Vector>(MeshAttribute::Polygon::Center, 1, Vector());
+	MD.PolygonAttributes().RegisterAttribute<FVector>(MeshAttribute::Polygon::Normal, 1, FVector());
+	MD.PolygonAttributes().RegisterAttribute<FVector>(MeshAttribute::Polygon::Tangent, 1, FVector());
+	MD.PolygonAttributes().RegisterAttribute<FVector>(MeshAttribute::Polygon::Binormal, 1, FVector());
+	MD.PolygonAttributes().RegisterAttribute<FVector>(MeshAttribute::Polygon::Center, 1, FVector());
 
 	// Add basic polygon group attributes
 	MD.PolygonGroupAttributes().RegisterAttribute<std::string>(MeshAttribute::PolygonGroup::ImportedMaterialSlotName, 1, std::string()); //The unique key to match the mesh material slot
