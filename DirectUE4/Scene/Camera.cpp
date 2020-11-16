@@ -29,14 +29,14 @@ SceneView* Camera::CalcSceneView(SceneViewFamily& ViewFamily, Viewport& VP)
 {
 	ViewInitOptions InitOptions;
 
-	int32 X = Math::TruncToInt(Origin.X * VP.GetSizeXY().X);
-	int32 Y = Math::TruncToInt(Origin.Y * VP.GetSizeXY().Y);
+	int32 X = FMath::TruncToInt(Origin.X * VP.GetSizeXY().X);
+	int32 Y = FMath::TruncToInt(Origin.Y * VP.GetSizeXY().Y);
 
 	X += VP.GetInitialPositionXY().X;
 	Y += VP.GetInitialPositionXY().Y;
 
-	uint32 SizeX = Math::TruncToInt(Size.X * VP.GetSizeXY().X);
-	uint32 SizeY = Math::TruncToInt(Size.Y * VP.GetSizeXY().Y);
+	uint32 SizeX = FMath::TruncToInt(Size.X * VP.GetSizeXY().X);
+	uint32 SizeY = FMath::TruncToInt(Size.Y * VP.GetSizeXY().Y);
 
 	IntRect UnconstrainedRectangle = IntRect(X, Y, X + SizeX, Y + SizeY);
 
@@ -51,7 +51,7 @@ SceneView* Camera::CalcSceneView(SceneViewFamily& ViewFamily, Viewport& VP)
 
 	float AspectRatio = (float)VP.GetSizeXY().X / (float)VP.GetSizeXY().Y;
 	InitOptions.ProjectionMatrix = ReversedZPerspectiveMatrix(
-		Math::Max(0.001f, FOV) * (float)PI / 360.0f,
+		FMath::Max(0.001f, FOV) * (float)PI / 360.0f,
 		AspectRatio,
 		1.0f,
 		GNearClippingPlane);

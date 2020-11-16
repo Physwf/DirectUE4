@@ -10,6 +10,8 @@ public:
 	SkeletalMeshActor(const char* ResourcePath);
 	virtual ~SkeletalMeshActor();
 
+	virtual void PostLoad() override;
+
 	virtual void Tick(float fDeltaTime) override;
 private:
 	SkeletalMesh * Mesh;

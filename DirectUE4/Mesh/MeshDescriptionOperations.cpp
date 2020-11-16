@@ -184,7 +184,7 @@ void MeshDescriptionOperations::FindOverlappingCorners(std::multimap<int, int>& 
 		// only need to search forward, since we add pairs both ways
 		for (size_t j = i + 1; j < VertIndexAndZ.size(); j++)
 		{
-			if (Math::Abs(VertIndexAndZ[j].Z - VertIndexAndZ[i].Z) > ComparisonThreshold)
+			if (FMath::Abs(VertIndexAndZ[j].Z - VertIndexAndZ[i].Z) > ComparisonThreshold)
 				break; // can't be any more dups
 
 			const Vector& PositionA = *(VertIndexAndZ[i].OriginalVector);

@@ -224,7 +224,7 @@ namespace MeshDescriptionOp
 			bool bFoundFutureSpaceForSegment = false;
 
 			const uint32 StartPos = Rect.X + OtherUsedSegment.StartPos;
-			const uint32 EndPos = Rect.X + Math::Min(OtherUsedSegment.StartPos + OtherUsedSegment.Length, Rect.W);
+			const uint32 EndPos = Rect.X + FMath::Min(OtherUsedSegment.StartPos + OtherUsedSegment.Length, Rect.W);
 
 			for (size_t i = StartFreeSegmentIndex; i < ThisRow.FreeSegments.size(); ++i)
 			{
@@ -352,7 +352,7 @@ namespace MeshDescriptionOp
 		{
 			const int32 HighY = MaxY - LowY;
 
-			Math::Swap(Rows[LowY], Rows[HighY]);
+			FMath::Swap(Rows[LowY], Rows[HighY]);
 			//Rows.Swap(LowY, HighY);
 			Rows[LowY].Index = LowY;
 			Rows[HighY].Index = HighY;
@@ -486,7 +486,7 @@ namespace MeshDescriptionOp
 						FirstSegment.StartPos = ThisFreeSegment.StartPos;
 						FirstSegment.Length = StartPos - ThisFreeSegment.StartPos;
 
-						uint32 EndPos = Rect.X + Math::Min(OtherUsedSegment.StartPos + OtherUsedSegment.Length, Rect.W) - 1;
+						uint32 EndPos = Rect.X + FMath::Min(OtherUsedSegment.StartPos + OtherUsedSegment.Length, Rect.W) - 1;
 
 						FSegment SecondSegment;
 						SecondSegment.StartPos = EndPos + 1;
@@ -516,7 +516,7 @@ namespace MeshDescriptionOp
 			ThisRow.LongestSegment = 0;
 			for (const FSegment& Segment : ThisRow.FreeSegments)
 			{
-				ThisRow.LongestSegment = Math::Max(Segment.Length, ThisRow.LongestSegment);
+				ThisRow.LongestSegment = FMath::Max(Segment.Length, ThisRow.LongestSegment);
 			}
 		}
 	}

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "UnrealMath.h"
+#include "PrimitiveUniformBufferParameters.h"
 #include <vector>
 
 struct FPrimitiveViewRelevance
@@ -12,6 +13,7 @@ struct FPrimitiveViewRelevance
 class SceneView;
 class FStaticMesh;
 class SceneViewFamily;
+class FScene;
 
 class MeshPrimitive
 {
@@ -19,8 +21,8 @@ public:
 	MeshPrimitive();
 	virtual ~MeshPrimitive() {}
 
-	virtual void Register();
-	virtual void UnRegister();
+	virtual void Register(FScene* Scene);
+	virtual void UnRegister(FScene* Scene);
 
 	virtual void InitResources() = 0;
 	virtual void ReleaseResources() = 0;
@@ -29,13 +31,13 @@ public:
 
 	//FPrimitiveSceneInfo
 	/** Adds the primitive to the scene. */
-	void AddToScene(/*FRHICommandListImmediate& RHICmdList, bool bUpdateStaticDrawLists, bool bAddToStaticDrawLists = true*/);
+	void AddToScene(FScene* Scene/*FRHICommandListImmediate& RHICmdList, bool bUpdateStaticDrawLists, bool bAddToStaticDrawLists = true*/);
 	/** Removes the primitive from the scene. */
-	void RemoveFromScene(/*bool bUpdateStaticDrawLists*/);
+	void RemoveFromScene(FScene* Scene/*bool bUpdateStaticDrawLists*/);
 	/** Adds the primitive's static meshes to the scene. */
-	void AddStaticMeshes(/*FRHICommandListImmediate& RHICmdList, bool bUpdateStaticDrawLists = true*/);
+	void AddStaticMeshes(FScene* Scene/*FRHICommandListImmediate& RHICmdList, bool bUpdateStaticDrawLists = true*/);
 	/** Removes the primitive's static meshes from the scene. */
-	void RemoveStaticMeshes();
+	void RemoveStaticMeshes(FScene* Scene);
 
 	//FPrimitiveSceneProxy
 	virtual void DrawStaticElements(/*FStaticPrimitiveDrawInterface* PDI*/) {};
@@ -45,12 +47,13 @@ public:
 	inline const Matrix& GetLocalToWorld() const { return LocalToWorld; }
 	//inline const FBoxSphereBounds& GetBounds() const { return Bounds; }
 	//inline const FBoxSphereBounds& GetLocalBounds() const { return LocalBounds; }
-
+	inline const TUniformBuffer<FPrimitiveUniformShaderParameters>& GetUniformBuffer() const
+	{
+		return UniformBuffer;
+	}
 	//FPrimitiveSceneInfo
 	/** The primitive's static meshes. */
 	std::vector<FStaticMesh*> StaticMeshes;
-
-	class FScene* Scene;
 private:
 
 	Matrix LocalToWorld;
@@ -63,4 +66,7 @@ private:
 
 	/** The component's actor's position. */
 	Vector ActorPosition;
+
+
+	TUniformBuffer<FPrimitiveUniformShaderParameters> UniformBuffer;
 };

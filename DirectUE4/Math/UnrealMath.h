@@ -182,7 +182,7 @@ inline void VectorQuaternionMultiply(void *Result, const void* Quat1, const void
 #define VectorLoadAligned( Ptr )		MakeVectorRegister( ((const float*)(Ptr))[0], ((const float*)(Ptr))[1], ((const float*)(Ptr))[2], ((const float*)(Ptr))[3] )
 #define VectorStoreAligned( Vec, Ptr )	memcpy( Ptr, &(Vec), 16 )
 
-struct Rotator;
+struct FRotator;
 struct FQuat;
 struct Vector4;
 struct Vector;
@@ -202,7 +202,7 @@ namespace EAxis
 	};
 }
 
-class Math
+class FMath
 {
 public:
 	template<typename T>
@@ -273,8 +273,8 @@ public:
 
 		return (T)(((2 * A3) - (3 * A2) + 1) * P0) + ((A3 - (2 * A2) + A) * T0) + ((A3 - A2) * T1) + (((-2 * A3) + (3 * A2)) * P1);
 	}
-	template< class U > static Rotator Lerp(const Rotator& A, const Rotator& B, const U& Alpha);
-	template< class U > static Rotator LerpRange(const Rotator& A, const Rotator& B, const U& Alpha);
+	template< class U > static FRotator Lerp(const FRotator& A, const FRotator& B, const U& Alpha);
+	template< class U > static FRotator LerpRange(const FRotator& A, const FRotator& B, const U& Alpha);
 	template< class U > static FQuat Lerp(const FQuat& A, const FQuat& B, const U& Alpha);
 	template< class U > static FQuat BiLerp(const FQuat& P00, const FQuat& P10, const FQuat& P01, const FQuat& P11, float FracX, float FracY);
 	template< class U > static FQuat CubicInterp(const FQuat& P0, const FQuat& T0, const FQuat& P1, const FQuat& T1, const U& A);
@@ -301,6 +301,10 @@ public:
 	static inline float FloorToFloat(float F)
 	{
 		return (float)FloorToInt(F);
+	}
+	static inline float Fractional(float Value)
+	{
+		return Value - TruncToFloat(Value);
 	}
 	/** Computes absolute value in a generic way */
 	template< class T >
@@ -336,6 +340,11 @@ public:
 		static const float LogToLog2 = 1.f / Loge(2.f);
 		// Do the platform specific log and convert using the cached value
 		return Loge(Value) * LogToLog2;
+	}
+	template<class T>
+	static inline auto DegreesToRadians(T const& DegVal) -> decltype(DegVal * (PI / 180.f))
+	{
+		return DegVal * (PI / 180.f);
 	}
 	static inline void SinCos(float* ScalarSin, float* ScalarCos, float  Value)
 	{
@@ -444,13 +453,13 @@ public:
 	{
 		// Clamp input to [-1,1].
 		bool nonnegative = (Value >= 0.0f);
-		float x = Math::Abs(Value);
+		float x = FMath::Abs(Value);
 		float omx = 1.0f - x;
 		if (omx < 0.0f)
 		{
 			omx = 0.0f;
 		}
-		float root = Math::Sqrt(omx);
+		float root = FMath::Sqrt(omx);
 		// 7-degree minimax approximation
 		float result = ((((((-0.0012624911f * x + 0.0066700901f) * x - 0.0170881256f) * x + 0.0308918810f) * x - 0.0501743046f) * x + 0.0889789874f) * x - 0.2145988016f) * x + FASTASIN_HALF_PI;
 		result *= root;  // acos(|x|)
@@ -470,7 +479,7 @@ public:
 template <typename T>
 inline void Exchange(T& A, T& B)
 {
-	Math::Swap(A, B);
+	FMath::Swap(A, B);
 }
 
 struct Vector;
@@ -524,7 +533,7 @@ struct alignas(16) Vector4
 	}
 	inline float Vector4::Size() const
 	{
-		return Math::Sqrt(X*X + Y * Y + Z * Z + W * W);
+		return FMath::Sqrt(X*X + Y * Y + Z * Z + W * W);
 	}
 	inline float Vector4::SizeSquared() const
 	{
@@ -697,6 +706,10 @@ struct Vector
 	inline bool Vector::ContainsNaN() const;
 	bool IsZero() const;
 	Vector Reciprocal() const;
+	Vector GetUnsafeNormal() const;
+	Vector RotateAngleAxis(const float AngleDeg, const Vector& Axis) const;
+	FRotator Rotation() const;
+	FRotator ToOrientationRotator() const;
 };
 
 float ComputeSquaredDistanceFromBoxToPoint(const Vector& Mins, const Vector& Maxs, const Vector& Point);
@@ -712,7 +725,7 @@ inline Vector::Vector(std::initializer_list<float> list)
 }
 inline bool Vector::ContainsNaN() const
 {
-	return (!Math::IsFinite(X) || !Math::IsFinite(Y) || !Math::IsFinite(Z));
+	return (!FMath::IsFinite(X) || !FMath::IsFinite(Y) || !FMath::IsFinite(Z));
 }
 inline Vector Vector::operator+(const Vector& rhs) const
 {
@@ -847,28 +860,28 @@ inline Vector Vector::GetSignVector() const
 {
 	return Vector
 	(
-		(float)Math::FloatSelect(X, 1.f, -1.f),
-		(float)Math::FloatSelect(Y, 1.f, -1.f),
-		(float)Math::FloatSelect(Z, 1.f, -1.f)
+		(float)FMath::FloatSelect(X, 1.f, -1.f),
+		(float)FMath::FloatSelect(Y, 1.f, -1.f),
+		(float)FMath::FloatSelect(Z, 1.f, -1.f)
 	);
 }
 inline float Vector::GetMax() const
 {
-	return Math::Max(Math::Max(X, Y), Z);
+	return FMath::Max(FMath::Max(X, Y), Z);
 }
 inline float Vector::GetAbsMax() const
 {
-	return Math::Max(Math::Max(Math::Abs(X), Math::Abs(Y)), Math::Abs(Z));
+	return FMath::Max(FMath::Max(FMath::Abs(X), FMath::Abs(Y)), FMath::Abs(Z));
 }
 inline float Vector::GetMin() const
 {
-	return Math::Min(Math::Min(X, Y), Z);
+	return FMath::Min(FMath::Min(X, Y), Z);
 }
 inline float Vector::GetAbsMin() const
 {
-	return Math::Min(Math::Min(Math::Abs(X), Math::Abs(Y)), Math::Abs(Z));
+	return FMath::Min(FMath::Min(FMath::Abs(X), FMath::Abs(Y)), FMath::Abs(Z));
 }
-struct Rotator
+struct FRotator
 {
 public:
 	/** Rotation around the right axis (around Y axis), Looking up and down (0=Straight Ahead, +Up, -Down) */
@@ -878,43 +891,43 @@ public:
 	/** Rotation around the forward axis (around X axis), Tilting your head, 0=Straight, +Clockwise, -CCW. */
 	float Roll;
 
-	static const Rotator ZeroRotator;
+	static const FRotator ZeroRotator;
 public:
-	inline Rotator() { }
-	explicit inline Rotator(float InF);
-	inline Rotator(float InPitch, float InYaw, float InRoll);
-	explicit  Rotator(const FQuat& Quat);
+	inline FRotator() { }
+	explicit inline FRotator(float InF);
+	inline FRotator(float InPitch, float InYaw, float InRoll);
+	explicit  FRotator(const FQuat& Quat);
 public:
-	Rotator operator+(const Rotator& R) const;
-	Rotator operator-(const Rotator& R) const;
-	Rotator operator*(float Scale) const;
-	Rotator operator*=(float Scale);
-	bool operator==(const Rotator& R) const;
-	bool operator!=(const Rotator& V) const;
-	Rotator operator+=(const Rotator& R);
-	Rotator operator-=(const Rotator& R);
+	FRotator operator+(const FRotator& R) const;
+	FRotator operator-(const FRotator& R) const;
+	FRotator operator*(float Scale) const;
+	FRotator operator*=(float Scale);
+	bool operator==(const FRotator& R) const;
+	bool operator!=(const FRotator& V) const;
+	FRotator operator+=(const FRotator& R);
+	FRotator operator-=(const FRotator& R);
 public:
 	bool IsNearlyZero(float Tolerance = KINDA_SMALL_NUMBER) const;
 	bool IsZero() const;
-	bool Equals(const Rotator& R, float Tolerance = KINDA_SMALL_NUMBER) const;
-	Rotator Add(float DeltaPitch, float DeltaYaw, float DeltaRoll);
-	Rotator GetInverse() const;
-	Rotator GridSnap(const Rotator& RotGrid) const;
+	bool Equals(const FRotator& R, float Tolerance = KINDA_SMALL_NUMBER) const;
+	FRotator Add(float DeltaPitch, float DeltaYaw, float DeltaRoll);
+	FRotator GetInverse() const;
+	FRotator GridSnap(const FRotator& RotGrid) const;
 	Vector FVector() const;
 	FQuat Quaternion() const;
 	Vector Euler() const;
 	Vector RotateVector(const Vector& V) const;
 	Vector UnrotateVector(const Vector& V) const;
-	Rotator Clamp() const;
-	Rotator GetNormalized() const;
-	Rotator GetDenormalized() const;
+	FRotator Clamp() const;
+	FRotator GetNormalized() const;
+	FRotator GetDenormalized() const;
 	float GetComponentForAxis(EAxis::Type Axis) const;
 	void SetComponentForAxis(EAxis::Type Axis, float Component);
 	void Normalize();
-	void GetWindingAndRemainder(Rotator& Winding, Rotator& Remainder) const;
-	float GetManhattanDistance(const Rotator & R) const;
-	Rotator GetEquivalentRotator() const;
-	void SetClosestToMe(Rotator& MakeClosest) const;
+	void GetWindingAndRemainder(FRotator& Winding, FRotator& Remainder) const;
+	float GetManhattanDistance(const FRotator & R) const;
+	FRotator GetEquivalentRotator() const;
+	void SetClosestToMe(FRotator& MakeClosest) const;
 	bool ContainsNaN() const;
 public:
 	static float ClampAxis(float Angle);
@@ -923,78 +936,78 @@ public:
 	static float DecompressAxisFromByte(uint8 Angle);
 	static uint16 CompressAxisToShort(float Angle);
 	static float DecompressAxisFromShort(uint16 Angle);
-	static Rotator MakeFromEuler(const Vector& Euler);
+	static FRotator MakeFromEuler(const Vector& Euler);
 };
-inline Rotator operator*(float Scale, const Rotator& R)
+inline FRotator operator*(float Scale, const FRotator& R)
 {
 	return R.operator*(Scale);
 }
-inline Rotator::Rotator(float InF)
+inline FRotator::FRotator(float InF)
 	: Pitch(InF), Yaw(InF), Roll(InF)
 {
 	//DiagnosticCheckNaN();
 }
-inline Rotator::Rotator(float InPitch, float InYaw, float InRoll)
+inline FRotator::FRotator(float InPitch, float InYaw, float InRoll)
 	: Pitch(InPitch), Yaw(InYaw), Roll(InRoll)
 {
 	//DiagnosticCheckNaN();
 }
-inline Rotator Rotator::operator+(const Rotator& R) const
+inline FRotator FRotator::operator+(const FRotator& R) const
 {
-	return Rotator(Pitch + R.Pitch, Yaw + R.Yaw, Roll + R.Roll);
+	return FRotator(Pitch + R.Pitch, Yaw + R.Yaw, Roll + R.Roll);
 }
-inline Rotator Rotator::operator-(const Rotator& R) const
+inline FRotator FRotator::operator-(const FRotator& R) const
 {
-	return Rotator(Pitch - R.Pitch, Yaw - R.Yaw, Roll - R.Roll);
+	return FRotator(Pitch - R.Pitch, Yaw - R.Yaw, Roll - R.Roll);
 }
-inline Rotator Rotator::operator*(float Scale) const
+inline FRotator FRotator::operator*(float Scale) const
 {
-	return Rotator(Pitch*Scale, Yaw*Scale, Roll*Scale);
+	return FRotator(Pitch*Scale, Yaw*Scale, Roll*Scale);
 }
-inline Rotator Rotator::operator*= (float Scale)
+inline FRotator FRotator::operator*= (float Scale)
 {
 	Pitch = Pitch * Scale; Yaw = Yaw * Scale; Roll = Roll * Scale;
 	//DiagnosticCheckNaN();
 	return *this;
 }
-inline bool Rotator::operator==(const Rotator& R) const
+inline bool FRotator::operator==(const FRotator& R) const
 {
 	return Pitch == R.Pitch && Yaw == R.Yaw && Roll == R.Roll;
 }
-inline bool Rotator::operator!=(const Rotator& V) const
+inline bool FRotator::operator!=(const FRotator& V) const
 {
 	return Pitch != V.Pitch || Yaw != V.Yaw || Roll != V.Roll;
 }
-inline Rotator Rotator::operator+=(const Rotator& R)
+inline FRotator FRotator::operator+=(const FRotator& R)
 {
 	Pitch += R.Pitch; Yaw += R.Yaw; Roll += R.Roll;
 	//DiagnosticCheckNaN();
 	return *this;
 }
-inline Rotator Rotator::operator-=(const Rotator& R)
+inline FRotator FRotator::operator-=(const FRotator& R)
 {
 	Pitch -= R.Pitch; Yaw -= R.Yaw; Roll -= R.Roll;
 	//DiagnosticCheckNaN();
 	return *this;
 }
-inline bool Rotator::IsNearlyZero(float Tolerance) const
+inline bool FRotator::IsNearlyZero(float Tolerance) const
 {
 	return
-		Math::Abs(NormalizeAxis(Pitch)) <= Tolerance
-		&& Math::Abs(NormalizeAxis(Yaw)) <= Tolerance
-		&& Math::Abs(NormalizeAxis(Roll)) <= Tolerance;
+		FMath::Abs(NormalizeAxis(Pitch)) <= Tolerance
+		&& FMath::Abs(NormalizeAxis(Yaw)) <= Tolerance
+		&& FMath::Abs(NormalizeAxis(Roll)) <= Tolerance;
 }
-inline bool Rotator::IsZero() const
+inline bool FRotator::IsZero() const
 {
 	return (ClampAxis(Pitch) == 0.f) && (ClampAxis(Yaw) == 0.f) && (ClampAxis(Roll) == 0.f);
 }
-inline bool Rotator::Equals(const Rotator& R, float Tolerance) const
+inline bool FRotator::Equals(const FRotator& R, float Tolerance) const
 {
-	return (Math::Abs(NormalizeAxis(Pitch - R.Pitch)) <= Tolerance)
-		&& (Math::Abs(NormalizeAxis(Yaw - R.Yaw)) <= Tolerance)
-		&& (Math::Abs(NormalizeAxis(Roll - R.Roll)) <= Tolerance);
+	return (FMath::Abs(NormalizeAxis(Pitch - R.Pitch)) <= Tolerance)
+		&& (FMath::Abs(NormalizeAxis(Yaw - R.Yaw)) <= Tolerance)
+		&& (FMath::Abs(NormalizeAxis(Roll - R.Roll)) <= Tolerance);
 }
-inline Rotator Rotator::Add(float DeltaPitch, float DeltaYaw, float DeltaRoll)
+inline FRotator FRotator::Add(float DeltaPitch, float DeltaYaw, float DeltaRoll)
 {
 	Yaw += DeltaYaw;
 	Pitch += DeltaPitch;
@@ -1002,23 +1015,23 @@ inline Rotator Rotator::Add(float DeltaPitch, float DeltaYaw, float DeltaRoll)
 	//DiagnosticCheckNaN();
 	return *this;
 }
-inline Rotator Rotator::GridSnap(const Rotator& RotGrid) const
+inline FRotator FRotator::GridSnap(const FRotator& RotGrid) const
 {
-	return Rotator
+	return FRotator
 	(
-		Math::GridSnap(Pitch, RotGrid.Pitch),
-		Math::GridSnap(Yaw, RotGrid.Yaw),
-		Math::GridSnap(Roll, RotGrid.Roll)
+		FMath::GridSnap(Pitch, RotGrid.Pitch),
+		FMath::GridSnap(Yaw, RotGrid.Yaw),
+		FMath::GridSnap(Roll, RotGrid.Roll)
 	);
 }
-inline Rotator Rotator::Clamp() const
+inline FRotator FRotator::Clamp() const
 {
-	return Rotator(ClampAxis(Pitch), ClampAxis(Yaw), ClampAxis(Roll));
+	return FRotator(ClampAxis(Pitch), ClampAxis(Yaw), ClampAxis(Roll));
 }
-inline float Rotator::ClampAxis(float Angle)
+inline float FRotator::ClampAxis(float Angle)
 {
 	// returns Angle in the range (-360,360)
-	Angle = Math::Fmod(Angle, 360.f);
+	Angle = FMath::Fmod(Angle, 360.f);
 
 	if (Angle < 0.f)
 	{
@@ -1028,7 +1041,7 @@ inline float Rotator::ClampAxis(float Angle)
 
 	return Angle;
 }
-inline float Rotator::NormalizeAxis(float Angle)
+inline float FRotator::NormalizeAxis(float Angle)
 {
 	// returns Angle in the range [0,360)
 	Angle = ClampAxis(Angle);
@@ -1041,48 +1054,48 @@ inline float Rotator::NormalizeAxis(float Angle)
 
 	return Angle;
 }
-inline uint8 Rotator::CompressAxisToByte(float Angle)
+inline uint8 FRotator::CompressAxisToByte(float Angle)
 {
 	// map [0->360) to [0->256) and mask off any winding
-	return Math::RoundToInt(Angle * 256.f / 360.f) & 0xFF;
+	return FMath::RoundToInt(Angle * 256.f / 360.f) & 0xFF;
 }
-inline float Rotator::DecompressAxisFromByte(uint8 Angle)
+inline float FRotator::DecompressAxisFromByte(uint8 Angle)
 {
 	// map [0->256) to [0->360)
 	return (Angle * 360.f / 256.f);
 }
-inline uint16 Rotator::CompressAxisToShort(float Angle)
+inline uint16 FRotator::CompressAxisToShort(float Angle)
 {
 	// map [0->360) to [0->65536) and mask off any winding
-	return Math::RoundToInt(Angle * 65536.f / 360.f) & 0xFFFF;
+	return FMath::RoundToInt(Angle * 65536.f / 360.f) & 0xFFFF;
 }
-inline float Rotator::DecompressAxisFromShort(uint16 Angle)
+inline float FRotator::DecompressAxisFromShort(uint16 Angle)
 {
 	// map [0->65536) to [0->360)
 	return (Angle * 360.f / 65536.f);
 }
-inline Rotator Rotator::GetNormalized() const
+inline FRotator FRotator::GetNormalized() const
 {
-	Rotator Rot = *this;
+	FRotator Rot = *this;
 	Rot.Normalize();
 	return Rot;
 }
-inline Rotator Rotator::GetDenormalized() const
+inline FRotator FRotator::GetDenormalized() const
 {
-	Rotator Rot = *this;
+	FRotator Rot = *this;
 	Rot.Pitch = ClampAxis(Rot.Pitch);
 	Rot.Yaw = ClampAxis(Rot.Yaw);
 	Rot.Roll = ClampAxis(Rot.Roll);
 	return Rot;
 }
-inline void Rotator::Normalize()
+inline void FRotator::Normalize()
 {
 	Pitch = NormalizeAxis(Pitch);
 	Yaw = NormalizeAxis(Yaw);
 	Roll = NormalizeAxis(Roll);
 	//DiagnosticCheckNaN();
 }
-inline float Rotator::GetComponentForAxis(EAxis::Type Axis) const
+inline float FRotator::GetComponentForAxis(EAxis::Type Axis) const
 {
 	switch (Axis)
 	{
@@ -1096,7 +1109,7 @@ inline float Rotator::GetComponentForAxis(EAxis::Type Axis) const
 		return 0.f;
 	}
 }
-inline void Rotator::SetComponentForAxis(EAxis::Type Axis, float Component)
+inline void FRotator::SetComponentForAxis(EAxis::Type Axis, float Component)
 {
 	switch (Axis)
 	{
@@ -1111,25 +1124,25 @@ inline void Rotator::SetComponentForAxis(EAxis::Type Axis, float Component)
 		break;
 	}
 }
-inline bool Rotator::ContainsNaN() const
+inline bool FRotator::ContainsNaN() const
 {
-	return (!Math::IsFinite(Pitch) ||
-		!Math::IsFinite(Yaw) ||
-		!Math::IsFinite(Roll));
+	return (!FMath::IsFinite(Pitch) ||
+		!FMath::IsFinite(Yaw) ||
+		!FMath::IsFinite(Roll));
 }
 
-inline float Rotator::GetManhattanDistance(const Rotator & Rotator) const
+inline float FRotator::GetManhattanDistance(const FRotator & Rotator) const
 {
-	return Math::Abs<float>(Yaw - Rotator.Yaw) + Math::Abs<float>(Pitch - Rotator.Pitch) + Math::Abs<float>(Roll - Rotator.Roll);
+	return FMath::Abs<float>(Yaw - Rotator.Yaw) + FMath::Abs<float>(Pitch - Rotator.Pitch) + FMath::Abs<float>(Roll - Rotator.Roll);
 }
 
-inline Rotator Rotator::GetEquivalentRotator() const
+inline FRotator FRotator::GetEquivalentRotator() const
 {
-	return Rotator(180.0f - Pitch, Yaw + 180.0f, Roll + 180.0f);
+	return FRotator(180.0f - Pitch, Yaw + 180.0f, Roll + 180.0f);
 }
-inline void Rotator::SetClosestToMe(Rotator& MakeClosest) const
+inline void FRotator::SetClosestToMe(FRotator& MakeClosest) const
 {
-	Rotator OtherChoice = MakeClosest.GetEquivalentRotator();
+	FRotator OtherChoice = MakeClosest.GetEquivalentRotator();
 	float FirstDiff = GetManhattanDistance(MakeClosest);
 	float SecondDiff = GetManhattanDistance(OtherChoice);
 	if (SecondDiff < FirstDiff)
@@ -1140,13 +1153,13 @@ inline void Rotator::SetClosestToMe(Rotator& MakeClosest) const
 *****************************************************************************/
 
 template<class U>
-inline Rotator Math::Lerp(const Rotator& A, const Rotator& B, const U& Alpha)
+inline FRotator FMath::Lerp(const FRotator& A, const FRotator& B, const U& Alpha)
 {
 	return A + (B - A).GetNormalized() * Alpha;
 }
 
 template<class U>
-inline Rotator Math::LerpRange(const Rotator& A, const Rotator& B, const U& Alpha)
+inline FRotator FMath::LerpRange(const FRotator& A, const FRotator& B, const U& Alpha)
 {
 	// Similar to Lerp, but does not take the shortest path. Allows interpolation over more than 180 degrees.
 	return (A * (1 - Alpha) + B * Alpha).GetNormalized();
@@ -1332,15 +1345,15 @@ inline float Vector2::SizeSquared()
 }
 
 
-struct LinearColor
+struct FLinearColor
 {
 	float R, G, B, A;
 
 	static double sRGBToLinearTable[256];
 
-	LinearColor() {}
-	LinearColor(float InR, float InG, float InB, float InA = 1.0f) : R(InR), G(InG), B(InB), A(InA) {}
-	LinearColor(struct FColor);
+	FLinearColor() {}
+	FLinearColor(float InR, float InG, float InB, float InA = 1.0f) : R(InR), G(InG), B(InB), A(InA) {}
+	FLinearColor(struct FColor);
 };
 
 struct FColor
@@ -1452,7 +1465,7 @@ struct Matrix
 	static Matrix	DXFromPitch(float fPitch);
 	static Matrix	DXFromYaw(float fYaw);
 	static Matrix	DXFromRoll(float fRoll);
-	static Matrix	DXFormRotation(Rotator Rotation);
+	static Matrix	DXFormRotation(FRotator Rotation);
 	static Matrix	DXFromTranslation(Vector Translation);
 	static Matrix	DXLookAtLH(const Vector& Eye,const Vector& LookAtPosition, const Vector& Up);
 	static Matrix	DXLookToLH(const Vector& To);
@@ -1501,6 +1514,50 @@ inline ScaleMatrix::ScaleMatrix(const Vector& Scale)
 		Plane(0.0f, 0.0f, 0.0f, 1.0f)
 	)
 { }
+class FRotationTranslationMatrix
+	: public Matrix
+{
+public:
+	FRotationTranslationMatrix(const FRotator& Rot, const Vector& Origin);
+	static Matrix Make(const FRotator& Rot, const Vector& Origin)
+	{
+		return FRotationTranslationMatrix(Rot, Origin);
+	}
+};
+
+class FRotationMatrix
+	: public FRotationTranslationMatrix
+{
+public:
+	FRotationMatrix(const FRotator& Rot)
+		: FRotationTranslationMatrix(Rot, Vector::ZeroVector)
+	{ }
+	/** Matrix factory. Return an FMatrix so we don't have type conversion issues in expressions. */
+	static Matrix Make(FRotator const& Rot)
+	{
+		return FRotationMatrix(Rot);
+	}
+	/** Matrix factory. Return an FMatrix so we don't have type conversion issues in expressions. */
+	static Matrix Make(FQuat const& Rot);
+	/** Builds a rotation matrix given only a XAxis. Y and Z are unspecified but will be orthonormal. XAxis need not be normalized. */
+	static Matrix MakeFromX(Vector const& XAxis);
+	/** Builds a rotation matrix given only a YAxis. X and Z are unspecified but will be orthonormal. YAxis need not be normalized. */
+	static Matrix MakeFromY(Vector const& YAxis);
+	/** Builds a rotation matrix given only a ZAxis. X and Y are unspecified but will be orthonormal. ZAxis need not be normalized. */
+	static Matrix MakeFromZ(Vector const& ZAxis);
+	/** Builds a matrix with given X and Y axes. X will remain fixed, Y may be changed minimally to enforce orthogonality. Z will be computed. Inputs need not be normalized. */
+	static Matrix MakeFromXY(Vector const& XAxis, Vector const& YAxis);
+	/** Builds a matrix with given X and Z axes. X will remain fixed, Z may be changed minimally to enforce orthogonality. Y will be computed. Inputs need not be normalized. */
+	static Matrix MakeFromXZ(Vector const& XAxis, Vector const& ZAxis);
+	/** Builds a matrix with given Y and X axes. Y will remain fixed, X may be changed minimally to enforce orthogonality. Z will be computed. Inputs need not be normalized. */
+	static Matrix MakeFromYX(Vector const& YAxis, Vector const& XAxis);
+	/** Builds a matrix with given Y and Z axes. Y will remain fixed, Z may be changed minimally to enforce orthogonality. X will be computed. Inputs need not be normalized. */
+	static Matrix MakeFromYZ(Vector const& YAxis, Vector const& ZAxis);
+	/** Builds a matrix with given Z and X axes. Z will remain fixed, X may be changed minimally to enforce orthogonality. Y will be computed. Inputs need not be normalized. */
+	static Matrix MakeFromZX(Vector const& ZAxis, Vector const& XAxis);
+	/** Builds a matrix with given Z and Y axes. Z will remain fixed, Y may be changed minimally to enforce orthogonality. X will be computed. Inputs need not be normalized. */
+	static Matrix MakeFromZY(Vector const& ZAxis, Vector const& YAxis);
+};
 
 class ReversedZPerspectiveMatrix : public Matrix
 {
@@ -1643,12 +1700,12 @@ inline void Matrix::SetIndentity()
 
 inline void Matrix::Transpose()
 {
-	Math::Swap(M[0][1], M[1][0]);
-	Math::Swap(M[0][2], M[2][0]);
-	Math::Swap(M[0][3], M[3][0]);
-	Math::Swap(M[2][1], M[1][2]);
-	Math::Swap(M[3][1], M[1][3]);
-	Math::Swap(M[3][2], M[2][3]);
+	FMath::Swap(M[0][1], M[1][0]);
+	FMath::Swap(M[0][2], M[2][0]);
+	FMath::Swap(M[0][3], M[3][0]);
+	FMath::Swap(M[2][1], M[1][2]);
+	FMath::Swap(M[3][1], M[1][3]);
+	FMath::Swap(M[3][2], M[2][3]);
 }
 
 Matrix Matrix::Inverse() const
@@ -1770,70 +1827,6 @@ inline void Matrix::operator*=(float Other)
 inline Matrix Matrix::operator*(const Matrix& Other) const
 {
 	Matrix Result;
-	//coloum major
-// 	Result.M[0][0] = M[0][0] * Other.M[0][0] + M[1][0] * Other.M[0][1] + M[2][0] * Other.M[0][2] + M[3][0] * Other.M[0][3];
-// 	Result.M[1][0] = M[0][1] * Other.M[0][0] + M[1][1] * Other.M[0][1] + M[2][1] * Other.M[0][2] + M[3][1] * Other.M[0][3];
-// 	Result.M[2][0] = M[0][2] * Other.M[0][0] + M[1][2] * Other.M[0][1] + M[2][2] * Other.M[0][2] + M[3][2] * Other.M[0][3];
-// 	Result.M[3][0] = M[0][3] * Other.M[0][0] + M[1][3] * Other.M[0][1] + M[2][3] * Other.M[0][2] + M[3][3] * Other.M[0][3];
-// 
-// 	Result.M[0][1] = M[0][0] * Other.M[1][0] + M[1][0] * Other.M[1][1] + M[2][0] * Other.M[1][2] + M[3][0] * Other.M[1][3];
-// 	Result.M[1][1] = M[0][1] * Other.M[1][0] + M[1][1] * Other.M[1][1] + M[2][1] * Other.M[1][2] + M[3][1] * Other.M[1][3];
-// 	Result.M[2][1] = M[0][2] * Other.M[1][0] + M[1][2] * Other.M[1][1] + M[2][2] * Other.M[1][2] + M[3][2] * Other.M[1][3];
-// 	Result.M[3][1] = M[0][3] * Other.M[1][0] + M[1][3] * Other.M[1][1] + M[2][3] * Other.M[1][2] + M[3][3] * Other.M[1][3];
-// 
-// 	Result.M[0][2] = M[0][0] * Other.M[2][0] + M[1][0] * Other.M[2][1] + M[2][0] * Other.M[2][2] + M[3][0] * Other.M[2][3];
-// 	Result.M[1][3] = M[0][1] * Other.M[2][0] + M[1][1] * Other.M[2][1] + M[2][1] * Other.M[2][2] + M[3][1] * Other.M[2][3];
-// 	Result.M[2][2] = M[0][2] * Other.M[2][0] + M[1][2] * Other.M[2][1] + M[2][2] * Other.M[2][2] + M[3][2] * Other.M[2][3];
-// 	Result.M[3][2] = M[0][3] * Other.M[2][0] + M[1][3] * Other.M[2][1] + M[2][3] * Other.M[2][2] + M[3][3] * Other.M[2][3];
-// 
-// 	Result.M[0][3] = M[0][0] * Other.M[3][0] + M[1][0] * Other.M[3][1] + M[2][0] * Other.M[3][2] + M[3][0] * Other.M[3][3];
-// 	Result.M[1][3] = M[0][1] * Other.M[3][0] + M[1][1] * Other.M[3][1] + M[2][1] * Other.M[3][2] + M[3][1] * Other.M[3][3];
-// 	Result.M[2][3] = M[0][2] * Other.M[3][0] + M[1][2] * Other.M[3][1] + M[2][2] * Other.M[3][2] + M[3][2] * Other.M[3][3];
-// 	Result.M[3][3] = M[0][3] * Other.M[3][0] + M[1][3] * Other.M[3][1] + M[2][3] * Other.M[3][2] + M[3][3] * Other.M[3][3];
-
-
-	//column major
-// 	Result.M[0][0] = M[0][0] * Other.M[0][0] + M[1][0] * Other.M[0][1] + M[2][0] * Other.M[0][2] + M[3][0] * Other.M[0][3];
-// 	Result.M[1][0] = M[0][0] * Other.M[1][0] + M[1][0] * Other.M[1][1] + M[2][0] * Other.M[1][2] + M[3][0] * Other.M[1][3];
-// 	Result.M[2][0] = M[0][0] * Other.M[2][0] + M[1][0] * Other.M[2][1] + M[2][0] * Other.M[1][2] + M[3][0] * Other.M[2][3];
-// 	Result.M[3][0] = M[0][0] * Other.M[3][0] + M[1][0] * Other.M[3][1] + M[2][0] * Other.M[1][2] + M[3][0] * Other.M[3][3];
-// 
-// 	Result.M[0][1] = M[0][1] * Other.M[0][0] + M[1][1] * Other.M[0][1] + M[2][1] * Other.M[0][2] + M[3][1] * Other.M[0][3];
-// 	Result.M[1][1] = M[0][1] * Other.M[1][0] + M[1][1] * Other.M[1][1] + M[2][1] * Other.M[1][2] + M[3][1] * Other.M[1][3];
-// 	Result.M[2][1] = M[0][1] * Other.M[2][0] + M[1][1] * Other.M[2][1] + M[2][1] * Other.M[1][2] + M[3][1] * Other.M[2][3];
-// 	Result.M[3][1] = M[0][1] * Other.M[3][0] + M[1][1] * Other.M[3][1] + M[2][1] * Other.M[1][2] + M[3][1] * Other.M[3][3];
-// 
-// 	Result.M[0][2] = M[0][2] * Other.M[0][0] + M[1][2] * Other.M[0][1] + M[2][2] * Other.M[0][2] + M[3][2] * Other.M[0][3];
-// 	Result.M[1][2] = M[0][2] * Other.M[1][0] + M[1][2] * Other.M[1][1] + M[2][2] * Other.M[1][2] + M[3][2] * Other.M[1][3];
-// 	Result.M[2][2] = M[0][2] * Other.M[2][0] + M[1][2] * Other.M[2][1] + M[2][2] * Other.M[1][2] + M[3][2] * Other.M[2][3];
-// 	Result.M[3][2] = M[0][2] * Other.M[3][0] + M[1][2] * Other.M[3][1] + M[2][2] * Other.M[1][2] + M[3][2] * Other.M[3][3];
-// 
-// 	Result.M[0][3] = M[0][3] * Other.M[0][0] + M[1][3] * Other.M[0][1] + M[2][3] * Other.M[0][2] + M[3][3] * Other.M[0][3];
-// 	Result.M[1][3] = M[0][3] * Other.M[1][0] + M[1][3] * Other.M[1][1] + M[2][3] * Other.M[1][2] + M[3][3] * Other.M[1][3];
-// 	Result.M[2][3] = M[0][3] * Other.M[2][0] + M[1][3] * Other.M[2][1] + M[2][3] * Other.M[1][2] + M[3][3] * Other.M[2][3];
-// 	Result.M[3][3] = M[0][3] * Other.M[3][0] + M[1][3] * Other.M[3][1] + M[2][3] * Other.M[1][2] + M[3][3] * Other.M[3][3];
-
-	//row major
-// 	Result.M[0][0] = M[0][0] * Other.M[0][0] + M[0][1] * Other.M[1][0] + M[0][2] * Other.M[2][0] + M[0][3] * Other.M[3][0];
-// 	Result.M[1][0] = M[1][0] * Other.M[0][0] + M[1][1] * Other.M[1][0] + M[1][2] * Other.M[2][0] + M[1][3] * Other.M[3][0];
-// 	Result.M[2][0] = M[2][0] * Other.M[0][0] + M[2][1] * Other.M[1][0] + M[2][2] * Other.M[2][0] + M[2][3] * Other.M[3][0];
-// 	Result.M[3][0] = M[3][0] * Other.M[0][0] + M[3][1] * Other.M[1][0] + M[3][2] * Other.M[2][0] + M[3][3] * Other.M[3][0];
-// 
-// 	Result.M[0][1] = M[0][0] * Other.M[0][1] + M[0][1] * Other.M[1][1] + M[0][2] * Other.M[2][1] + M[0][3] * Other.M[3][1];
-// 	Result.M[1][1] = M[1][0] * Other.M[0][1] + M[1][1] * Other.M[1][1] + M[1][2] * Other.M[2][1] + M[1][3] * Other.M[3][1];
-// 	Result.M[2][1] = M[2][0] * Other.M[0][1] + M[2][1] * Other.M[1][1] + M[2][2] * Other.M[2][1] + M[2][3] * Other.M[3][1];
-// 	Result.M[3][1] = M[3][0] * Other.M[0][1] + M[3][1] * Other.M[1][1] + M[3][2] * Other.M[2][1] + M[3][3] * Other.M[3][1];
-// 
-// 	Result.M[0][2] = M[0][0] * Other.M[0][2] + M[0][1] * Other.M[1][2] + M[0][2] * Other.M[2][2] + M[0][3] * Other.M[3][2];
-// 	Result.M[1][2] = M[1][0] * Other.M[0][2] + M[1][1] * Other.M[1][2] + M[1][2] * Other.M[2][2] + M[1][3] * Other.M[3][2];
-// 	Result.M[2][2] = M[2][0] * Other.M[0][2] + M[2][1] * Other.M[1][2] + M[2][2] * Other.M[2][2] + M[2][3] * Other.M[3][2];
-// 	Result.M[3][2] = M[3][0] * Other.M[0][2] + M[3][1] * Other.M[1][2] + M[3][2] * Other.M[2][2] + M[3][3] * Other.M[3][2];
-// 
-// 	Result.M[0][3] = M[0][0] * Other.M[0][3] + M[0][1] * Other.M[1][3] + M[0][2] * Other.M[2][3] + M[0][3] * Other.M[3][3];
-// 	Result.M[1][3] = M[1][0] * Other.M[0][3] + M[1][1] * Other.M[1][3] + M[1][2] * Other.M[2][3] + M[1][3] * Other.M[3][3];
-// 	Result.M[2][3] = M[2][0] * Other.M[0][3] + M[2][1] * Other.M[1][3] + M[2][2] * Other.M[2][3] + M[2][3] * Other.M[3][3];
-// 	Result.M[3][3] = M[3][0] * Other.M[0][3] + M[3][1] * Other.M[1][3] + M[3][2] * Other.M[2][3] + M[3][3] * Other.M[3][3];
-
 	typedef float Float4x4[4][4];
 	const Float4x4& A = *((const Float4x4*)this);
 	const Float4x4& B = *((const Float4x4*)&Other);
@@ -1923,7 +1916,7 @@ inline Matrix Matrix::DXFromRoll(float fRoll)
 	return Result;
 }
 
-inline Matrix Matrix::DXFormRotation(Rotator Rotation)
+inline Matrix Matrix::DXFormRotation(FRotator Rotation)
 {
 	Matrix Pitch =	DXFromPitch(Rotation.Pitch);
 	Matrix Yaw =	DXFromYaw(Rotation.Yaw);
@@ -2172,13 +2165,13 @@ public:
 {
 	if (IsValid)
 	{
-		Min.X = Math::Min(Min.X, Other.X);
-		Min.Y = Math::Min(Min.Y, Other.Y);
-		Min.Z = Math::Min(Min.Z, Other.Z);
+		Min.X = FMath::Min(Min.X, Other.X);
+		Min.Y = FMath::Min(Min.Y, Other.Y);
+		Min.Z = FMath::Min(Min.Z, Other.Z);
 
-		Max.X = Math::Max(Max.X, Other.X);
-		Max.Y = Math::Max(Max.Y, Other.Y);
-		Max.Z = Math::Max(Max.Z, Other.Z);
+		Max.X = FMath::Max(Max.X, Other.X);
+		Max.Y = FMath::Max(Max.Y, Other.Y);
+		Max.Z = FMath::Max(Max.Z, Other.Z);
 	}
 	else
 	{
@@ -2194,13 +2187,13 @@ public:
 {
 	if (IsValid && Other.IsValid)
 	{
-		Min.X = Math::Min(Min.X, Other.Min.X);
-		Min.Y = Math::Min(Min.Y, Other.Min.Y);
-		Min.Z = Math::Min(Min.Z, Other.Min.Z);
+		Min.X = FMath::Min(Min.X, Other.Min.X);
+		Min.Y = FMath::Min(Min.Y, Other.Min.Y);
+		Min.Z = FMath::Min(Min.Z, Other.Min.Z);
 
-		Max.X = Math::Max(Max.X, Other.Max.X);
-		Max.Y = Math::Max(Max.Y, Other.Max.Y);
-		Max.Z = Math::Max(Max.Z, Other.Max.Z);
+		Max.X = FMath::Max(Max.X, Other.Max.X);
+		Max.Y = FMath::Max(Max.Y, Other.Max.Y);
+		Max.Z = FMath::Max(Max.Z, Other.Max.Z);
 	}
 	else if (Other.IsValid)
 	{
@@ -2289,7 +2282,7 @@ public:
 /* Math inline functions
 *****************************************************************************/
 
-inline bool Math::PointBoxIntersection
+inline bool FMath::PointBoxIntersection
 (
 	const Vector&	Point,
 	const FBox&		Box
@@ -2303,7 +2296,7 @@ inline bool Math::PointBoxIntersection
 		return 0;
 }
 
-inline bool Math::LineBoxIntersection
+inline bool FMath::LineBoxIntersection
 (
 	const FBox& Box,
 	const Vector& Start,
@@ -2314,7 +2307,7 @@ inline bool Math::LineBoxIntersection
 	return LineBoxIntersection(Box, Start, End, StartToEnd, StartToEnd.Reciprocal());
 }
 
-inline bool Math::LineBoxIntersection
+inline bool FMath::LineBoxIntersection
 (
 	const FBox&		Box,
 	const Vector&	Start,
@@ -2534,77 +2527,77 @@ struct Frustum
 	FBox GetBounds();
 };
 
-struct IntPoint
+struct FIntPoint
 {
 	int32 X;
 	int32 Y;
 
-	IntPoint() {}
+	FIntPoint() {}
 
-	IntPoint(int32 InX, int32 InY);
+	FIntPoint(int32 InX, int32 InY);
 	const int32& operator()(int32 PointIndex) const;
 	int32& operator()(int32 PointIndex);
-	bool operator==(const IntPoint& Other) const;
-	bool operator!=(const IntPoint& Other) const;
-	IntPoint& operator*=(int32 Scale);
-	IntPoint& operator/=(int32 Divisor);
-	IntPoint& operator+=(const IntPoint& Other);
-	IntPoint& operator-=(const IntPoint& Other);
-	IntPoint& operator/=(const IntPoint& Other);
-	IntPoint& operator=(const IntPoint& Other);
-	IntPoint operator*(int32 Scale) const;
-	IntPoint operator/(int32 Divisor) const;
-	IntPoint operator+(const IntPoint& Other) const;
-	IntPoint operator-(const IntPoint& Other) const;
-	IntPoint operator/(const IntPoint& Other) const;
+	bool operator==(const FIntPoint& Other) const;
+	bool operator!=(const FIntPoint& Other) const;
+	FIntPoint& operator*=(int32 Scale);
+	FIntPoint& operator/=(int32 Divisor);
+	FIntPoint& operator+=(const FIntPoint& Other);
+	FIntPoint& operator-=(const FIntPoint& Other);
+	FIntPoint& operator/=(const FIntPoint& Other);
+	FIntPoint& operator=(const FIntPoint& Other);
+	FIntPoint operator*(int32 Scale) const;
+	FIntPoint operator/(int32 Divisor) const;
+	FIntPoint operator+(const FIntPoint& Other) const;
+	FIntPoint operator-(const FIntPoint& Other) const;
+	FIntPoint operator/(const FIntPoint& Other) const;
 	int32& operator[](int32 Index);
 	int32 operator[](int32 Index) const;
 
-	inline IntPoint ComponentMin(const IntPoint& Other) const;
-	inline IntPoint ComponentMax(const IntPoint& Other) const;
+	inline FIntPoint ComponentMin(const FIntPoint& Other) const;
+	inline FIntPoint ComponentMax(const FIntPoint& Other) const;
 	int32 GetMax() const;
 	int32 GetMin() const;
 	int32 Size() const;
 	int32 SizeSquared() const;
 
 public:
-	static IntPoint DivideAndRoundUp(IntPoint lhs, int32 Divisor);
-	static IntPoint DivideAndRoundUp(IntPoint lhs, IntPoint Divisor);
-	static IntPoint DivideAndRoundDown(IntPoint lhs, int32 Divisor);
+	static FIntPoint DivideAndRoundUp(FIntPoint lhs, int32 Divisor);
+	static FIntPoint DivideAndRoundUp(FIntPoint lhs, FIntPoint Divisor);
+	static FIntPoint DivideAndRoundDown(FIntPoint lhs, int32 Divisor);
 	static int32 Num();
 };
 
-inline IntPoint::IntPoint(int32 InX, int32 InY)
+inline FIntPoint::FIntPoint(int32 InX, int32 InY)
 	: X(InX)
 	, Y(InY)
 { }
 
-inline const int32& IntPoint::operator()(int32 PointIndex) const
+inline const int32& FIntPoint::operator()(int32 PointIndex) const
 {
 	return (&X)[PointIndex];
 }
 
-inline int32& IntPoint::operator()(int32 PointIndex)
+inline int32& FIntPoint::operator()(int32 PointIndex)
 {
 	return (&X)[PointIndex];
 }
 
-inline int32 IntPoint::Num()
+inline int32 FIntPoint::Num()
 {
 	return 2;
 }
 
-inline bool IntPoint::operator==(const IntPoint& Other) const
+inline bool FIntPoint::operator==(const FIntPoint& Other) const
 {
 	return X == Other.X && Y == Other.Y;
 }
 
-inline bool IntPoint::operator!=(const IntPoint& Other) const
+inline bool FIntPoint::operator!=(const FIntPoint& Other) const
 {
 	return (X != Other.X) || (Y != Other.Y);
 }
 
-inline IntPoint& IntPoint::operator*=(int32 Scale)
+inline FIntPoint& FIntPoint::operator*=(int32 Scale)
 {
 	X *= Scale;
 	Y *= Scale;
@@ -2612,7 +2605,7 @@ inline IntPoint& IntPoint::operator*=(int32 Scale)
 	return *this;
 }
 
-inline IntPoint& IntPoint::operator/=(int32 Divisor)
+inline FIntPoint& FIntPoint::operator/=(int32 Divisor)
 {
 	X /= Divisor;
 	Y /= Divisor;
@@ -2620,7 +2613,7 @@ inline IntPoint& IntPoint::operator/=(int32 Divisor)
 	return *this;
 }
 
-inline IntPoint& IntPoint::operator+=(const IntPoint& Other)
+inline FIntPoint& FIntPoint::operator+=(const FIntPoint& Other)
 {
 	X += Other.X;
 	Y += Other.Y;
@@ -2628,7 +2621,7 @@ inline IntPoint& IntPoint::operator+=(const IntPoint& Other)
 	return *this;
 }
 
-inline IntPoint& IntPoint::operator-=(const IntPoint& Other)
+inline FIntPoint& FIntPoint::operator-=(const FIntPoint& Other)
 {
 	X -= Other.X;
 	Y -= Other.Y;
@@ -2636,7 +2629,7 @@ inline IntPoint& IntPoint::operator-=(const IntPoint& Other)
 	return *this;
 }
 
-inline IntPoint& IntPoint::operator/=(const IntPoint& Other)
+inline FIntPoint& FIntPoint::operator/=(const FIntPoint& Other)
 {
 	X /= Other.X;
 	Y /= Other.Y;
@@ -2644,7 +2637,7 @@ inline IntPoint& IntPoint::operator/=(const IntPoint& Other)
 	return *this;
 }
 
-inline IntPoint& IntPoint::operator=(const IntPoint& Other)
+inline FIntPoint& FIntPoint::operator=(const FIntPoint& Other)
 {
 	X = Other.X;
 	Y = Other.Y;
@@ -2652,91 +2645,91 @@ inline IntPoint& IntPoint::operator=(const IntPoint& Other)
 	return *this;
 }
 
-inline IntPoint IntPoint::operator*(int32 Scale) const
+inline FIntPoint FIntPoint::operator*(int32 Scale) const
 {
-	return IntPoint(*this) *= Scale;
+	return FIntPoint(*this) *= Scale;
 }
 
-inline IntPoint IntPoint::operator/(int32 Divisor) const
+inline FIntPoint FIntPoint::operator/(int32 Divisor) const
 {
-	return IntPoint(*this) /= Divisor;
+	return FIntPoint(*this) /= Divisor;
 }
 
-inline int32& IntPoint::operator[](int32 Index)
-{
-	//check(Index >= 0 && Index < 2);
-	return ((Index == 0) ? X : Y);
-}
-
-inline int32 IntPoint::operator[](int32 Index) const
+inline int32& FIntPoint::operator[](int32 Index)
 {
 	//check(Index >= 0 && Index < 2);
 	return ((Index == 0) ? X : Y);
 }
 
-inline IntPoint IntPoint::ComponentMin(const IntPoint& Other) const
+inline int32 FIntPoint::operator[](int32 Index) const
 {
-	return IntPoint(Math::Min(X, Other.X), Math::Min(Y, Other.Y));
+	//check(Index >= 0 && Index < 2);
+	return ((Index == 0) ? X : Y);
 }
 
-inline IntPoint IntPoint::ComponentMax(const IntPoint& Other) const
+inline FIntPoint FIntPoint::ComponentMin(const FIntPoint& Other) const
 {
-	return IntPoint(Math::Max(X, Other.X), Math::Max(Y, Other.Y));
+	return FIntPoint(FMath::Min(X, Other.X), FMath::Min(Y, Other.Y));
 }
 
-inline IntPoint IntPoint::DivideAndRoundUp(IntPoint lhs, int32 Divisor)
+inline FIntPoint FIntPoint::ComponentMax(const FIntPoint& Other) const
 {
-	return IntPoint(Math::DivideAndRoundUp(lhs.X, Divisor), Math::DivideAndRoundUp(lhs.Y, Divisor));
+	return FIntPoint(FMath::Max(X, Other.X), FMath::Max(Y, Other.Y));
 }
 
-inline IntPoint IntPoint::DivideAndRoundUp(IntPoint lhs, IntPoint Divisor)
+inline FIntPoint FIntPoint::DivideAndRoundUp(FIntPoint lhs, int32 Divisor)
 {
-	return IntPoint(Math::DivideAndRoundUp(lhs.X, Divisor.X), Math::DivideAndRoundUp(lhs.Y, Divisor.Y));
+	return FIntPoint(FMath::DivideAndRoundUp(lhs.X, Divisor), FMath::DivideAndRoundUp(lhs.Y, Divisor));
 }
 
-inline IntPoint IntPoint::DivideAndRoundDown(IntPoint lhs, int32 Divisor)
+inline FIntPoint FIntPoint::DivideAndRoundUp(FIntPoint lhs, FIntPoint Divisor)
 {
-	return IntPoint(Math::DivideAndRoundDown(lhs.X, Divisor), Math::DivideAndRoundDown(lhs.Y, Divisor));
+	return FIntPoint(FMath::DivideAndRoundUp(lhs.X, Divisor.X), FMath::DivideAndRoundUp(lhs.Y, Divisor.Y));
 }
 
-inline IntPoint IntPoint::operator+(const IntPoint& Other) const
+inline FIntPoint FIntPoint::DivideAndRoundDown(FIntPoint lhs, int32 Divisor)
 {
-	return IntPoint(*this) += Other;
+	return FIntPoint(FMath::DivideAndRoundDown(lhs.X, Divisor), FMath::DivideAndRoundDown(lhs.Y, Divisor));
 }
 
-inline IntPoint IntPoint::operator-(const IntPoint& Other) const
+inline FIntPoint FIntPoint::operator+(const FIntPoint& Other) const
 {
-	return IntPoint(*this) -= Other;
+	return FIntPoint(*this) += Other;
 }
 
-inline IntPoint IntPoint::operator/(const IntPoint& Other) const
+inline FIntPoint FIntPoint::operator-(const FIntPoint& Other) const
 {
-	return IntPoint(*this) /= Other;
+	return FIntPoint(*this) -= Other;
 }
 
-inline int32 IntPoint::GetMax() const
+inline FIntPoint FIntPoint::operator/(const FIntPoint& Other) const
 {
-	return Math::Max(X, Y);
+	return FIntPoint(*this) /= Other;
 }
 
-inline int32 IntPoint::GetMin() const
+inline int32 FIntPoint::GetMax() const
 {
-	return Math::Min(X, Y);
+	return FMath::Max(X, Y);
 }
 
-inline int32 IntPoint::Size() const
+inline int32 FIntPoint::GetMin() const
+{
+	return FMath::Min(X, Y);
+}
+
+inline int32 FIntPoint::Size() const
 {
 	int64 X64 = (int64)X;
 	int64 Y64 = (int64)Y;
-	return int32(Math::Sqrt(float(X64 * X64 + Y64 * Y64)));
+	return int32(FMath::Sqrt(float(X64 * X64 + Y64 * Y64)));
 }
 
-inline int32 IntPoint::SizeSquared() const
+inline int32 FIntPoint::SizeSquared() const
 {
 	return X * X + Y * Y;
 }
 
-inline void QuantizeSceneBufferSize(const IntPoint& InBufferSize, IntPoint& OutBufferSize)
+inline void QuantizeSceneBufferSize(const FIntPoint& InBufferSize, FIntPoint& OutBufferSize)
 {
 	// Ensure sizes are dividable by DividableBy to get post processing effects with lower resolution working well
 	const uint32 DividableBy = 4;
@@ -2756,7 +2749,7 @@ struct IntVector
 
 	/**  Holds the point's z-coordinate. */
 	int32 Z;
-
+	IntVector() {}
 	IntVector(int32 InX, int32 InY, int32 InZ);
 };
 
@@ -2764,25 +2757,25 @@ inline IntVector::IntVector(int32 InX, int32 InY, int32 InZ) : X(InX) , Y(InY) ,
 
 struct IntRect
 {
-	IntPoint Min;
-	IntPoint Max;
+	FIntPoint Min;
+	FIntPoint Max;
 public:
 	IntRect() {};
 	IntRect(int32 X0, int32 Y0, int32 X1, int32 Y1);
-	IntRect(IntPoint InMin, IntPoint InMax);
+	IntRect(FIntPoint InMin, FIntPoint InMax);
 public:
-	const IntPoint& operator()(int32 PointIndex) const;
-	IntPoint& operator()(int32 PointIndex);
+	const FIntPoint& operator()(int32 PointIndex) const;
+	FIntPoint& operator()(int32 PointIndex);
 	bool operator==(const IntRect& Other) const;
 	bool operator!=(const IntRect& Other) const;
 	IntRect& operator*=(int32 Scale);
-	IntRect& operator+=(const IntPoint& Point);
-	IntRect& operator-=(const IntPoint& Point);
+	IntRect& operator+=(const FIntPoint& Point);
+	IntRect& operator-=(const FIntPoint& Point);
 	IntRect operator*(int32 Scale) const;
 	IntRect operator/(int32 Div) const;
-	IntRect operator+(const IntPoint& Point) const;
-	IntRect operator/(const IntPoint& Point) const;
-	IntRect operator-(const IntPoint& Point) const;
+	IntRect operator+(const FIntPoint& Point) const;
+	IntRect operator/(const FIntPoint& Point) const;
+	IntRect operator-(const FIntPoint& Point) const;
 	IntRect operator+(const IntRect& Other) const;
 	IntRect operator-(const IntRect& Other) const;
 public:
@@ -2790,20 +2783,20 @@ public:
 	IntRect Bottom(int32 InHeight) const;
 	void Clip(const IntRect& Other);
 	void Union(const IntRect& Other);
-	bool Contains(IntPoint Point) const;
-	void GetCenterAndExtents(IntPoint& OutCenter, IntPoint& OutExtent) const;
+	bool Contains(FIntPoint Point) const;
+	void GetCenterAndExtents(FIntPoint& OutCenter, FIntPoint& OutExtent) const;
 	int32 Height() const;
 	void InflateRect(int32 Amount);
-	void Include(IntPoint Point);
-	IntRect Inner(IntPoint Shrink) const;
+	void Include(FIntPoint Point);
+	IntRect Inner(FIntPoint Shrink) const;
 	IntRect Right(int32 InWidth) const;
 	IntRect Scale(float Fraction) const;
-	IntPoint Size() const;
+	FIntPoint Size() const;
 	int32 Width() const;
 	bool IsEmpty() const;
 public:
 	static IntRect DivideAndRoundUp(IntRect lhs, int32 Div);
-	static IntRect DivideAndRoundUp(IntRect lhs, IntPoint Div);
+	static IntRect DivideAndRoundUp(IntRect lhs, FIntPoint Div);
 	static int32 Num();
 };
 
@@ -2813,7 +2806,7 @@ inline IntRect IntRect::Scale(float Fraction) const
 	Vector2 Min2D = Vector2((float)Min.X, (float)Min.Y) * Fraction;
 	Vector2 Max2D = Vector2((float)Max.X, (float)Max.Y) * Fraction;
 
-	return IntRect(Math::FloorToInt(Min2D.X), Math::FloorToInt(Min2D.Y), Math::CeilToInt(Max2D.X), Math::CeilToInt(Max2D.Y));
+	return IntRect(FMath::FloorToInt(Min2D.X), FMath::FloorToInt(Min2D.Y), FMath::CeilToInt(Max2D.X), FMath::CeilToInt(Max2D.Y));
 }
 /* IntRect inline functions
 *****************************************************************************/
@@ -2823,19 +2816,19 @@ inline IntRect::IntRect(int32 X0, int32 Y0, int32 X1, int32 Y1)
 { }
 
 
-inline IntRect::IntRect(IntPoint InMin, IntPoint InMax)
+inline IntRect::IntRect(FIntPoint InMin, FIntPoint InMax)
 	: Min(InMin)
 	, Max(InMax)
 { }
 
 
-inline const IntPoint& IntRect::operator()(int32 PointIndex) const
+inline const FIntPoint& IntRect::operator()(int32 PointIndex) const
 {
 	return (&Min)[PointIndex];
 }
 
 
-inline IntPoint& IntRect::operator()(int32 PointIndex)
+inline FIntPoint& IntRect::operator()(int32 PointIndex)
 {
 	return (&Min)[PointIndex];
 }
@@ -2862,7 +2855,7 @@ inline IntRect& IntRect::operator*=(int32 Scale)
 }
 
 
-inline IntRect& IntRect::operator+=(const IntPoint& Point)
+inline IntRect& IntRect::operator+=(const FIntPoint& Point)
 {
 	Min += Point;
 	Max += Point;
@@ -2871,7 +2864,7 @@ inline IntRect& IntRect::operator+=(const IntPoint& Point)
 }
 
 
-inline IntRect& IntRect::operator-=(const IntPoint& Point)
+inline IntRect& IntRect::operator-=(const FIntPoint& Point)
 {
 	Min -= Point;
 	Max -= Point;
@@ -2892,19 +2885,19 @@ inline IntRect IntRect::operator/(int32 Div) const
 }
 
 
-inline IntRect IntRect::operator+(const IntPoint& Point) const
+inline IntRect IntRect::operator+(const FIntPoint& Point) const
 {
 	return IntRect(Min + Point, Max + Point);
 }
 
 
-inline IntRect IntRect::operator/(const IntPoint& Point) const
+inline IntRect IntRect::operator/(const FIntPoint& Point) const
 {
 	return IntRect(Min / Point, Max / Point);
 }
 
 
-inline IntRect IntRect::operator-(const IntPoint& Point) const
+inline IntRect IntRect::operator-(const FIntPoint& Point) const
 {
 	return IntRect(Min - Point, Max - Point);
 }
@@ -2930,31 +2923,31 @@ inline int32 IntRect::Area() const
 
 inline IntRect IntRect::Bottom(int32 InHeight) const
 {
-	return IntRect(Min.X, Math::Max(Min.Y, Max.Y - InHeight), Max.X, Max.Y);
+	return IntRect(Min.X, FMath::Max(Min.Y, Max.Y - InHeight), Max.X, Max.Y);
 }
 
 
 inline void IntRect::Clip(const IntRect& R)
 {
-	Min.X = Math::Max<int32>(Min.X, R.Min.X);
-	Min.Y = Math::Max<int32>(Min.Y, R.Min.Y);
-	Max.X = Math::Min<int32>(Max.X, R.Max.X);
-	Max.Y = Math::Min<int32>(Max.Y, R.Max.Y);
+	Min.X = FMath::Max<int32>(Min.X, R.Min.X);
+	Min.Y = FMath::Max<int32>(Min.Y, R.Min.Y);
+	Max.X = FMath::Min<int32>(Max.X, R.Max.X);
+	Max.Y = FMath::Min<int32>(Max.Y, R.Max.Y);
 
 	// return zero area if not overlapping
-	Max.X = Math::Max<int32>(Min.X, Max.X);
-	Max.Y = Math::Max<int32>(Min.Y, Max.Y);
+	Max.X = FMath::Max<int32>(Min.X, Max.X);
+	Max.Y = FMath::Max<int32>(Min.Y, Max.Y);
 }
 
 inline void IntRect::Union(const IntRect& R)
 {
-	Min.X = Math::Min<int32>(Min.X, R.Min.X);
-	Min.Y = Math::Min<int32>(Min.Y, R.Min.Y);
-	Max.X = Math::Max<int32>(Max.X, R.Max.X);
-	Max.Y = Math::Max<int32>(Max.Y, R.Max.Y);
+	Min.X = FMath::Min<int32>(Min.X, R.Min.X);
+	Min.Y = FMath::Min<int32>(Min.Y, R.Min.Y);
+	Max.X = FMath::Max<int32>(Max.X, R.Max.X);
+	Max.Y = FMath::Max<int32>(Max.Y, R.Max.Y);
 }
 
-inline bool IntRect::Contains(IntPoint P) const
+inline bool IntRect::Contains(FIntPoint P) const
 {
 	return P.X >= Min.X && P.X < Max.X && P.Y >= Min.Y && P.Y < Max.Y;
 }
@@ -2962,15 +2955,15 @@ inline bool IntRect::Contains(IntPoint P) const
 
 inline IntRect IntRect::DivideAndRoundUp(IntRect lhs, int32 Div)
 {
-	return DivideAndRoundUp(lhs, IntPoint(Div, Div));
+	return DivideAndRoundUp(lhs, FIntPoint(Div, Div));
 }
 
-inline IntRect IntRect::DivideAndRoundUp(IntRect lhs, IntPoint Div)
+inline IntRect IntRect::DivideAndRoundUp(IntRect lhs, FIntPoint Div)
 {
-	return IntRect(lhs.Min / Div, IntPoint::DivideAndRoundUp(lhs.Max, Div));
+	return IntRect(lhs.Min / Div, FIntPoint::DivideAndRoundUp(lhs.Max, Div));
 }
 
-inline void IntRect::GetCenterAndExtents(IntPoint& OutCenter, IntPoint& OutExtent) const
+inline void IntRect::GetCenterAndExtents(FIntPoint& OutCenter, FIntPoint& OutExtent) const
 {
 	OutExtent.X = (Max.X - Min.X) / 2;
 	OutExtent.Y = (Max.Y - Min.Y) / 2;
@@ -2995,15 +2988,15 @@ inline void IntRect::InflateRect(int32 Amount)
 }
 
 
-inline void IntRect::Include(IntPoint Point)
+inline void IntRect::Include(FIntPoint Point)
 {
-	Min.X = Math::Min(Min.X, Point.X);
-	Min.Y = Math::Min(Min.Y, Point.Y);
-	Max.X = Math::Max(Max.X, Point.X);
-	Max.Y = Math::Max(Max.Y, Point.Y);
+	Min.X = FMath::Min(Min.X, Point.X);
+	Min.Y = FMath::Min(Min.Y, Point.Y);
+	Max.X = FMath::Max(Max.X, Point.X);
+	Max.Y = FMath::Max(Max.Y, Point.Y);
 }
 
-inline IntRect IntRect::Inner(IntPoint Shrink) const
+inline IntRect IntRect::Inner(FIntPoint Shrink) const
 {
 	return IntRect(Min + Shrink, Max - Shrink);
 }
@@ -3017,13 +3010,13 @@ inline int32 IntRect::Num()
 
 inline IntRect IntRect::Right(int32 InWidth) const
 {
-	return IntRect(Math::Max(Min.X, Max.X - InWidth), Min.Y, Max.X, Max.Y);
+	return IntRect(FMath::Max(Min.X, Max.X - InWidth), Min.Y, Max.X, Max.Y);
 }
 
 
-inline IntPoint IntRect::Size() const
+inline FIntPoint IntRect::Size() const
 {
-	return IntPoint(Max.X - Min.X, Max.Y - Min.Y);
+	return FIntPoint(Max.X - Min.X, Max.Y - Min.Y);
 }
 
 
@@ -3046,26 +3039,26 @@ public:
 	*
 	* @param Rot rotation
 	*/
-	InverseRotationMatrix(const Rotator& Rot);
+	InverseRotationMatrix(const FRotator& Rot);
 };
 
 
-inline InverseRotationMatrix::InverseRotationMatrix(const Rotator& Rot)
+inline InverseRotationMatrix::InverseRotationMatrix(const FRotator& Rot)
 	: Matrix(
 		Matrix( // Yaw
-			Plane(+Math::Cos(Rot.Yaw * PI / 180.f), -Math::Sin(Rot.Yaw * PI / 180.f), 0.0f, 0.0f),
-			Plane(+Math::Sin(Rot.Yaw * PI / 180.f), +Math::Cos(Rot.Yaw * PI / 180.f), 0.0f, 0.0f),
+			Plane(+FMath::Cos(Rot.Yaw * PI / 180.f), -FMath::Sin(Rot.Yaw * PI / 180.f), 0.0f, 0.0f),
+			Plane(+FMath::Sin(Rot.Yaw * PI / 180.f), +FMath::Cos(Rot.Yaw * PI / 180.f), 0.0f, 0.0f),
 			Plane(0.0f, 0.0f, 1.0f, 0.0f),
 			Plane(0.0f, 0.0f, 0.0f, 1.0f)) *
 		Matrix( // Pitch
-			Plane(+Math::Cos(Rot.Pitch * PI / 180.f), 0.0f, -Math::Sin(Rot.Pitch * PI / 180.f), 0.0f),
+			Plane(+FMath::Cos(Rot.Pitch * PI / 180.f), 0.0f, -FMath::Sin(Rot.Pitch * PI / 180.f), 0.0f),
 			Plane(0.0f, 1.0f, 0.0f, 0.0f),
-			Plane(+Math::Sin(Rot.Pitch * PI / 180.f), 0.0f, +Math::Cos(Rot.Pitch * PI / 180.f), 0.0f),
+			Plane(+FMath::Sin(Rot.Pitch * PI / 180.f), 0.0f, +FMath::Cos(Rot.Pitch * PI / 180.f), 0.0f),
 			Plane(0.0f, 0.0f, 0.0f, 1.0f)) *
 		Matrix( // Roll
 			Plane(1.0f, 0.0f, 0.0f, 0.0f),
-			Plane(0.0f, +Math::Cos(Rot.Roll * PI / 180.f), +Math::Sin(Rot.Roll * PI / 180.f), 0.0f),
-			Plane(0.0f, -Math::Sin(Rot.Roll * PI / 180.f), +Math::Cos(Rot.Roll * PI / 180.f), 0.0f),
+			Plane(0.0f, +FMath::Cos(Rot.Roll * PI / 180.f), +FMath::Sin(Rot.Roll * PI / 180.f), 0.0f),
+			Plane(0.0f, -FMath::Sin(Rot.Roll * PI / 180.f), +FMath::Cos(Rot.Roll * PI / 180.f), 0.0f),
 			Plane(0.0f, 0.0f, 0.0f, 1.0f))
 	)
 { }
@@ -3095,7 +3088,7 @@ public:
 	inline FQuat(float InX, float InY, float InZ, float InW);
 	inline FQuat(const FQuat& Q);
 	explicit FQuat(const Matrix& M);
-	explicit FQuat(const Rotator& R);
+	explicit FQuat(const FRotator& R);
 	FQuat(Vector Axis, float AngleRad);
 public:
 	inline FQuat& operator=(const FQuat& Other);
@@ -3140,7 +3133,7 @@ public:
 	inline Vector GetRightVector() const;
 	inline Vector GetUpVector() const;
 	inline Vector FVector() const;
-	Rotator FRotator() const;
+	FRotator Rotator() const;
 	inline Vector GetRotationAxis() const;
 	inline float AngularDistance(const FQuat& Q) const;
 	bool ContainsNaN() const;
@@ -3210,7 +3203,7 @@ inline FQuat::FQuat(const Matrix& M)
 
 	if (tr > 0.0f)
 	{
-		float InvS = Math::InvSqrt(tr + 1.f);
+		float InvS = FMath::InvSqrt(tr + 1.f);
 		this->W = 0.5f * (1.f / InvS);
 		s = 0.5f * InvS;
 
@@ -3235,7 +3228,7 @@ inline FQuat::FQuat(const Matrix& M)
 
 		s = M.M[i][i] - M.M[j][j] - M.M[k][k] + 1.0f;
 
-		float InvS = Math::InvSqrt(s);
+		float InvS = FMath::InvSqrt(s);
 
 		float qt[4];
 		qt[i] = 0.5f * (1.f / InvS);
@@ -3254,7 +3247,7 @@ inline FQuat::FQuat(const Matrix& M)
 		DiagnosticCheckNaN();
 	}
 }
-inline FQuat::FQuat(const Rotator& R)
+inline FQuat::FQuat(const FRotator& R)
 {
 	*this = R.Quaternion();
 	DiagnosticCheckNaN();
@@ -3309,7 +3302,7 @@ inline FQuat::FQuat(Vector Axis, float AngleRad)
 {
 	const float half_a = 0.5f * AngleRad;
 	float s, c;
-	Math::SinCos(&s, &c, half_a);
+	FMath::SinCos(&s, &c, half_a);
 
 	X = s * Axis.X;
 	Y = s * Axis.Y;
@@ -3341,8 +3334,8 @@ inline FQuat FQuat::operator-(const FQuat& Q) const
 
 inline bool FQuat::Equals(const FQuat& Q, float Tolerance) const
 {
-	return (Math::Abs(X - Q.X) <= Tolerance && Math::Abs(Y - Q.Y) <= Tolerance && Math::Abs(Z - Q.Z) <= Tolerance && Math::Abs(W - Q.W) <= Tolerance)
-		|| (Math::Abs(X + Q.X) <= Tolerance && Math::Abs(Y + Q.Y) <= Tolerance && Math::Abs(Z + Q.Z) <= Tolerance && Math::Abs(W + Q.W) <= Tolerance);
+	return (FMath::Abs(X - Q.X) <= Tolerance && FMath::Abs(Y - Q.Y) <= Tolerance && FMath::Abs(Z - Q.Z) <= Tolerance && FMath::Abs(W - Q.W) <= Tolerance)
+		|| (FMath::Abs(X + Q.X) <= Tolerance && FMath::Abs(Y + Q.Y) <= Tolerance && FMath::Abs(Z + Q.Z) <= Tolerance && FMath::Abs(W + Q.W) <= Tolerance);
 }
 
 inline bool FQuat::IsIdentity(float Tolerance) const
@@ -3407,15 +3400,11 @@ inline FQuat FQuat::operator/=(const float Scale)
 	DiagnosticCheckNaN();
 	return *this;
 }
-
-
 inline FQuat FQuat::operator/(const float Scale) const
 {
 	const float Recip = 1.0f / Scale;
 	return FQuat(X * Recip, Y * Recip, Z * Recip, W * Recip);
 }
-
-
 inline bool FQuat::operator==(const FQuat& Q) const
 {
 	return X == Q.X && Y == Q.Y && Z == Q.Z && W == Q.W;
@@ -3434,7 +3423,7 @@ inline void FQuat::Normalize(float Tolerance)
 
 	if (SquareSum >= Tolerance)
 	{
-		const float Scale = Math::InvSqrt(SquareSum);
+		const float Scale = FMath::InvSqrt(SquareSum);
 
 		X *= Scale;
 		Y *= Scale;
@@ -3454,11 +3443,11 @@ inline FQuat FQuat::GetNormalized(float Tolerance) const
 }
 inline bool FQuat::IsNormalized() const
 {
-	return (Math::Abs(1.f - SizeSquared()) < THRESH_QUAT_NORMALIZED);
+	return (FMath::Abs(1.f - SizeSquared()) < THRESH_QUAT_NORMALIZED);
 }
 inline float FQuat::Size() const
 {
-	return Math::Sqrt(X * X + Y * Y + Z * Z + W * W);
+	return FMath::Sqrt(X * X + Y * Y + Z * Z + W * W);
 }
 inline float FQuat::SizeSquared() const
 {
@@ -3467,7 +3456,7 @@ inline float FQuat::SizeSquared() const
 
 inline float FQuat::GetAngle() const
 {
-	return 2.f * Math::Acos(W);
+	return 2.f * FMath::Acos(W);
 }
 inline void FQuat::ToAxisAndAngle(Vector& Axis, float& Angle) const
 {
@@ -3477,7 +3466,7 @@ inline void FQuat::ToAxisAndAngle(Vector& Axis, float& Angle) const
 inline Vector FQuat::GetRotationAxis() const
 {
 	// Ensure we never try to sqrt a neg number
-	const float S = Math::Sqrt(Math::Max(1.f - (W * W), 0.f));
+	const float S = FMath::Sqrt(FMath::Max(1.f - (W * W), 0.f));
 
 	if (S >= 0.0001f)
 	{
@@ -3489,7 +3478,7 @@ inline Vector FQuat::GetRotationAxis() const
 float FQuat::AngularDistance(const FQuat& Q) const
 {
 	float InnerProd = X * Q.X + Y * Q.Y + Z * Q.Z + W * Q.W;
-	return Math::Acos((2 * InnerProd * InnerProd) - 1.f);
+	return FMath::Acos((2 * InnerProd * InnerProd) - 1.f);
 }
 inline Vector FQuat::RotateVector(Vector V) const
 {
@@ -3524,7 +3513,7 @@ inline FQuat FQuat::Inverse() const
 inline void FQuat::EnforceShortestArcWith(const FQuat& OtherQuat)
 {
 	const float DotResult = (OtherQuat | *this);
-	const float Bias = (float)Math::FloatSelect(DotResult, 1.0f, -1.0f);
+	const float Bias = (float)FMath::FloatSelect(DotResult, 1.0f, -1.0f);
 
 	X *= Bias;
 	Y *= Bias;
@@ -3564,11 +3553,9 @@ inline Vector FQuat::FVector() const
 }
 inline float FQuat::Error(const FQuat& Q1, const FQuat& Q2)
 {
-	const float cosom = Math::Abs(Q1.X * Q2.X + Q1.Y * Q2.Y + Q1.Z * Q2.Z + Q1.W * Q2.W);
-	return (Math::Abs(cosom) < 0.9999999f) ? Math::Acos(cosom)*(1.f / PI) : 0.0f;
+	const float cosom = FMath::Abs(Q1.X * Q2.X + Q1.Y * Q2.Y + Q1.Z * Q2.Z + Q1.W * Q2.W);
+	return (FMath::Abs(cosom) < 0.9999999f) ? FMath::Acos(cosom)*(1.f / PI) : 0.0f;
 }
-
-
 inline float FQuat::ErrorAutoNormalize(const FQuat& A, const FQuat& B)
 {
 	FQuat Q1 = A;
@@ -3579,16 +3566,13 @@ inline float FQuat::ErrorAutoNormalize(const FQuat& A, const FQuat& B)
 
 	return FQuat::Error(Q1, Q2);
 }
-
 inline FQuat FQuat::FastLerp(const FQuat& A, const FQuat& B, const float Alpha)
 {
 	// To ensure the 'shortest route', we make sure the dot product between the both rotations is positive.
 	const float DotResult = (A | B);
-	const float Bias = (float)Math::FloatSelect((double)DotResult, 1.0, -1.0);
+	const float Bias = (float)FMath::FloatSelect((double)DotResult, 1.0, -1.0);
 	return (B * Alpha) + (A * (Bias * (1.f - Alpha)));
 }
-
-
 inline FQuat FQuat::FastBilerp(const FQuat& P00, const FQuat& P10, const FQuat& P01, const FQuat& P11, float FracX, float FracY)
 {
 	return FQuat::FastLerp(
@@ -3597,25 +3581,22 @@ inline FQuat FQuat::FastBilerp(const FQuat& P00, const FQuat& P10, const FQuat& 
 		FracY
 	);
 }
-
-
 inline bool FQuat::ContainsNaN() const
 {
-	return (!Math::IsFinite(X) ||
-		!Math::IsFinite(Y) ||
-		!Math::IsFinite(Z) ||
-		!Math::IsFinite(W)
+	return (!FMath::IsFinite(X) ||
+		!FMath::IsFinite(Y) ||
+		!FMath::IsFinite(Z) ||
+		!FMath::IsFinite(W)
 		);
 }
-
 template<class U>
-inline FQuat Math::Lerp(const FQuat& A, const FQuat& B, const U& Alpha)
+inline FQuat FMath::Lerp(const FQuat& A, const FQuat& B, const U& Alpha)
 {
 	return FQuat::Slerp(A, B, Alpha);
 }
 
 template<class U>
-inline FQuat Math::BiLerp(const FQuat& P00, const FQuat& P10, const FQuat& P01, const FQuat& P11, float FracX, float FracY)
+inline FQuat FMath::BiLerp(const FQuat& P00, const FQuat& P10, const FQuat& P01, const FQuat& P11, float FracX, float FracY)
 {
 	FQuat Result;
 
@@ -3627,9 +3608,8 @@ inline FQuat Math::BiLerp(const FQuat& P00, const FQuat& P10, const FQuat& P01, 
 
 	return Result;
 }
-
 template<class U>
-inline FQuat Math::CubicInterp(const FQuat& P0, const FQuat& T0, const FQuat& P1, const FQuat& T1, const U& A)
+inline FQuat FMath::CubicInterp(const FQuat& P0, const FQuat& T0, const FQuat& P1, const FQuat& T1, const U& A)
 {
 	return FQuat::Squad(P0, T0, P1, T1, A);
 }
@@ -3656,7 +3636,7 @@ public:
 public:
 	bool Equals(const FSphere& Sphere, float Tolerance = KINDA_SMALL_NUMBER) const
 	{
-		return Center.Equals(Sphere.Center, Tolerance) && Math::Abs(W - Sphere.W) <= Tolerance;
+		return Center.Equals(Sphere.Center, Tolerance) && FMath::Abs(W - Sphere.W) <= Tolerance;
 	}
 	bool IsInside(const FSphere& Other, float Tolerance = KINDA_SMALL_NUMBER) const
 	{
@@ -3665,15 +3645,15 @@ public:
 			return false;
 		}
 
-		return (Center - Other.Center).SizeSquared() <= Math::Square(Other.W + Tolerance - W);
+		return (Center - Other.Center).SizeSquared() <= FMath::Square(Other.W + Tolerance - W);
 	}
 	bool IsInside(const Vector& In, float Tolerance = KINDA_SMALL_NUMBER) const
 	{
-		return (Center - In).SizeSquared() <= Math::Square(W + Tolerance);
+		return (Center - In).SizeSquared() <= FMath::Square(W + Tolerance);
 	}
 	inline bool Intersects(const FSphere& Other, float Tolerance = KINDA_SMALL_NUMBER) const
 	{
-		return (Center - Other.Center).SizeSquared() <= Math::Square(Math::Max(0.f, Other.W + W + Tolerance));
+		return (Center - Other.Center).SizeSquared() <= FMath::Square(FMath::Max(0.f, Other.W + W + Tolerance));
 	}
 	FSphere TransformBy(const Matrix& M) const;
 	FSphere TransformBy(const FTransform& M) const;
@@ -3691,9 +3671,9 @@ public:
 /**
 * Converts a sphere into a point plus radius squared for the test above
 */
-inline bool Math::SphereAABBIntersection(const FSphere& Sphere, const FBox& AABB)
+inline bool FMath::SphereAABBIntersection(const FSphere& Sphere, const FBox& AABB)
 {
-	float RadiusSquared = Math::Square(Sphere.W);
+	float RadiusSquared = FMath::Square(Sphere.W);
 	// If the distance is less than or equal to the radius, they intersect
 	return SphereAABBIntersection(Sphere.Center, RadiusSquared, AABB);
 }
@@ -3701,7 +3681,7 @@ inline bool Math::SphereAABBIntersection(const FSphere& Sphere, const FBox& AABB
 /**
 * Computes minimal bounding sphere encompassing given cone
 */
-inline FSphere Math::ComputeBoundingSphereForCone(Vector const& ConeOrigin, Vector const& ConeDirection, float ConeRadius, float CosConeAngle, float SinConeAngle)
+inline FSphere FMath::ComputeBoundingSphereForCone(Vector const& ConeOrigin, Vector const& ConeDirection, float ConeRadius, float CosConeAngle, float SinConeAngle)
 {
 	// Based on: https://bartwronski.com/2017/04/13/cull-that-cone/
 	const float COS_PI_OVER_4 = 0.707107f; // Cos(Pi/4);
@@ -3732,7 +3712,7 @@ public:
 	FBoxSphereBounds(const FBox& B, const FSphere& Sphere)
 	{
 		B.GetCenterAndExtents(Origin, BoxExtent);
-		SphereRadius = Math::Min(BoxExtent.Size(), (Sphere.Center - Origin).Size() + Sphere.W);
+		SphereRadius = FMath::Min(BoxExtent.Size(), (Sphere.Center - Origin).Size() + Sphere.W);
 
 		DiagnosticCheckNaN();
 	}
@@ -3766,7 +3746,7 @@ public:
 	}
 	inline static bool SpheresIntersect(const FBoxSphereBounds& A, const FBoxSphereBounds& B, float Tolerance = KINDA_SMALL_NUMBER)
 	{
-		return (A.Origin - B.Origin).SizeSquared() <= Math::Square(Math::Max(0.f, A.SphereRadius + B.SphereRadius + Tolerance));
+		return (A.Origin - B.Origin).SizeSquared() <= FMath::Square(FMath::Max(0.f, A.SphereRadius + B.SphereRadius + Tolerance));
 	}
 	inline static bool BoxesIntersect(const FBoxSphereBounds& A, const FBoxSphereBounds& B)
 	{
@@ -3807,7 +3787,7 @@ public:
 		// Build a bounding sphere from the bounding box's origin and the radii of A and B.
 		FBoxSphereBounds Result(BoundingBox);
 
-		Result.SphereRadius = Math::Min(Result.SphereRadius, Math::Max((A.Origin - Result.Origin).Size() + A.SphereRadius, (B.Origin - Result.Origin).Size() + B.SphereRadius));
+		Result.SphereRadius = FMath::Min(Result.SphereRadius, FMath::Max((A.Origin - Result.Origin).Size() + A.SphereRadius, (B.Origin - Result.Origin).Size() + B.SphereRadius));
 		Result.DiagnosticCheckNaN();
 
 		return Result;
@@ -3815,7 +3795,7 @@ public:
 	inline void DiagnosticCheckNaN() const {}
 	inline bool ContainsNaN() const
 	{
-		return Origin.ContainsNaN() || BoxExtent.ContainsNaN() || !Math::IsFinite(SphereRadius);
+		return Origin.ContainsNaN() || BoxExtent.ContainsNaN() || !FMath::IsFinite(SphereRadius);
 	}
 };
 inline FBoxSphereBounds::FBoxSphereBounds(const Vector* Points, uint32 NumPoints)
@@ -3835,7 +3815,7 @@ inline FBoxSphereBounds::FBoxSphereBounds(const Vector* Points, uint32 NumPoints
 
 	for (uint32 PointIndex = 0; PointIndex < NumPoints; PointIndex++)
 	{
-		SphereRadius = Math::Max(SphereRadius, (Points[PointIndex] - Origin).Size());
+		SphereRadius = FMath::Max(SphereRadius, (Points[PointIndex] - Origin).Size());
 	}
 
 	DiagnosticCheckNaN();
@@ -3852,7 +3832,7 @@ inline FBoxSphereBounds FBoxSphereBounds::operator+(const FBoxSphereBounds& Othe
 	// build a bounding sphere from the bounding box's origin and the radii of A and B.
 	FBoxSphereBounds Result(BoundingBox);
 
-	Result.SphereRadius = Math::Min(Result.SphereRadius, Math::Max((Origin - Result.Origin).Size() + SphereRadius, (Other.Origin - Result.Origin).Size() + Other.SphereRadius));
+	Result.SphereRadius = FMath::Min(Result.SphereRadius, FMath::Max((Origin - Result.Origin).Size() + SphereRadius, (Other.Origin - Result.Origin).Size() + Other.SphereRadius));
 	Result.DiagnosticCheckNaN();
 
 	return Result;
@@ -3881,3 +3861,189 @@ inline uint32 crc32c(const uint8 *buf, size_t len, uint32 crc = 0)
 	}
 	return ~crc;
 }
+
+struct FRandomStream
+{
+	friend struct Z_Construct_UScriptStruct_FRandomStream_Statics;
+public:
+	FRandomStream()
+		: InitialSeed(0)
+		, Seed(0)
+	{ }
+
+	FRandomStream(int32 InSeed)
+		: InitialSeed(InSeed)
+		, Seed(InSeed)
+	{ }
+
+public:
+	void Initialize(int32 InSeed)
+	{
+		InitialSeed = InSeed;
+		Seed = InSeed;
+	}
+
+	void Reset() const
+	{
+		Seed = InitialSeed;
+	}
+
+	int32 GetInitialSeed() const
+	{
+		return InitialSeed;
+	}
+
+	void GenerateNewSeed()
+	{
+		Initialize(FMath::Rand());
+	}
+
+	float GetFraction() const
+	{
+		MutateSeed();
+
+		const float SRandTemp = 1.0f;
+		float Result;
+
+		*(int32*)&Result = (*(int32*)&SRandTemp & 0xff800000) | (Seed & 0x007fffff);
+
+		return FMath::Fractional(Result);
+	}
+
+	uint32 GetUnsignedInt() const
+	{
+		MutateSeed();
+
+		return *(uint32*)&Seed;
+	}
+
+	Vector GetUnitVector() const
+	{
+		Vector Result;
+		float L;
+
+		do
+		{
+			// Check random vectors in the unit sphere so result is statistically uniform.
+			Result.X = GetFraction() * 2.f - 1.f;
+			Result.Y = GetFraction() * 2.f - 1.f;
+			Result.Z = GetFraction() * 2.f - 1.f;
+			L = Result.SizeSquared();
+		} while (L > 1.f || L < KINDA_SMALL_NUMBER);
+
+		return Result.GetUnsafeNormal();
+	}
+
+	int32 GetCurrentSeed() const
+	{
+		return Seed;
+	}
+	inline float FRand() const
+	{
+		return GetFraction();
+	}
+	inline int32 RandHelper(int32 A) const
+	{
+		// Can't just multiply GetFraction by A, as GetFraction could be == 1.0f
+		return ((A > 0) ? FMath::TruncToInt(GetFraction() * ((float)A - DELTA)) : 0);
+	}
+	inline int32 RandRange(int32 Min, int32 Max) const
+	{
+		const int32 Range = (Max - Min) + 1;
+
+		return Min + RandHelper(Range);
+	}
+	inline float FRandRange(float InMin, float InMax) const
+	{
+		return InMin + (InMax - InMin) * FRand();
+	}
+	inline Vector VRand() const
+	{
+		return GetUnitVector();
+	}
+	inline Vector VRandCone(Vector const& Dir, float ConeHalfAngleRad) const
+	{
+		if (ConeHalfAngleRad > 0.f)
+		{
+			float const RandU = FRand();
+			float const RandV = FRand();
+
+			// Get spherical coords that have an even distribution over the unit sphere
+			// Method described at http://mathworld.wolfram.com/SpherePointPicking.html	
+			float Theta = 2.f * PI * RandU;
+			float Phi = FMath::Acos((2.f * RandV) - 1.f);
+
+			// restrict phi to [0, ConeHalfAngleRad]
+			// this gives an even distribution of points on the surface of the cone
+			// centered at the origin, pointing upward (z), with the desired angle
+			Phi = FMath::Fmod(Phi, ConeHalfAngleRad);
+
+			// get axes we need to rotate around
+			Matrix const DirMat = FRotationMatrix(Dir.Rotation());
+			// note the axis translation, since we want the variation to be around X
+			Vector const DirZ = DirMat.GetUnitAxis(EAxis::X);
+			Vector const DirY = DirMat.GetUnitAxis(EAxis::Y);
+
+			Vector Result = Dir.RotateAngleAxis(Phi * 180.f / PI, DirY);
+			Result = Result.RotateAngleAxis(Theta * 180.f / PI, DirZ);
+
+			// ensure it's a unit vector (might not have been passed in that way)
+			Result = Result.GetSafeNormal();
+
+			return Result;
+		}
+		else
+		{
+			return Dir.GetSafeNormal();
+		}
+	}
+	inline Vector VRandCone(Vector const& Dir, float HorizontalConeHalfAngleRad, float VerticalConeHalfAngleRad) const
+	{
+		if ((VerticalConeHalfAngleRad > 0.f) && (HorizontalConeHalfAngleRad > 0.f))
+		{
+			float const RandU = FRand();
+			float const RandV = FRand();
+
+			// Get spherical coords that have an even distribution over the unit sphere
+			// Method described at http://mathworld.wolfram.com/SpherePointPicking.html	
+			float Theta = 2.f * PI * RandU;
+			float Phi = FMath::Acos((2.f * RandV) - 1.f);
+
+			// restrict phi to [0, ConeHalfAngleRad]
+			// where ConeHalfAngleRad is now a function of Theta
+			// (specifically, radius of an ellipse as a function of angle)
+			// function is ellipse function (x/a)^2 + (y/b)^2 = 1, converted to polar coords
+			float ConeHalfAngleRad = FMath::Square(FMath::Cos(Theta) / VerticalConeHalfAngleRad) + FMath::Square(FMath::Sin(Theta) / HorizontalConeHalfAngleRad);
+			ConeHalfAngleRad = FMath::Sqrt(1.f / ConeHalfAngleRad);
+
+			// clamp to make a cone instead of a sphere
+			Phi = FMath::Fmod(Phi, ConeHalfAngleRad);
+
+			// get axes we need to rotate around
+			Matrix const DirMat = FRotationMatrix(Dir.Rotation());
+			// note the axis translation, since we want the variation to be around X
+			Vector const DirZ = DirMat.GetUnitAxis(EAxis::X);
+			Vector const DirY = DirMat.GetUnitAxis(EAxis::Y);
+
+			Vector Result = Dir.RotateAngleAxis(Phi * 180.f / PI, DirY);
+			Result = Result.RotateAngleAxis(Theta * 180.f / PI, DirZ);
+
+			// ensure it's a unit vector (might not have been passed in that way)
+			Result = Result.GetSafeNormal();
+
+			return Result;
+		}
+		else
+		{
+			return Dir.GetSafeNormal();
+		}
+	}
+protected:
+	void MutateSeed() const
+	{
+		Seed = (Seed * 196314165) + 907633515;
+	}
+private:
+	int32 InitialSeed;
+	mutable int32 Seed;
+};

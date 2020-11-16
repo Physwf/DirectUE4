@@ -9,27 +9,27 @@ MeshPrimitive::MeshPrimitive()
 
 }
 
-void MeshPrimitive::Register()
+void MeshPrimitive::Register(FScene* Scene)
 {
 	Scene->AddPrimitive(this);
 }
 
-void MeshPrimitive::UnRegister()
+void MeshPrimitive::UnRegister(FScene* Scene)
 {
 	Scene->RemovePrimitive(this);
 }
 
-void MeshPrimitive::AddToScene(/*FRHICommandListImmediate& RHICmdList, bool bUpdateStaticDrawLists, bool bAddToStaticDrawLists = true*/)
+void MeshPrimitive::AddToScene(FScene* Scene/*FRHICommandListImmediate& RHICmdList, bool bUpdateStaticDrawLists, bool bAddToStaticDrawLists = true*/)
 {
-	AddStaticMeshes();
+	AddStaticMeshes(Scene);
 }
 
-void MeshPrimitive::RemoveFromScene(/*bool bUpdateStaticDrawLists*/)
+void MeshPrimitive::RemoveFromScene(FScene* Scene/*bool bUpdateStaticDrawLists*/)
 {
-	RemoveStaticMeshes();
+	RemoveStaticMeshes(Scene);
 }
 
-void MeshPrimitive::AddStaticMeshes(/*FRHICommandListImmediate& RHICmdList, bool bUpdateStaticDrawLists = true*/)
+void MeshPrimitive::AddStaticMeshes(FScene* Scene/*FRHICommandListImmediate& RHICmdList, bool bUpdateStaticDrawLists = true*/)
 {
 	DrawStaticElements();
 	for (uint32 MeshIndex = 0; MeshIndex < StaticMeshes.size(); MeshIndex++)
@@ -40,7 +40,7 @@ void MeshPrimitive::AddStaticMeshes(/*FRHICommandListImmediate& RHICmdList, bool
 	}
 }
 
-void MeshPrimitive::RemoveStaticMeshes()
+void MeshPrimitive::RemoveStaticMeshes(FScene* Scene)
 {
 
 }

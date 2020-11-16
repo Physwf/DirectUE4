@@ -18,7 +18,8 @@ public:
 	{
 		T* NewActor = new T(std::forward<ArgTypes>(Args)...);
 		mAllActors.push_back(NewActor);
-		//NewActor->mWorld = this;
+		NewActor->WorldPrivite = this;
+		NewActor->PostLoad();
 		return NewActor;
 	}
 	void DestroyActor(Actor* InActor);
@@ -28,7 +29,7 @@ private:
 	DirectionalLight* mDirLight;
 	std::vector<Actor*> mAllActors;
 public:
-	FScene* mScene;
+	FScene* Scene;
 };
 
 extern World GWorld;

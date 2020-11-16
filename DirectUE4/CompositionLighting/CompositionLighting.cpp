@@ -63,12 +63,12 @@ void CompositionLighting::Init()
 	*/
 }
 
-void CompositionLighting::ProcessBeforeBasePass(ViewInfo& View)
+void CompositionLighting::ProcessBeforeBasePass(FViewInfo& View)
 {
 	
 }
 
-void CompositionLighting::ProcessAfterBasePass(ViewInfo& View)
+void CompositionLighting::ProcessAfterBasePass(FViewInfo& View)
 {
 	SCOPED_DRAW_EVENT_FORMAT(ProcessAfterBasePass,TEXT("ProcessAfterBasePass"));
 	int Levels = 2;
@@ -97,7 +97,7 @@ void CompositionLighting::ProcessAfterBasePass(ViewInfo& View)
 	BasePassAO.Process(View);
 }
 
-void CompositionLighting::ProcessAfterLighting(ViewInfo& View)
+void CompositionLighting::ProcessAfterLighting(FViewInfo& View)
 {
 
 }

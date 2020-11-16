@@ -149,8 +149,8 @@ SceneView::SceneView(const ViewInitOptions& InitOptions)
 }
 
 void SceneView::SetupViewRectUniformBufferParameters(
-	ViewUniformShaderParameters& ViewUniformParameters,
-	const IntPoint& BufferSize,
+	FViewUniformShaderParameters& ViewUniformParameters,
+	const FIntPoint& BufferSize,
 	const IntRect& EffectiveViewRect,
 	const ViewMatrices& InViewMatrices,
 	const ViewMatrices& InPrevViewMatrices) const
@@ -168,12 +168,12 @@ void SceneView::SetupViewRectUniformBufferParameters(
 		(EffectiveViewRect.Width() / 2.0f + EffectiveViewRect.Min.X) * InvBufferSizeX
 	);
 
-	ViewUniformParameters.ScreenPositionScaleBias = ScreenPositionScaleBias;
+	ViewUniformParameters.Constants.ScreenPositionScaleBias = ScreenPositionScaleBias;
 
-	ViewUniformParameters.ViewRectMin = Vector4(EffectiveViewRect.Min.X, EffectiveViewRect.Min.Y, 0.0f, 0.0f);
-	ViewUniformParameters.ViewSizeAndInvSize = Vector4(EffectiveViewRect.Width(), EffectiveViewRect.Height(), 1.0f / float(EffectiveViewRect.Width()), 1.0f / float(EffectiveViewRect.Height()));
-	ViewUniformParameters.BufferSizeAndInvSize = Vector4(BufferSize.X, BufferSize.Y, InvBufferSizeX, InvBufferSizeY);
-	ViewUniformParameters.BufferBilinearUVMinMax = Vector4(
+	ViewUniformParameters.Constants.ViewRectMin = Vector4(EffectiveViewRect.Min.X, EffectiveViewRect.Min.Y, 0.0f, 0.0f);
+	ViewUniformParameters.Constants.ViewSizeAndInvSize = Vector4(EffectiveViewRect.Width(), EffectiveViewRect.Height(), 1.0f / float(EffectiveViewRect.Width()), 1.0f / float(EffectiveViewRect.Height()));
+	ViewUniformParameters.Constants.BufferSizeAndInvSize = Vector4(BufferSize.X, BufferSize.Y, InvBufferSizeX, InvBufferSizeY);
+	ViewUniformParameters.Constants.BufferBilinearUVMinMax = Vector4(
 		InvBufferSizeX * (EffectiveViewRect.Min.X + 0.5),
 		InvBufferSizeY * (EffectiveViewRect.Min.Y + 0.5),
 		InvBufferSizeX * (EffectiveViewRect.Max.X - 0.5),
@@ -188,14 +188,14 @@ void SceneView::SetupViewRectUniformBufferParameters(
 
 		//  transformed into one MAD:  new_xy = xy * ViewSizeAndInvSize.zw * float2(2,-2)      +       (-ViewRectMin.xy) * ViewSizeAndInvSize.zw * float2(2,-2) + float2(-1, 1);
 
-		float Mx = 2.0f * ViewUniformParameters.ViewSizeAndInvSize.Z;
-		float My = -2.0f * ViewUniformParameters.ViewSizeAndInvSize.W;
-		float Ax = -1.0f - 2.0f * EffectiveViewRect.Min.X * ViewUniformParameters.ViewSizeAndInvSize.Z;
-		float Ay = 1.0f + 2.0f * EffectiveViewRect.Min.Y * ViewUniformParameters.ViewSizeAndInvSize.W;
+		float Mx = 2.0f * ViewUniformParameters.Constants.ViewSizeAndInvSize.Z;
+		float My = -2.0f * ViewUniformParameters.Constants.ViewSizeAndInvSize.W;
+		float Ax = -1.0f - 2.0f * EffectiveViewRect.Min.X * ViewUniformParameters.Constants.ViewSizeAndInvSize.Z;
+		float Ay = 1.0f + 2.0f * EffectiveViewRect.Min.Y * ViewUniformParameters.Constants.ViewSizeAndInvSize.W;
 
 		// http://stackoverflow.com/questions/9010546/java-transformation-matrix-operations
 
-		ViewUniformParameters.SVPositionToTranslatedWorld =
+		ViewUniformParameters.Constants.SVPositionToTranslatedWorld =
 			Matrix(Plane(Mx, 0, 0, 0),
 				Plane(0, My, 0, 0),
 				Plane(0, 0, 1, 0),
@@ -216,34 +216,34 @@ void SceneView::SetupViewRectUniformBufferParameters(
 }
 
 void SceneView::SetupCommonViewUniformBufferParameters(
-	ViewUniformShaderParameters& ViewUniformParameters, 
-	const IntPoint& BufferSize, 
+	FViewUniformShaderParameters& ViewUniformParameters, 
+	const FIntPoint& BufferSize, 
 	int32 NumMSAASamples, 
 	const IntRect& EffectiveViewRect, 
 	const ViewMatrices& InViewMatrices, 
 	const ViewMatrices& InPrevViewMatrices) const
 {
 	//ViewUniformParameters.NumSceneColorMSAASamples = NumMSAASamples;
-	ViewUniformParameters.ViewToTranslatedWorld = InViewMatrices.GetOverriddenInvTranslatedViewMatrix();
-	ViewUniformParameters.TranslatedWorldToClip = InViewMatrices.GetTranslatedViewProjectionMatrix();
-	ViewUniformParameters.WorldToClip = InViewMatrices.GetViewProjectionMatrix();
-	ViewUniformParameters.TranslatedWorldToView = InViewMatrices.GetOverriddenTranslatedViewMatrix();
-	ViewUniformParameters.TranslatedWorldToCameraView = InViewMatrices.GetTranslatedViewMatrix();
-	ViewUniformParameters.CameraViewToTranslatedWorld = InViewMatrices.GetInvTranslatedViewMatrix();
-	ViewUniformParameters.ViewToClip = InViewMatrices.GetProjectionMatrix();
+	ViewUniformParameters.Constants.ViewToTranslatedWorld = InViewMatrices.GetOverriddenInvTranslatedViewMatrix();
+	ViewUniformParameters.Constants.TranslatedWorldToClip = InViewMatrices.GetTranslatedViewProjectionMatrix();
+	ViewUniformParameters.Constants.WorldToClip = InViewMatrices.GetViewProjectionMatrix();
+	ViewUniformParameters.Constants.TranslatedWorldToView = InViewMatrices.GetOverriddenTranslatedViewMatrix();
+	ViewUniformParameters.Constants.TranslatedWorldToCameraView = InViewMatrices.GetTranslatedViewMatrix();
+	ViewUniformParameters.Constants.CameraViewToTranslatedWorld = InViewMatrices.GetInvTranslatedViewMatrix();
+	ViewUniformParameters.Constants.ViewToClip = InViewMatrices.GetProjectionMatrix();
 	//ViewUniformParameters.ViewToClipNoAA = InViewMatrices.GetProjectionNoAAMatrix();
-	ViewUniformParameters.ClipToView = InViewMatrices.GetInvProjectionMatrix();
-	ViewUniformParameters.ClipToTranslatedWorld = InViewMatrices.GetInvTranslatedViewProjectionMatrix();
+	ViewUniformParameters.Constants.ClipToView = InViewMatrices.GetInvProjectionMatrix();
+	ViewUniformParameters.Constants.ClipToTranslatedWorld = InViewMatrices.GetInvTranslatedViewProjectionMatrix();
 	//ViewUniformParameters.ViewForward = InViewMatrices.GetOverriddenTranslatedViewMatrix().GetColumn(2);
 	//ViewUniformParameters.ViewUp = InViewMatrices.GetOverriddenTranslatedViewMatrix().GetColumn(1);
 	//ViewUniformParameters.ViewRight = InViewMatrices.GetOverriddenTranslatedViewMatrix().GetColumn(0);
 	//ViewUniformParameters.HMDViewNoRollUp = InViewMatrices.GetHMDViewMatrixNoRoll().GetColumn(1);
 	//ViewUniformParameters.HMDViewNoRollRight = InViewMatrices.GetHMDViewMatrixNoRoll().GetColumn(0);
-	ViewUniformParameters.InvDeviceZToWorldZTransform = InvDeviceZToWorldZTransform;
-	ViewUniformParameters.WorldViewOrigin = InViewMatrices.GetOverriddenInvTranslatedViewMatrix().TransformPosition(Vector(0)) - InViewMatrices.GetPreViewTranslation();
-	ViewUniformParameters.WorldCameraOrigin = InViewMatrices.GetViewOrigin();
-	ViewUniformParameters.TranslatedWorldCameraOrigin = InViewMatrices.GetViewOrigin() + InViewMatrices.GetPreViewTranslation();
-	ViewUniformParameters.PreViewTranslation = InViewMatrices.GetPreViewTranslation();
+	ViewUniformParameters.Constants.InvDeviceZToWorldZTransform = InvDeviceZToWorldZTransform;
+	ViewUniformParameters.Constants.WorldViewOrigin = InViewMatrices.GetOverriddenInvTranslatedViewMatrix().TransformPosition(Vector(0)) - InViewMatrices.GetPreViewTranslation();
+	ViewUniformParameters.Constants.WorldCameraOrigin = InViewMatrices.GetViewOrigin();
+	ViewUniformParameters.Constants.TranslatedWorldCameraOrigin = InViewMatrices.GetViewOrigin() + InViewMatrices.GetPreViewTranslation();
+	ViewUniformParameters.Constants.PreViewTranslation = InViewMatrices.GetPreViewTranslation();
 	//ViewUniformParameters.PrevProjection = InPrevViewMatrices.GetProjectionMatrix();
 	//ViewUniformParameters.PrevViewProj = InPrevViewMatrices.GetViewProjectionMatrix();
 	//ViewUniformParameters.PrevViewRotationProj = InPrevViewMatrices.ComputeViewRotationProjectionMatrix();
@@ -283,14 +283,14 @@ void SceneView::SetupCommonViewUniformBufferParameters(
 // 
 // 	ViewUniformParameters.bCheckerboardSubsurfaceProfileRendering = 0;
 
-	ViewUniformParameters.ScreenToWorld = Matrix(
+	ViewUniformParameters.Constants.ScreenToWorld = Matrix(
 		Plane(1, 0, 0, 0),
 		Plane(0, 1, 0, 0),
 		Plane(0, 0, ProjectionMatrixUnadjustedForRHI.M[2][2], 1),
 		Plane(0, 0, ProjectionMatrixUnadjustedForRHI.M[3][2], 0))
 		* InViewMatrices.GetInvViewProjectionMatrix();
 
-	ViewUniformParameters.ScreenToTranslatedWorld = Matrix(
+	ViewUniformParameters.Constants.ScreenToTranslatedWorld = Matrix(
 		Plane(1, 0, 0, 0),
 		Plane(0, 1, 0, 0),
 		Plane(0, 0, ProjectionMatrixUnadjustedForRHI.M[2][2], 1),
@@ -328,19 +328,19 @@ void SceneView::SetupCommonViewUniformBufferParameters(
 	ViewUniformParameters.TransposeMatrices();
 }
 
-void ViewUniformShaderParameters::TransposeMatrices()
+void FViewUniformShaderParameters::TransposeMatrices()
 {
-	TranslatedWorldToClip.Transpose();
-	WorldToClip.Transpose();
-	TranslatedWorldToView.Transpose();
-	ViewToTranslatedWorld.Transpose();
-	TranslatedWorldToCameraView.Transpose();
-	CameraViewToTranslatedWorld.Transpose();
-	ViewToClip.Transpose();
-	ViewToClipNoAA.Transpose();
-	ClipToView.Transpose();
-	ClipToTranslatedWorld.Transpose();
-	SVPositionToTranslatedWorld.Transpose();
-	ScreenToWorld.Transpose();
-	ScreenToTranslatedWorld.Transpose();
+	Constants.TranslatedWorldToClip.Transpose();
+	Constants.WorldToClip.Transpose();
+	Constants.TranslatedWorldToView.Transpose();
+	Constants.ViewToTranslatedWorld.Transpose();
+	Constants.TranslatedWorldToCameraView.Transpose();
+	Constants.CameraViewToTranslatedWorld.Transpose();
+	Constants.ViewToClip.Transpose();
+	Constants.ViewToClipNoAA.Transpose();
+	Constants.ClipToView.Transpose();
+	Constants.ClipToTranslatedWorld.Transpose();
+	Constants.SVPositionToTranslatedWorld.Transpose();
+	Constants.ScreenToWorld.Transpose();
+	Constants.ScreenToTranslatedWorld.Transpose();
 }

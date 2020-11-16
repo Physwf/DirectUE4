@@ -21,7 +21,7 @@ public:
 	float StartDistance;
 	float DistanceOffset;
 	float SunDiscScale;
-	LinearColor DefaultSunColor;
+	FLinearColor DefaultSunColor;
 	Vector DefaultSunDirection;
 	uint32 RenderFlag;
 	uint32 InscatterAltitudeSampleNum;

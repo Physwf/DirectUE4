@@ -16,7 +16,7 @@ public:
 		bExtraBoneInfluences = bInHasExtraBoneInfluences;
 	}
 
-	ID3D11Buffer* WeightVertexBufferRHI = NULL;
+	ComPtr<ID3D11Buffer> WeightVertexBufferRHI = NULL;
 private:
 	std::vector<uint8> WeightData;
 

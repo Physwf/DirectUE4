@@ -4,33 +4,33 @@
 #include "RenderTargets.h"
 #include "AtmosphereRendering.h"
 
-ViewInfo::ViewInfo(const ViewInitOptions& InitOptions)
+FViewInfo::FViewInfo(const ViewInitOptions& InitOptions)
 	: SceneView(InitOptions),
 	CachedViewUniformShaderParameters(NULL)
 {
 
 }
 
-ViewInfo::ViewInfo(const SceneView* InView)
+FViewInfo::FViewInfo(const SceneView* InView)
 	: SceneView(*InView),
 	CachedViewUniformShaderParameters(NULL)
 {
 
 }
 
-ViewInfo::~ViewInfo()
+FViewInfo::~FViewInfo()
 {
 	if(CachedViewUniformShaderParameters) 
 		delete CachedViewUniformShaderParameters;
 }
 
-void ViewInfo::SetupUniformBufferParameters(
+void FViewInfo::SetupUniformBufferParameters(
 	RenderTargets& SceneContext, 
 	const ViewMatrices& InViewMatrices, 
 	const ViewMatrices& InPrevViewMatrices, 
 	FBox* OutTranslucentCascadeBoundsArray, 
 	int32 NumTranslucentCascades, 
-	ViewUniformShaderParameters& ViewUniformParameters) const
+	FViewUniformShaderParameters& ViewUniformParameters) const
 {
 	//check(Family);
 
@@ -69,35 +69,35 @@ void ViewInfo::SetupUniformBufferParameters(
 		// Atmospheric fog parameters
 		if (/*ShouldRenderAtmosphere(*Family) &&*/ GScene->AtmosphericFog)
 		{
-			ViewUniformParameters.AtmosphericFogSunPower = GScene->AtmosphericFog->SunMultiplier;
-			ViewUniformParameters.AtmosphericFogPower = GScene->AtmosphericFog->FogMultiplier;
-			ViewUniformParameters.AtmosphericFogDensityScale = GScene->AtmosphericFog->InvDensityMultiplier;
-			ViewUniformParameters.AtmosphericFogDensityOffset = GScene->AtmosphericFog->DensityOffset;
-			ViewUniformParameters.AtmosphericFogGroundOffset = GScene->AtmosphericFog->GroundOffset;
-			ViewUniformParameters.AtmosphericFogDistanceScale = GScene->AtmosphericFog->DistanceScale;
-			ViewUniformParameters.AtmosphericFogAltitudeScale = GScene->AtmosphericFog->AltitudeScale;
-			ViewUniformParameters.AtmosphericFogHeightScaleRayleigh = GScene->AtmosphericFog->RHeight;
-			ViewUniformParameters.AtmosphericFogStartDistance = GScene->AtmosphericFog->StartDistance;
-			ViewUniformParameters.AtmosphericFogDistanceOffset = GScene->AtmosphericFog->DistanceOffset;
-			ViewUniformParameters.AtmosphericFogSunDiscScale = GScene->AtmosphericFog->SunDiscScale;
-			ViewUniformParameters.AtmosphericFogSunColor = /*GScene->SunLight ? GScene->SunLight->Proxy->GetColor() :*/ GScene->AtmosphericFog->DefaultSunColor;
-			ViewUniformParameters.AtmosphericFogSunDirection = /*GScene->SunLight ? -GScene->SunLight->Proxy->GetDirection() :*/ -GScene->AtmosphericFog->DefaultSunDirection;
-			ViewUniformParameters.AtmosphericFogRenderMask = GScene->AtmosphericFog->RenderFlag /*& (EAtmosphereRenderFlag::E_DisableGroundScattering | EAtmosphereRenderFlag::E_DisableSunDisk)*/;
-			ViewUniformParameters.AtmosphericFogInscatterAltitudeSampleNum = GScene->AtmosphericFog->InscatterAltitudeSampleNum;
+			ViewUniformParameters.Constants.AtmosphericFogSunPower = GScene->AtmosphericFog->SunMultiplier;
+			ViewUniformParameters.Constants.AtmosphericFogPower = GScene->AtmosphericFog->FogMultiplier;
+			ViewUniformParameters.Constants.AtmosphericFogDensityScale = GScene->AtmosphericFog->InvDensityMultiplier;
+			ViewUniformParameters.Constants.AtmosphericFogDensityOffset = GScene->AtmosphericFog->DensityOffset;
+			ViewUniformParameters.Constants.AtmosphericFogGroundOffset = GScene->AtmosphericFog->GroundOffset;
+			ViewUniformParameters.Constants.AtmosphericFogDistanceScale = GScene->AtmosphericFog->DistanceScale;
+			ViewUniformParameters.Constants.AtmosphericFogAltitudeScale = GScene->AtmosphericFog->AltitudeScale;
+			ViewUniformParameters.Constants.AtmosphericFogHeightScaleRayleigh = GScene->AtmosphericFog->RHeight;
+			ViewUniformParameters.Constants.AtmosphericFogStartDistance = GScene->AtmosphericFog->StartDistance;
+			ViewUniformParameters.Constants.AtmosphericFogDistanceOffset = GScene->AtmosphericFog->DistanceOffset;
+			ViewUniformParameters.Constants.AtmosphericFogSunDiscScale = GScene->AtmosphericFog->SunDiscScale;
+			ViewUniformParameters.Constants.AtmosphericFogSunColor = /*GScene->SunLight ? GScene->SunLight->Proxy->GetColor() :*/ GScene->AtmosphericFog->DefaultSunColor;
+			ViewUniformParameters.Constants.AtmosphericFogSunDirection = /*GScene->SunLight ? -GScene->SunLight->Proxy->GetDirection() :*/ -GScene->AtmosphericFog->DefaultSunDirection;
+			ViewUniformParameters.Constants.AtmosphericFogRenderMask = GScene->AtmosphericFog->RenderFlag /*& (EAtmosphereRenderFlag::E_DisableGroundScattering | EAtmosphereRenderFlag::E_DisableSunDisk)*/;
+			ViewUniformParameters.Constants.AtmosphericFogInscatterAltitudeSampleNum = GScene->AtmosphericFog->InscatterAltitudeSampleNum;
 		}
 		else
 		{
-			ViewUniformParameters.AtmosphericFogSunPower = 0.f;
-			ViewUniformParameters.AtmosphericFogPower = 0.f;
-			ViewUniformParameters.AtmosphericFogDensityScale = 0.f;
-			ViewUniformParameters.AtmosphericFogDensityOffset = 0.f;
-			ViewUniformParameters.AtmosphericFogGroundOffset = 0.f;
-			ViewUniformParameters.AtmosphericFogDistanceScale = 0.f;
-			ViewUniformParameters.AtmosphericFogAltitudeScale = 0.f;
-			ViewUniformParameters.AtmosphericFogHeightScaleRayleigh = 0.f;
-			ViewUniformParameters.AtmosphericFogStartDistance = 0.f;
-			ViewUniformParameters.AtmosphericFogDistanceOffset = 0.f;
-			ViewUniformParameters.AtmosphericFogSunDiscScale = 1.f;
+			ViewUniformParameters.Constants.AtmosphericFogSunPower = 0.f;
+			ViewUniformParameters.Constants.AtmosphericFogPower = 0.f;
+			ViewUniformParameters.Constants.AtmosphericFogDensityScale = 0.f;
+			ViewUniformParameters.Constants.AtmosphericFogDensityOffset = 0.f;
+			ViewUniformParameters.Constants.AtmosphericFogGroundOffset = 0.f;
+			ViewUniformParameters.Constants.AtmosphericFogDistanceScale = 0.f;
+			ViewUniformParameters.Constants.AtmosphericFogAltitudeScale = 0.f;
+			ViewUniformParameters.Constants.AtmosphericFogHeightScaleRayleigh = 0.f;
+			ViewUniformParameters.Constants.AtmosphericFogStartDistance = 0.f;
+			ViewUniformParameters.Constants.AtmosphericFogDistanceOffset = 0.f;
+			ViewUniformParameters.Constants.AtmosphericFogSunDiscScale = 1.f;
 			//Added check so atmospheric light color and vector can use a directional light without needing an atmospheric fog actor in the scene
 // 			ViewUniformParameters.AtmosphericFogSunColor = GScene->SunLight ? GScene->SunLight->Proxy->GetColor() : FLinearColor::Black;
 // 			ViewUniformParameters.AtmosphericFogSunDirection = GScene->SunLight ? -GScene->SunLight->Proxy->GetDirection() : FVector::ZeroVector;
@@ -108,17 +108,17 @@ void ViewInfo::SetupUniformBufferParameters(
 	else
 	{
 		// Atmospheric fog parameters
-		ViewUniformParameters.AtmosphericFogSunPower = 0.f;
-		ViewUniformParameters.AtmosphericFogPower = 0.f;
-		ViewUniformParameters.AtmosphericFogDensityScale = 0.f;
-		ViewUniformParameters.AtmosphericFogDensityOffset = 0.f;
-		ViewUniformParameters.AtmosphericFogGroundOffset = 0.f;
-		ViewUniformParameters.AtmosphericFogDistanceScale = 0.f;
-		ViewUniformParameters.AtmosphericFogAltitudeScale = 0.f;
-		ViewUniformParameters.AtmosphericFogHeightScaleRayleigh = 0.f;
-		ViewUniformParameters.AtmosphericFogStartDistance = 0.f;
-		ViewUniformParameters.AtmosphericFogDistanceOffset = 0.f;
-		ViewUniformParameters.AtmosphericFogSunDiscScale = 1.f;
+		ViewUniformParameters.Constants.AtmosphericFogSunPower = 0.f;
+		ViewUniformParameters.Constants.AtmosphericFogPower = 0.f;
+		ViewUniformParameters.Constants.AtmosphericFogDensityScale = 0.f;
+		ViewUniformParameters.Constants.AtmosphericFogDensityOffset = 0.f;
+		ViewUniformParameters.Constants.AtmosphericFogGroundOffset = 0.f;
+		ViewUniformParameters.Constants.AtmosphericFogDistanceScale = 0.f;
+		ViewUniformParameters.Constants.AtmosphericFogAltitudeScale = 0.f;
+		ViewUniformParameters.Constants.AtmosphericFogHeightScaleRayleigh = 0.f;
+		ViewUniformParameters.Constants.AtmosphericFogStartDistance = 0.f;
+		ViewUniformParameters.Constants.AtmosphericFogDistanceOffset = 0.f;
+		ViewUniformParameters.Constants.AtmosphericFogSunDiscScale = 1.f;
 // 		ViewUniformParameters.AtmosphericFogSunColor = LinearColor::Black;
 // 		ViewUniformParameters.AtmosphericFogSunDirection = Vector::ZeroVector;
 // 		ViewUniformParameters.AtmosphericFogRenderMask = EAtmosphereRenderFlag::E_EnableAll;
@@ -313,8 +313,10 @@ void ViewInfo::SetupUniformBufferParameters(
 // 		Scene = Family->Scene->GetRenderScene();
 // 	}
 // 
-// 
-// 
+// 
+
+// 
+
 // 	ERHIFeatureLevel::Type RHIFeatureLevel = Scene == nullptr ? GMaxRHIFeatureLevel : Scene->GetFeatureLevel();
 
 	//if (GScene && GScene->SkyLight)
@@ -328,8 +330,8 @@ void ViewInfo::SetupUniformBufferParameters(
 // 			&& SkyLight->bWantsStaticShadowing;
 // 
 // 		ViewUniformParameters.SkyLightParameters = bApplyPrecomputedBentNormalShadowing ? 1 : 0;
-		ViewUniformParameters.SkyLightColor = { 1.0f,1.0f, 1.0f };
-		ViewUniformParameters.SkyLightParameters = 1.f;
+		ViewUniformParameters.Constants.SkyLightColor = { 1.0f,1.0f, 1.0f };
+		ViewUniformParameters.Constants.SkyLightParameters = 1.f;
 	}
 	//else
 	{
@@ -339,7 +341,7 @@ void ViewInfo::SetupUniformBufferParameters(
 
 	// Make sure there's no padding since we're going to cast to FVector4*
 	//checkSlow(sizeof(ViewUniformParameters.SkyIrradianceEnvironmentMap) == sizeof(FVector4) * 7);
-	SetupSkyIrradianceEnvironmentMapConstants((Vector4*)&ViewUniformParameters.SkyIrradianceEnvironmentMap);
+	SetupSkyIrradianceEnvironmentMapConstants((Vector4*)&ViewUniformParameters.Constants.SkyIrradianceEnvironmentMap);
 
 // 	ViewUniformParameters.MobilePreviewMode =
 // 		(GIsEditor &&
@@ -382,21 +384,16 @@ void ViewInfo::SetupUniformBufferParameters(
 // 	ViewUniformParameters.StereoPassIndex = (StereoPass <= eSSP_LEFT_EYE) ? 0 : (StereoPass == eSSP_RIGHT_EYE) ? 1 : StereoPass - eSSP_MONOSCOPIC_EYE + 1;
 // 	ViewUniformParameters.StereoIPD = StereoIPD;
 // 
-// 	ViewUniformParameters.PreIntegratedBRDF = GEngine->PreIntegratedSkinBRDFTexture->Resource->TextureRHI;
+// 	ViewUniformParameters.PreIntegratedBRDF = GEngine->PreIntegratedSkinBRDFTexture->Resource->TextureRHI;
+
 }
-enum ETranslucencyVolumeCascade
-{
-	TVC_Inner,
-	TVC_Outer,
 
-	TVC_MAX,
-};
 
-void ViewInfo::InitRHIResources()
+void FViewInfo::InitRHIResources()
 {
 	FBox VolumeBounds[TVC_MAX];
 
-	CachedViewUniformShaderParameters = new ViewUniformShaderParameters();
+	CachedViewUniformShaderParameters = new FViewUniformShaderParameters();
 
 	RenderTargets& SceneContext = RenderTargets::Get();
 
@@ -406,10 +403,10 @@ void ViewInfo::InitRHIResources()
 		TVC_MAX,
 		*CachedViewUniformShaderParameters);
 
-	ViewUniformBuffer = CreateConstantBuffer(false, sizeof(ViewUniformShaderParameters), CachedViewUniformShaderParameters); //TUniformBufferRef<FViewUniformShaderParameters>::CreateUniformBufferImmediate(*CachedViewUniformShaderParameters, UniformBuffer_SingleFrame);
+	ViewUniformBuffer = TUniformBufferPtr<FViewUniformShaderParameters>::CreateUniformBufferImmediate(*CachedViewUniformShaderParameters); //TUniformBufferRef<FViewUniformShaderParameters>::CreateUniformBufferImmediate(*CachedViewUniformShaderParameters, UniformBuffer_SingleFrame);
 }
 
-void ViewInfo::SetupSkyIrradianceEnvironmentMapConstants(Vector4* OutSkyIrradianceEnvironmentMap) const
+void FViewInfo::SetupSkyIrradianceEnvironmentMapConstants(Vector4* OutSkyIrradianceEnvironmentMap) const
 {
 	OutSkyIrradianceEnvironmentMap[0] = { 0.00155f, -0.0033f,  0.06505f,  0.14057f };
 	OutSkyIrradianceEnvironmentMap[1] = { 0.00003f, -0.00304f,  0.09185f, 0.17386f };
@@ -507,7 +504,7 @@ void FScene::InitScene()
 void FScene::AddPrimitive(MeshPrimitive* Primitive)
 {
 	Primitives.push_back(Primitive);
-	Primitive->AddToScene();
+	Primitive->AddToScene(this);
 }
 
 void FScene::RemovePrimitive(MeshPrimitive* Primitive)
@@ -515,7 +512,7 @@ void FScene::RemovePrimitive(MeshPrimitive* Primitive)
 	auto it = std::find(Primitives.begin(), Primitives.end(), Primitive);
 	if(it!=Primitives.end())
 		Primitives.erase(it);
-	Primitive->RemoveFromScene();
+	Primitive->RemoveFromScene(this);
 }
 
 void UpdateView()

@@ -414,10 +414,10 @@ namespace SkeletalMeshTools
 		const Vector2& UV1 = V1.UVs[UVIndex];
 		const Vector2& UV2 = V2.UVs[UVIndex];
 
-		if (Math::Abs(UV1.X - UV2.X) > OverlappingThresholds.ThresholdUV)
+		if (FMath::Abs(UV1.X - UV2.X) > OverlappingThresholds.ThresholdUV)
 			return 0;
 
-		if (Math::Abs(UV1.Y - UV2.Y) > OverlappingThresholds.ThresholdUV)
+		if (FMath::Abs(UV1.Y - UV2.Y) > OverlappingThresholds.ThresholdUV)
 			return 0;
 
 		return 1;

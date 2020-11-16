@@ -210,10 +210,10 @@ namespace MeshDescriptionOp
 					Positions[k] = VertexPositions[MD.GetVertexInstanceVertex(VertexInstanceID)];
 					UVs[k] = TexCoords[Index];
 
-					Chart.MinUV.X = Math::Min(Chart.MinUV.X, UVs[k].X);
-					Chart.MinUV.Y = Math::Min(Chart.MinUV.Y, UVs[k].Y);
-					Chart.MaxUV.X = Math::Max(Chart.MaxUV.X, UVs[k].X);
-					Chart.MaxUV.Y = Math::Max(Chart.MaxUV.Y, UVs[k].Y);
+					Chart.MinUV.X = FMath::Min(Chart.MinUV.X, UVs[k].X);
+					Chart.MinUV.Y = FMath::Min(Chart.MinUV.Y, UVs[k].Y);
+					Chart.MaxUV.X = FMath::Max(Chart.MaxUV.X, UVs[k].X);
+					Chart.MaxUV.Y = FMath::Max(Chart.MaxUV.Y, UVs[k].Y);
 				}
 
 				Vector Edge1 = Positions[1] - Positions[0];
@@ -222,7 +222,7 @@ namespace MeshDescriptionOp
 
 				Vector2 EdgeUV1 = UVs[1] - UVs[0];
 				Vector2 EdgeUV2 = UVs[2] - UVs[0];
-				float UVArea = 0.5f * Math::Abs(EdgeUV1.X * EdgeUV2.Y - EdgeUV1.Y * EdgeUV2.X);
+				float UVArea = 0.5f * FMath::Abs(EdgeUV1.X * EdgeUV2.Y - EdgeUV1.Y * EdgeUV2.X);
 
 				Vector2 UVLength;
 				UVLength.X = (EdgeUV2.Y * Edge1 - EdgeUV1.Y * Edge2).Size();
@@ -237,7 +237,7 @@ namespace MeshDescriptionOp
 #if !CHART_JOINING
 			if (LayoutVersion >= MeshDescriptionOperations::ELightmapUVVersion::SmallChartPacking)
 			{
-				Chart.WorldScale /= Math::Max(Chart.UVArea, 1e-8f);
+				Chart.WorldScale /= FMath::Max(Chart.UVArea, 1e-8f);
 			}
 			else
 			{
@@ -325,9 +325,9 @@ namespace MeshDescriptionOp
 							uint32 Sign = Side & 1;
 							uint32 Axis = Side >> 1;
 
-							bool bAxisAligned = Math::Abs(EdgeUVi[Axis]) < ThreshUVsAreSame;
-							bool bBorderA = Math::Abs(UV0i[Axis] - (Sign ^ 0 ? Chart.MaxUV[Axis] : Chart.MinUV[Axis])) < ThreshUVsAreSame;
-							bool bBorderB = Math::Abs(UV0j[Axis] - (Sign ^ 1 ? Chart.MaxUV[Axis] : Chart.MinUV[Axis])) < ThreshUVsAreSame;
+							bool bAxisAligned = FMath::Abs(EdgeUVi[Axis]) < ThreshUVsAreSame;
+							bool bBorderA = FMath::Abs(UV0i[Axis] - (Sign ^ 0 ? Chart.MaxUV[Axis] : Chart.MinUV[Axis])) < ThreshUVsAreSame;
+							bool bBorderB = FMath::Abs(UV0j[Axis] - (Sign ^ 1 ? Chart.MaxUV[Axis] : Chart.MinUV[Axis])) < ThreshUVsAreSame;
 
 							// FIXME mirrored
 							if (!bAxisAligned || !bBorderA || !bBorderB)
@@ -349,9 +349,9 @@ namespace MeshDescriptionOp
 							Vector2 ExtentDiff = ExtentA - ExtentB;
 							Vector2 Separation = ExtentA + ExtentB + CenterDiff * (Sign ? 1.0f : -1.0f);
 
-							bool bCenterMatch = Math::Abs(CenterDiff[Axis ^ 1]) < ThreshUVsAreSame;
-							bool bExtentMatch = Math::Abs(ExtentDiff[Axis ^ 1]) < ThreshUVsAreSame;
-							bool bSeparate = Math::Abs(Separation[Axis ^ 0]) < ThreshUVsAreSame;
+							bool bCenterMatch = FMath::Abs(CenterDiff[Axis ^ 1]) < ThreshUVsAreSame;
+							bool bExtentMatch = FMath::Abs(ExtentDiff[Axis ^ 1]) < ThreshUVsAreSame;
+							bool bSeparate = FMath::Abs(Separation[Axis ^ 0]) < ThreshUVsAreSame;
 
 							if (!bCenterMatch || !bExtentMatch || !bSeparate)
 							{
@@ -558,7 +558,7 @@ namespace MeshDescriptionOp
 
 			if (LayoutVersion >= MeshDescriptionOperations::ELightmapUVVersion::SmallChartPacking)
 			{
-				Chart.WorldScale /= Math::Max(Chart.UVArea, 1e-8f);
+				Chart.WorldScale /= FMath::Max(Chart.UVArea, 1e-8f);
 			}
 			else
 			{
@@ -593,8 +593,8 @@ namespace MeshDescriptionOp
 		const float LinearSearchStep = 0.5f;
 		const int32 BinarySearchSteps = 6;
 
-		float UVScaleFail = TextureResolution * Math::Sqrt(1.0f / TotalUVArea);
-		float UVScalePass = TextureResolution * Math::Sqrt(LinearSearchStart / TotalUVArea);
+		float UVScaleFail = TextureResolution * FMath::Sqrt(1.0f / TotalUVArea);
+		float UVScalePass = TextureResolution * FMath::Sqrt(LinearSearchStart / TotalUVArea);
 
 		// Linear search for first fit
 		while (1)
@@ -658,14 +658,14 @@ namespace MeshDescriptionOp
 				Vector2 ChartSizeScaled = ChartSize * Chart.UVScale * UniformScale;
 
 				const float MaxChartEdge = TextureResolution - 1.0f;
-				const float LongestChartEdge = Math::Max(ChartSizeScaled.X, ChartSizeScaled.Y);
+				const float LongestChartEdge = FMath::Max(ChartSizeScaled.X, ChartSizeScaled.Y);
 
 				const float Epsilon = 0.01f;
 				if (LongestChartEdge + Epsilon > MaxChartEdge)
 				{
 					// Rescale oversized charts to fit
-					Chart.UVScale.X = MaxChartEdge / Math::Max(ChartSize.X, ChartSize.Y);
-					Chart.UVScale.Y = MaxChartEdge / Math::Max(ChartSize.X, ChartSize.Y);
+					Chart.UVScale.X = MaxChartEdge / FMath::Max(ChartSize.X, ChartSize.Y);
+					Chart.UVScale.Y = MaxChartEdge / FMath::Max(ChartSize.X, ChartSize.Y);
 					NumMaxedOut++;
 				}
 				else
@@ -691,7 +691,7 @@ namespace MeshDescriptionOp
 
 			// Scale up smaller charts to maintain expected total area
 			// Want ScaledUVArea == TotalUVArea * UVScale^2
-			float RebalanceScale = UVScale * Math::Sqrt(TotalUVArea / ScaledUVArea);
+			float RebalanceScale = UVScale * FMath::Sqrt(TotalUVArea / ScaledUVArea);
 			if (RebalanceScale < 1.01f)
 			{
 				// Stop if further rebalancing is minor
@@ -747,7 +747,7 @@ namespace MeshDescriptionOp
 
 			// Scale up smaller charts to maintain expected total area
 			// Want ScaledUVArea == TotalUVArea * UVScale^2
-			float RebalanceScale = UVScale * Math::Sqrt(TotalUVArea / ScaledUVArea);
+			float RebalanceScale = UVScale * FMath::Sqrt(TotalUVArea / ScaledUVArea);
 			if (RebalanceScale < 1.01f)
 			{
 				// Stop if further rebalancing is minor
@@ -802,12 +802,12 @@ namespace MeshDescriptionOp
 				FAllocator2D::FRect	Rect;
 				Rect.X = 0;
 				Rect.Y = 0;
-				Rect.W = Math::CeilToInt(Math::Abs(ChartSize.X) + 1.0f);
-				Rect.H = Math::CeilToInt(Math::Abs(ChartSize.Y) + 1.0f);
+				Rect.W = FMath::CeilToInt(FMath::Abs(ChartSize.X) + 1.0f);
+				Rect.H = FMath::CeilToInt(FMath::Abs(ChartSize.Y) + 1.0f);
 
 				// Just in case lack of precision pushes it over
-				Rect.W = Math::Min(TextureResolution, Rect.W);
-				Rect.H = Math::Min(TextureResolution, Rect.H);
+				Rect.W = FMath::Min(TextureResolution, Rect.W);
+				Rect.H = FMath::Min(TextureResolution, Rect.H);
 
 				const bool bRectPack = false;
 
@@ -977,7 +977,7 @@ namespace MeshDescriptionOp
 		float Facing = (p0.X - p1.X) * (p2.Y - p0.Y) - (p0.Y - p1.Y) * (p2.X - p0.X);
 		if (Facing < 0.0f)
 		{
-			Math::Swap(p0, p2);
+			FMath::Swap(p0, p2);
 		}
 
 		// 28.4 fixed point
@@ -990,16 +990,16 @@ namespace MeshDescriptionOp
 		const int32 Y2 = (int32)(16.0f * p2.Y + 0.5f);
 
 		// Bounding rect
-		int32 MinX = (Math::Min3(X0, X1, X2) - Dilate + 15) / 16;
-		int32 MaxX = (Math::Max3(X0, X1, X2) + Dilate + 15) / 16;
-		int32 MinY = (Math::Min3(Y0, Y1, Y2) - Dilate + 15) / 16;
-		int32 MaxY = (Math::Max3(Y0, Y1, Y2) + Dilate + 15) / 16;
+		int32 MinX = (FMath::Min3(X0, X1, X2) - Dilate + 15) / 16;
+		int32 MaxX = (FMath::Max3(X0, X1, X2) + Dilate + 15) / 16;
+		int32 MinY = (FMath::Min3(Y0, Y1, Y2) - Dilate + 15) / 16;
+		int32 MaxY = (FMath::Max3(Y0, Y1, Y2) + Dilate + 15) / 16;
 
 		// Clip to image
-		MinX = Math::Clamp(MinX, 0, ScissorWidth);
-		MaxX = Math::Clamp(MaxX, 0, ScissorWidth);
-		MinY = Math::Clamp(MinY, 0, ScissorHeight);
-		MaxY = Math::Clamp(MaxY, 0, ScissorHeight);
+		MinX = FMath::Clamp(MinX, 0, ScissorWidth);
+		MaxX = FMath::Clamp(MaxX, 0, ScissorWidth);
+		MinY = FMath::Clamp(MinY, 0, ScissorHeight);
+		MaxY = FMath::Clamp(MaxY, 0, ScissorHeight);
 
 		// Deltas
 		const int32 DX01 = X0 - X1;

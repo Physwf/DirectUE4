@@ -17,7 +17,8 @@ struct ESkeletalMeshVertexFlags
 void SkeletalMeshLODRenderData::InitResources()
 {
 	StaticVertexBuffers.PositionVertexBufferRHI = CreateVertexBuffer(false, StaticVertexBuffers.PositionVertexBuffer.size() * sizeof(Vector), StaticVertexBuffers.PositionVertexBuffer.data());
-	StaticVertexBuffers.StaticMeshVertexBufferRHI = CreateVertexBuffer(false, StaticVertexBuffers.StaticMeshVertexBuffer.size() * sizeof(float), StaticVertexBuffers.StaticMeshVertexBuffer.data());
+	StaticVertexBuffers.TangentsVertexBufferRHI = CreateVertexBuffer(false, StaticVertexBuffers.TangentsVertexBuffer.size() * sizeof(Vector4), StaticVertexBuffers.TangentsVertexBuffer.data());
+	StaticVertexBuffers.TexCoordVertexBufferRHI = CreateVertexBuffer(false, StaticVertexBuffers.TexCoordVertexBuffer.size() * sizeof(Vector2), StaticVertexBuffers.TexCoordVertexBuffer.data());
 }
 
 void SkeletalMeshLODRenderData::BuildFromLODModel(const SkeletalMeshLODModel* ImportedModel,uint32 BuildFlags)
@@ -59,21 +60,19 @@ void SkeletalMeshLODRenderData::BuildFromLODModel(const SkeletalMeshLODModel* Im
 
 	// init vertex buffer with the vertex array
 	StaticVertexBuffers.PositionVertexBuffer.resize(Vertices.size());
-	size_t StaticMeshVertexBufferStride = 2 * sizeof(Vector4) / sizeof(float) + ImportedModel->NumTexCoords * sizeof(Vector2) / sizeof(float);//2个Vector4给tangent,NumTexCoords个Vector2给UV
-	StaticVertexBuffers.StaticMeshVertexBuffer.resize(Vertices.size() * StaticMeshVertexBufferStride);
+	StaticVertexBuffers.TangentsVertexBuffer.resize(Vertices.size() * 2);
+	StaticVertexBuffers.TexCoordVertexBuffer.resize(Vertices.size() * ImportedModel->NumTexCoords);
 
 	for (uint32 i = 0; i < Vertices.size(); i++)
 	{
 		StaticVertexBuffers.PositionVertexBuffer[i] = Vertices[i].Position;
-		Vector4* TangentStart = (Vector4*)(StaticVertexBuffers.StaticMeshVertexBuffer.data() + i * StaticMeshVertexBufferStride);
-		Vector2* TexCoordsStart = (Vector2*)(StaticVertexBuffers.StaticMeshVertexBuffer.data() + i * StaticMeshVertexBufferStride + 2 * sizeof(Vector4) / sizeof(float));
-		TangentStart[0] = Vertices[i].TangentX;
-		TangentStart[1] = Vector4(Vertices[i].TangentZ, GetBasisDeterminantSign(Vertices[i].TangentX, Vertices[i].TangentY, Vertices[i].TangentZ));
+		StaticVertexBuffers.TangentsVertexBuffer[2 * i] = Vertices[i].TangentX;
+		StaticVertexBuffers.TangentsVertexBuffer[2 * i + 1] = Vector4(Vertices[i].TangentZ, GetBasisDeterminantSign(Vertices[i].TangentX, Vertices[i].TangentY, Vertices[i].TangentZ));
 		//StaticVertexBuffers.StaticMeshVertexBuffer[i].SetVertexTangents(i, Vertices[i].TangentX, Vertices[i].TangentY, Vertices[i].TangentZ);
 		for (uint32 j = 0; j < ImportedModel->NumTexCoords; j++)
 		{
 			//StaticVertexBuffers.StaticMeshVertexBuffer.SetVertexUV(i, j, Vertices[i].UVs[j]);
-			TexCoordsStart[j] = Vertices[i].UVs[j];
+			StaticVertexBuffers.TexCoordVertexBuffer[i*ImportedModel->NumTexCoords+j] = Vertices[i].UVs[j];
 		}
 	}
 

@@ -14,14 +14,14 @@ Vector4 CreateInvDeviceZToWorldZTransform(const Matrix& ProjMatrix);
 class RenderTargets;
 class MeshPrimitive;
 
-class ViewInfo : public SceneView
+class FViewInfo : public SceneView
 {
 public:
 	/* Final position of the view in the final render target (in pixels), potentially scaled by ScreenPercentage */
 	IntRect ViewRect;
 
 	/** Cached view uniform shader parameters, to allow recreating the view uniform buffer without having to fill out the entire struct. */
-	ViewUniformShaderParameters* CachedViewUniformShaderParameters;
+	FViewUniformShaderParameters* CachedViewUniformShaderParameters;
 
 	/** A map from primitive ID to a boolean visibility value. */
 	//FSceneBitArray PrimitiveVisibilityMap;
@@ -203,7 +203,7 @@ public:
 
 	// Size of the HZB's mipmap 0
 	// NOTE: the mipmap 0 is downsampled version of the depth buffer
-	IntPoint HZBMipmap0Size;
+	FIntPoint HZBMipmap0Size;
 
 	/** Used by occlusion for percent unoccluded calculations. */
 	//float OneOverNumPossiblePixels;
@@ -226,13 +226,13 @@ public:
 	/** Custom visibility query for view */
 	//ICustomVisibilityQuery* CustomVisibilityQuery;
 
-	ViewInfo(const ViewInitOptions& InitOptions);
-	explicit ViewInfo(const SceneView* InView);
+	FViewInfo(const ViewInitOptions& InitOptions);
+	explicit FViewInfo(const SceneView* InView);
 	//TArray<FPrimitiveSceneInfo*, SceneRenderingAllocator> IndirectShadowPrimitives;
 	/**
 	* Destructor.
 	*/
-	~ViewInfo();
+	~FViewInfo();
 
 	/** Returns the size of view rect after primary upscale ( == only with secondary screen percentage). */
 	//FIntPoint GetSecondaryViewRectSize() const;
@@ -250,14 +250,14 @@ public:
 		const ViewMatrices& InPrevViewMatrices,
 		FBox* OutTranslucentCascadeBoundsArray,
 		int32 NumTranslucentCascades,
-		ViewUniformShaderParameters& ViewUniformParameters) const;
+		FViewUniformShaderParameters& ViewUniformParameters) const;
 
 	/** Recreates ViewUniformShaderParameters, taking the view transform from the View Matrices */
 	inline void SetupUniformBufferParameters(
 		RenderTargets& SceneContext,
 		FBox* OutTranslucentCascadeBoundsArray,
 		int32 NumTranslucentCascades,
-		ViewUniformShaderParameters& ViewUniformParameters) const
+		FViewUniformShaderParameters& ViewUniformParameters) const
 	{
 		SetupUniformBufferParameters(SceneContext,
 			mViewMatrices,

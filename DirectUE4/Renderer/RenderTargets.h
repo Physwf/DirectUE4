@@ -29,7 +29,7 @@ public:
 	void BeginRenderingPrePass(bool bClear);
 	void FinishRenderingPrePass();
 
-	void BeginRenderingGBuffer(bool bClearColor, const LinearColor& ClearColor = { 0,0,0,1 });
+	void BeginRenderingGBuffer(bool bClearColor, const FLinearColor& ClearColor = { 0,0,0,1 });
 	void FinishRenderingGBuffer();
 
 	bool BeginRenderingCustomDepth();
@@ -54,7 +54,7 @@ public:
 
 	void SetBufferSize(int32 InBufferSizeX, int32 InBufferSizeY);
 	/** Returns the size of most screen space render targets e.g. SceneColor, SceneDepth, GBuffer, ... might be different from final RT or output Size because of ScreenPercentage use. */
-	IntPoint GetBufferSizeXY() const { return BufferSize; }
+	FIntPoint GetBufferSizeXY() const { return BufferSize; }
 
 	//void PreallocGBufferTargets();
 	void GetGBufferADesc(PooledRenderTargetDesc& Desc) const;
@@ -71,6 +71,7 @@ public:
 	const FD3D11Texture2D* GetSceneColorTexture() const { return SceneColor->ShaderResourceTexture; }
 	const FD3D11Texture2D* GetSceneDepthTexture() const { return SceneDepthZ->ShaderResourceTexture; }
 
+	const FD3D11Texture2D* GetActualDepthTexture() const;
 	const FD3D11Texture2D* GetGBufferATexture() const { return GBufferA->ShaderResourceTexture; }
 	const FD3D11Texture2D* GetGBufferBTexture() const { return GBufferB->ShaderResourceTexture; }
 	const FD3D11Texture2D* GetGBufferCTexture() const { return GBufferC->ShaderResourceTexture; }
@@ -100,7 +101,7 @@ private:
 	const ComPtr<PooledRenderTarget>& GetSceneColorForCurrentShadingPath() const {  return SceneColor; }
 	ComPtr<PooledRenderTarget>& GetSceneColorForCurrentShadingPath() { return SceneColor; }
 
-	IntPoint ComputeDesiredSize(const SceneViewFamily& ViewFamily);
+	FIntPoint ComputeDesiredSize(const SceneViewFamily& ViewFamily);
 
 	int32 GetGBufferRenderTargets(ERenderTargetLoadAction ColorLoadAction, FD3D11Texture2D* OutRenderTargets[8], int32& OutVelocityRTIndex);
 
@@ -141,11 +142,12 @@ public:
 
 	/** To detect a change of the CVar r.MobileMSAA or r.MSAA */
 
-	IntPoint BufferSize;
+	FIntPoint BufferSize;
 
 
 	int32 CurrentMSAACount;
 
+	bool bScreenSpaceAOIsValid;
 
 	FClearValueBinding DefaultColorClear;
 	FClearValueBinding DefaultDepthClear;

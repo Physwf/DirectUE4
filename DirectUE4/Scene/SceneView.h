@@ -170,93 +170,364 @@ public:
 	}
 };
 
-#pragma pack(push)
-#pragma pack(1)
-struct ViewUniformShaderParameters
+enum ETranslucencyVolumeCascade
 {
-	Matrix TranslatedWorldToClip;
-	Matrix WorldToClip;
-	Matrix TranslatedWorldToView;
-	Matrix ViewToTranslatedWorld;
-	Matrix TranslatedWorldToCameraView;
-	Matrix CameraViewToTranslatedWorld;
-	Matrix ViewToClip;
-	Matrix ViewToClipNoAA;
-	Matrix ClipToView;
-	Matrix ClipToTranslatedWorld;
-	Matrix SVPositionToTranslatedWorld;
-	Matrix ScreenToWorld;
-	Matrix ScreenToTranslatedWorld;
-	// half3 ViewForward;
-	// half3 ViewUp;
-	// half3 ViewRight;
-	// half3 HMDViewNoRollUp;
-	// half3 HMDViewNoRollRight;
-	Vector4 InvDeviceZToWorldZTransform;
-	Vector4 ScreenPositionScaleBias;
-	Vector WorldCameraOrigin;
-	float ViewPading01;
-	Vector TranslatedWorldCameraOrigin;
-	float ViewPading02;
-	Vector WorldViewOrigin;
-	float ViewPading03;
+	TVC_Inner,
+	TVC_Outer,
 
-	Vector PreViewTranslation;
-	float ViewPading04;
-	Vector4 ViewRectMin;
-	Vector4 ViewSizeAndInvSize;
-	Vector4 BufferSizeAndInvSize;
-	Vector4 BufferBilinearUVMinMax;
+	TVC_MAX,
+};
+const int32 GMaxGlobalDistanceFieldClipmaps = 4;
 
-	uint32 Random;
-	uint32 FrameNumber;
-	uint32 StateFrameIndexMod8;
-	uint32 ViewPading05;
+struct alignas(16) FViewUniformShaderParameters
+{
+	struct ConstantStruct
+	{
+		/*
+		Matrix TranslatedWorldToClip;
+		Matrix WorldToClip;
+		Matrix TranslatedWorldToView;
+		Matrix ViewToTranslatedWorld;
+		Matrix TranslatedWorldToCameraView;
+		Matrix CameraViewToTranslatedWorld;
+		Matrix ViewToClip;
+		Matrix ViewToClipNoAA;
+		Matrix ClipToView;
+		Matrix ClipToTranslatedWorld;
+		Matrix SVPositionToTranslatedWorld;
+		Matrix ScreenToWorld;
+		Matrix ScreenToTranslatedWorld;
+		// half3 ViewForward;
+		// half3 ViewUp;
+		// half3 ViewRight;
+		// half3 HMDViewNoRollUp;
+		// half3 HMDViewNoRollRight;
+		Vector4 InvDeviceZToWorldZTransform;
+		Vector4 ScreenPositionScaleBias;
+		Vector WorldCameraOrigin;
+		float ViewPading01;
+		Vector TranslatedWorldCameraOrigin;
+		float ViewPading02;
+		Vector WorldViewOrigin;
+		float ViewPading03;
 
-	float DemosaicVposOffset;
-	Vector IndirectLightingColorScale;
+		Vector PreViewTranslation;
+		float ViewPading04;
+		Vector4 ViewRectMin;
+		Vector4 ViewSizeAndInvSize;
+		Vector4 BufferSizeAndInvSize;
+		Vector4 BufferBilinearUVMinMax;
 
-	Vector AtmosphericFogSunDirection;
-	float AtmosphericFogSunPower;
-	float AtmosphericFogPower;
-	float AtmosphericFogDensityScale;
-	float AtmosphericFogDensityOffset;
-	float AtmosphericFogGroundOffset;
-	float AtmosphericFogDistanceScale;
-	float AtmosphericFogAltitudeScale;
-	float AtmosphericFogHeightScaleRayleigh;
-	float AtmosphericFogStartDistance;
-	float AtmosphericFogDistanceOffset;
-	float AtmosphericFogSunDiscScale;
-	uint32 AtmosphericFogRenderMask;
-	uint32 AtmosphericFogInscatterAltitudeSampleNum;
-	LinearColor AtmosphericFogSunColor;
+		uint32 Random;
+		uint32 FrameNumber;
+		uint32 StateFrameIndexMod8;
+		uint32 ViewPading05;
 
-	float AmbientCubemapIntensity;
-	float SkyLightParameters;
-	float PrePadding_View_2472;
-	float PrePadding_View_2476;
-	Vector4 SkyLightColor;
-	Vector4 SkyIrradianceEnvironmentMap[7];
+		float DemosaicVposOffset;
+		Vector IndirectLightingColorScale;
 
-	float PrePadding_View_2862;
-	Vector VolumetricLightmapWorldToUVScale;
-	float PrePadding_View_2861;
-	Vector VolumetricLightmapWorldToUVAdd;
-	float PrePadding_View_2876;
-	Vector VolumetricLightmapIndirectionTextureSize;
+		Vector AtmosphericFogSunDirection;
+		float AtmosphericFogSunPower;
+		float AtmosphericFogPower;
+		float AtmosphericFogDensityScale;
+		float AtmosphericFogDensityOffset;
+		float AtmosphericFogGroundOffset;
+		float AtmosphericFogDistanceScale;
+		float AtmosphericFogAltitudeScale;
+		float AtmosphericFogHeightScaleRayleigh;
+		float AtmosphericFogStartDistance;
+		float AtmosphericFogDistanceOffset;
+		float AtmosphericFogSunDiscScale;
+		uint32 AtmosphericFogRenderMask;
+		uint32 AtmosphericFogInscatterAltitudeSampleNum;
+		FLinearColor AtmosphericFogSunColor;
 
-	float VolumetricLightmapBrickSize;
-	Vector VolumetricLightmapBrickTexelSize;
+		float AmbientCubemapIntensity;
+		float SkyLightParameters;
+		float PrePadding_View_2472;
+		float PrePadding_View_2476;
+		Vector4 SkyLightColor;
+		Vector4 SkyIrradianceEnvironmentMap[7];
+
+		float PrePadding_View_2862;
+		Vector VolumetricLightmapWorldToUVScale;
+		float PrePadding_View_2861;
+		Vector VolumetricLightmapWorldToUVAdd;
+		float PrePadding_View_2876;
+		Vector VolumetricLightmapIndirectionTextureSize;
+
+		float VolumetricLightmapBrickSize;
+		Vector VolumetricLightmapBrickTexelSize;
+		*/
+
+		Matrix TranslatedWorldToClip;
+		Matrix WorldToClip;
+		Matrix TranslatedWorldToView;
+		Matrix ViewToTranslatedWorld;
+		Matrix TranslatedWorldToCameraView;
+		Matrix CameraViewToTranslatedWorld;
+		Matrix ViewToClip;
+		Matrix ViewToClipNoAA;
+		Matrix ClipToView;
+		Matrix ClipToTranslatedWorld;
+		Matrix SVPositionToTranslatedWorld;
+		Matrix ScreenToWorld;
+		Matrix ScreenToTranslatedWorld;
+		Vector ViewForward;//EShaderPrecisionModifier::Half;;
+		Vector ViewUp;//EShaderPrecisionModifier::Half;;
+		Vector ViewRight;//EShaderPrecisionModifier::Half;;
+		Vector HMDViewNoRollUp;//EShaderPrecisionModifier::Half;;
+		Vector HMDViewNoRollRight;//EShaderPrecisionModifier::Half;;
+		Vector4 InvDeviceZToWorldZTransform;
+		Vector4 ScreenPositionScaleBias;//EShaderPrecisionModifier::Half;;
+		Vector WorldCameraOrigin;
+		Vector TranslatedWorldCameraOrigin;
+		Vector WorldViewOrigin;
+		Vector PreViewTranslation;
+		Matrix PrevProjection;
+		Matrix PrevViewProj;
+		Matrix PrevViewRotationProj;
+		Matrix PrevViewToClip;
+		Matrix PrevClipToView;
+		Matrix PrevTranslatedWorldToClip;
+		Matrix PrevTranslatedWorldToView;
+		Matrix PrevViewToTranslatedWorld;
+		Matrix PrevTranslatedWorldToCameraView;
+		Matrix PrevCameraViewToTranslatedWorld;
+		Vector PrevWorldCameraOrigin;
+		Vector PrevWorldViewOrigin;
+		Vector PrevPreViewTranslation;
+		Matrix PrevInvViewProj;
+		Matrix PrevScreenToTranslatedWorld;
+		Matrix ClipToPrevClip;
+		Vector4 TemporalAAJitter;
+		Vector4 GlobalClippingPlane;
+		Vector2 FieldOfViewWideAngles;
+		Vector2 PrevFieldOfViewWideAngles;
+		Vector4 ViewRectMin;//EShaderPrecisionModifier::Half;;
+		Vector4 ViewSizeAndInvSize;
+		Vector4 BufferSizeAndInvSize;
+		Vector4 BufferBilinearUVMinMax;
+		int32 NumSceneColorMSAASamples;
+		float PreExposure;//EShaderPrecisionModifier::Half;;
+		float OneOverPreExposure;//EShaderPrecisionModifier::Half;;
+		Vector4 DiffuseOverrideParameter;//EShaderPrecisionModifier::Half;;
+		Vector4 SpecularOverrideParameter;//;//EShaderPrecisionModifier::Half;;;
+		Vector4 NormalOverrideParameter;//;//EShaderPrecisionModifier::Half;;;
+		Vector2 RoughnessOverrideParameter;//EShaderPrecisionModifier::Half;;
+		float PrevFrameGameTime;
+		float PrevFrameRealTime;
+		float OutOfBoundsMask;//EShaderPrecisionModifier::Half;;
+		Vector WorldCameraMovementSinceLastFrame;
+		float CullingSign;
+		float NearPlane;//EShaderPrecisionModifier::Half;;
+		float AdaptiveTessellationFactor;
+		float GameTime;
+		float RealTime;
+		float MaterialTextureMipBias;
+		float MaterialTextureDerivativeMultiply;
+		uint32 Random;
+		uint32 FrameNumber;
+		uint32 StateFrameIndexMod8;
+		float CameraCut;//EShaderPrecisionModifier::Half;;
+		float UnlitViewmodeMask;//EShaderPrecisionModifier::Half;;
+		FLinearColor DirectionalLightColor;//EShaderPrecisionModifier::Half;;
+		Vector DirectionalLightDirection;//EShaderPrecisionModifier::Half;;
+		Vector4 TranslucencyLightingVolumeMin[TVC_MAX];
+		Vector4 TranslucencyLightingVolumeInvSize[TVC_MAX];
+		Vector4 TemporalAAParams;
+		Vector4 CircleDOFParams;
+		float DepthOfFieldSensorWidth;
+		float DepthOfFieldFocalDistance;
+		float DepthOfFieldScale;
+		float DepthOfFieldFocalLength;
+		float DepthOfFieldFocalRegion;
+		float DepthOfFieldNearTransitionRegion;
+		float DepthOfFieldFarTransitionRegion;
+		float MotionBlurNormalizedToPixel;
+		float bSubsurfacePostprocessEnabled;
+		float GeneralPurposeTweak;
+		float DemosaicVposOffset;//EShaderPrecisionModifier::Half;;
+		Vector IndirectLightingColorScale;
+		float HDR32bppEncodingMode;//EShaderPrecisionModifier::Half;;
+		Vector AtmosphericFogSunDirection;
+		float AtmosphericFogSunPower;//EShaderPrecisionModifier::Half;;
+		float AtmosphericFogPower;//EShaderPrecisionModifier::Half;;
+		float AtmosphericFogDensityScale;//EShaderPrecisionModifier::Half;;
+		float AtmosphericFogDensityOffset;//EShaderPrecisionModifier::Half;;
+		float AtmosphericFogGroundOffset;//EShaderPrecisionModifier::Half;;
+		float AtmosphericFogDistanceScale;//EShaderPrecisionModifier::Half;;
+		float AtmosphericFogAltitudeScale;//EShaderPrecisionModifier::Half;;
+		float AtmosphericFogHeightScaleRayleigh;//EShaderPrecisionModifier::Half;;
+		float AtmosphericFogStartDistance;//EShaderPrecisionModifier::Half;;
+		float AtmosphericFogDistanceOffset;//EShaderPrecisionModifier::Half;;
+		float AtmosphericFogSunDiscScale;//EShaderPrecisionModifier::Half;;
+		uint32 AtmosphericFogRenderMask;
+		uint32 AtmosphericFogInscatterAltitudeSampleNum;
+		FLinearColor AtmosphericFogSunColor;
+		Vector NormalCurvatureToRoughnessScaleBias;
+		float RenderingReflectionCaptureMask;
+		FLinearColor AmbientCubemapTint;
+		float AmbientCubemapIntensity;
+		float SkyLightParameters;
+		FLinearColor SkyLightColor;
+		Vector4 SkyIrradianceEnvironmentMap[7];
+		float MobilePreviewMode;
+		float HMDEyePaddingOffset;
+		float ReflectionCubemapMaxMip;//EShaderPrecisionModifier::Half;;
+		float ShowDecalsMask;
+		uint32 DistanceFieldAOSpecularOcclusionMode;
+		float IndirectCapsuleSelfShadowingIntensity;
+		Vector ReflectionEnvironmentRoughnessMixingScaleBiasAndLargestWeight;
+		int32 StereoPassIndex;
+		Vector4 GlobalVolumeCenterAndExtent[GMaxGlobalDistanceFieldClipmaps];
+		Vector4 GlobalVolumeWorldToUVAddAndMul[GMaxGlobalDistanceFieldClipmaps];
+		float GlobalVolumeDimension;
+		float GlobalVolumeTexelSize;
+		float MaxGlobalDistance;
+		float bCheckerboardSubsurfaceProfileRendering;
+		Vector VolumetricFogInvGridSize;
+		Vector VolumetricFogGridZParams;
+		Vector2 VolumetricFogSVPosToVolumeUV;
+		float VolumetricFogMaxDistance;
+		Vector VolumetricLightmapWorldToUVScale;
+		Vector VolumetricLightmapWorldToUVAdd;
+		Vector VolumetricLightmapIndirectionTextureSize;
+		float VolumetricLightmapBrickSize;
+		Vector VolumetricLightmapBrickTexelSize;
+		float StereoIPD;
+	} Constants;
+
+
+	ComPtr<ID3D11SamplerState> MaterialTextureBilinearWrapedSampler;
+	ComPtr<ID3D11SamplerState> MaterialTextureBilinearClampedSampler;
+
+	ComPtr<ID3D11ShaderResourceView> VolumetricLightmapIndirectionTexture; // FPrecomputedVolumetricLightmapLightingPolicy
+	ComPtr<ID3D11ShaderResourceView> VolumetricLightmapBrickAmbientVector; // FPrecomputedVolumetricLightmapLightingPolicy
+	ComPtr<ID3D11ShaderResourceView> VolumetricLightmapBrickSHCoefficients0; // FPrecomputedVolumetricLightmapLightingPolicy
+	ComPtr<ID3D11ShaderResourceView> VolumetricLightmapBrickSHCoefficients1; // FPrecomputedVolumetricLightmapLightingPolicy
+	ComPtr<ID3D11ShaderResourceView> VolumetricLightmapBrickSHCoefficients2; // FPrecomputedVolumetricLightmapLightingPolicy
+	ComPtr<ID3D11ShaderResourceView> VolumetricLightmapBrickSHCoefficients3; // FPrecomputedVolumetricLightmapLightingPolicy
+	ComPtr<ID3D11ShaderResourceView> VolumetricLightmapBrickSHCoefficients4; // FPrecomputedVolumetricLightmapLightingPolicy
+	ComPtr<ID3D11ShaderResourceView> VolumetricLightmapBrickSHCoefficients5; // FPrecomputedVolumetricLightmapLightingPolicy
+	ComPtr<ID3D11ShaderResourceView> SkyBentNormalBrickTexture; // FPrecomputedVolumetricLightmapLightingPolicy
+	ComPtr<ID3D11ShaderResourceView> DirectionalLightShadowingBrickTexture; // FPrecomputedVolumetricLightmapLightingPolicy
+
+	ComPtr<ID3D11SamplerState> VolumetricLightmapBrickAmbientVectorSampler; // FPrecomputedVolumetricLightmapLightingPolicy
+	ComPtr<ID3D11SamplerState> VolumetricLightmapTextureSampler0; // FPrecomputedVolumetricLightmapLightingPolicy
+	ComPtr<ID3D11SamplerState> VolumetricLightmapTextureSampler1; // FPrecomputedVolumetricLightmapLightingPolicy
+	ComPtr<ID3D11SamplerState> VolumetricLightmapTextureSampler2; // FPrecomputedVolumetricLightmapLightingPolicy
+	ComPtr<ID3D11SamplerState> VolumetricLightmapTextureSampler3; // FPrecomputedVolumetricLightmapLightingPolicy
+	ComPtr<ID3D11SamplerState> VolumetricLightmapTextureSampler4; // FPrecomputedVolumetricLightmapLightingPolicy
+	ComPtr<ID3D11SamplerState> VolumetricLightmapTextureSampler5; // FPrecomputedVolumetricLightmapLightingPolicy
+	ComPtr<ID3D11SamplerState> SkyBentNormalTextureSampler; // FPrecomputedVolumetricLightmapLightingPolicy
+	ComPtr<ID3D11SamplerState> DirectionalLightShadowingTextureSampler; // FPrecomputedVolumetricLightmapLightingPolicy
+
+	ComPtr<ID3D11ShaderResourceView> GlobalDistanceFieldTexture0;
+	ComPtr<ID3D11SamplerState> GlobalDistanceFieldSampler0;
+	ComPtr<ID3D11ShaderResourceView> GlobalDistanceFieldTexture1;
+	ComPtr<ID3D11SamplerState> GlobalDistanceFieldSampler1;
+	ComPtr<ID3D11ShaderResourceView> GlobalDistanceFieldTexture2;
+	ComPtr<ID3D11SamplerState> GlobalDistanceFieldSampler2;
+	ComPtr<ID3D11ShaderResourceView> GlobalDistanceFieldTexture3;
+	ComPtr<ID3D11SamplerState> GlobalDistanceFieldSampler3;
+
+	ComPtr<ID3D11ShaderResourceView> AtmosphereTransmittanceTexture;
+	ComPtr<ID3D11SamplerState> AtmosphereTransmittanceTextureSampler;
+	ComPtr<ID3D11ShaderResourceView> AtmosphereIrradianceTexture;
+	ComPtr<ID3D11SamplerState> AtmosphereIrradianceTextureSampler;
+	ComPtr<ID3D11ShaderResourceView> AtmosphereInscatterTexture;
+	ComPtr<ID3D11SamplerState> AtmosphereInscatterTextureSampler;
+	ComPtr<ID3D11ShaderResourceView> PerlinNoiseGradientTexture;
+	ComPtr<ID3D11SamplerState> PerlinNoiseGradientTextureSampler;
+	ComPtr<ID3D11ShaderResourceView> PerlinNoise3DTexture;
+	ComPtr<ID3D11SamplerState> PerlinNoise3DTextureSampler;
+	ComPtr<ID3D11ShaderResourceView> SobolSamplingTexture;
+	ComPtr<ID3D11SamplerState> SharedPointWrappedSampler;
+	ComPtr<ID3D11SamplerState> SharedPointClampedSampler;
+	ComPtr<ID3D11SamplerState> SharedBilinearWrappedSampler;
+	ComPtr<ID3D11SamplerState> SharedBilinearClampedSampler;
+	ComPtr<ID3D11SamplerState> SharedTrilinearWrappedSampler;
+	ComPtr<ID3D11SamplerState> SharedTrilinearClampedSampler;
+	ComPtr<ID3D11ShaderResourceView> PreIntegratedBRDF;
+	ComPtr<ID3D11SamplerState> PreIntegratedBRDFSampler;
+
+	static std::string GetConstantBufferName()
+	{
+		return "SceneTexturesStruct";
+	}
+#define ADD_RES(StructName, MemberName) List.insert(std::make_pair(std::string(#StructName) + "_" + std::string(#MemberName),StructName.MemberName))
+	static std::map<std::string, ComPtr<ID3D11ShaderResourceView>> GetSRVs(const FViewUniformShaderParameters& View)
+	{
+		std::map<std::string, ComPtr<ID3D11ShaderResourceView>> List;
+		ADD_RES(View, VolumetricLightmapIndirectionTexture);
+		ADD_RES(View, VolumetricLightmapBrickAmbientVector);
+		ADD_RES(View, VolumetricLightmapBrickSHCoefficients0);
+		ADD_RES(View, VolumetricLightmapBrickSHCoefficients1);
+		ADD_RES(View, VolumetricLightmapBrickSHCoefficients2);
+		ADD_RES(View, VolumetricLightmapBrickSHCoefficients3);
+		ADD_RES(View, VolumetricLightmapBrickSHCoefficients4);
+		ADD_RES(View, VolumetricLightmapBrickSHCoefficients5);
+		ADD_RES(View, SkyBentNormalBrickTexture);
+		ADD_RES(View, DirectionalLightShadowingBrickTexture);
+		ADD_RES(View, GlobalDistanceFieldTexture0);
+		ADD_RES(View, GlobalDistanceFieldTexture1);
+		ADD_RES(View, GlobalDistanceFieldTexture2);
+		ADD_RES(View, GlobalDistanceFieldTexture3);
+		ADD_RES(View, AtmosphereTransmittanceTexture);
+		ADD_RES(View, AtmosphereIrradianceTexture);
+		ADD_RES(View, AtmosphereInscatterTexture);
+		ADD_RES(View, PerlinNoiseGradientTexture);
+		ADD_RES(View, PerlinNoise3DTexture);
+		ADD_RES(View, SobolSamplingTexture);
+		ADD_RES(View, PreIntegratedBRDF);
+		return List;
+	}
+	static std::map<std::string, ComPtr<ID3D11SamplerState>> GetSamplers(const FViewUniformShaderParameters& View)
+	{
+		std::map<std::string, ComPtr<ID3D11SamplerState>> List;
+		ADD_RES(View, MaterialTextureBilinearWrapedSampler);
+		ADD_RES(View, MaterialTextureBilinearClampedSampler);
+		ADD_RES(View, VolumetricLightmapBrickAmbientVectorSampler);
+		ADD_RES(View, VolumetricLightmapTextureSampler0);
+		ADD_RES(View, VolumetricLightmapTextureSampler1);
+		ADD_RES(View, VolumetricLightmapTextureSampler2);
+		ADD_RES(View, VolumetricLightmapTextureSampler3);
+		ADD_RES(View, VolumetricLightmapTextureSampler4);
+		ADD_RES(View, VolumetricLightmapTextureSampler5);
+		ADD_RES(View, SkyBentNormalTextureSampler);
+		ADD_RES(View, GlobalDistanceFieldSampler0);
+		ADD_RES(View, GlobalDistanceFieldSampler1);
+		ADD_RES(View, GlobalDistanceFieldSampler2);
+		ADD_RES(View, GlobalDistanceFieldSampler3);
+		ADD_RES(View, AtmosphereTransmittanceTextureSampler);
+		ADD_RES(View, AtmosphereIrradianceTextureSampler);
+		ADD_RES(View, AtmosphereInscatterTextureSampler);
+		ADD_RES(View, PerlinNoiseGradientTextureSampler);
+		ADD_RES(View, PerlinNoise3DTextureSampler);
+		ADD_RES(View, SharedPointWrappedSampler);
+		ADD_RES(View, SharedPointClampedSampler);
+		ADD_RES(View, SharedBilinearWrappedSampler);
+		ADD_RES(View, SharedBilinearClampedSampler);
+		ADD_RES(View, SharedTrilinearWrappedSampler);
+		ADD_RES(View, SharedTrilinearClampedSampler);
+		ADD_RES(View, PreIntegratedBRDFSampler);
+		return List;
+	}
+	static std::map<std::string, ComPtr<ID3D11UnorderedAccessView>> GetUAVs(const FViewUniformShaderParameters& View)
+	{
+		std::map<std::string, ComPtr<ID3D11UnorderedAccessView>> List;
+		return List;
+	}
+#undef ADD_RES
 
 	void TransposeMatrices();
 };
-#pragma pack(pop)
 
 class SceneView
 {
 public:
-	ID3D11Buffer* ViewUniformBuffer;
+	TUniformBufferPtr<FViewUniformShaderParameters> ViewUniformBuffer;
 	ViewMatrices mViewMatrices;
 private:
 	/** During GetDynamicMeshElements this will be the correct cull volume for shadow stuff */
@@ -276,7 +547,7 @@ public:
 	IntRect UnconstrainedViewRect;
 
 	Vector	ViewLocation;
-	Rotator	ViewRotation;
+	FRotator	ViewRotation;
 
 	ViewMatrices ShadowViewMatrices;
 
@@ -318,8 +589,8 @@ public:
 
 
 	/** Sets up the view rect parameters in the view's uniform shader parameters */
-	void SetupViewRectUniformBufferParameters(ViewUniformShaderParameters& ViewUniformParameters,
-		const IntPoint& InBufferSize,
+	void SetupViewRectUniformBufferParameters(FViewUniformShaderParameters& ViewUniformParameters,
+		const FIntPoint& InBufferSize,
 		const IntRect& InEffectiveViewRect,
 		const ViewMatrices& InViewMatrices,
 		const ViewMatrices& InPrevViewMatrice) const;
@@ -329,8 +600,8 @@ public:
 	* View parameters should be set up in this method if they are required for the view to render properly.
 	* This is to avoid code duplication and uninitialized parameters in other places that create view uniform parameters (e.g Slate)
 	*/
-	void SetupCommonViewUniformBufferParameters(ViewUniformShaderParameters& ViewUniformParameters,
-		const IntPoint& InBufferSize,
+	void SetupCommonViewUniformBufferParameters(FViewUniformShaderParameters& ViewUniformParameters,
+		const FIntPoint& InBufferSize,
 		int32 NumMSAASamples,
 		const IntRect& InEffectiveViewRect,
 		const ViewMatrices& InViewMatrices,

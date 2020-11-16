@@ -36,7 +36,7 @@ void SkeletalMeshSection::CalcMaxBoneInfluences()
 		}
 
 		// maintain max bones used
-		MaxBoneInfluences = Math::Max(MaxBoneInfluences, BonesUsed);
+		MaxBoneInfluences = FMath::Max(MaxBoneInfluences, BonesUsed);
 	}
 }
 

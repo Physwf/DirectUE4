@@ -73,15 +73,15 @@ struct FStaticMeshDataType
 	/** The stream to read the vertex color from. */
 	FVertexStreamComponent ColorComponent;
 
-	ID3D11ShaderResourceView* PositionComponentSRV = nullptr;
+	ComPtr<ID3D11ShaderResourceView> PositionComponentSRV = nullptr;
 
-	ID3D11ShaderResourceView* TangentsSRV = nullptr;
+	ComPtr<ID3D11ShaderResourceView> TangentsSRV = nullptr;
 
 	/** A SRV to manually bind and load TextureCoordinates in the Vertexshader. */
-	ID3D11ShaderResourceView* TextureCoordinatesSRV = nullptr;
+	ComPtr<ID3D11ShaderResourceView> TextureCoordinatesSRV = nullptr;
 
 	/** A SRV to manually bind and load Colors in the Vertexshader. */
-	ID3D11ShaderResourceView* ColorComponentsSRV = nullptr;
+	ComPtr<ID3D11ShaderResourceView> ColorComponentsSRV = nullptr;
 
 	int LightMapCoordinateIndex = -1;
 	int NumTexCoords = -1;
@@ -187,6 +187,9 @@ public:
 	void SetStreams(ID3D11DeviceContext* Context) const;
 	void SetPositionStream(ID3D11DeviceContext* Context) const;
 
+	void InitDeclaration(std::vector<D3D11_INPUT_ELEMENT_DESC>& Elements);
+	void InitPositionDeclaration(std::vector<D3D11_INPUT_ELEMENT_DESC>& Elements);
+
 	std::vector<D3D11_INPUT_ELEMENT_DESC>& GetDeclaration() { return Declaration; }
 	const std::vector<D3D11_INPUT_ELEMENT_DESC>& GetDeclaration() const { return Declaration; }
 	const std::vector<D3D11_INPUT_ELEMENT_DESC>& GetPositionDeclaration() const { return PositionDeclaration; }
@@ -220,6 +223,20 @@ private:
 	std::vector<D3D11_INPUT_ELEMENT_DESC> PositionDeclaration;
 };
 
+struct alignas(16) FLocalVertexFactoryUniformShaderParameters
+{
+	IntVector VertexFetch_Parameters;
+};
+struct FLocalVertexFactoryUniform
+{
+	ComPtr<ID3D11Buffer> Resource;
+	ComPtr<ID3D11ShaderResourceView> VertexFetch_TexCoordBuffer;
+	ComPtr<ID3D11ShaderResourceView> VertexFetch_PackedTangentsBuffer;
+};
+
+extern std::shared_ptr<FLocalVertexFactoryUniform> CreateLocalVFUniformBuffer(const class FLocalVertexFactory* VertexFactory);
+
+
 class FLocalVertexFactory : public FVertexFactory
 {
 public:
@@ -240,22 +257,22 @@ public:
 	void InitRHI();
 	void ReleaseRHI();
 
-	inline const ID3D11ShaderResourceView* GetPositionsSRV() const
+	inline const ComPtr<ID3D11ShaderResourceView> GetPositionsSRV() const
 	{
 		return StaticMeshDataType->PositionComponentSRV;
 	}
 
-	inline const ID3D11ShaderResourceView* GetTangentsSRV() const
+	inline const ComPtr<ID3D11ShaderResourceView> GetTangentsSRV() const
 	{
 		return StaticMeshDataType->TangentsSRV;
 	}
 
-	inline const ID3D11ShaderResourceView* GetTextureCoordinatesSRV() const
+	inline const ComPtr<ID3D11ShaderResourceView> GetTextureCoordinatesSRV() const
 	{
 		return StaticMeshDataType->TextureCoordinatesSRV;
 	}
 
-	inline const ID3D11ShaderResourceView* GetColorComponentsSRV() const
+	inline const ComPtr<ID3D11ShaderResourceView> GetColorComponentsSRV() const
 	{
 		return StaticMeshDataType->ColorComponentsSRV;
 	}
@@ -279,6 +296,8 @@ protected:
 	const FDataType& GetData() const { return Data; }
 	FDataType Data;
 	const FStaticMeshDataType* StaticMeshDataType;
+
+	std::shared_ptr<FLocalVertexFactoryUniform> UniformBuffer;
 };
 
 class GPUSkinVertexFactory : public FVertexFactory
@@ -315,17 +334,17 @@ public:
 	}
 
 
-	const ID3D11ShaderResourceView* GetPositionsSRV() const
+	const ComPtr<ID3D11ShaderResourceView> GetPositionsSRV() const
 	{
 		return Data.PositionComponentSRV;
 	}
 
-	const ID3D11ShaderResourceView* GetTangentsSRV() const
+	const ComPtr<ID3D11ShaderResourceView> GetTangentsSRV() const
 	{
 		return Data.TangentsSRV;
 	}
 
-	const ID3D11ShaderResourceView* GetTextureCoordinatesSRV() const
+	const ComPtr<ID3D11ShaderResourceView> GetTextureCoordinatesSRV() const
 	{
 		return Data.TextureCoordinatesSRV;
 	}
@@ -335,7 +354,7 @@ public:
 		return Data.NumTexCoords;
 	}
 
-	const ID3D11ShaderResourceView* GetColorComponentsSRV() const
+	const ComPtr<ID3D11ShaderResourceView> GetColorComponentsSRV() const
 	{
 		return Data.ColorComponentsSRV;
 	}

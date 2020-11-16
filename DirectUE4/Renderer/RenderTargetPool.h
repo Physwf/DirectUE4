@@ -32,7 +32,7 @@ struct PooledRenderTargetDesc
 	* @param InFlags bit mask combined from elements of ETextureCreateFlags e.g. TexCreate_UAV
 	*/
 	static PooledRenderTargetDesc Create2DDesc(
-		IntPoint InExtent,
+		FIntPoint InExtent,
 		EPixelFormat InFormat,
 		const FClearValueBinding& InClearValue,
 		uint32 InFlags,
@@ -145,7 +145,7 @@ struct PooledRenderTargetDesc
 
 	FClearValueBinding ClearValue;
 	/** In pixels, (0,0) if not set, (x,0) for cube maps, todo: make 3d int vector for volume textures */
-	IntPoint Extent;
+	FIntPoint Extent;
 	/** 0, unless it's texture array or volume texture */
 	uint32 Depth;
 	/** >1 if a texture array should be used (not supported on DX9) */

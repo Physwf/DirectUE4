@@ -13,7 +13,7 @@ void Actor::SetPosition(Vector InPosition)
 	Position = InPosition;
 }
 
-void Actor::SetRotation(Rotator InRotation)
+void Actor::SetRotation(FRotator InRotation)
 {
 	Rotation = InRotation;
 }

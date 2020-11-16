@@ -5,7 +5,7 @@
 #include <vector>
 
 
-class ViewInfo;
+class FViewInfo;
 
 template<typename DrawingPolicyType>
 class TStaticMeshDrawList
@@ -86,7 +86,7 @@ class TStaticMeshDrawList
 // 			return sizeof(*this) + CompactElements.GetAllocatedSize() + Elements.GetAllocatedSize();
 // 		}
 	};
-	int32 DrawElement(ID3D11DeviceContext* Context, const ViewInfo& View, /*const typename DrawingPolicyType::ContextDataType PolicyContext,*/ FDrawingPolicyRenderState& DrawRenderState, const FElement& Element, /*uint64 BatchElementMask, */FDrawingPolicyLink* DrawingPolicyLink/*, bool &bDrawnShared*/);
+	int32 DrawElement(ID3D11DeviceContext* Context, const FViewInfo& View, /*const typename DrawingPolicyType::ContextDataType PolicyContext,*/ FDrawingPolicyRenderState& DrawRenderState, const FElement& Element, /*uint64 BatchElementMask, */FDrawingPolicyLink* DrawingPolicyLink/*, bool &bDrawnShared*/);
 public:
 	void AddMesh(
 		FStaticMesh* Mesh,
@@ -96,7 +96,7 @@ public:
 
 	bool DrawVisible(
 		ID3D11DeviceContext* Context, 
-		const ViewInfo& View, 
+		const FViewInfo& View, 
 		/*const typename DrawingPolicyType::ContextDataType PolicyContext, */
 		const FDrawingPolicyRenderState& DrawRenderState//,
 		/*const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap,*/ 
@@ -119,7 +119,7 @@ void TStaticMeshDrawList<DrawingPolicyType>::AddMesh(FStaticMesh* Mesh, /*const 
 template<typename DrawingPolicyType>
 bool TStaticMeshDrawList<DrawingPolicyType>::DrawVisible(
 	ID3D11DeviceContext* Context, 
-	const ViewInfo& View, 
+	const FViewInfo& View, 
 	/*const typename DrawingPolicyType::ContextDataType PolicyContext, */ 
 	const FDrawingPolicyRenderState& DrawRenderState//, 
 	/*const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap,*/ 
@@ -146,7 +146,7 @@ bool TStaticMeshDrawList<DrawingPolicyType>::DrawVisible(
 
 
 template<typename DrawingPolicyType>
-int32 TStaticMeshDrawList<DrawingPolicyType>::DrawElement(ID3D11DeviceContext* Context, const ViewInfo& View, /*const typename DrawingPolicyType::ContextDataType PolicyContext,*/ FDrawingPolicyRenderState& DrawRenderState, const FElement& Element, /*uint64 BatchElementMask, */FDrawingPolicyLink* DrawingPolicyLink/*, bool &bDrawnShared*/)
+int32 TStaticMeshDrawList<DrawingPolicyType>::DrawElement(ID3D11DeviceContext* Context, const FViewInfo& View, /*const typename DrawingPolicyType::ContextDataType PolicyContext,*/ FDrawingPolicyRenderState& DrawRenderState, const FElement& Element, /*uint64 BatchElementMask, */FDrawingPolicyLink* DrawingPolicyLink/*, bool &bDrawnShared*/)
 {
 	int32 BatchElementIndex = 0;
 

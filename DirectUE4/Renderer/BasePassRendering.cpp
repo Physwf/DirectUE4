@@ -197,7 +197,7 @@ void InitBasePass()
 	}
 	*/
 }
-void RenderBasePassView(ViewInfo& View)
+void RenderBasePassView(FViewInfo& View)
 {
 	/*
 	RenderTargets& SceneContext = RenderTargets::Get();

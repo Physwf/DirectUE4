@@ -15,7 +15,7 @@ public:
 
 	void PrepareViewRectsForRendering();
 	void InitViews();
-	void RenderPrePassView(ViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState);
+	void RenderPrePassView(FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState);
 	void RenderPrePass();
 	void RenderHzb();
 	void RenderShadowDepthMaps();
@@ -26,10 +26,10 @@ public:
 
 	void Render();
 
-	static IntPoint GetDesiredInternalBufferSize(const SceneViewFamily& ViewFamily);
+	static FIntPoint GetDesiredInternalBufferSize(const SceneViewFamily& ViewFamily);
 public:
 	FScene* Scene;
 	/** The view family being rendered.  This references the Views array. */
 	SceneViewFamily ViewFamily;
-	std::vector<ViewInfo> Views;
+	std::vector<FViewInfo> Views;
 };

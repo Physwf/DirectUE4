@@ -37,7 +37,7 @@ void RCPassPostProcessAmbientOcclusionSetup::Init()
 	*/
 }
 
-void RCPassPostProcessAmbientOcclusionSetup::Process(ViewInfo& View)
+void RCPassPostProcessAmbientOcclusionSetup::Process(FViewInfo& View)
 {
 	/*
 	D3D11DeviceContext->OMSetRenderTargets(1, &OutputRTV, NULL);
@@ -186,7 +186,7 @@ void RCPassPostProcessAmbientOcclusion::Init(bool InAOSetupAsInput)
 	*/
 }
 
-void RCPassPostProcessAmbientOcclusion::Process(ViewInfo& View)
+void RCPassPostProcessAmbientOcclusion::Process(FViewInfo& View)
 {
 	/*
 	ID3D11RenderTargetView* DestRenderTarget = NULL;
@@ -210,7 +210,7 @@ void RCPassPostProcessAmbientOcclusion::Process(ViewInfo& View)
 	*/
 }
 
-Vector4 GetHZBValue(const ViewInfo& View)
+Vector4 GetHZBValue(const FViewInfo& View)
 {
 	const Vector2 HZBScaleFactor(
 		float(View.ViewRect.Width()) / float(2 * View.HZBMipmap0Size.X),
@@ -227,7 +227,7 @@ Vector4 GetHZBValue(const ViewInfo& View)
 	return HZBRemappingValue;
 }
 
-void RCPassPostProcessAmbientOcclusion::ProcessPS(ID3D11RenderTargetView* DestRenderTarget, ViewInfo& View, const IntRect& ViewRect, const IntPoint& TexSize, int32 ShaderQuality, bool bDoUpsample)
+void RCPassPostProcessAmbientOcclusion::ProcessPS(ID3D11RenderTargetView* DestRenderTarget, FViewInfo& View, const IntRect& ViewRect, const FIntPoint& TexSize, int32 ShaderQuality, bool bDoUpsample)
 {
 	/*
 	D3D11DeviceContext->OMSetRenderTargets(1, &DestRenderTarget, NULL);
@@ -384,7 +384,7 @@ void RCPassPostProcessBasePassAO::Init()
 	*/
 }
 
-void RCPassPostProcessBasePassAO::Process(ViewInfo& View)
+void RCPassPostProcessBasePassAO::Process(FViewInfo& View)
 {
 	/*
 	RenderTargets& SceneContext = RenderTargets::Get();

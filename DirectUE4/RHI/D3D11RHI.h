@@ -38,7 +38,7 @@ struct ParameterAllocation
 
 ID3D11Buffer* CreateVertexBuffer(bool bDynamic,unsigned int Size, void* Data = NULL);
 ID3D11Buffer* CreateIndexBuffer(void* Data, unsigned int Size);
-ID3D11Buffer* CreateConstantBuffer(bool bDynamic, unsigned int Size, void* Data = NULL);
+ID3D11Buffer* CreateConstantBuffer(bool bDynamic, unsigned int Size,const void* Data = NULL);
 ID3DBlob* CompileVertexShader(const wchar_t* File, const char* EntryPoint,const D3D_SHADER_MACRO* OtherMacros = NULL, int OtherMacrosCount = 0);
 ID3DBlob* CompilePixelShader(const wchar_t* File, const char* EntryPoint,const D3D_SHADER_MACRO* OtherMacros = NULL, int OtherMacrosCount = 0);
 void GetShaderParameterAllocations(ID3DBlob* Code,std::map<std::string, ParameterAllocation>& OutParams);
@@ -106,7 +106,7 @@ public:
 		Desc.AddressW = AddressW;
 		Desc.MipLODBias = MipBias;
 		Desc.MaxAnisotropy = MaxAnisotroy;
-		LinearColor LC = FColor(BorderColor);
+		FLinearColor LC = FColor(BorderColor);
 		Desc.BorderColor[0] = LC.R;
 		Desc.BorderColor[1] = LC.G;
 		Desc.BorderColor[2] = LC.B;
@@ -614,7 +614,7 @@ struct FClearValueBinding
 		assert(ColorBinding == EClearBinding::ENoneBound);
 	}
 
-	explicit FClearValueBinding(const LinearColor& InClearColor)
+	explicit FClearValueBinding(const FLinearColor& InClearColor)
 		: ColorBinding(EClearBinding::EColorBound)
 	{
 		Value.Color[0] = InClearColor.R;
@@ -630,10 +630,10 @@ struct FClearValueBinding
 		Value.DSValue.Stencil = StencilClearValue;
 	}
 
-	LinearColor GetClearColor() const
+	FLinearColor GetClearColor() const
 	{
 		assert(ColorBinding == EClearBinding::EColorBound);
-		return LinearColor(Value.Color[0], Value.Color[1], Value.Color[2], Value.Color[3]);
+		return FLinearColor(Value.Color[0], Value.Color[1], Value.Color[2], Value.Color[3]);
 	}
 
 	void GetDepthStencil(float& OutDepth, uint32& OutStencil) const
@@ -811,7 +811,7 @@ public:
 
 	uint32 GetSizeX() const { return SizeX; }
 	uint32 GetSizeY() const { return SizeY; }
-	inline IntPoint GetSizeXY() const { return IntPoint(SizeX, SizeY); }
+	inline FIntPoint GetSizeXY() const { return FIntPoint(SizeX, SizeY); }
 	uint32 GetNumMips() const { return NumMips; }
 	EPixelFormat GetFormat() const { return Format; }
 	uint32 GetFlags() const { return Flags; }
@@ -855,7 +855,7 @@ public:
 	{
 		return ClearValue.ColorBinding != EClearBinding::ENoneBound;
 	}
-	LinearColor GetClearColor() const
+	FLinearColor GetClearColor() const
 	{
 		return ClearValue.GetClearColor();
 	}
@@ -1091,3 +1091,123 @@ enum EShaderFrequency
 
 	SF_NumBits = 3,
 };
+/** The base type of a value in a uniform buffer. */
+enum EUniformBufferBaseType
+{
+	UBMT_INVALID,
+	UBMT_BOOL,
+	UBMT_INT32,
+	UBMT_UINT32,
+	UBMT_FLOAT32,
+	UBMT_STRUCT,
+	UBMT_SRV,
+	UBMT_UAV,
+	UBMT_SAMPLER,
+	UBMT_TEXTURE,
+
+	EUniformBufferBaseType_Num,
+	EUniformBufferBaseType_NumBits = 4,
+};
+
+struct FUniformBuffer
+{
+	std::string ConstantBufferName;
+	ComPtr<ID3D11Buffer> ConstantBuffer = NULL;
+	std::map<std::string, ComPtr<ID3D11ShaderResourceView>> SRVs;
+	std::map<std::string, ComPtr<ID3D11SamplerState>> Samplers;
+	std::map<std::string, ComPtr<ID3D11UnorderedAccessView>> UAVs;
+};
+
+std::shared_ptr<FUniformBuffer> RHICreateUniformBuffer(
+	const void* Contents, 
+	std::map<std::string, ComPtr<ID3D11ShaderResourceView>>& SRVs, 
+	std::map<std::string, ComPtr<ID3D11SamplerState>>& Samplers, 
+	std::map<std::string, ComPtr<ID3D11UnorderedAccessView>>& UAVs
+);
+
+template<typename TBufferStruct>
+class TUniformBufferPtr : public std::shared_ptr<FUniformBuffer>
+{
+public:
+	static TUniformBufferPtr<TBufferStruct> CreateUniformBufferImmediate(const TBufferStruct& Value)
+	{
+		TUniformBufferPtr<TBufferStruct> Result;
+		Result->ConstantBuffer = CreateConstantBuffer(false,sizeof(TBufferStruct::ConstantStruct), &Value);
+		Result->ConstantBufferName = TBufferStruct::GetConstantBufferName();
+		Result->SRVs = TBufferStruct::GetSRVs(Value);
+		Result->Samplers = TBufferStruct::GetSamplers(Value);
+		Result->UAVs = TBufferStruct::GetUAVs(Value);
+		return Result;
+	}
+};
+#define UNIFORM_BUFFER_STRUCT_ALIGNMENT 16
+template<typename TBufferStruct>
+class TUniformBuffer
+{
+public:
+	TUniformBuffer()
+		: Contents(nullptr)
+	{
+	}
+
+	~TUniformBuffer()
+	{
+		if (Contents)
+		{
+			free(Contents);
+		}
+	}
+
+	/** Sets the contents of the uniform buffer. */
+	void SetContents(const TBufferStruct& NewContents)
+	{
+		SetContentsNoUpdate(NewContents);
+		ReleaseDynamicRHI();
+		InitDynamicRHI();
+	}
+	/** Sets the contents of the uniform buffer to all zeros. */
+	void SetContentsToZero()
+	{
+		if (!Contents)
+		{
+			Contents = (uint8*)std::aligned_alloc(UNIFORM_BUFFER_STRUCT_ALIGNMENT, sizeof(TBufferStruct));
+		}
+		memset(Contents,0, sizeof(TBufferStruct));
+		ReleaseDynamicRHI();
+		InitDynamicRHI();
+	}
+	// FRenderResource interface.
+	void InitDynamicRHI()
+	{
+		UniformBufferRHI.reset();
+		if (Contents)
+		{
+			UniformBufferRHI = RHICreateUniformBuffer(Contents, TBufferStruct::GetSRVs(*(TBufferStruct*)Contents), TBufferStruct::GetSamplers(*(TBufferStruct*)Contents), TBufferStruct::GetUAVs(*(TBufferStruct*)Contents));
+		}
+	}
+	void ReleaseDynamicRHI()
+	{
+		UniformBufferRHI.reset();
+	}
+	// Accessors.
+	std::shared_ptr<FUniformBuffer> GetUniformBufferRHI() const
+	{
+		assert(UniformBufferRHI.get()); // you are trying to use a UB that was never filled with anything
+		return UniformBufferRHI;
+	}
+protected:
+	/** Sets the contents of the uniform buffer. Used within calls to InitDynamicRHI */
+	void SetContentsNoUpdate(const TBufferStruct& NewContents)
+	{
+		if (!Contents)
+		{
+			Contents = (uint8*)std::aligned_alloc(UNIFORM_BUFFER_STRUCT_ALIGNMENT,sizeof(TBufferStruct));
+		}
+		memcpy(Contents, &NewContents, sizeof(TBufferStruct));
+	}
+private:
+	std::shared_ptr<FUniformBuffer> UniformBufferRHI;
+	uint8* Contents;
+};
+
+void SetRenderTarget(ID3D11DeviceContext* Context, ID3D11RenderTargetView* NewRenderTarget, ID3D11DepthStencilView* NewDepthStencilTarget);

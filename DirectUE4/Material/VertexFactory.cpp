@@ -101,6 +101,16 @@ void FVertexFactory::SetPositionStream(ID3D11DeviceContext* Context) const
 	}
 }
 
+void FVertexFactory::InitDeclaration(std::vector<D3D11_INPUT_ELEMENT_DESC>& Elements)
+{
+	Declaration = Elements;
+}
+
+void FVertexFactory::InitPositionDeclaration(std::vector<D3D11_INPUT_ELEMENT_DESC>& Elements)
+{
+	PositionDeclaration = Elements;
+}
+
 D3D11_INPUT_ELEMENT_DESC FVertexFactory::AccessStreamComponent(const FVertexStreamComponent& Component, uint8 AttributeIndex)
 {
 	FVertexStream VertexStream;
@@ -165,10 +175,53 @@ void FLocalVertexFactory::ReleaseResource()
 
 void FLocalVertexFactory::InitRHI()
 {
+	if (Data.PositionComponent.VertexBuffer != Data.TangentBasisComponents[0].VertexBuffer)
+	{
+		std::vector<D3D11_INPUT_ELEMENT_DESC> PositionOnlyStreamElements;
+		PositionOnlyStreamElements.push_back(AccessPositionStreamComponent(Data.PositionComponent, 0));
+		InitPositionDeclaration(PositionOnlyStreamElements);
+	}
 
+	std::vector<D3D11_INPUT_ELEMENT_DESC> Elements;
+	if (Data.PositionComponent.VertexBuffer != NULL)
+	{
+		Elements.push_back(AccessStreamComponent(Data.PositionComponent, 0));
+	}
+
+	uint8 TangentBasisAttributes[2] = { 1, 2 };
+	for (int32 AxisIndex = 0; AxisIndex < 2; AxisIndex++)
+	{
+		if (Data.TangentBasisComponents[AxisIndex].VertexBuffer != NULL)
+		{
+			Elements.push_back(AccessStreamComponent(Data.TangentBasisComponents[AxisIndex], TangentBasisAttributes[AxisIndex]));
+		}
+	}
+
+	Elements.push_back(AccessStreamComponent(Data.TextureCoordinates, 4));
+	Elements.push_back(AccessStreamComponent(Data.LightMapCoordinateComponent, 15));
+
+	InitDeclaration(Elements);
+
+	UniformBuffer = CreateLocalVFUniformBuffer(this);
 }
 
 void FLocalVertexFactory::ReleaseRHI()
 {
 
+}
+
+std::shared_ptr<FLocalVertexFactoryUniform> CreateLocalVFUniformBuffer(const class FLocalVertexFactory* LocalVertexFactory)
+{
+	FLocalVertexFactoryUniformShaderParameters UniformParameters;
+	const int NumTexCoords = LocalVertexFactory->GetNumTexcoords();
+	const int LightMapCoordinateIndex = LocalVertexFactory->GetLightMapCoordinateIndex();
+	int ColorIndexMask = 0;
+	UniformParameters.VertexFetch_Parameters = { ColorIndexMask, NumTexCoords, LightMapCoordinateIndex };
+
+	std::shared_ptr<FLocalVertexFactoryUniform> Uniform = std::make_shared<FLocalVertexFactoryUniform>();
+	Uniform->VertexFetch_PackedTangentsBuffer = LocalVertexFactory->GetTangentsSRV();
+	Uniform->VertexFetch_TexCoordBuffer = LocalVertexFactory->GetTextureCoordinatesSRV();
+	Uniform->Resource = CreateConstantBuffer(false, sizeof(UniformParameters), &UniformParameters);
+
+	return Uniform;
 }

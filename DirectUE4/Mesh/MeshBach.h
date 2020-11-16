@@ -2,14 +2,15 @@
 
 #include "UnrealMath.h"
 #include "D3D11RHI.h"
+#include "PrimitiveUniformBufferParameters.h"
 
 struct FMeshBatchElement
 {
 	/** Primitive uniform buffer to use for rendering. */
 	//const TUniformBuffer<FPrimitiveUniformShaderParameters>* PrimitiveUniformBufferResource;
-	ID3D11Buffer* PrimitiveUniformBufferResource;
+	const TUniformBuffer<FPrimitiveUniformShaderParameters>* PrimitiveUniformBufferResource;
 	/** Used for lifetime management of a temporary uniform buffer, can be NULL. */
-	//TUniformBufferRef<FPrimitiveUniformShaderParameters> PrimitiveUniformBuffer;
+	TUniformBufferPtr<FPrimitiveUniformShaderParameters> PrimitiveUniformBuffer;
 
 	//const FIndexBuffer* IndexBuffer;
 	const ID3D11Buffer* IndexBuffer;

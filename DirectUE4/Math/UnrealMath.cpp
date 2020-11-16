@@ -114,9 +114,9 @@ void Matrix::RemoveScaling(float Tolerance /*= SMALL_NUMBER*/)
 	const float SquareSum0 = (M[0][0] * M[0][0]) + (M[0][1] * M[0][1]) + (M[0][2] * M[0][2]);
 	const float SquareSum1 = (M[1][0] * M[1][0]) + (M[1][1] * M[1][1]) + (M[1][2] * M[1][2]);
 	const float SquareSum2 = (M[2][0] * M[2][0]) + (M[2][1] * M[2][1]) + (M[2][2] * M[2][2]);
-	const float Scale0 = (float)Math::FloatSelect(SquareSum0 - Tolerance, Math::InvSqrt(SquareSum0), 1.0f);
-	const float Scale1 = (float)Math::FloatSelect(SquareSum1 - Tolerance, Math::InvSqrt(SquareSum1), 1.0f);
-	const float Scale2 = (float)Math::FloatSelect(SquareSum2 - Tolerance, Math::InvSqrt(SquareSum2), 1.0f);
+	const float Scale0 = (float)FMath::FloatSelect(SquareSum0 - Tolerance, FMath::InvSqrt(SquareSum0), 1.0f);
+	const float Scale1 = (float)FMath::FloatSelect(SquareSum1 - Tolerance, FMath::InvSqrt(SquareSum1), 1.0f);
+	const float Scale2 = (float)FMath::FloatSelect(SquareSum2 - Tolerance, FMath::InvSqrt(SquareSum2), 1.0f);
 	M[0][0] *= Scale0;
 	M[0][1] *= Scale0;
 	M[0][2] *= Scale0;
@@ -139,7 +139,7 @@ Vector Matrix::ExtractScaling(float Tolerance /*= SMALL_NUMBER*/)
 
 	if (SquareSum0 > Tolerance)
 	{
-		float Scale0 = Math::Sqrt(SquareSum0);
+		float Scale0 = FMath::Sqrt(SquareSum0);
 		Scale3D[0] = Scale0;
 		float InvScale0 = 1.f / Scale0;
 		M[0][0] *= InvScale0;
@@ -153,7 +153,7 @@ Vector Matrix::ExtractScaling(float Tolerance /*= SMALL_NUMBER*/)
 
 	if (SquareSum1 > Tolerance)
 	{
-		float Scale1 = Math::Sqrt(SquareSum1);
+		float Scale1 = FMath::Sqrt(SquareSum1);
 		Scale3D[1] = Scale1;
 		float InvScale1 = 1.f / Scale1;
 		M[1][0] *= InvScale1;
@@ -167,7 +167,7 @@ Vector Matrix::ExtractScaling(float Tolerance /*= SMALL_NUMBER*/)
 
 	if (SquareSum2 > Tolerance)
 	{
-		float Scale2 = Math::Sqrt(SquareSum2);
+		float Scale2 = FMath::Sqrt(SquareSum2);
 		Scale3D[2] = Scale2;
 		float InvScale2 = 1.f / Scale2;
 		M[2][0] *= InvScale2;
@@ -294,7 +294,7 @@ float Vector::Triple(const Vector& X, const Vector& Y, const Vector& Z)
 
 bool Vector::Equals(const Vector& V, float Tolerance /*= KINDA_SMALL_NUMBER*/) const
 {
-	return Math::Abs(X - V.X) <= Tolerance && Math::Abs(Y - V.Y) <= Tolerance && Math::Abs(Z - V.Z) <= Tolerance;
+	return FMath::Abs(X - V.X) <= Tolerance && FMath::Abs(Y - V.Y) <= Tolerance && FMath::Abs(Z - V.Z) <= Tolerance;
 }
 
 struct Vector2 Vector::ToVector2() const
@@ -304,7 +304,7 @@ struct Vector2 Vector::ToVector2() const
 
 float Vector::Size() const
 {
-	return Math::Sqrt(X*X + Y * Y + Z * Z);
+	return FMath::Sqrt(X*X + Y * Y + Z * Z);
 }
 
 bool Vector::IsZero() const
@@ -342,9 +342,58 @@ Vector Vector::Reciprocal() const
 	return RecVector;
 }
 
+Vector Vector::GetUnsafeNormal() const
+{
+	const float Scale = FMath::InvSqrt(X*X + Y * Y + Z * Z);
+	return Vector(X*Scale, Y*Scale, Z*Scale);
+}
+
+Vector Vector::RotateAngleAxis(const float AngleDeg, const Vector& Axis) const
+{
+	float S, C;
+	FMath::SinCos(&S, &C, FMath::DegreesToRadians(AngleDeg));
+
+	const float XX = Axis.X * Axis.X;
+	const float YY = Axis.Y * Axis.Y;
+	const float ZZ = Axis.Z * Axis.Z;
+
+	const float XY = Axis.X * Axis.Y;
+	const float YZ = Axis.Y * Axis.Z;
+	const float ZX = Axis.Z * Axis.X;
+
+	const float XS = Axis.X * S;
+	const float YS = Axis.Y * S;
+	const float ZS = Axis.Z * S;
+
+	const float OMC = 1.f - C;
+
+	return Vector(
+		(OMC * XX + C) * X + (OMC * XY - ZS) * Y + (OMC * ZX + YS) * Z,
+		(OMC * XY + ZS) * X + (OMC * YY + C) * Y + (OMC * YZ - XS) * Z,
+		(OMC * ZX - YS) * X + (OMC * YZ + XS) * Y + (OMC * ZZ + C) * Z
+	);
+}
+
+FRotator Vector::Rotation() const
+{
+	return ToOrientationRotator();
+}
+
+FRotator Vector::ToOrientationRotator() const
+{
+	FRotator R;
+	// Find yaw.
+	R.Yaw = FMath::Atan2(Y, X) * (180.f / PI);
+	// Find pitch.
+	R.Pitch = FMath::Atan2(Z, FMath::Sqrt(X*X + Y * Y)) * (180.f / PI);
+	// Find roll.
+	R.Roll = 0;
+	return R;
+}
+
 static const float OneOver255 = 1.0f / 255.0f;
 
-LinearColor::LinearColor(struct FColor InColor)
+FLinearColor::FLinearColor(struct FColor InColor)
 {
 	R = (float)sRGBToLinearTable[InColor.R];
 	G = (float)sRGBToLinearTable[InColor.G];
@@ -352,7 +401,7 @@ LinearColor::LinearColor(struct FColor InColor)
 	A = float(InColor.A) * OneOver255;
 }
 
-double LinearColor::sRGBToLinearTable[256] =
+double FLinearColor::sRGBToLinearTable[256] =
 {
 	0,
 	0.000303526983548838, 0.000607053967097675, 0.000910580950646512, 0.00121410793419535, 0.00151763491774419,
@@ -444,23 +493,23 @@ FBox Frustum::GetBounds()
 
 bool Vector2::Equals(const Vector2& V, float Tolerance /*= KINDA_SMALL_NUMBER*/) const
 {
-	return Math::Abs(X - V.X) <= Tolerance && Math::Abs(Y - V.Y) <= Tolerance;
+	return FMath::Abs(X - V.X) <= Tolerance && FMath::Abs(Y - V.Y) <= Tolerance;
 }
 
 bool Vector2::IsNearlyZero(float Tolerance /*= KINDA_SMALL_NUMBER*/) const
 {
-	return	Math::Abs(X) <= Tolerance && Math::Abs(Y) <= Tolerance;
+	return	FMath::Abs(X) <= Tolerance && FMath::Abs(Y) <= Tolerance;
 }
 
-float Math::Atan2(float Y, float X)
+float FMath::Atan2(float Y, float X)
 {
 	//return atan2f(Y,X);
 	// atan2f occasionally returns NaN with perfectly valid input (possibly due to a compiler or library bug).
 	// We are replacing it with a minimax approximation with a max relative error of 7.15255737e-007 compared to the C library function.
 	// On PC this has been measured to be 2x faster than the std C version.
 
-	const float absX = Math::Abs(X);
-	const float absY = Math::Abs(Y);
+	const float absX = FMath::Abs(X);
+	const float absY = FMath::Abs(Y);
 	const bool yAbsBigger = (absY > absX);
 	float t0 = yAbsBigger ? absY : absX; // Max(absY, absX)
 	float t1 = yAbsBigger ? absX : absY; // Min(absX, absY)
@@ -497,34 +546,34 @@ float Math::Atan2(float Y, float X)
 	return t3;
 }
 
-bool Math::SphereAABBIntersection(const Vector& SphereCenter, const float RadiusSquared, const FBox& AABB)
+bool FMath::SphereAABBIntersection(const Vector& SphereCenter, const float RadiusSquared, const FBox& AABB)
 {
 	float DistSquared = 0.f;
 	// Check each axis for min/max and add the distance accordingly
 	// NOTE: Loop manually unrolled for > 2x speed up
 	if (SphereCenter.X < AABB.Min.X)
 	{
-		DistSquared += Math::Square(SphereCenter.X - AABB.Min.X);
+		DistSquared += FMath::Square(SphereCenter.X - AABB.Min.X);
 	}
 	else if (SphereCenter.X > AABB.Max.X)
 	{
-		DistSquared += Math::Square(SphereCenter.X - AABB.Max.X);
+		DistSquared += FMath::Square(SphereCenter.X - AABB.Max.X);
 	}
 	if (SphereCenter.Y < AABB.Min.Y)
 	{
-		DistSquared += Math::Square(SphereCenter.Y - AABB.Min.Y);
+		DistSquared += FMath::Square(SphereCenter.Y - AABB.Min.Y);
 	}
 	else if (SphereCenter.Y > AABB.Max.Y)
 	{
-		DistSquared += Math::Square(SphereCenter.Y - AABB.Max.Y);
+		DistSquared += FMath::Square(SphereCenter.Y - AABB.Max.Y);
 	}
 	if (SphereCenter.Z < AABB.Min.Z)
 	{
-		DistSquared += Math::Square(SphereCenter.Z - AABB.Min.Z);
+		DistSquared += FMath::Square(SphereCenter.Z - AABB.Min.Z);
 	}
 	else if (SphereCenter.Z > AABB.Max.Z)
 	{
-		DistSquared += Math::Square(SphereCenter.Z - AABB.Max.Z);
+		DistSquared += FMath::Square(SphereCenter.Z - AABB.Max.Z);
 	}
 	// If the distance is less than or equal to the radius, they intersect
 	return DistSquared <= RadiusSquared;
@@ -535,22 +584,22 @@ Vector4 Vector4::GetSafeNormal(float Tolerance /*= SMALL_NUMBER*/) const
 	const float SquareSum = X * X + Y * Y + Z * Z;
 	if (SquareSum > Tolerance)
 	{
-		const float Scale = Math::InvSqrt(SquareSum);
+		const float Scale = FMath::InvSqrt(SquareSum);
 		return Vector4(X*Scale, Y*Scale, Z*Scale, 0.0f);
 	}
 	return Vector4(0.f);
 }
 
-FQuat Rotator::Quaternion() const
+FQuat FRotator::Quaternion() const
 {
 	const float DEG_TO_RAD = PI / (180.f);
 	const float DIVIDE_BY_2 = DEG_TO_RAD / 2.f;
 	float SP, SY, SR;
 	float CP, CY, CR;
 
-	Math::SinCos(&SP, &CP, Pitch*DIVIDE_BY_2);
-	Math::SinCos(&SY, &CY, Yaw*DIVIDE_BY_2);
-	Math::SinCos(&SR, &CR, Roll*DIVIDE_BY_2);
+	FMath::SinCos(&SP, &CP, Pitch*DIVIDE_BY_2);
+	FMath::SinCos(&SY, &CY, Yaw*DIVIDE_BY_2);
+	FMath::SinCos(&SR, &CR, Roll*DIVIDE_BY_2);
 
 	FQuat RotationQuat;
 	RotationQuat.X = CR * SP*SY - SR * CP*CY;
@@ -560,14 +609,14 @@ FQuat Rotator::Quaternion() const
 	return RotationQuat;
 }
 
-Rotator FQuat::FRotator() const
+FRotator FQuat::Rotator() const
 {
 	//SCOPE_CYCLE_COUNTER(STAT_MathConvertQuatToRotator);
 
 	DiagnosticCheckNaN();
 	const float SingularityTest = Z * X - W * Y;
 	const float YawY = 2.f*(W*Z + X * Y);
-	const float YawX = (1.f - 2.f*(Math::Square(Y) + Math::Square(Z)));
+	const float YawX = (1.f - 2.f*(FMath::Square(Y) + FMath::Square(Z)));
 
 	// reference 
 	// http://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
@@ -578,31 +627,31 @@ Rotator FQuat::FRotator() const
 	// where both of world lives happily. 
 	const float SINGULARITY_THRESHOLD = 0.4999995f;
 	const float RAD_TO_DEG = (180.f) / PI;
-	Rotator RotatorFromQuat;
+	FRotator RotatorFromQuat;
 
 	if (SingularityTest < -SINGULARITY_THRESHOLD)
 	{
 		RotatorFromQuat.Pitch = -90.f;
-		RotatorFromQuat.Yaw = Math::Atan2(YawY, YawX) * RAD_TO_DEG;
-		RotatorFromQuat.Roll = Rotator::NormalizeAxis(-RotatorFromQuat.Yaw - (2.f * Math::Atan2(X, W) * RAD_TO_DEG));
+		RotatorFromQuat.Yaw = FMath::Atan2(YawY, YawX) * RAD_TO_DEG;
+		RotatorFromQuat.Roll = FRotator::NormalizeAxis(-RotatorFromQuat.Yaw - (2.f * FMath::Atan2(X, W) * RAD_TO_DEG));
 	}
 	else if (SingularityTest > SINGULARITY_THRESHOLD)
 	{
 		RotatorFromQuat.Pitch = 90.f;
-		RotatorFromQuat.Yaw = Math::Atan2(YawY, YawX) * RAD_TO_DEG;
-		RotatorFromQuat.Roll = Rotator::NormalizeAxis(RotatorFromQuat.Yaw - (2.f * Math::Atan2(X, W) * RAD_TO_DEG));
+		RotatorFromQuat.Yaw = FMath::Atan2(YawY, YawX) * RAD_TO_DEG;
+		RotatorFromQuat.Roll = FRotator::NormalizeAxis(RotatorFromQuat.Yaw - (2.f * FMath::Atan2(X, W) * RAD_TO_DEG));
 	}
 	else
 	{
-		RotatorFromQuat.Pitch = Math::FastAsin(2.f*(SingularityTest)) * RAD_TO_DEG;
-		RotatorFromQuat.Yaw = Math::Atan2(YawY, YawX) * RAD_TO_DEG;
-		RotatorFromQuat.Roll = Math::Atan2(-2.f*(W*X + Y * Z), (1.f - 2.f*(Math::Square(X) + Math::Square(Y)))) * RAD_TO_DEG;
+		RotatorFromQuat.Pitch = FMath::FastAsin(2.f*(SingularityTest)) * RAD_TO_DEG;
+		RotatorFromQuat.Yaw = FMath::Atan2(YawY, YawX) * RAD_TO_DEG;
+		RotatorFromQuat.Roll = FMath::Atan2(-2.f*(W*X + Y * Z), (1.f - 2.f*(FMath::Square(X) + FMath::Square(Y)))) * RAD_TO_DEG;
 	}
 
 	if (RotatorFromQuat.ContainsNaN())
 	{
 		//logOrEnsureNanError(TEXT("FQuat::Rotator(): Rotator result %s contains NaN! Quat = %s, YawY = %.9f, YawX = %.9f"), *RotatorFromQuat.ToString(), *this->ToString(), YawY, YawX);
-		RotatorFromQuat = Rotator::ZeroRotator;
+		RotatorFromQuat = FRotator::ZeroRotator;
 	}
 
 	return RotatorFromQuat;
@@ -615,7 +664,7 @@ const Vector Vector::ForwardVector(1.0f, 0.0f, 0.0f);
 const Vector Vector::RightVector(0.0f, 1.0f, 0.0f);
 const Vector2 Vector2::ZeroVector(0.0f, 0.0f);
 const Vector2 Vector2::UnitVector(1.0f, 1.0f);
-const Rotator Rotator::ZeroRotator(0.f, 0.f, 0.f);
+const FRotator FRotator::ZeroRotator(0.f, 0.f, 0.f);
 const FQuat FQuat::Identity(0, 0, 0, 1);
 const FColor FColor::White(255, 255, 255);
 
@@ -628,30 +677,59 @@ float ComputeSquaredDistanceFromBoxToPoint(const Vector& Mins, const Vector& Max
 	// NOTE: Loop manually unrolled for > 2x speed up
 	if (Point.X < Mins.X)
 	{
-		DistSquared += Math::Square(Point.X - Mins.X);
+		DistSquared += FMath::Square(Point.X - Mins.X);
 	}
 	else if (Point.X > Maxs.X)
 	{
-		DistSquared += Math::Square(Point.X - Maxs.X);
+		DistSquared += FMath::Square(Point.X - Maxs.X);
 	}
 
 	if (Point.Y < Mins.Y)
 	{
-		DistSquared += Math::Square(Point.Y - Mins.Y);
+		DistSquared += FMath::Square(Point.Y - Mins.Y);
 	}
 	else if (Point.Y > Maxs.Y)
 	{
-		DistSquared += Math::Square(Point.Y - Maxs.Y);
+		DistSquared += FMath::Square(Point.Y - Maxs.Y);
 	}
 
 	if (Point.Z < Mins.Z)
 	{
-		DistSquared += Math::Square(Point.Z - Mins.Z);
+		DistSquared += FMath::Square(Point.Z - Mins.Z);
 	}
 	else if (Point.Z > Maxs.Z)
 	{
-		DistSquared += Math::Square(Point.Z - Maxs.Z);
+		DistSquared += FMath::Square(Point.Z - Maxs.Z);
 	}
 
 	return DistSquared;
+}
+
+FRotationTranslationMatrix::FRotationTranslationMatrix(const FRotator& Rot, const Vector& Origin)
+{
+	float SP, SY, SR;
+	float CP, CY, CR;
+	FMath::SinCos(&SP, &CP, FMath::DegreesToRadians(Rot.Pitch));
+	FMath::SinCos(&SY, &CY, FMath::DegreesToRadians(Rot.Yaw));
+	FMath::SinCos(&SR, &CR, FMath::DegreesToRadians(Rot.Roll));
+
+	M[0][0] = CP * CY;
+	M[0][1] = CP * SY;
+	M[0][2] = SP;
+	M[0][3] = 0.f;
+
+	M[1][0] = SR * SP * CY - CR * SY;
+	M[1][1] = SR * SP * SY + CR * CY;
+	M[1][2] = -SR * CP;
+	M[1][3] = 0.f;
+
+	M[2][0] = -(CR * SP * CY + SR * SY);
+	M[2][1] = CY * SR - CR * SP * SY;
+	M[2][2] = CR * CP;
+	M[2][3] = 0.f;
+
+	M[3][0] = Origin.X;
+	M[3][1] = Origin.Y;
+	M[3][2] = Origin.Z;
+	M[3][3] = 1.f;
 }

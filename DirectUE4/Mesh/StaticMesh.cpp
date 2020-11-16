@@ -13,6 +13,11 @@
 
 void FStaticMeshLODResources::InitResources()
 {
+	VertexBuffers.PositionVertexBufferRHI = CreateVertexBuffer(false, VertexBuffers.PositionVertexBuffer.size() * sizeof(Vector), VertexBuffers.PositionVertexBuffer.data());
+	VertexBuffers.TangentsVertexBufferRHI = CreateVertexBuffer(false, VertexBuffers.TangentsVertexBuffer.size() * sizeof(Vector4), VertexBuffers.TangentsVertexBuffer.data());
+	VertexBuffers.TexCoordVertexBufferRHI = CreateVertexBuffer(false, VertexBuffers.TexCoordVertexBuffer.size() * sizeof(Vector2), VertexBuffers.TexCoordVertexBuffer.data());
+
+
 	IndexBuffer = CreateIndexBuffer(Indices.data(), sizeof(unsigned int) * Indices.size());
 }
 
@@ -27,11 +32,11 @@ void FStaticMeshLODResources::ReleaseResources()
 void FStaticMeshVertexFactories::InitResources(const FStaticMeshLODResources& LodResources, const StaticMesh* Parent)
 {
 	FLocalVertexFactory::FDataType Data;
-	Data.PositionComponent = FVertexStreamComponent(LodResources.VertexBuffers.PositionVertexBufferRHI, 0, sizeof(Vector), DXGI_FORMAT_R32G32B32_FLOAT);
-	Data.TangentBasisComponents[0] = FVertexStreamComponent(LodResources.VertexBuffers.StaticMeshVertexBufferRHI, 0, sizeof(Vector), DXGI_FORMAT_R32G32B32_FLOAT);
-	Data.TangentBasisComponents[1] = FVertexStreamComponent(LodResources.VertexBuffers.StaticMeshVertexBufferRHI, 12, sizeof(Vector), DXGI_FORMAT_R32G32B32_FLOAT);
-	Data.TextureCoordinates = FVertexStreamComponent(LodResources.VertexBuffers.StaticMeshVertexBufferRHI, 20, sizeof(Vector2), DXGI_FORMAT_R32G32B32_FLOAT);
-	Data.LightMapCoordinateComponent = FVertexStreamComponent(LodResources.VertexBuffers.StaticMeshVertexBufferRHI, 28, sizeof(Vector2), DXGI_FORMAT_R32G32_FLOAT);
+	Data.PositionComponent = FVertexStreamComponent(LodResources.VertexBuffers.PositionVertexBufferRHI.Get(), 0, sizeof(Vector), DXGI_FORMAT_R32G32B32_FLOAT);
+	Data.TangentBasisComponents[0] = FVertexStreamComponent(LodResources.VertexBuffers.TangentsVertexBufferRHI.Get(), 0, sizeof(Vector), DXGI_FORMAT_R32G32B32A32_FLOAT);
+	Data.TangentBasisComponents[1] = FVertexStreamComponent(LodResources.VertexBuffers.TangentsVertexBufferRHI.Get(), 12, sizeof(Vector), DXGI_FORMAT_R32G32B32A32_FLOAT);
+	Data.TextureCoordinates = FVertexStreamComponent(LodResources.VertexBuffers.TexCoordVertexBufferRHI.Get(), 0, sizeof(Vector2), DXGI_FORMAT_R32G32_FLOAT);
+	Data.LightMapCoordinateComponent = FVertexStreamComponent(LodResources.VertexBuffers.TexCoordVertexBufferRHI.Get(), 8, sizeof(Vector2), DXGI_FORMAT_R32G32_FLOAT);
 	VertexFactory.SetData(Data);
 	VertexFactory.InitResource();
 }
@@ -104,7 +109,6 @@ void StaticMesh::InitResources()
 void StaticMesh::ReleaseResources()
 {
 	RenderData->ReleaseResources();
-	if(PrimitiveUniformBuffer) PrimitiveUniformBuffer->Release();
 }
 
 void StaticMesh::UpdateUniformBuffer()
@@ -139,11 +143,11 @@ bool StaticMesh::GetMeshElement(int BatchIndex, int SectionIndex, FMeshBatch& Ou
 	const StaticMeshSection& Section = LOD.Sections[SectionIndex];
 
 	FMeshBatchElement Element;
-	Element.PrimitiveUniformBufferResource = PrimitiveUniformBuffer;
+	Element.PrimitiveUniformBufferResource = &GetUniformBuffer();
 	Element.FirstIndex = Section.FirstIndex;
 	Element.NumPrimitives = Section.NumTriangles;
 	//Element.MaterialIndex = Section.MaterialIndex;
-	Element.IndexBuffer = RenderData->LODResources[0]->IndexBuffer;
+	Element.IndexBuffer = RenderData->LODResources[0]->IndexBuffer.Get();
 	OutMeshBatch.VertexFactory = &VFs.VertexFactory;
 	OutMeshBatch.Elements.emplace_back(Element);
 	return true;

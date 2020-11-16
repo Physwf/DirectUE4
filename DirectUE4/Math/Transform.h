@@ -80,7 +80,7 @@ public:
 	*
 	* @param InRotation The value to use for rotation component  (after being converted to a quaternion)
 	*/
-	inline explicit FTransform(const Rotator& InRotation)
+	inline explicit FTransform(const FRotator& InRotation)
 		: Rotation(InRotation),
 		Translation(Vector::ZeroVector),
 		Scale3D(Vector::OneVector)
@@ -109,7 +109,7 @@ public:
 	* @param InTranslation The value to use for the translation component
 	* @param InScale3D The value to use for the scale component
 	*/
-	inline FTransform(const Rotator& InRotation, const Vector& InTranslation, const Vector& InScale3D = Vector::OneVector)
+	inline FTransform(const FRotator& InRotation, const Vector& InTranslation, const Vector& InScale3D = Vector::OneVector)
 		: Rotation(InRotation),
 		Translation(InTranslation),
 		Scale3D(InScale3D)
@@ -309,8 +309,8 @@ public:
 		else
 		{
 			// Simple linear interpolation for translation and scale.
-			Translation = Math::Lerp(Atom1.Translation, Atom2.Translation, Alpha);
-			Scale3D = Math::Lerp(Atom1.Scale3D, Atom2.Scale3D, Alpha);
+			Translation = FMath::Lerp(Atom1.Translation, Atom2.Translation, Alpha);
+			Scale3D = FMath::Lerp(Atom1.Scale3D, Atom2.Scale3D, Alpha);
 			Rotation = FQuat::FastLerp(Atom1.Rotation, Atom2.Rotation, Alpha);
 
 			// ..and renormalize
@@ -331,8 +331,8 @@ public:
 			else
 			{
 				// Simple linear interpolation for translation and scale.
-				Translation = Math::Lerp(Translation, OtherAtom.Translation, Alpha);
-				Scale3D = Math::Lerp(Scale3D, OtherAtom.Scale3D, Alpha);
+				Translation = FMath::Lerp(Translation, OtherAtom.Translation, Alpha);
+				Scale3D = FMath::Lerp(Scale3D, OtherAtom.Scale3D, Alpha);
 				Rotation = FQuat::FastLerp(Rotation, OtherAtom.Rotation, Alpha);
 
 				// ..and renormalize
@@ -483,9 +483,9 @@ public:
 		return GetTranslation();
 	}
 
-	inline Rotator FRotator() const
+	inline FRotator Rotator() const
 	{
-		return Rotation.FRotator();
+		return Rotation.Rotator();
 	}
 
 	/** Calculate the  */
@@ -764,7 +764,7 @@ public:
 	inline void Accumulate(const FTransform& SourceAtom)
 	{
 		// Add ref pose relative animation to base animation, only if rotation is significant.
-		if (Math::Square(SourceAtom.Rotation.W) < 1.f - DELTA * DELTA)
+		if (FMath::Square(SourceAtom.Rotation.W) < 1.f - DELTA * DELTA)
 		{
 			Rotation = SourceAtom.Rotation * Rotation;
 		}
@@ -794,7 +794,7 @@ public:
 		FTransform SourceAtom(Atom * BlendWeight);
 
 		// Add ref pose relative animation to base animation, only if rotation is significant.
-		if (Math::Square(SourceAtom.Rotation.W) < 1.f - DELTA * DELTA)
+		if (FMath::Square(SourceAtom.Rotation.W) < 1.f - DELTA * DELTA)
 		{
 			Rotation = SourceAtom.Rotation * Rotation;
 		}
@@ -866,7 +866,7 @@ public:
 		FTransform SourceAtom(Atom * BlendWeight);
 
 		// Add ref pose relative animation to base animation, only if rotation is significant.
-		if (Math::Square(SourceAtom.Rotation.W) < 1.f - DELTA * DELTA)
+		if (FMath::Square(SourceAtom.Rotation.W) < 1.f - DELTA * DELTA)
 		{
 			Rotation = SourceAtom.Rotation * Rotation;
 		}
@@ -938,7 +938,7 @@ public:
 		}
 
 		// Add ref pose relative animation to base animation, only if rotation is significant.
-		if (Math::Square(SourceAtom.Rotation.W) < 1.f - DELTA * DELTA)
+		if (FMath::Square(SourceAtom.Rotation.W) < 1.f - DELTA * DELTA)
 		{
 			FinalAtom.Rotation = SourceAtom.Rotation * FinalAtom.Rotation;
 		}
@@ -1411,7 +1411,7 @@ inline float FTransform::GetMinimumAxisScale() const
 inline Vector FTransform::GetSafeScaleReciprocal(const Vector& InScale, float Tolerance)
 {
 	Vector SafeReciprocalScale;
-	if (Math::Abs(InScale.X) <= Tolerance)
+	if (FMath::Abs(InScale.X) <= Tolerance)
 	{
 		SafeReciprocalScale.X = 0.f;
 	}
@@ -1420,7 +1420,7 @@ inline Vector FTransform::GetSafeScaleReciprocal(const Vector& InScale, float To
 		SafeReciprocalScale.X = 1 / InScale.X;
 	}
 
-	if (Math::Abs(InScale.Y) <= Tolerance)
+	if (FMath::Abs(InScale.Y) <= Tolerance)
 	{
 		SafeReciprocalScale.Y = 0.f;
 	}
@@ -1429,7 +1429,7 @@ inline Vector FTransform::GetSafeScaleReciprocal(const Vector& InScale, float To
 		SafeReciprocalScale.Y = 1 / InScale.Y;
 	}
 
-	if (Math::Abs(InScale.Z) <= Tolerance)
+	if (FMath::Abs(InScale.Z) <= Tolerance)
 	{
 		SafeReciprocalScale.Z = 0.f;
 	}

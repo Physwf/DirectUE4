@@ -3,6 +3,7 @@
 #include "RenderTargets.h"
 #include "DeferredShading.h"
 #include "GPUProfiler.h"
+#include "SceneRenderTargetParameters.h"
 
 ID3D11InputLayout* PositionOnlyMeshInputLayout;
 
@@ -40,7 +41,7 @@ void InitPrePass()
 	PrePassBlendState = TStaticBlendState<>::GetRHI();
 }
 
-void SceneRenderer::RenderPrePassView(ViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState)
+void SceneRenderer::RenderPrePassView(FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState)
 {
 	SCOPED_DRAW_EVENT_FORMAT(EventPrePass, TEXT("PrePass"));
 
@@ -97,17 +98,18 @@ void SceneRenderer::RenderPrePassView(ViewInfo& View, const FDrawingPolicyRender
 
 void SceneRenderer::RenderPrePass()
 {
-
+	RenderTargets& SceneContext = RenderTargets::Get();
 	for (uint32 ViewIndex = 0; ViewIndex < Views.size(); ++ViewIndex)
 	{
-// 		FSceneTexturesUniformParameters SceneTextureParameters;
-// 		SetupSceneTextureUniformParameters(SceneContext, View.FeatureLevel, ESceneTextureSetupMode::None, SceneTextureParameters);
-// 		TUniformBufferRef<FSceneTexturesUniformParameters> PassUniformBuffer = TUniformBufferRef<FSceneTexturesUniformParameters>::CreateUniformBufferImmediate(SceneTextureParameters, UniformBuffer_SingleFrame);
-// 		FDrawingPolicyRenderState DrawRenderState(View, PassUniformBuffer);
+		FViewInfo& View = Views[ViewIndex];
+		FSceneTexturesUniformParameters SceneTextureParameters;
+		SetupSceneTextureUniformParameters(SceneContext, ESceneTextureSetupMode::None, SceneTextureParameters);
+		TUniformBufferPtr<FSceneTexturesUniformParameters> PassUniformBuffer = TUniformBufferPtr<FSceneTexturesUniformParameters>::CreateUniformBufferImmediate(SceneTextureParameters);
+		FDrawingPolicyRenderState DrawRenderState(View, PassUniformBuffer);
 
-// 
+		DrawRenderState.SetBlendState(TStaticBlendState<FALSE,FALSE,0>::GetRHI());
 
-// 		RenderPrePassView(Views[ViewIndex]);
+		RenderPrePassView(View, DrawRenderState);
 
 	}
 }
@@ -136,7 +138,7 @@ const FDrawingPolicyRenderState& DrawRenderState/*,  */
 /*const ElementDataType& ElementData, */ 
 /*const ContextDataType PolicyContext */) const
 {
-
+	//VertexShader->SetMesh(RHICmdList, VertexFactory, View, PrimitiveSceneProxy, BatchElement, DrawRenderState);
 }
 
 
@@ -177,12 +179,12 @@ void FDepthDrawingPolicyFactory::AddStaticMesh(FScene* Scene, FStaticMesh* Stati
 	);
 }
 
-bool FDepthDrawingPolicyFactory::DrawDynamicMesh(ID3D11DeviceContext* Context, const ViewInfo& View, /*ContextType DrawingContext, */ const FMeshBatch& Mesh, /*bool bPreFog, */ /*const FDrawingPolicyRenderState& DrawRenderState, */ /*const FPrimitiveSceneProxy* PrimitiveSceneProxy, */ /*FHitProxyId HitProxyId, */ /*const bool bIsInstancedStereo = false, */ const bool bIsInstancedStereoEmulated /*= false */)
+bool FDepthDrawingPolicyFactory::DrawDynamicMesh(ID3D11DeviceContext* Context, const FViewInfo& View, /*ContextType DrawingContext, */ const FMeshBatch& Mesh, /*bool bPreFog, */ /*const FDrawingPolicyRenderState& DrawRenderState, */ /*const FPrimitiveSceneProxy* PrimitiveSceneProxy, */ /*FHitProxyId HitProxyId, */ /*const bool bIsInstancedStereo = false, */ const bool bIsInstancedStereoEmulated /*= false */)
 {
 	return false;
 }
 
-bool FDepthDrawingPolicyFactory::DrawStaticMesh(ID3D11DeviceContext* Context, const ViewInfo& View, /*ContextType DrawingContext, */ const FStaticMesh& StaticMesh, const uint64& BatchElementMask, /*bool bPreFog, */ /*const FDrawingPolicyRenderState& DrawRenderState, */ /*const FPrimitiveSceneProxy* PrimitiveSceneProxy, */ /*FHitProxyId HitProxyId, */ /*const bool bIsInstancedStereo = false, */ const bool bIsInstancedStereoEmulated /*= false */)
+bool FDepthDrawingPolicyFactory::DrawStaticMesh(ID3D11DeviceContext* Context, const FViewInfo& View, /*ContextType DrawingContext, */ const FStaticMesh& StaticMesh, const uint64& BatchElementMask, /*bool bPreFog, */ /*const FDrawingPolicyRenderState& DrawRenderState, */ /*const FPrimitiveSceneProxy* PrimitiveSceneProxy, */ /*FHitProxyId HitProxyId, */ /*const bool bIsInstancedStereo = false, */ const bool bIsInstancedStereoEmulated /*= false */)
 {
 	return false;
 }

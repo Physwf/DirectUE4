@@ -5,12 +5,10 @@
 
 void World::InitWorld()
 {
-	mScene = new FScene();
-	extern FScene* GScene;
-	GScene = mScene;
+	Scene = new FScene();
 
 	StaticMeshActor* m1 = SpawnActor<StaticMeshActor>("Primitives/Sphere.fbx");
-	SkeletalMeshActor* m2 = SpawnActor<SkeletalMeshActor>("./Mannequin/SK_Mannequin.FBX");
+	//SkeletalMeshActor* m2 = SpawnActor<SkeletalMeshActor>("./Mannequin/SK_Mannequin.FBX");
 	//Mesh* m1 = SpawnActor<Mesh>("shaderBallNoCrease/shaderBall.fbx");
 	//Mesh* m1 = SpawnActor<Mesh>("k526efluton4-House_15/247_House 15_fbx.fbx");
 	//m1->SetPosition(20.0f, -100.0f, 480.0f);

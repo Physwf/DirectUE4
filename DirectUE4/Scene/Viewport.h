@@ -16,13 +16,13 @@ public:
 	void Draw(bool bShouldPresent = true);
 	float GetDesiredAspectRatio() const
 	{
-		IntPoint Size = GetSizeXY();
+		FIntPoint Size = GetSizeXY();
 		return (float)Size.X / (float)Size.Y;
 	}
 
 	void SetSizeXY(uint32 InSizeX, uint32 InSizeY) { SizeX = InSizeX; SizeY = InSizeY; }
-	IntPoint GetSizeXY() const { return IntPoint(SizeX, SizeY); }
-	IntPoint GetInitialPositionXY() const { return IntPoint(InitialPositionX, InitialPositionY); }
+	FIntPoint GetSizeXY() const { return FIntPoint(SizeX, SizeY); }
+	FIntPoint GetInitialPositionXY() const { return FIntPoint(InitialPositionX, InitialPositionY); }
 private:
 	/** The initial position of the viewport. */
 	uint32 InitialPositionX;

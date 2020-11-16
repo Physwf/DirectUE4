@@ -12,7 +12,7 @@ ID3D11ShaderResourceView* HZBSRV;
 ID3D11ShaderResourceView* HZBSRVs[MAXNumMips];
 ID3D11SamplerState* HZBSamplers[MAXNumMips];
 uint32 NumMips;
-IntPoint HZBSize;
+FIntPoint HZBSize;
 
 ID3D11BlendState* BlendState;
 ID3D11RasterizerState* RasterizerState;
@@ -64,7 +64,7 @@ void InitHZB()
 	*/
 }
 
-void BuildHZB(ViewInfo& View)
+void BuildHZB(FViewInfo& View)
 {
 	/*
 	D3D11DeviceContext->OMSetRenderTargets(1, &HZBRTVs[0], NULL);
@@ -171,7 +171,7 @@ void SceneRenderer::RenderHzb()
 	for (uint32 ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
 	{
 		SCOPED_DRAW_EVENT_FORMAT(RenderHzb, TEXT("Views %d"), ViewIndex);
-		ViewInfo& View = Views[ViewIndex];
+		FViewInfo& View = Views[ViewIndex];
 		BuildHZB(View);
 	}
 }

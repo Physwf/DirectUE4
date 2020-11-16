@@ -62,8 +62,6 @@ private:
 
 	std::unique_ptr<class FStaticMeshRenderData> RenderData;
 
-	ID3D11InputLayout* InputLayout = NULL;
-	ID3D11Buffer* PrimitiveUniformBuffer = NULL;
 	std::multimap<int32, int32> OverlappingCorners;
 	
 };

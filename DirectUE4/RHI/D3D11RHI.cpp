@@ -90,7 +90,7 @@ ID3D11Buffer* CreateIndexBuffer(void* Data, unsigned int Size)
 	return NULL;
 }
 
-ID3D11Buffer* CreateConstantBuffer(bool bDynamic, unsigned int Size, void* Data /*= NULL*/)
+ID3D11Buffer* CreateConstantBuffer(bool bDynamic, unsigned int Size, const void* Data /*= NULL*/)
 {
 	D3D11_BUFFER_DESC Desc;
 	ZeroMemory(&Desc, sizeof(D3D11_BUFFER_DESC));
@@ -687,6 +687,21 @@ FPixelFormatInfo	GPixelFormats[PF_MAX] =
 	{ TEXT("R16G16B16A16_SINT"),1,			1,			1,			8,			4,				0,				1,				PF_R16G16B16A16_SNORM },
 };
 
+std::shared_ptr<FUniformBuffer> RHICreateUniformBuffer(const void* Contents, std::map<std::string, ComPtr<ID3D11ShaderResourceView>>& SRVs, std::map<std::string, ComPtr<ID3D11SamplerState>>& Samplers, std::map<std::string, ComPtr<ID3D11UnorderedAccessView>>& UAVs)
+{
+	std::shared_ptr<FUniformBuffer> Result = std::make_shared<FUniformBuffer>();
+
+	Result->SRVs = SRVs;
+	Result->Samplers = Samplers;
+	Result->UAVs = UAVs;
+	return Result;
+}
+
+void SetRenderTarget(ID3D11DeviceContext* Context, ID3D11RenderTargetView* NewRenderTarget, ID3D11DepthStencilView* NewDepthStencilTarget)
+{
+	Context->OMSetRenderTargets(1, &NewRenderTarget, NewDepthStencilTarget);
+}
+
 FD3D11Texture2D* CreateD3D11Texture2D(uint32 SizeX, uint32 SizeY, uint32 SizeZ, bool bTextureArray, bool bCubeTexture, EPixelFormat Format, uint32 NumMips, uint32 NumSamples, uint32 Flags, FClearValueBinding ClearBindingValue/* = FClearValueBinding::Transparent*/, void* BulkData /*= nullptr*/, uint32 BulkDataSize /*= 0*/)
 {
 	const bool bSRGB = (Flags & TexCreate_SRGB) != 0;
@@ -824,8 +839,8 @@ FD3D11Texture2D* CreateD3D11Texture2D(uint32 SizeX, uint32 SizeY, uint32 SizeZ, 
 				uint32 DataOffset = SliceOffset + MipOffset;
 				uint32 SubResourceIndex = ArraySliceIndex * NumMips + MipIndex;
 
-				uint32 NumBlocksX = Math::Max<uint32>(1, (SizeX >> MipIndex) / GPixelFormats[Format].BlockSizeX);
-				uint32 NumBlocksY = Math::Max<uint32>(1, (SizeY >> MipIndex) / GPixelFormats[Format].BlockSizeY);
+				uint32 NumBlocksX = FMath::Max<uint32>(1, (SizeX >> MipIndex) / GPixelFormats[Format].BlockSizeX);
+				uint32 NumBlocksY = FMath::Max<uint32>(1, (SizeY >> MipIndex) / GPixelFormats[Format].BlockSizeY);
 
 				SubResourceData[SubResourceIndex].pSysMem = &Data[DataOffset];
 				SubResourceData[SubResourceIndex].SysMemPitch = NumBlocksX * GPixelFormats[Format].BlockBytes;
@@ -1197,13 +1212,13 @@ bool InitRHI()
 //DO NOT USE THE STATIC FLINEARCOLORS TO INITIALIZE THIS STUFF.  
 //Static init order is undefined and you will likely end up with bad values on some platforms.
 const FClearValueBinding FClearValueBinding::None(EClearBinding::ENoneBound);
-const FClearValueBinding FClearValueBinding::Black(LinearColor(0.0f, 0.0f, 0.0f, 1.0f));
-const FClearValueBinding FClearValueBinding::White(LinearColor(1.0f, 1.0f, 1.0f, 1.0f));
-const FClearValueBinding FClearValueBinding::Transparent(LinearColor(0.0f, 0.0f, 0.0f, 0.0f));
+const FClearValueBinding FClearValueBinding::Black(FLinearColor(0.0f, 0.0f, 0.0f, 1.0f));
+const FClearValueBinding FClearValueBinding::White(FLinearColor(1.0f, 1.0f, 1.0f, 1.0f));
+const FClearValueBinding FClearValueBinding::Transparent(FLinearColor(0.0f, 0.0f, 0.0f, 0.0f));
 const FClearValueBinding FClearValueBinding::DepthOne(1.0f, 0);
 const FClearValueBinding FClearValueBinding::DepthZero(0.0f, 0);
 const FClearValueBinding FClearValueBinding::DepthNear((float)ERHIZBuffer::NearPlane, 0);
 const FClearValueBinding FClearValueBinding::DepthFar((float)ERHIZBuffer::FarPlane, 0);
-const FClearValueBinding FClearValueBinding::Green(LinearColor(0.0f, 1.0f, 0.0f, 1.0f));
+const FClearValueBinding FClearValueBinding::Green(FLinearColor(0.0f, 1.0f, 0.0f, 1.0f));
 // Note: this is used as the default normal for DBuffer decals.  It must decode to a value of 0 in DecodeDBufferData.
-const FClearValueBinding FClearValueBinding::DefaultNormal8Bit(LinearColor(128.0f / 255.0f, 128.0f / 255.0f, 128.0f / 255.0f, 1.0f));
+const FClearValueBinding FClearValueBinding::DefaultNormal8Bit(FLinearColor(128.0f / 255.0f, 128.0f / 255.0f, 128.0f / 255.0f, 1.0f));

@@ -1,5 +1,7 @@
 #include "RenderTargets.h"
 #include "DeferredShading.h"
+#include "SystemTextures.h"
+#include "SceneRenderTargetParameters.h"
 
 RenderTargets& RenderTargets::Get()
 {
@@ -31,7 +33,7 @@ void RenderTargets::FinishRenderingPrePass()
 
 }
 
-void RenderTargets::BeginRenderingGBuffer(bool bClearColor, const LinearColor& ClearColor /*= (0, 0, 0, 1)*/)
+void RenderTargets::BeginRenderingGBuffer(bool bClearColor, const FLinearColor& ClearColor /*= (0, 0, 0, 1)*/)
 {
 	AllocSceneColor();
 
@@ -106,12 +108,12 @@ EPixelFormat RenderTargets::GetSceneColorFormat() const
 
 void RenderTargets::SetBufferSize(int32 InBufferSizeX, int32 InBufferSizeY)
 {
-	QuantizeSceneBufferSize(IntPoint(InBufferSizeX, InBufferSizeY), BufferSize);
+	QuantizeSceneBufferSize(FIntPoint(InBufferSizeX, InBufferSizeY), BufferSize);
 }
 
 void RenderTargets::Allocate(const SceneRenderer* Renderer)
 {
-	IntPoint DesiredBufferSize = ComputeDesiredSize(Renderer->ViewFamily);
+	FIntPoint DesiredBufferSize = ComputeDesiredSize(Renderer->ViewFamily);
 
 	int GBufferFormat = 1; //CVarGBufferFormat.GetValueOnRenderThread();
 
@@ -187,7 +189,8 @@ void RenderTargets::AllocateDeferredShadingPathRenderTargets()
 // 		FPooledRenderTargetDesc VelocityRTDesc = FVelocityRendering::GetRenderTargetDesc();
 // 		VelocityRTDesc.Flags |= GFastVRamConfig.GBufferVelocity;
 // 		GRenderTargetPool.FindFreeElement(RHICmdList, VelocityRTDesc, GBufferVelocity, TEXT("GBufferVelocity"));
-// 	}
+// 	}
+
 }
 
 void RenderTargets::AllocSceneColor()
@@ -197,8 +200,8 @@ void RenderTargets::AllocSceneColor()
 		SceneColorTarget->TargetableTexture->HasClearValue() &&
 		!(SceneColorTarget->TargetableTexture->GetClearBinding() == DefaultColorClear))
 	{
-		const LinearColor CurrentClearColor = SceneColorTarget->TargetableTexture->GetClearColor();
-		const LinearColor NewClearColor = DefaultColorClear.GetClearColor();
+		const FLinearColor CurrentClearColor = SceneColorTarget->TargetableTexture->GetClearColor();
+		const FLinearColor NewClearColor = DefaultColorClear.GetClearColor();
 		SceneColorTarget.Reset();
 	}
 
@@ -334,14 +337,50 @@ void RenderTargets::AllocGBufferTargets()
 	//GBufferRefCount = 1;
 }
 
+const FD3D11Texture2D* RenderTargets::GetActualDepthTexture() const
+{
+	const FD3D11Texture2D* DepthTexture = NULL;
+	//if ((CurrentFeatureLevel >= ERHIFeatureLevel::SM4) || IsPCPlatform(GShaderPlatformForFeatureLevel[CurrentFeatureLevel]))
+	{
+		//if (GSupportsDepthFetchDuringDepthTest)
+		{
+			DepthTexture = GetSceneDepthTexture();
+		}
+		//else
+		{
+			//DepthTexture = &GetAuxiliarySceneDepthSurface();
+		}
+	}
+	//else if (IsMobilePlatform(GShaderPlatformForFeatureLevel[CurrentFeatureLevel]))
+	{
+		// TODO: avoid depth texture fetch when shader needs fragment previous depth and device supports framebuffer fetch
+
+		//bool bSceneDepthInAlpha = (GetSceneColor()->GetDesc().Format == PF_FloatRGBA);
+		//bool bOnChipDepthFetch = (GSupportsShaderDepthStencilFetch || (bSceneDepthInAlpha && GSupportsShaderFramebufferFetch));
+		//
+		//if (bOnChipDepthFetch)
+		//{
+		//	DepthTexture = (const FTexture2DRHIRef*)(&GSystemTextures.DepthDummy->GetRenderTargetItem().ShaderResourceTexture);
+		//}
+		//else
+		{
+			//DepthTexture = &GetSceneDepthTexture();
+		}
+	}
+
+	assert(DepthTexture != NULL);
+
+	return DepthTexture;
+}
+
 void RenderTargets::AllocLightAttenuation()
 {
 
 }
 
-IntPoint RenderTargets::ComputeDesiredSize(const SceneViewFamily& ViewFamily)
+FIntPoint RenderTargets::ComputeDesiredSize(const SceneViewFamily& ViewFamily)
 {
-	IntPoint DesiredFamilyBufferSize = SceneRenderer::GetDesiredInternalBufferSize(ViewFamily);
+	FIntPoint DesiredFamilyBufferSize = SceneRenderer::GetDesiredInternalBufferSize(ViewFamily);
 	return DesiredFamilyBufferSize;
 }
 
@@ -354,4 +393,122 @@ int RenderTargets::GetGBufferRenderTargets(ERenderTargetLoadAction ColorLoadActi
 	OutRenderTargets[MRTCount++] = (FD3D11Texture2D*)GBufferC->TargetableTexture;
 
 	return MRTCount;
+}
+
+void SetupSceneTextureUniformParameters(RenderTargets& SceneContext, ESceneTextureSetupMode SetupMode, FSceneTexturesUniformParameters& SceneTextureParameters)
+{
+	FD3D11Texture2D* WhiteDefault2D = GSystemTextures.WhiteDummy->ShaderResourceTexture;
+	FD3D11Texture2D* BlackDefault2D = GSystemTextures.BlackDummy->ShaderResourceTexture;
+	FD3D11Texture2D* DepthDefault = GSystemTextures.DepthDummy->ShaderResourceTexture;
+
+	// Scene Color / Depth
+	{
+		const bool bSetupDepth = (SetupMode & ESceneTextureSetupMode::SceneDepth) != ESceneTextureSetupMode::None;
+		SceneTextureParameters.SceneColorTexture = bSetupDepth ? SceneContext.GetSceneColorTexture()->GetShaderResourceView() : BlackDefault2D->GetShaderResourceView();
+		SceneTextureParameters.SceneColorTextureSampler = TStaticSamplerState<D3D11_FILTER_MIN_MAG_MIP_POINT, D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_CLAMP>::GetRHI();
+		const FD3D11Texture2D* ActualDepthTexture = SceneContext.GetActualDepthTexture();
+		SceneTextureParameters.SceneDepthTexture = bSetupDepth && ActualDepthTexture ? ActualDepthTexture->GetShaderResourceView() : DepthDefault->GetShaderResourceView();
+
+// 		if (bSetupDepth && SceneContext.IsSeparateTranslucencyPass() && SceneContext.IsDownsampledTranslucencyDepthValid())
+// 		{
+// 			FIntPoint OutScaledSize;
+// 			float OutScale;
+// 			SceneContext.GetSeparateTranslucencyDimensions(OutScaledSize, OutScale);
+// 
+// 			if (OutScale < 1.0f)
+// 			{
+// 				SceneTextureParameters.SceneDepthTexture = SceneContext.GetDownsampledTranslucencyDepthSurface();
+// 			}
+// 		}
+// 
+// 		if (bSetupDepth)
+// 		{
+// 			SceneTextureParameters.SceneDepthTextureNonMS = GSupportsDepthFetchDuringDepthTest ? SceneContext.GetSceneDepthTexture() : SceneContext.GetAuxiliarySceneDepthSurface();
+// 		}
+// 		else
+// 		{
+// 			SceneTextureParameters.SceneDepthTextureNonMS = DepthDefault;
+// 		}
+// 
+// 		SceneTextureParameters.SceneDepthTextureSampler = TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();
+// 		SceneTextureParameters.SceneStencilTexture = bSetupDepth && SceneContext.SceneStencilSRV ? SceneContext.SceneStencilSRV : GNullColorVertexBuffer.VertexBufferSRV;
+ 	}
+
+	// GBuffer
+	{
+		const bool bSetupGBuffers = (SetupMode & ESceneTextureSetupMode::GBuffers) != ESceneTextureSetupMode::None;
+		//const EShaderPlatform ShaderPlatform = GetFeatureLevelShaderPlatform(FeatureLevel);
+		const bool bUseGBuffer = true;//IsUsingGBuffers(ShaderPlatform);
+		const bool bCanReadGBufferUniforms = true;//bSetupGBuffers && (bUseGBuffer || IsSimpleForwardShadingEnabled(ShaderPlatform));
+
+		// Allocate the Gbuffer resource uniform buffer.
+		const ComPtr<PooledRenderTarget> GBufferAToUse = bCanReadGBufferUniforms && SceneContext.GBufferA ? SceneContext.GBufferA : GSystemTextures.BlackDummy;
+		const ComPtr<PooledRenderTarget> GBufferBToUse = bCanReadGBufferUniforms && SceneContext.GBufferB ? SceneContext.GBufferB : GSystemTextures.BlackDummy;
+		const ComPtr<PooledRenderTarget> GBufferCToUse = bCanReadGBufferUniforms && SceneContext.GBufferC ? SceneContext.GBufferC : GSystemTextures.BlackDummy;
+		//const ComPtr<PooledRenderTarget> GBufferDToUse = bCanReadGBufferUniforms && SceneContext.GBufferD ? SceneContext.GBufferD : GSystemTextures.BlackDummy;
+		//const ComPtr<PooledRenderTarget> GBufferEToUse = bCanReadGBufferUniforms && SceneContext.GBufferE ? SceneContext.GBufferE : GSystemTextures.BlackDummy;
+		//const ComPtr<PooledRenderTarget> GBufferVelocityToUse = bCanReadGBufferUniforms && SceneContext.GBufferVelocity ? SceneContext.GBufferVelocity : GSystemTextures.BlackDummy;
+
+		SceneTextureParameters.GBufferATexture = GBufferAToUse->ShaderResourceTexture->GetShaderResourceView();
+		SceneTextureParameters.GBufferBTexture = GBufferBToUse->ShaderResourceTexture->GetShaderResourceView();
+		SceneTextureParameters.GBufferCTexture = GBufferCToUse->ShaderResourceTexture->GetShaderResourceView();
+		//SceneTextureParameters.GBufferDTexture = GBufferDToUse->ShaderResourceTexture->GetShaderResourceView();
+		//SceneTextureParameters.GBufferETexture = GBufferEToUse->ShaderResourceTexture->GetShaderResourceView();
+		//SceneTextureParameters.GBufferVelocityTexture = GBufferVelocityToUse->ShaderResourceTexture->GetShaderResourceView();
+
+		SceneTextureParameters.GBufferATextureNonMS = GBufferAToUse->ShaderResourceTexture->GetShaderResourceView();
+		SceneTextureParameters.GBufferBTextureNonMS = GBufferBToUse->ShaderResourceTexture->GetShaderResourceView();
+		SceneTextureParameters.GBufferCTextureNonMS = GBufferCToUse->ShaderResourceTexture->GetShaderResourceView();
+		//SceneTextureParameters.GBufferDTextureNonMS = GBufferDToUse->ShaderResourceTexture->GetShaderResourceView();
+		//SceneTextureParameters.GBufferETextureNonMS = GBufferEToUse->ShaderResourceTexture->GetShaderResourceView();
+		//SceneTextureParameters.GBufferVelocityTextureNonMS = GBufferVelocityToUse->ShaderResourceTexture->GetShaderResourceView();
+
+		SceneTextureParameters.GBufferATextureSampler = TStaticSamplerState<>::GetRHI();
+		SceneTextureParameters.GBufferBTextureSampler = TStaticSamplerState<>::GetRHI();
+		SceneTextureParameters.GBufferCTextureSampler = TStaticSamplerState<>::GetRHI();
+		SceneTextureParameters.GBufferDTextureSampler = TStaticSamplerState<>::GetRHI();
+		SceneTextureParameters.GBufferETextureSampler = TStaticSamplerState<>::GetRHI();
+		SceneTextureParameters.GBufferVelocityTextureSampler = TStaticSamplerState<>::GetRHI();
+	}
+
+	// SSAO
+	{
+		const bool bSetupSSAO = (SetupMode & ESceneTextureSetupMode::SSAO) != ESceneTextureSetupMode::None;
+		SceneTextureParameters.ScreenSpaceAOTexture = bSetupSSAO && SceneContext.bScreenSpaceAOIsValid ? SceneContext.ScreenSpaceAO->ShaderResourceTexture->GetShaderResourceView() : WhiteDefault2D->GetShaderResourceView();
+		SceneTextureParameters.ScreenSpaceAOTextureSampler = TStaticSamplerState<>::GetRHI();
+	}
+
+	// Custom Depth / Stencil
+// 	{
+// 		const bool bSetupCustomDepth = (SetupMode & ESceneTextureSetupMode::CustomDepth) != ESceneTextureSetupMode::None;
+// 
+// 		FTextureRHIParamRef CustomDepth = DepthDefault;
+// 		FShaderResourceViewRHIParamRef CustomStencilSRV = GNullColorVertexBuffer.VertexBufferSRV;
+// 
+// 		// if there is no custom depth it's better to have the far distance there
+// 		IPooledRenderTarget* CustomDepthTarget = SceneContext.bCustomDepthIsValid ? SceneContext.CustomDepth.GetReference() : 0;
+// 		if (bSetupCustomDepth && CustomDepthTarget)
+// 		{
+// 			CustomDepth = CustomDepthTarget->ShaderResourceTexture;
+// 		}
+// 
+// 		if (bSetupCustomDepth && SceneContext.bCustomDepthIsValid && SceneContext.CustomStencilSRV.GetReference())
+// 		{
+// 			CustomStencilSRV = SceneContext.CustomStencilSRV;
+// 		}
+// 
+// 		SceneTextureParameters.CustomDepthTexture = CustomDepth;
+// 		SceneTextureParameters.CustomDepthTextureSampler = TStaticSamplerState<>::GetRHI();
+// 		SceneTextureParameters.CustomDepthTextureNonMS = CustomDepth;
+// 		SceneTextureParameters.CustomStencilTexture = CustomStencilSRV;
+// 	}
+
+	// Misc
+// 	{
+// 		// Setup by passes that support it
+// 		SceneTextureParameters.EyeAdaptation = GWhiteTexture->TextureRHI;
+// 		SceneTextureParameters.SceneColorCopyTexture = BlackDefault2D;
+// 		SceneTextureParameters.SceneColorCopyTextureSampler = TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();
+// 	}
+
 }

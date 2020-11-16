@@ -8,7 +8,7 @@
 
 struct FDrawingPolicyRenderState
 {
-	FDrawingPolicyRenderState(const SceneView& View, ID3D11Buffer* InPassUniformBuffer = nullptr) :
+	FDrawingPolicyRenderState(const SceneView& View, std::shared_ptr<FUniformBuffer> InPassUniformBuffer = nullptr) :
 		BlendState(nullptr)
 		, DepthStencilState(nullptr)
 		, DepthStencilAccess(FExclusiveDepthStencil::DepthRead_StencilRead)
@@ -25,8 +25,8 @@ struct FDrawingPolicyRenderState
 	FDrawingPolicyRenderState() :
 		BlendState(nullptr)
 		, DepthStencilState(nullptr)
-		, ViewUniformBuffer(nullptr)
-		, PassUniformBuffer(nullptr)
+		//, ViewUniformBuffer(nullptr)
+		//, PassUniformBuffer(nullptr)
 		, StencilRef(0)
 		//, ViewOverrideFlags(EDrawingPolicyOverrideFlags::None)
 		, DitheredLODTransitionAlpha(0.0f)
@@ -86,22 +86,22 @@ public:
 		return DepthStencilAccess;
 	}
 
-	inline void SetViewUniformBuffer(ID3D11Buffer* InViewUniformBuffer)
+	inline void SetViewUniformBuffer(const TUniformBufferPtr<FViewUniformShaderParameters>& InViewUniformBuffer)
 	{
 		ViewUniformBuffer = InViewUniformBuffer;
 	}
 
-	inline const ID3D11Buffer* GetViewUniformBuffer() const
+	inline const TUniformBufferPtr<FViewUniformShaderParameters> GetViewUniformBuffer() const
 	{
 		return ViewUniformBuffer;
 	}
 
-	inline void SetPassUniformBuffer(ID3D11Buffer* InPassUniformBuffer)
+	inline void SetPassUniformBuffer(std::shared_ptr<FUniformBuffer> InPassUniformBuffer)
 	{
 		PassUniformBuffer = InPassUniformBuffer;
 	}
 
-	inline ID3D11Buffer* GetPassUniformBuffer() const
+	inline std::shared_ptr<FUniformBuffer> GetPassUniformBuffer() const
 	{
 		return PassUniformBuffer;
 	}
@@ -143,8 +143,8 @@ private:
 	ID3D11DepthStencilState*		DepthStencilState;
 	FExclusiveDepthStencil::Type	DepthStencilAccess;
 
-	ID3D11Buffer*					ViewUniformBuffer;
-	ID3D11Buffer*					PassUniformBuffer;
+	TUniformBufferPtr<FViewUniformShaderParameters>	ViewUniformBuffer;
+	std::shared_ptr<FUniformBuffer>	PassUniformBuffer;
 	uint32							StencilRef;
 
 	//not sure if those should belong here

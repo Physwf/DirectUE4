@@ -98,7 +98,7 @@ private:
 };
 
 class FStaticMesh;
-class ViewInfo;
+class FViewInfo;
 /**
 * A drawing policy factory for the depth drawing policy.
 */
@@ -125,7 +125,7 @@ public:
 	static void AddStaticMesh(FScene* Scene, FStaticMesh* StaticMesh);
 	static bool DrawDynamicMesh(
 		ID3D11DeviceContext* Context,
-		const ViewInfo& View,
+		const FViewInfo& View,
 		//ContextType DrawingContext,
 		const FMeshBatch& Mesh,
 		//bool bPreFog,
@@ -138,7 +138,7 @@ public:
 
 	static bool DrawStaticMesh(
 		ID3D11DeviceContext* Context,
-		const ViewInfo& View,
+		const FViewInfo& View,
 		//ContextType DrawingContext,
 		const FStaticMesh& StaticMesh,
 		const uint64& BatchElementMask,
@@ -157,7 +157,7 @@ private:
 	*/
 	static bool DrawMesh(
 		ID3D11DeviceContext* Context,
-		const ViewInfo& View,
+		const FViewInfo& View,
 		//ContextType DrawingContext,
 		const FMeshBatch& Mesh,
 		const uint64& BatchElementMask,

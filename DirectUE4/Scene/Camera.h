@@ -17,6 +17,7 @@ public:
 
 	SceneView* CalcSceneView(SceneViewFamily& ViewFamily, Viewport& VP);
 
+	virtual void PostLoad() override {}
 	virtual void Tick(float fDeltaSeconds) override;
 public:
 	Vector FaceDir;

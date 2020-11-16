@@ -922,7 +922,7 @@ SkeletalMesh* FBXImporter::ImportSkeletalMesh(const char* pFileName)
 
 	SkeletalMeshLODModel& LODModel = *ImportedResource->LODModels[0];
 
-	LODModel.NumTexCoords = Math::Max<uint32>(1, SkelMeshImportDataPtr->NumTexCoords);
+	LODModel.NumTexCoords = FMath::Max<uint32>(1, SkelMeshImportDataPtr->NumTexCoords);
 
 	if (/*ImportSkeletalMeshArgs.bCreateRenderData*/true)
 	{
@@ -1638,10 +1638,10 @@ bool FBXImporter::FillSkelMeshImporterFromFbx(FSkeletalMeshImportData& ImportDat
 	FbxLayerElement::EMappingMode MaterialMappingMode = LayerElementMaterial ?
 		LayerElementMaterial->GetMappingMode() : FbxLayerElement::eByPolygon;
 
-	UniqueUVCount = Math::Min<uint32>(UniqueUVCount, 4);
+	UniqueUVCount = FMath::Min<uint32>(UniqueUVCount, 4);
 
 	// One UV set is required but only import up to MAX_TEXCOORDS number of uv layers
-	ImportData.NumTexCoords = Math::Max<uint32>(ImportData.NumTexCoords, UniqueUVCount);
+	ImportData.NumTexCoords = FMath::Max<uint32>(ImportData.NumTexCoords, UniqueUVCount);
 
 	//
 	// get the first vertex color layer
@@ -1828,7 +1828,7 @@ bool FBXImporter::FillSkelMeshImporterFromFbx(FSkeletalMeshImportData& ImportDat
 				Triangle.MatIndex = 0;
 			}
 		}
-		ImportData.MaxMaterialIndex = Math::Max<uint32>(ImportData.MaxMaterialIndex, Triangle.MatIndex);
+		ImportData.MaxMaterialIndex = FMath::Max<uint32>(ImportData.MaxMaterialIndex, Triangle.MatIndex);
 
 		Triangle.AuxMatIndex = 0;
 		for (int32 VertexIndex = 0; VertexIndex < 3; VertexIndex++)
@@ -2848,9 +2848,9 @@ public:
 */
 inline bool PointsEqual(const Vector& V1, const Vector& V2, float ComparisonThreshold)
 {
-	if (Math::Abs(V1.X - V2.X) > ComparisonThreshold
-		|| Math::Abs(V1.Y - V2.Y) > ComparisonThreshold
-		|| Math::Abs(V1.Z - V2.Z) > ComparisonThreshold)
+	if (FMath::Abs(V1.X - V2.X) > ComparisonThreshold
+		|| FMath::Abs(V1.Y - V2.Y) > ComparisonThreshold
+		|| FMath::Abs(V1.Z - V2.Z) > ComparisonThreshold)
 	{
 		return false;
 	}
@@ -2859,7 +2859,7 @@ inline bool PointsEqual(const Vector& V1, const Vector& V2, float ComparisonThre
 inline bool PointsEqual(const Vector& V1, const Vector& V2, const FOverlappingThresholds& OverlappingThreshold)
 {
 	const float Epsilon = OverlappingThreshold.ThresholdPosition;
-	return Math::Abs(V1.X - V2.X) <= Epsilon && Math::Abs(V1.Y - V2.Y) <= Epsilon && Math::Abs(V1.Z - V2.Z) <= Epsilon;
+	return FMath::Abs(V1.X - V2.X) <= Epsilon && FMath::Abs(V1.Y - V2.Y) <= Epsilon && FMath::Abs(V1.Z - V2.Z) <= Epsilon;
 }
 /**
 * Returns true if the specified points are about equal
@@ -2867,23 +2867,23 @@ inline bool PointsEqual(const Vector& V1, const Vector& V2, const FOverlappingTh
 inline bool PointsEqual(const Vector& V1, const Vector& V2, bool bUseEpsilonCompare = true)
 {
 	const float Epsilon = bUseEpsilonCompare ? THRESH_POINTS_ARE_SAME : 0.0f;
-	return Math::Abs(V1.X - V2.X) <= Epsilon && Math::Abs(V1.Y - V2.Y) <= Epsilon && Math::Abs(V1.Z - V2.Z) <= Epsilon;
+	return FMath::Abs(V1.X - V2.X) <= Epsilon && FMath::Abs(V1.Y - V2.Y) <= Epsilon && FMath::Abs(V1.Z - V2.Z) <= Epsilon;
 }
 inline bool NormalsEqual(const Vector& V1, const Vector& V2, const FOverlappingThresholds& OverlappingThreshold)
 {
 	const float Epsilon = OverlappingThreshold.ThresholdTangentNormal;
-	return Math::Abs(V1.X - V2.X) <= Epsilon && Math::Abs(V1.Y - V2.Y) <= Epsilon && Math::Abs(V1.Z - V2.Z) <= Epsilon;
+	return FMath::Abs(V1.X - V2.X) <= Epsilon && FMath::Abs(V1.Y - V2.Y) <= Epsilon && FMath::Abs(V1.Z - V2.Z) <= Epsilon;
 }
 
 inline bool UVsEqual(const Vector2& V1, const Vector2& V2)
 {
 	const float Epsilon = 1.0f / 1024.0f;
-	return Math::Abs(V1.X - V2.X) <= Epsilon && Math::Abs(V1.Y - V2.Y) <= Epsilon;
+	return FMath::Abs(V1.X - V2.X) <= Epsilon && FMath::Abs(V1.Y - V2.Y) <= Epsilon;
 }
 inline bool UVsEqual(const Vector2& V1, const Vector2& V2, const FOverlappingThresholds& OverlappingThreshold)
 {
 	const float Epsilon = OverlappingThreshold.ThresholdUV;
-	return Math::Abs(V1.X - V2.X) <= Epsilon && Math::Abs(V1.Y - V2.Y) <= Epsilon;
+	return FMath::Abs(V1.X - V2.X) <= Epsilon && FMath::Abs(V1.Y - V2.Y) <= Epsilon;
 }
 
 
@@ -2977,7 +2977,7 @@ public:
 			// only need to search forward, since we add pairs both ways
 			for (uint32 j = i + 1; j < VertIndexAndZ.size(); j++)
 			{
-				if (Math::Abs(VertIndexAndZ[j].Z - VertIndexAndZ[i].Z) > ComparisonThreshold)
+				if (FMath::Abs(VertIndexAndZ[j].Z - VertIndexAndZ[i].Z) > ComparisonThreshold)
 					break; // can't be any more dups
 
 				Vector PositionA = BuildData->GetVertexPosition(VertIndexAndZ[i].Index);
@@ -3803,7 +3803,7 @@ public:
 						InfluenceCount++;
 						LookIdx++;
 					}
-					InfluenceCount = Math::Min<uint32>(InfluenceCount, MAX_TOTAL_INFLUENCES);
+					InfluenceCount = FMath::Min<uint32>(InfluenceCount, MAX_TOTAL_INFLUENCES);
 
 					// Setup the vertex influences.
 					Vertex.InfluenceBones[0] = 0;
@@ -4057,7 +4057,7 @@ void SkeletalMeshTools::BuildSkeletalMeshChunks(const std::vector<FMeshFace>& Fa
 			// only need to search forward, since we add pairs both ways
 			for (uint32 j = i + 1; j < RawVertIndexAndZ.size(); j++)
 			{
-				if (Math::Abs(RawVertIndexAndZ[j].Z - RawVertIndexAndZ[i].Z) > OverlappingThresholds.ThresholdPosition)
+				if (FMath::Abs(RawVertIndexAndZ[j].Z - RawVertIndexAndZ[i].Z) > OverlappingThresholds.ThresholdPosition)
 				{
 					// our list is sorted, so there can't be any more dupes
 					break;
@@ -4312,7 +4312,7 @@ bool FBXImporter::BuildSkeletalMesh(SkeletalMeshLODModel& LODModel, const FRefer
 				// only need to search forward, since we add pairs both ways
 				for (uint32 j = i + 1; j < VertIndexAndZ.size(); ++j)
 				{
-					if (Math::Abs(VertIndexAndZ[j].Z - Z) > THRESH_POINTS_ARE_SAME)
+					if (FMath::Abs(VertIndexAndZ[j].Z - Z) > THRESH_POINTS_ARE_SAME)
 						break; // can't be any more dups
 
 					const uint32 IterVertIndex = VertIndexAndZ[j].Index;
@@ -4501,7 +4501,7 @@ void FBXImporter::BuildSkeletalModelFromChunks(SkeletalMeshLODModel& LODModel, c
 			// Also remember import index
 			const int32 RawVertIndex = PointToOriginalMap[SoftVertex.PointWedgeIdx];
 			LODModel.MeshToImportVertexMap.push_back(RawVertIndex);
-			LODModel.MaxImportVertex = Math::Max<int32>(LODModel.MaxImportVertex, RawVertIndex);
+			LODModel.MaxImportVertex = FMath::Max<int32>(LODModel.MaxImportVertex, RawVertIndex);
 		}
 
 		// update NumVertices
@@ -4684,17 +4684,15 @@ void FBXImporter::BuildVertexBuffer(const MeshDescription& MD2, FStaticMeshLODRe
 
 	}
 	StaticMeshLOD.VertexBuffers.PositionVertexBuffer.resize(StaticMeshBuildVertices.size());
-	size_t StaticMeshVertexBufferStride = 2 * sizeof(Vector4) / sizeof(float) + 2 * sizeof(Vector2) / sizeof(float);//2个Vector4给tangent,2个Vector2给UV
-	StaticMeshLOD.VertexBuffers.StaticMeshVertexBuffer.resize(StaticMeshBuildVertices.size() * StaticMeshVertexBufferStride);
+	StaticMeshLOD.VertexBuffers.TangentsVertexBuffer.resize(StaticMeshBuildVertices.size()*2);
+	StaticMeshLOD.VertexBuffers.TexCoordVertexBuffer.resize(StaticMeshBuildVertices.size()*2);
 	for (size_t i = 0; i < StaticMeshBuildVertices.size(); ++i)
 	{
 		StaticMeshLOD.VertexBuffers.PositionVertexBuffer[i] = StaticMeshBuildVertices[i].Position;
-		Vector4* TangetStart = (Vector4*)(StaticMeshLOD.VertexBuffers.StaticMeshVertexBuffer.data() + StaticMeshVertexBufferStride * i);
-		TangetStart[0] = StaticMeshBuildVertices[i].TangentX;
-		TangetStart[1] = Vector4(StaticMeshBuildVertices[i].TangentZ, StaticMeshBuildVertices[i].TangentYSign);
-		Vector2* UVStart = (Vector2*)&TangetStart[2];
-		UVStart[0] = StaticMeshBuildVertices[i].UVs;
-		UVStart[1] = StaticMeshBuildVertices[i].LightMapCoordinate;
+		StaticMeshLOD.VertexBuffers.TangentsVertexBuffer[i * 2] = StaticMeshBuildVertices[i].TangentX;
+		StaticMeshLOD.VertexBuffers.TangentsVertexBuffer[i * 2 + 1] = Vector4( StaticMeshBuildVertices[i].TangentZ,StaticMeshBuildVertices[i].TangentYSign);
+		StaticMeshLOD.VertexBuffers.TexCoordVertexBuffer[i * 2] = StaticMeshBuildVertices[i].UVs;
+		StaticMeshLOD.VertexBuffers.TexCoordVertexBuffer[i * 2+ 1] = StaticMeshBuildVertices[i].LightMapCoordinate;
 	}
 }
 

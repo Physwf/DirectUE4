@@ -8,7 +8,7 @@ class RCPassPostProcessAmbientOcclusionSetup
 {
 public:
 	void Init();
-	void Process(ViewInfo& View);
+	void Process(FViewInfo& View);
 private:
 	bool IsInitialPass() const;
 public:
@@ -25,7 +25,7 @@ public:
 
 	ID3D11Texture2D* Inputs[2];
 
-	IntPoint OutputExtent;
+	FIntPoint OutputExtent;
 	ID3D11Texture2D* Output;
 	ID3D11RenderTargetView* OutputRTV;
 
@@ -36,9 +36,9 @@ class RCPassPostProcessAmbientOcclusion
 {
 public:
 	void Init(bool InAOSetupAsInput=true);
-	void Process(ViewInfo& View);
+	void Process(FViewInfo& View);
 private:
-	void ProcessPS(ID3D11RenderTargetView* DestRenderTarget, ViewInfo& View, const IntRect& ViewRect, const IntPoint& TexSize, int32 ShaderQuality, bool bDoUpsample);
+	void ProcessPS(ID3D11RenderTargetView* DestRenderTarget, FViewInfo& View, const IntRect& ViewRect, const FIntPoint& TexSize, int32 ShaderQuality, bool bDoUpsample);
 public:
 	ID3DBlob * PSBytecode;
 	ID3D11PixelShader* PS;
@@ -64,7 +64,7 @@ public:
 	ID3D11Texture2D* Inputs[4];
 
 	ID3D11Texture2D* Output;
-	IntPoint OutputExtent;
+	FIntPoint OutputExtent;
 	ID3D11RenderTargetView* OutputRTV;
 
 	std::map<std::string, ParameterAllocation> PSParams;
@@ -76,7 +76,7 @@ class RCPassPostProcessBasePassAO
 {
 public:
 	void Init();
-	void Process(ViewInfo& View);
+	void Process(FViewInfo& View);
 public:
 	ID3DBlob * PSBytecode;
 	ID3D11PixelShader* PS;

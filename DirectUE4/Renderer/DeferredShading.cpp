@@ -45,14 +45,14 @@ SceneRenderer::SceneRenderer(SceneViewFamily& InViewFamily)
 {
 	for (uint32 ViewIndex = 0; ViewIndex < InViewFamily.Views.size(); ViewIndex++)
 	{
-		ViewInfo View(InViewFamily.Views[ViewIndex]);
+		FViewInfo View(InViewFamily.Views[ViewIndex]);
 		Views.emplace_back(View);
 	}
 }
 
 void SceneRenderer::PrepareViewRectsForRendering()
 {
-	for (ViewInfo& View : Views)
+	for (FViewInfo& View : Views)
 	{
 		View.ViewRect = View.UnscaledViewRect;
 	}
@@ -62,7 +62,7 @@ void SceneRenderer::InitViews()
 {
 	for (uint32 ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
 	{
-		ViewInfo& View = Views[ViewIndex];
+		FViewInfo& View = Views[ViewIndex];
 		// Initialize the view's RHI resources.
 		View.InitRHIResources();
 	}
@@ -87,20 +87,20 @@ void SceneRenderer::Render()
 	SceneContex.FinishRendering();
 }
 
-IntPoint SceneRenderer::GetDesiredInternalBufferSize(const SceneViewFamily& ViewFamily)
+FIntPoint SceneRenderer::GetDesiredInternalBufferSize(const SceneViewFamily& ViewFamily)
 {
 	// If not supporting screen percentage, bypass all computation.
 	//if (!ViewFamily.SupportsScreenPercentage())
 	{
-		IntPoint FamilySizeUpperBound(0, 0);
+		FIntPoint FamilySizeUpperBound(0, 0);
 
 		for (const SceneView* View : ViewFamily.Views)
 		{
-			FamilySizeUpperBound.X = Math::Max(FamilySizeUpperBound.X, View->UnscaledViewRect.Max.X);
-			FamilySizeUpperBound.Y = Math::Max(FamilySizeUpperBound.Y, View->UnscaledViewRect.Max.Y);
+			FamilySizeUpperBound.X = FMath::Max(FamilySizeUpperBound.X, View->UnscaledViewRect.Max.X);
+			FamilySizeUpperBound.Y = FMath::Max(FamilySizeUpperBound.Y, View->UnscaledViewRect.Max.Y);
 		}
 
-		IntPoint DesiredBufferSize;
+		FIntPoint DesiredBufferSize;
 		QuantizeSceneBufferSize(FamilySizeUpperBound, DesiredBufferSize);
 		return DesiredBufferSize;
 	}
