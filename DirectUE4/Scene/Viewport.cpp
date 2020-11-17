@@ -77,7 +77,7 @@ void Viewport::Draw(bool bShouldPresent /*= true*/)
 	SceneViewFamily ViewFamily;
 	for (Camera* C : GWorld.GetCameras())
 	{
-		SceneView* View = C->CalcSceneView(ViewFamily,*this);
+		FSceneView* View = C->CalcSceneView(ViewFamily,*this);
 	}
 	SceneRenderer Renderer(ViewFamily);
 	Renderer.Render();

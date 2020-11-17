@@ -8,7 +8,7 @@
 
 struct FDrawingPolicyRenderState
 {
-	FDrawingPolicyRenderState(const SceneView& View, std::shared_ptr<FUniformBuffer> InPassUniformBuffer = nullptr) :
+	FDrawingPolicyRenderState(const FSceneView& View, std::shared_ptr<FUniformBuffer> InPassUniformBuffer = nullptr) :
 		BlendState(nullptr)
 		, DepthStencilState(nullptr)
 		, DepthStencilAccess(FExclusiveDepthStencil::DepthRead_StencilRead)
@@ -166,7 +166,7 @@ public:
 
 	void SetMeshRenderState(
 		ID3D11DeviceContext* Context,
-		const SceneView& View,
+		const FSceneView& View,
 		//const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		const FMeshBatch& Mesh,
 		int32 BatchElementIndex//,
@@ -177,9 +177,9 @@ public:
 	{
 	}
 
-	void DrawMesh(ID3D11DeviceContext* Context, const SceneView& View, const FMeshBatch& Mesh, int32 BatchElementIndex, const bool bIsInstancedStereo = false) const;
+	void DrawMesh(ID3D11DeviceContext* Context, const FSceneView& View, const FMeshBatch& Mesh, int32 BatchElementIndex, const bool bIsInstancedStereo = false) const;
 
-	void SetSharedState(ID3D11DeviceContext* Context, const FDrawingPolicyRenderState& DrawRenderState, const SceneView* View/*, const FMeshDrawingPolicy::ContextDataType PolicyContext*/) const;
+	void SetSharedState(ID3D11DeviceContext* Context, const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View/*, const FMeshDrawingPolicy::ContextDataType PolicyContext*/) const;
 protected:
 	const ID3D11VertexShader* BaseVertexShader = nullptr;
 	const FVertexFactory* VertexFactory;

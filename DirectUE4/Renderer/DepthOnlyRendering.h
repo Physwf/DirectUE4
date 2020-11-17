@@ -20,7 +20,7 @@ public:
 
 	void SetMeshRenderState(
 		ID3D11DeviceContext* Context,
-		const SceneView& View,
+		const FSceneView& View,
 		//const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		const FMeshBatch& Mesh,
 		int32 BatchElementIndex,
@@ -68,7 +68,7 @@ public:
 	// 		DRAWING_POLICY_MATCH_END
 	// 	}
 
-	void SetSharedState(ID3D11DeviceContext* Context, const FDrawingPolicyRenderState& DrawRenderState, const SceneView* View/*,*/ /*const FPositionOnlyDepthDrawingPolicy::ContextDataType PolicyContext*/) const;
+	void SetSharedState(ID3D11DeviceContext* Context, const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View/*,*/ /*const FPositionOnlyDepthDrawingPolicy::ContextDataType PolicyContext*/) const;
 
 	/**
 	* Create bound shader state using the vertex decl from the mesh draw policy
@@ -79,7 +79,7 @@ public:
 
 	void SetMeshRenderState(
 		ID3D11DeviceContext* Context,
-		const SceneView& View,
+		const FSceneView& View,
 		//const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		const FMeshBatch& Mesh,
 		int32 BatchElementIndex,

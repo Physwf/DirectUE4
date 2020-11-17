@@ -5,14 +5,14 @@
 #include "AtmosphereRendering.h"
 
 FViewInfo::FViewInfo(const ViewInitOptions& InitOptions)
-	: SceneView(InitOptions),
+	: FSceneView(InitOptions),
 	CachedViewUniformShaderParameters(NULL)
 {
 
 }
 
-FViewInfo::FViewInfo(const SceneView* InView)
-	: SceneView(*InView),
+FViewInfo::FViewInfo(const FSceneView* InView)
+	: FSceneView(*InView),
 	CachedViewUniformShaderParameters(NULL)
 {
 

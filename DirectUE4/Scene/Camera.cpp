@@ -25,7 +25,7 @@ void Camera::SetLen(float fNear, float fFar)
 	Far = fFar;
 }
 
-SceneView* Camera::CalcSceneView(SceneViewFamily& ViewFamily, Viewport& VP)
+FSceneView* Camera::CalcSceneView(SceneViewFamily& ViewFamily, Viewport& VP)
 {
 	ViewInitOptions InitOptions;
 
@@ -63,7 +63,7 @@ SceneView* Camera::CalcSceneView(SceneViewFamily& ViewFamily, Viewport& VP)
 	InitOptions.ViewOrigin = Position;
 	//InitOptions.ViewRotation = Rotation;
 
-	SceneView* const View = new SceneView(InitOptions);
+	FSceneView* const View = new FSceneView(InitOptions);
 	ViewFamily.Views.push_back(View);
 
 	return View;

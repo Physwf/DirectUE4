@@ -1,6 +1,9 @@
 #pragma once
 
 #include "D3D11RHI.h"
+#include "Shader.h"
+
+class RenderTargets;
 
 struct FSceneTexturesUniformParameters
 {
@@ -139,4 +142,62 @@ extern void SetupSceneTextureUniformParameters(
 	ESceneTextureSetupMode SetupMode,
 	FSceneTexturesUniformParameters& OutParameters);
 
+TUniformBufferPtr<FSceneTexturesUniformParameters> CreateSceneTextureUniformBufferSingleDraw(ESceneTextureSetupMode SceneTextureSetupMode);
 
+extern void BindSceneTextureUniformBufferDependentOnShadingPath(
+	const FShader::CompiledShaderInitializerType& Initializer,
+	FShaderUniformBufferParameter& SceneTexturesUniformBuffer//,
+	/*FShaderUniformBufferParameter& MobileSceneTexturesUniformBuffer*/);
+
+class FSceneTextureShaderParameters
+{
+public:
+	/** Binds the parameters using a compiled shader's parameter map. */
+	void Bind(const FShader::CompiledShaderInitializerType& Initializer)
+	{
+		BindSceneTextureUniformBufferDependentOnShadingPath(Initializer, SceneTexturesUniformBuffer/*, MobileSceneTexturesUniformBuffer*/);
+	}
+
+	template< typename ShaderRHIParamRef, typename TRHICmdList >
+	void Set(const ShaderRHIParamRef& ShaderRHI, ESceneTextureSetupMode SetupMode) const
+	{
+		//if (FSceneInterface::GetShadingPath(FeatureLevel) == EShadingPath::Deferred && SceneTexturesUniformBuffer.IsBound())
+		{
+			TUniformBufferPtr<FSceneTexturesUniformParameters> UniformBuffer = CreateSceneTextureUniformBufferSingleDraw(SetupMode);
+			SetUniformBufferParameter(ShaderRHI, SceneTexturesUniformBuffer, UniformBuffer);
+		}
+
+// 		if (FSceneInterface::GetShadingPath(FeatureLevel) == EShadingPath::Mobile && MobileSceneTexturesUniformBuffer.IsBound())
+// 		{
+// 			TUniformBufferRef<FMobileSceneTextureUniformParameters> UniformBuffer = CreateMobileSceneTextureUniformBufferSingleDraw(RHICmdList, FeatureLevel);
+// 			SetUniformBufferParameter(RHICmdList, ShaderRHI, MobileSceneTexturesUniformBuffer, UniformBuffer);
+// 		}
+	}
+
+	inline bool IsBound() const
+	{
+		return SceneTexturesUniformBuffer.IsBound() /*|| MobileSceneTexturesUniformBuffer.IsBound()*/;
+	}
+
+	bool IsSameUniformParameter(const FShaderUniformBufferParameter& Parameter)
+	{
+		if (Parameter.IsBound())
+		{
+			if (SceneTexturesUniformBuffer.IsBound() && SceneTexturesUniformBuffer.GetBaseIndex() == Parameter.GetBaseIndex())
+			{
+				return true;
+			}
+
+// 			if (MobileSceneTexturesUniformBuffer.IsBound() && MobileSceneTexturesUniformBuffer.GetBaseIndex() == Parameter.GetBaseIndex())
+// 			{
+// 				return true;
+// 			}
+		}
+
+		return false;
+	}
+
+private:
+	TShaderUniformBufferParameter<FSceneTexturesUniformParameters> SceneTexturesUniformBuffer;
+	//TShaderUniformBufferParameter<FMobileSceneTextureUniformParameters> MobileSceneTexturesUniformBuffer;
+};

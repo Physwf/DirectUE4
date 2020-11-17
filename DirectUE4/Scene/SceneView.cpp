@@ -137,7 +137,7 @@ Vector4 CreateInvDeviceZToWorldZTransform(const FMatrix& ProjMatrix)
 }
 
 
-SceneView::SceneView(const ViewInitOptions& InitOptions)
+FSceneView::FSceneView(const ViewInitOptions& InitOptions)
 : mViewMatrices(InitOptions),
 	ViewActor(InitOptions.ViewActor),
 	UnscaledViewRect(InitOptions.GetConstrainedViewRect()),
@@ -148,7 +148,7 @@ SceneView::SceneView(const ViewInitOptions& InitOptions)
 	InvDeviceZToWorldZTransform = CreateInvDeviceZToWorldZTransform(ProjectionMatrixUnadjustedForRHI);
 }
 
-void SceneView::SetupViewRectUniformBufferParameters(
+void FSceneView::SetupViewRectUniformBufferParameters(
 	FViewUniformShaderParameters& ViewUniformParameters,
 	const FIntPoint& BufferSize,
 	const IntRect& EffectiveViewRect,
@@ -215,7 +215,7 @@ void SceneView::SetupViewRectUniformBufferParameters(
 
 }
 
-void SceneView::SetupCommonViewUniformBufferParameters(
+void FSceneView::SetupCommonViewUniformBufferParameters(
 	FViewUniformShaderParameters& ViewUniformParameters, 
 	const FIntPoint& BufferSize, 
 	int32 NumMSAASamples, 

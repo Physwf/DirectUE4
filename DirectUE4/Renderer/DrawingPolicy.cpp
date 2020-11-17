@@ -13,7 +13,7 @@ FMeshDrawingPolicy::FMeshDrawingPolicy(
 	MeshPrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 }
 
-void FMeshDrawingPolicy::DrawMesh(ID3D11DeviceContext* Context, const SceneView& View, const FMeshBatch& Mesh, int32 BatchElementIndex, const bool bIsInstancedStereo /*= false*/) const
+void FMeshDrawingPolicy::DrawMesh(ID3D11DeviceContext* Context, const FSceneView& View, const FMeshBatch& Mesh, int32 BatchElementIndex, const bool bIsInstancedStereo /*= false*/) const
 {
 	const FMeshBatchElement& BatchElement = Mesh.Elements[BatchElementIndex];
 
@@ -22,7 +22,7 @@ void FMeshDrawingPolicy::DrawMesh(ID3D11DeviceContext* Context, const SceneView&
 	Context->DrawIndexed(BatchElement.NumPrimitives, BatchElement.FirstIndex, BatchElement.BaseVertexIndex);
 }
 
-void FMeshDrawingPolicy::SetSharedState(ID3D11DeviceContext* Context, const FDrawingPolicyRenderState& DrawRenderState, const SceneView* View/*, const ContextDataType PolicyContext*/) const
+void FMeshDrawingPolicy::SetSharedState(ID3D11DeviceContext* Context, const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View/*, const ContextDataType PolicyContext*/) const
 {
 	VertexFactory->SetStreams(Context);
 }

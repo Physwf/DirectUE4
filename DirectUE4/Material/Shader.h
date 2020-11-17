@@ -1178,3 +1178,38 @@ private:
 	ModifyCompilationEnvironmentType ModifyCompilationEnvironmentRef;
 };
 
+/**
+* A macro to declare a new shader type.  This should be called in the class body of the new shader type.
+* @param ShaderClass - The name of the class representing an instance of the shader type.
+* @param ShaderMetaTypeShortcut - The shortcut for the shader meta type: simple, material, meshmaterial, etc.  The shader meta type
+*	controls
+*/
+#define DECLARE_EXPORTED_SHADER_TYPE(ShaderClass,ShaderMetaTypeShortcut,RequiredAPI, ...) \
+	public: \
+	using ShaderMetaType = F##ShaderMetaTypeShortcut##ShaderType; \
+	\
+	static RequiredAPI ShaderMetaType StaticType; \
+	\
+	static FShader* ConstructSerializedInstance() { return new ShaderClass(); } \
+	static FShader* ConstructCompiledInstance(const ShaderMetaType::CompiledShaderInitializerType& Initializer) \
+	{ return new ShaderClass(Initializer); } 
+
+#define DECLARE_SHADER_TYPE(ShaderClass,ShaderMetaTypeShortcut,...) \
+	DECLARE_EXPORTED_SHADER_TYPE(ShaderClass,ShaderMetaTypeShortcut,, ##__VA_ARGS__)
+
+/** A macro to implement a shader type. */
+#define IMPLEMENT_SHADER_TYPE(TemplatePrefix,ShaderClass,SourceFilename,FunctionName,Frequency) \
+	TemplatePrefix \
+	ShaderClass::ShaderMetaType ShaderClass::StaticType( \
+		TEXT(#ShaderClass), \
+		SourceFilename, \
+		FunctionName, \
+		Frequency, \
+		1, \
+		ShaderClass::ConstructSerializedInstance, \
+		ShaderClass::ConstructCompiledInstance, \
+		ShaderClass::ModifyCompilationEnvironment, \
+		ShaderClass::ShouldCompilePermutation, \
+		ShaderClass::ValidateCompiledResult, \
+		ShaderClass::GetStreamOutElements \
+		);

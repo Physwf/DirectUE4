@@ -222,3 +222,17 @@ TUniformBufferPtr<FLocalVertexFactoryUniformShaderParameters>  CreateLocalVFUnif
 
 	return TUniformBufferPtr<FLocalVertexFactoryUniformShaderParameters>::CreateUniformBufferImmediate(UniformParameters);
 }
+
+FVertexFactoryParameterRef::FVertexFactoryParameterRef(FVertexFactoryType* InVertexFactoryType, const FShaderParameterMap& ParameterMap, EShaderFrequency InShaderFrequency)
+	: Parameters(NULL)
+	, VertexFactoryType(InVertexFactoryType)
+	, ShaderFrequency(InShaderFrequency)
+{
+	Parameters = VertexFactoryType->CreateShaderParameters(InShaderFrequency);
+	//VFHash = GetShaderFileHash(VertexFactoryType->GetShaderFilename());
+
+	if (Parameters)
+	{
+		Parameters->Bind(ParameterMap);
+	}
+}

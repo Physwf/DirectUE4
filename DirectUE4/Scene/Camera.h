@@ -15,7 +15,7 @@ public:
 	void LookAt(FVector Target);
 	void SetLen(float fNear, float fFar);
 
-	SceneView* CalcSceneView(SceneViewFamily& ViewFamily, Viewport& VP);
+	FSceneView* CalcSceneView(SceneViewFamily& ViewFamily, Viewport& VP);
 
 	virtual void PostLoad() override {}
 	virtual void Tick(float fDeltaSeconds) override;

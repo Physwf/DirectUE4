@@ -130,7 +130,7 @@ FDepthDrawingPolicy::FDepthDrawingPolicy(
 
 void FDepthDrawingPolicy::SetMeshRenderState(
 	ID3D11DeviceContext* Context, 
-	const SceneView& View, 
+	const FSceneView& View, 
 	/*const FPrimitiveSceneProxy* PrimitiveSceneProxy, */ 
 	const FMeshBatch& Mesh, 
 	int32 BatchElementIndex,  
@@ -152,12 +152,12 @@ FPositionOnlyDepthDrawingPolicy::FPositionOnlyDepthDrawingPolicy(
 
 }
 
-void FPositionOnlyDepthDrawingPolicy::SetSharedState(ID3D11DeviceContext* Context, const FDrawingPolicyRenderState& DrawRenderState, const SceneView* View/*, const ContextDataType PolicyContext*/) const
+void FPositionOnlyDepthDrawingPolicy::SetSharedState(ID3D11DeviceContext* Context, const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View/*, const ContextDataType PolicyContext*/) const
 {
 
 }
 
-void FPositionOnlyDepthDrawingPolicy::SetMeshRenderState(ID3D11DeviceContext* Context, const SceneView& View, /*const FPrimitiveSceneProxy* PrimitiveSceneProxy, */ const FMeshBatch& Mesh, int32 BatchElementIndex,  const FDrawingPolicyRenderState& DrawRenderState/*,*/  /*const ElementDataType& ElementData, */ /*const ContextDataType PolicyContext */) const
+void FPositionOnlyDepthDrawingPolicy::SetMeshRenderState(ID3D11DeviceContext* Context, const FSceneView& View, /*const FPrimitiveSceneProxy* PrimitiveSceneProxy, */ const FMeshBatch& Mesh, int32 BatchElementIndex,  const FDrawingPolicyRenderState& DrawRenderState/*,*/  /*const ElementDataType& ElementData, */ /*const ContextDataType PolicyContext */) const
 {
 
 }

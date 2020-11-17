@@ -529,7 +529,7 @@ struct alignas(16) FViewUniformShaderParameters
 	void TransposeMatrices();
 };
 
-class SceneView
+class FSceneView
 {
 public:
 	TUniformBufferPtr<FViewUniformShaderParameters> ViewUniformBuffer;
@@ -542,7 +542,7 @@ private:
 
 public:
 
-	SceneView(const ViewInitOptions& InitOptions);
+	FSceneView(const ViewInitOptions& InitOptions);
 
 	/** The actor which is being viewed from. */
 	const class Actor* ViewActor;
@@ -617,5 +617,5 @@ class SceneViewFamily
 {
 public:
 	class FScene* Scene;
-	std::vector<const SceneView*> Views;
+	std::vector<const FSceneView*> Views;
 };

@@ -512,3 +512,27 @@ void SetupSceneTextureUniformParameters(RenderTargets& SceneContext, ESceneTextu
 // 	}
 
 }
+
+TUniformBufferPtr<FSceneTexturesUniformParameters> CreateSceneTextureUniformBufferSingleDraw(ESceneTextureSetupMode SceneTextureSetupMode)
+{
+	FSceneTexturesUniformParameters SceneTextureParameters;
+	RenderTargets& SceneContext = RenderTargets::Get();
+	SetupSceneTextureUniformParameters(SceneContext, SceneTextureSetupMode, SceneTextureParameters);
+	return TUniformBufferPtr<FSceneTexturesUniformParameters>::CreateUniformBufferImmediate(SceneTextureParameters);
+}
+
+
+void BindSceneTextureUniformBufferDependentOnShadingPath(const FShader::CompiledShaderInitializerType& Initializer, FShaderUniformBufferParameter& SceneTexturesUniformBuffer /*,FShaderUniformBufferParameter& MobileSceneTexturesUniformBuffer*/)
+{
+	//if (FSceneInterface::GetShadingPath(FeatureLevel) == EShadingPath::Deferred)
+	{
+		SceneTexturesUniformBuffer.Bind(Initializer.ParameterMap, FSceneTexturesUniformParameters::GetConstantBufferName().c_str());
+		//assert(!Initializer.ParameterMap.ContainsParameterAllocation(FMobileSceneTextureUniformParameters::StaticStruct.GetShaderVariableName()), TEXT("Shader for Deferred shading path tried to bind FMobileSceneTextureUniformParameters which is only available in the mobile shading path: %s"), Initializer.Type->GetName());
+	}
+
+// 	if (FSceneInterface::GetShadingPath(FeatureLevel) == EShadingPath::Mobile)
+// 	{
+// 		MobileSceneTexturesUniformBuffer.Bind(Initializer.ParameterMap, FMobileSceneTextureUniformParameters::StaticStruct.GetShaderVariableName());
+// 		checkfSlow(!Initializer.ParameterMap.ContainsParameterAllocation(FSceneTexturesUniformParameters::StaticStruct.GetShaderVariableName()), TEXT("Shader for Mobile shading path tried to bind FSceneTexturesUniformParameters which is only available in the deferred shading path: %s"), Initializer.Type->GetName());
+// 	}
+}

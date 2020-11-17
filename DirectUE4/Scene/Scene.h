@@ -14,7 +14,7 @@ Vector4 CreateInvDeviceZToWorldZTransform(const FMatrix& ProjMatrix);
 class RenderTargets;
 class MeshPrimitive;
 
-class FViewInfo : public SceneView
+class FViewInfo : public FSceneView
 {
 public:
 	/* Final position of the view in the final render target (in pixels), potentially scaled by ScreenPercentage */
@@ -227,7 +227,7 @@ public:
 	//ICustomVisibilityQuery* CustomVisibilityQuery;
 
 	FViewInfo(const ViewInitOptions& InitOptions);
-	explicit FViewInfo(const SceneView* InView);
+	explicit FViewInfo(const FSceneView* InView);
 	//TArray<FPrimitiveSceneInfo*, SceneRenderingAllocator> IndirectShadowPrimitives;
 	/**
 	* Destructor.

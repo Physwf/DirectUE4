@@ -96,7 +96,7 @@ class FVertexFactoryShaderParameters
 public:
 	virtual ~FVertexFactoryShaderParameters() {}
 	virtual void Bind(const class FShaderParameterMap& ParameterMap) = 0;
-	virtual void SetMesh(FShader* VertexShader, const class FVertexFactory* VertexFactory, const class SceneView& View, const struct FMeshBatchElement& BatchElement, uint32 DataFlags) const = 0;
+	virtual void SetMesh(FShader* VertexShader, const class FVertexFactory* VertexFactory, const class FSceneView& View, const struct FMeshBatchElement& BatchElement, uint32 DataFlags) const = 0;
 	virtual uint32 GetSize() const { return sizeof(*this); }
 };
 
@@ -392,4 +392,50 @@ private:
 	FVertexStreamComponent TangentStreamComponents[2];
 	uint32 NumVertices;
 	FDataType Data;
+};
+
+/**
+* An encapsulation of the vertex factory parameters for a shader.
+* Handles serialization and binding of the vertex factory parameters for the shader's vertex factory type.
+*/
+class FVertexFactoryParameterRef
+{
+public:
+	FVertexFactoryParameterRef(FVertexFactoryType* InVertexFactoryType, const FShaderParameterMap& ParameterMap, EShaderFrequency InShaderFrequency);
+
+	FVertexFactoryParameterRef() :
+		Parameters(NULL),
+		VertexFactoryType(NULL)
+	{}
+
+	~FVertexFactoryParameterRef()
+	{
+		delete Parameters;
+	}
+
+	void SetMesh(FShader* Shader, const FVertexFactory* VertexFactory, const class FSceneView& View, const struct FMeshBatchElement& BatchElement, uint32 DataFlags) const
+	{
+		if (Parameters)
+		{
+			Parameters->SetMesh(Shader, VertexFactory, View, BatchElement, DataFlags);
+		}
+	}
+
+	const FVertexFactoryType* GetVertexFactoryType() const { return VertexFactoryType; }
+
+	/** Returns the hash of the vertex factory shader file that this shader was compiled with. */
+	const FSHAHash& GetHash() const;
+
+	uint32 GetAllocatedSize() const
+	{
+		return Parameters ? Parameters->GetSize() : 0;
+	}
+
+private:
+	FVertexFactoryShaderParameters * Parameters;
+	FVertexFactoryType* VertexFactoryType;
+	EShaderFrequency ShaderFrequency;
+
+	// Hash of the vertex factory's source file at shader compile time, used by the automatic versioning system to detect changes
+	FSHAHash VFHash;
 };

@@ -10,7 +10,7 @@ struct FPrimitiveViewRelevance
 	uint32 bDynamicRelevance : 1;
 };
 
-class SceneView;
+class FSceneView;
 class FStaticMesh;
 class SceneViewFamily;
 class FScene;
@@ -41,8 +41,8 @@ public:
 
 	//FPrimitiveSceneProxy
 	virtual void DrawStaticElements(/*FStaticPrimitiveDrawInterface* PDI*/) {};
-	virtual void GetDynamicMeshElements(const std::vector<const SceneView*>& Views, const SceneViewFamily& ViewFamily, uint32 VisibilityMap/*, FMeshElementCollector& Collector*/) const = 0;
-	virtual FPrimitiveViewRelevance GetViewRelevance(const SceneView* View) const = 0;
+	virtual void GetDynamicMeshElements(const std::vector<const FSceneView*>& Views, const SceneViewFamily& ViewFamily, uint32 VisibilityMap/*, FMeshElementCollector& Collector*/) const = 0;
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const = 0;
 	//FPrimitiveSceneProxy
 	inline const FMatrix& GetLocalToWorld() const { return LocalToWorld; }
 	//inline const FBoxSphereBounds& GetBounds() const { return Bounds; }

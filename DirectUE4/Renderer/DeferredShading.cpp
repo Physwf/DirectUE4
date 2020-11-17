@@ -94,7 +94,7 @@ FIntPoint SceneRenderer::GetDesiredInternalBufferSize(const SceneViewFamily& Vie
 	{
 		FIntPoint FamilySizeUpperBound(0, 0);
 
-		for (const SceneView* View : ViewFamily.Views)
+		for (const FSceneView* View : ViewFamily.Views)
 		{
 			FamilySizeUpperBound.X = FMath::Max(FamilySizeUpperBound.X, View->UnscaledViewRect.Max.X);
 			FamilySizeUpperBound.Y = FMath::Max(FamilySizeUpperBound.Y, View->UnscaledViewRect.Max.Y);

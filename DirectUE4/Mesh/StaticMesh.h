@@ -51,8 +51,8 @@ public:
 	int GetNumberBatches() { return 1; }
 	bool GetMeshElement(int BatchIndex, int SectionIndex, FMeshBatch& OutMeshBatch);
 	virtual void DrawStaticElements() override;
-	virtual void GetDynamicMeshElements(const std::vector<const SceneView*>& Views, const SceneViewFamily& ViewFamily, uint32 VisibilityMap/*, FMeshElementCollector& Collector*/) const {};
-	virtual FPrimitiveViewRelevance GetViewRelevance(const SceneView* View) const { return FPrimitiveViewRelevance(); }
+	virtual void GetDynamicMeshElements(const std::vector<const FSceneView*>& Views, const SceneViewFamily& ViewFamily, uint32 VisibilityMap/*, FMeshElementCollector& Collector*/) const {};
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const { return FPrimitiveViewRelevance(); }
 	void PostLoad();
 	void GetRenderMeshDescription(const MeshDescription& InOriginalMeshDescription, MeshDescription& OutRenderMeshDescription);
 
