@@ -656,6 +656,14 @@ FRotator FQuat::Rotator() const
 
 	return RotatorFromQuat;
 }
+const FLinearColor FLinearColor::White(1.f, 1.f, 1.f);
+const FLinearColor FLinearColor::Gray(0.5f, 0.5f, 0.5f);
+const FLinearColor FLinearColor::Black(0, 0, 0);
+const FLinearColor FLinearColor::Transparent(0, 0, 0, 0);
+const FLinearColor FLinearColor::Red(1.f, 0, 0);
+const FLinearColor FLinearColor::Green(0, 1.f, 0);
+const FLinearColor FLinearColor::Blue(0, 0, 1.f);
+const FLinearColor FLinearColor::Yellow(1.f, 1.f, 0);
 
 const FVector FVector::ZeroVector(0.0f, 0.0f, 0.0f);
 const FVector FVector::OneVector(1.0f, 1.0f, 1.0f);

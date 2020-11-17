@@ -5,6 +5,8 @@
 #include "SceneView.h"
 #include "MeshBach.h"
 #include "VertexFactory.h"
+#include "MaterialShader.h"
+#include "Material.h"
 
 struct FDrawingPolicyRenderState
 {
@@ -157,9 +159,9 @@ class FMeshDrawingPolicy
 {
 public:
 	FMeshDrawingPolicy(
-		const FVertexFactory* InVertexFactory//,
-		//const FMaterialRenderProxy* InMaterialRenderProxy,
-		//const FMaterial& InMaterialResource,
+		const FVertexFactory* InVertexFactory,
+		const FMaterialRenderProxy* InMaterialRenderProxy,
+		const FMaterial& InMaterialResource//,
 		//const FMeshDrawingPolicyOverrideSettings& InOverrideSettings,
 		//EDebugViewShaderMode InDebugViewShaderMode = DVSM_None
 	);
@@ -181,10 +183,10 @@ public:
 
 	void SetSharedState(ID3D11DeviceContext* Context, const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View/*, const FMeshDrawingPolicy::ContextDataType PolicyContext*/) const;
 protected:
-	const ID3D11VertexShader* BaseVertexShader = nullptr;
+	const FMaterialShader* BaseVertexShader = nullptr;
 	const FVertexFactory* VertexFactory;
-	//const FMaterialRenderProxy* MaterialRenderProxy;
-	//const FMaterial* MaterialResource;
+	const FMaterialRenderProxy* MaterialRenderProxy;
+	const FMaterial* MaterialResource;
 
 	D3D11_FILL_MODE MeshFillMode;
 	D3D11_CULL_MODE MeshCullMode;

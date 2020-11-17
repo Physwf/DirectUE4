@@ -3,6 +3,7 @@
 #include "Shader.h"
 #include "SceneView.h"
 #include "SceneRenderTargetParameters.h"
+#include "Material.h"
 
 /** Base class of all shaders that need material parameters. */
 class FMaterialShader : public FShader
@@ -54,7 +55,7 @@ public:
 	template< typename ShaderRHIParamRef >
 	void SetParametersInner(
 		const ShaderRHIParamRef ShaderRHI,
-		//const FMaterialRenderProxy* MaterialRenderProxy,
+		const FMaterialRenderProxy* MaterialRenderProxy,
 		const FMaterial& Material,
 		const FSceneView& View);
 
@@ -62,7 +63,7 @@ public:
 	template< typename ShaderRHIParamRef >
 	void SetParameters(
 		const ShaderRHIParamRef ShaderRHI,
-		//const FMaterialRenderProxy* MaterialRenderProxy,
+		const FMaterialRenderProxy* MaterialRenderProxy,
 		const FMaterial& Material,
 		const FSceneView& View,
 		const TUniformBufferPtr<FViewUniformShaderParameters>& ViewUniformBuffer,
@@ -96,3 +97,36 @@ private:
 	static int32 bAllowCachedUniformExpressions;
 };
 
+template< typename ShaderRHIParamRef >
+void FMaterialShader::SetParametersInner(
+	const ShaderRHIParamRef ShaderRHI,
+	const FMaterialRenderProxy* MaterialRenderProxy, 
+	const FMaterial& Material,
+	const FSceneView& View
+)
+{
+
+}
+
+
+template< typename ShaderRHIParamRef >
+void FMaterialShader::SetParameters(
+	const ShaderRHIParamRef ShaderRHI,
+	const FMaterialRenderProxy* MaterialRenderProxy, 
+	const FMaterial& Material,
+	const FSceneView& View,
+	const TUniformBufferPtr<FViewUniformShaderParameters>& ViewUniformBuffer,
+	ESceneTextureSetupMode SceneTextureSetupMode)
+{
+
+}
+
+/** A macro to implement material shaders. */
+#define IMPLEMENT_MATERIAL_SHADER_TYPE(TemplatePrefix,ShaderClass,SourceFilename,FunctionName,Frequency) \
+	IMPLEMENT_SHADER_TYPE( \
+		TemplatePrefix, \
+		ShaderClass, \
+		SourceFilename, \
+		FunctionName, \
+		Frequency \
+		);

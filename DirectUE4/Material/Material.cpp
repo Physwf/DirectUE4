@@ -194,6 +194,13 @@ void FMaterialShaderMap::Compile(
 	GShaderCompilingManager->AddJobs(NewJobs/*, bApplyCompletedShaderMapForRendering && !bSynchronousCompile, bSynchronousCompile || !Material->IsPersistent(), bRecreateComponentRenderStateOnCompletion*/);
 }
 
+	const FMeshMaterialShaderMap* FMaterialShaderMap::GetMeshShaderMap(FVertexFactoryType* VertexFactoryType) const
+	{
+		const FMeshMaterialShaderMap* MeshShaderMap = OrderedMeshShaderMaps[VertexFactoryType->GetId()];
+		//checkSlow(!MeshShaderMap || MeshShaderMap->GetVertexFactoryType() == VertexFactoryType);
+		return MeshShaderMap;
+	}
+
 	void FMaterialShaderMap::Register()
 	{
 
@@ -223,7 +230,8 @@ bool FMaterial::CacheShaders(const FMaterialShaderMapId& ShaderMapId, bool bAppl
 
 void FMaterial::GetDependentShaderAndVFTypes(std::vector<FShaderType*>& OutShaderTypes, std::vector<FVertexFactoryType*>& OutVFTypes) const
 {
-	}
+	
+}
 
 bool FMaterial::ShouldCache(const FShaderType* ShaderType, const FVertexFactoryType* VertexFactoryType) const
 {
@@ -242,6 +250,35 @@ void FMaterial::GetShaderMapId(FMaterialShaderMapId& OutId) const
 	OutId.BaseMaterialId = GetMaterialId();
 	//OutId.SetShaderDependencies(ShaderTypes, ShaderPipelineTypes, VFTypes);
 	//GetReferencedTexturesHash(Platform, OutId.TextureReferencesHash);
+}
+
+class FMaterialShaderMap* FMaterial::GetRenderingThreadShaderMap() const
+{
+	return GameThreadShaderMap.get();
+}
+
+FShader* FMaterial::GetShader(class FMeshMaterialShaderType* ShaderType, FVertexFactoryType* VertexFactoryType, bool bFatalIfMissing /*= true*/) const
+{
+	const FMeshMaterialShaderMap* MeshShaderMap = GameThreadShaderMap->GetMeshShaderMap(VertexFactoryType);
+	FShader* Shader = MeshShaderMap ? MeshShaderMap->GetShader(ShaderType) : nullptr;
+	if (!Shader)
+	{
+		assert(false);
+	}
+	return Shader;
+}
+
+bool FMaterial::MaterialMayModifyMeshPosition() const
+{
+// 	return HasVertexPositionOffsetConnected() || HasPixelDepthOffsetConnected() || HasMaterialAttributesConnected() || GetTessellationMode() != MTM_NoTessellation
+// 		|| (GetMaterialDomain() == MD_DeferredDecal && GetDecalBlendMode() == DBM_Volumetric_DistanceFunction);
+	return false;
+}
+
+bool FMaterial::MaterialUsesPixelDepthOffset() const
+{
+	//return RenderingThreadShaderMap ? RenderingThreadShaderMap->UsesPixelDepthOffset() : false;
+	return false;
 }
 
 bool FMaterial::BeginCompileShaderMap(const FMaterialShaderMapId& ShaderMapId, std::shared_ptr<class FMaterialShaderMap>& OutShaderMap, bool bApplyCompletedShaderMapForRendering)
@@ -288,6 +325,44 @@ std::string FMaterialResource::GetFriendlyName() const
 	return "Material";
 }
 
+bool FMaterialResource::IsTwoSided() const
+{
+	return false;
+}
+
+
+
+bool FMaterialResource::IsTranslucencyWritingCustomDepth() const
+{
+	return false;
+}
+
+bool FMaterialResource::IsSpecialEngineMaterial() const
+{
+	return false;
+}
+
+bool FMaterialResource::IsDefaultMaterial() const
+{
+	return true;
+}
+
+static UMaterial* GDefaultMaterials[MD_MAX] = { 0 };
+
+void UMaterial::InitDefaultMaterials()
+{
+
+}
+
+UMaterial* UMaterial::GetDefaultMaterial(EMaterialDomain Domain)
+{
+	InitDefaultMaterials();
+	//check(Domain >= MD_Surface && Domain < MD_MAX);
+	//check(GDefaultMaterials[Domain] != NULL);
+	UMaterial* Default = GDefaultMaterials[Domain];
+	return Default;
+}
+
 void UMaterial::PostLoad()
 {
 	CacheResourceShadersForRendering(false);
@@ -307,6 +382,26 @@ void UMaterial::CacheResourceShadersForRendering(bool bRegenerateId)
 void UMaterial::CacheShadersForResources(const std::vector<FMaterialResource*>& ResourcesToCache, bool bApplyCompletedShaderMapForRendering)
 {
 	Resource->CacheShaders(bApplyCompletedShaderMapForRendering);
+}
+
+FMaterialResource* UMaterial::AllocateResource()
+{
+	return new FMaterialResource();
+}
+
+FMaterialRenderProxy* UMaterial::GetRenderProxy(bool Selected, bool bHovered /*= false*/) const
+{
+	return DefaultMaterialInstances[Selected ? 1 : (bHovered ? 2 : 0)];
+}
+
+FMaterialResource* UMaterial::GetMaterialResource()
+{
+	return Resource;
+}
+
+const FMaterialResource* UMaterial::GetMaterialResource() const
+{
+	return Resource;
 }
 
 void UMaterial::UpdateResourceAllocations()

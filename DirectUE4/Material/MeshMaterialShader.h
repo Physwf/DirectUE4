@@ -40,18 +40,18 @@ public:
 	template< typename ShaderRHIParamRef >
 	void SetParameters(
 		const ShaderRHIParamRef ShaderRHI,
-		//const FMaterialRenderProxy* MaterialRenderProxy,
+		const FMaterialRenderProxy* MaterialRenderProxy,
 		const FMaterial& Material,
 		const FSceneView& View,
 		const TUniformBufferPtr<FViewUniformShaderParameters>& ViewUniformBuffer,
-		std::shared_ptr<FUniformBuffer> PassUniformBufferValue)
+		FUniformBuffer* PassUniformBufferValue)
 	{
 		SetUniformBufferParameter(ShaderRHI, PassUniformBuffer, PassUniformBufferValue);
 
 		//assert(!(PassUniformBuffer.IsBound() && SceneTextureParameters.IsBound()) || SceneTextureParameters.IsSameUniformParameter(PassUniformBuffer), TEXT("If the pass uniform buffer is bound, it should contain SceneTexturesStruct: %s"), GetType()->GetName());
 
 		SetViewParameters(ShaderRHI, View, ViewUniformBuffer);
-		FMaterialShader::SetParametersInner(ShaderRHI,/* MaterialRenderProxy,*/ Material, View);
+		FMaterialShader::SetParametersInner(ShaderRHI, MaterialRenderProxy, Material, View);
 	}
 
 	template< typename ShaderRHIParamRef >
@@ -82,4 +82,17 @@ private:
 	FVertexFactoryParameterRef VertexFactoryParameters;
 	FShaderParameter NonInstancedDitherLODFactorParameter;
 };
+
+template< typename ShaderRHIParamRef >
+void FMeshMaterialShader::SetMesh(
+	const ShaderRHIParamRef ShaderRHI,
+	const FVertexFactory* VertexFactory,
+	const FSceneView& View,
+	/*const FPrimitiveSceneProxy* Proxy, */
+	const FMeshBatchElement& BatchElement,
+	const FDrawingPolicyRenderState& DrawRenderState,
+	uint32 DataFlags /*= 0 */)
+{
+
+}
 

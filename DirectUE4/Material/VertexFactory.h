@@ -183,6 +183,7 @@ private:
 class FVertexFactory
 {
 public:
+	virtual FVertexFactoryType* GetType() const { return NULL; }
 
 	void SetStreams(ID3D11DeviceContext* Context) const;
 	void SetPositionStream(ID3D11DeviceContext* Context) const;
@@ -193,6 +194,14 @@ public:
 	std::vector<D3D11_INPUT_ELEMENT_DESC>& GetDeclaration() { return Declaration; }
 	const std::vector<D3D11_INPUT_ELEMENT_DESC>& GetDeclaration() const { return Declaration; }
 	const std::vector<D3D11_INPUT_ELEMENT_DESC>& GetPositionDeclaration() const { return PositionDeclaration; }
+
+	bool SupportsManualVertexFetch() const
+	{
+// 		check(InFeatureLevel != ERHIFeatureLevel::Num);
+// 		return bSupportsManualVertexFetch && (InFeatureLevel > ERHIFeatureLevel::ES3_1) && RHISupportsManualVertexFetch(GMaxRHIShaderPlatform);
+		return true;
+	}
+
 protected:
 	D3D11_INPUT_ELEMENT_DESC AccessStreamComponent(const FVertexStreamComponent& Component, uint8 AttributeIndex);
 	D3D11_INPUT_ELEMENT_DESC AccessPositionStreamComponent(const FVertexStreamComponent& Component, uint8 AttributeIndex);
@@ -265,9 +274,36 @@ struct alignas(16) FLocalVertexFactoryUniformShaderParameters
 
 extern TUniformBufferPtr<FLocalVertexFactoryUniformShaderParameters> CreateLocalVFUniformBuffer(const class FLocalVertexFactory* VertexFactory);
 
+#define DECLARE_VERTEX_FACTORY_TYPE(FactoryClass) \
+	public: \
+	static FVertexFactoryType StaticType; \
+	virtual FVertexFactoryType* GetType() const override;
+
+/**
+* A macro for implementing the static vertex factory type object, and specifying parameters used by the type.
+* @param bUsedWithMaterials - True if the vertex factory will be rendered in combination with a material.
+* @param bSupportsStaticLighting - True if the vertex factory will be rendered with static lighting.
+*/
+#define IMPLEMENT_VERTEX_FACTORY_TYPE(FactoryClass,ShaderFilename,bUsedWithMaterials,bSupportsStaticLighting,bSupportsDynamicLighting,bPrecisePrevWorldPos,bSupportsPositionOnly) \
+	FVertexFactoryShaderParameters* Construct##FactoryClass##ShaderParameters(EShaderFrequency ShaderFrequency) { return FactoryClass::ConstructShaderParameters(ShaderFrequency); } \
+	FVertexFactoryType FactoryClass::StaticType( \
+		(#FactoryClass), \
+		(ShaderFilename), \
+		bUsedWithMaterials, \
+		bSupportsStaticLighting, \
+		bSupportsDynamicLighting, \
+		bPrecisePrevWorldPos, \
+		bSupportsPositionOnly, \
+		Construct##FactoryClass##ShaderParameters, \
+		FactoryClass::ShouldCompilePermutation, \
+		FactoryClass::ModifyCompilationEnvironment, \
+		FactoryClass::SupportsTessellationShaders \
+		); \
+		FVertexFactoryType* FactoryClass::GetType() const { return &StaticType; }
 
 class FLocalVertexFactory : public FVertexFactory
 {
+	DECLARE_VERTEX_FACTORY_TYPE(FLocalVertexFactory);
 public:
 	FLocalVertexFactory(const FStaticMeshDataType* InStaticMeshDataType = nullptr)
 	{
@@ -280,11 +316,27 @@ public:
 
 	void SetData(const FDataType& InData);
 
+	static bool ShouldCompilePermutation(const class FMaterial* Material, const class FShaderType* ShaderType);
+
 	void InitResource();
 	void ReleaseResource();
 
 	void InitRHI();
 	void ReleaseRHI();
+
+	static bool SupportsTessellationShaders() { return true; }
+	static FVertexFactoryShaderParameters* ConstructShaderParameters(EShaderFrequency ShaderFrequency);
+
+	static void ModifyCompilationEnvironment(const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		OutEnvironment.SetDefine(("VF_SUPPORTS_SPEEDTREE_WIND"), ("1"));
+
+		const bool ContainsManualVertexFetch = OutEnvironment.GetDefinitions().find("MANUAL_VERTEX_FETCH") != OutEnvironment.GetDefinitions().end();
+		if (!ContainsManualVertexFetch /*&& RHISupportsManualVertexFetch(Platform)*/)
+		{
+			OutEnvironment.SetDefine(("MANUAL_VERTEX_FETCH"), ("1"));
+		}
+	}
 
 	inline const ComPtr<ID3D11ShaderResourceView> GetPositionsSRV() const
 	{
@@ -320,7 +372,10 @@ public:
 	{
 		return StaticMeshDataType->NumTexCoords;
 	}
-
+	FUniformBuffer* GetUniformBuffer() const
+	{
+		return UniformBuffer.get();
+	}
 protected:
 	const FDataType& GetData() const { return Data; }
 	FDataType Data;
@@ -438,4 +493,23 @@ private:
 
 	// Hash of the vertex factory's source file at shader compile time, used by the automatic versioning system to detect changes
 	FSHAHash VFHash;
+};
+
+/**
+* Shader parameters for LocalVertexFactory.
+*/
+class FLocalVertexFactoryShaderParameters : public FVertexFactoryShaderParameters
+{
+public:
+	virtual void Bind(const FShaderParameterMap& ParameterMap) override;
+	virtual void SetMesh(FShader* Shader, const FVertexFactory* VertexFactory, const FSceneView& View, const FMeshBatchElement& BatchElement, uint32 DataFlags) const override;
+
+	FLocalVertexFactoryShaderParameters()
+		: bAnySpeedTreeParamIsBound(false)
+	{
+	}
+	// SpeedTree LOD parameter
+	FShaderParameter LODParameter;
+	// True if LODParameter is bound, which puts us on the slow path in SetMesh
+	bool bAnySpeedTreeParamIsBound;
 };

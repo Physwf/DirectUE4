@@ -1331,6 +1331,26 @@ inline void SetShaderSampler(ID3D11ComputeShader*, uint32 BaseIndex, ID3D11Sampl
 	D3D11DeviceContext->CSSetSamplers(BaseIndex, 1, &Sampler);
 }
 //UAV
+inline void SetShaderUAV(ID3D11VertexShader*, uint32 BaseIndex, ID3D11UnorderedAccessView* UAV)
+{
+	assert(false);
+}
+inline void SetShaderUAV(ID3D11PixelShader*, uint32 BaseIndex, ID3D11UnorderedAccessView* UAV)
+{
+	assert(false);
+}
+inline void SetShaderUAV(ID3D11HullShader*, uint32 BaseIndex, ID3D11UnorderedAccessView* UAV)
+{
+	assert(false);
+}
+inline void SetShaderUAV(ID3D11DomainShader*, uint32 BaseIndex, ID3D11UnorderedAccessView* UAV)
+{
+	assert(false);
+}
+inline void SetShaderUAV(ID3D11GeometryShader*, uint32 BaseIndex, ID3D11UnorderedAccessView* UAV)
+{
+	assert(false);
+}
 inline void SetShaderUAV(ID3D11ComputeShader*, uint32 BaseIndex, ID3D11UnorderedAccessView* UAV)
 {
 	//D3D11DeviceContext->CSSetUnorderedAccessViews(BaseIndex, 1, &UAV);
@@ -1340,7 +1360,7 @@ template<typename TShaderRHIRef>
 inline void SetUniformBufferParameter(
 	TShaderRHIRef Shader,
 	const FShaderUniformBufferParameter& Parameter,
-	std::shared_ptr<FUniformBuffer> UniformBufferRHI
+	FUniformBuffer* UniformBufferRHI
 )
 {
 	// This will trigger if the parameter was not serialized
@@ -1350,17 +1370,17 @@ inline void SetUniformBufferParameter(
 	if (Parameter.IsBound())
 	{
 		SetShaderUniformBuffer(Shader, Parameter.GetBaseIndex(), UniformBufferRHI->ConstantBuffer.Get());
-		for (auto it : Parameter.GetSRVs())
+		for (auto& Pair : Parameter.GetSRVs())
 		{
-			SetShaderSRV(Shader, it->second, UniformBufferRHI->SRVs[it->first].Get());
+			SetShaderSRV(Shader, Pair.second, UniformBufferRHI->SRVs[Pair.first].Get());
 		}
-		for (auto it : Parameter.GetSamplers())
+		for (auto& Pair : Parameter.GetSamplers())
 		{
-			SetShaderSampler(Shader, it->second, UniformBufferRHI->Samplers[it->first].Get());
+			SetShaderSampler(Shader, Pair.second, UniformBufferRHI->Samplers[Pair.first].Get());
 		}
-		for (auto it : Parameter.GetUAVs())
+		for (auto& Pair : Parameter.GetUAVs())
 		{
-			SetShaderUAV(Shader, it->second, UniformBufferRHI->UAVs[it->first].Get());
+			SetShaderUAV(Shader, Pair.second, UniformBufferRHI->UAVs[Pair.first].Get());
 		}
 	}
 }
@@ -1379,18 +1399,18 @@ inline void SetUniformBufferParameter(
 	assert(!Parameter.IsBound() || UniformBufferRef);
 	if (Parameter.IsBound())
 	{
-		SetShaderUniformBuffer(Shader, Parameter.GetBaseIndex(), UniformBufferRHI->ConstantBuffer.Get());
-		for (auto it : Parameter.GetSRVs())
+		SetShaderUniformBuffer(Shader, Parameter.GetBaseIndex(), UniformBufferRef->ConstantBuffer.Get());
+		for (auto& Pair : Parameter.GetSRVs())
 		{
-			SetShaderSRV(Shader, it->second, UniformBufferRHI->SRVs[it->first].Get());
+			SetShaderSRV(Shader, Pair.second, UniformBufferRef->SRVs[Pair.first].Get());
 		}
-		for (auto it : Parameter.GetSamplers())
+		for (auto& Pair : Parameter.GetSamplers())
 		{
-			SetShaderSampler(Shader, it->second, UniformBufferRHI->Samplers[it->first].Get());
+			SetShaderSampler(Shader, Pair.second, UniformBufferRef->Samplers[Pair.first].Get());
 		}
-		for (auto it : Parameter.GetUAVs())
+		for (auto& Pair : Parameter.GetUAVs())
 		{
-			SetShaderUAV(Shader, it->second, UniformBufferRHI->UAVs[it->first].Get());
+			SetShaderUAV(Shader, Pair.second, UniformBufferRef->UAVs[Pair.first].Get());
 		}
 	}
 }
@@ -1410,18 +1430,18 @@ inline void SetUniformBufferParameter(
 	std::shared_ptr<FUniformBuffer> UniformBufferRHI = UniformBuffer->GetUniformBufferRHI();
 	if (Parameter.IsBound())
 	{
-		SetShaderUniformBuffer(Shader, Parameter.GetBaseIndex(), UniformBufferRHI->ConstantBuffer.Get());
-		for (auto it : Parameter.GetSRVs())
+		SetShaderUniformBuffer(Shader, Parameter.GetBaseIndex(), UniformBuffer.GetUniformBufferRHI()->ConstantBuffer.Get());
+		for (auto& Pair : Parameter.GetSRVs())
 		{
-			SetShaderSRV(Shader, it->second, UniformBufferRHI->SRVs[it->first].Get());
+			SetShaderSRV(Shader, Pair.second, UniformBuffer.GetUniformBufferRHI()->SRVs[Pair.first].Get());
 		}
-		for (auto it : Parameter.GetSamplers())
+		for (auto& Pair : Parameter.GetSamplers())
 		{
-			SetShaderSampler(Shader, it->second, UniformBufferRHI->Samplers[it->first].Get());
+			SetShaderSampler(Shader, Pair.second, UniformBuffer.GetUniformBufferRHI()->Samplers[Pair.first].Get());
 		}
-		for (auto it : Parameter.GetUAVs())
+		for (auto& Pair : Parameter.GetUAVs())
 		{
-			SetShaderUAV(Shader, it->second, UniformBufferRHI->UAVs[it->first].Get());
+			SetShaderUAV(Shader, Pair.second, UniformBuffer.GetUniformBufferRHI()->UAVs[Pair.first].Get());
 		}
 	}
 }

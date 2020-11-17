@@ -4,6 +4,11 @@
 #include "DeferredShading.h"
 #include "GPUProfiler.h"
 #include "SceneRenderTargetParameters.h"
+#include "VertexFactory.h"
+#include "SceneView.h"
+#include "MeshBach.h"
+#include "MeshMaterialShader.h"
+#include "Material.h"
 
 ID3D11InputLayout* PositionOnlyMeshInputLayout;
 
@@ -40,6 +45,133 @@ void InitPrePass()
 	PrePassDepthStencilState = TStaticDepthStencilState<true, D3D11_COMPARISON_GREATER>::GetRHI();
 	PrePassBlendState = TStaticBlendState<>::GetRHI();
 }
+
+/**
+* A vertex shader for rendering the depth of a mesh.
+*/
+template <bool bUsePositionOnlyStream>
+class TDepthOnlyVS : public FMeshMaterialShader
+{
+	DECLARE_SHADER_TYPE(TDepthOnlyVS, MeshMaterial);
+protected:
+
+	TDepthOnlyVS() {}
+	TDepthOnlyVS(const FMeshMaterialShaderType::CompiledShaderInitializerType& Initializer) :
+		FMeshMaterialShader(Initializer)
+	{
+// 		InstancedEyeIndexParameter.Bind(Initializer.ParameterMap, TEXT("InstancedEyeIndex"));
+// 		IsInstancedStereoParameter.Bind(Initializer.ParameterMap, TEXT("bIsInstancedStereo"));
+// 		IsInstancedStereoEmulatedParameter.Bind(Initializer.ParameterMap, TEXT("bIsInstancedStereoEmulated"));
+		BindSceneTextureUniformBufferDependentOnShadingPath(Initializer, PassUniformBuffer/*, PassUniformBuffer*/);
+	}
+
+private:
+
+	FShaderParameter InstancedEyeIndexParameter;
+	FShaderParameter IsInstancedStereoParameter;
+	FShaderParameter IsInstancedStereoEmulatedParameter;
+
+public:
+
+	static bool ShouldCompilePermutation(const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
+	{
+		// Only the local vertex factory supports the position-only stream
+		if (bUsePositionOnlyStream)
+		{
+			return VertexFactoryType->SupportsPositionOnly() && Material->IsSpecialEngineMaterial();
+		}
+
+		// Only compile for the default material and masked materials
+		return (Material->IsSpecialEngineMaterial() || !Material->WritesEveryPixel() || Material->MaterialMayModifyMeshPosition() || Material->IsTranslucencyWritingCustomDepth());
+	}
+
+	void SetParameters(
+		const FMaterialRenderProxy* MaterialRenderProxy,
+		const FMaterial& MaterialResource,
+		const FSceneView& View,
+		const FDrawingPolicyRenderState& DrawRenderState,
+		const bool bIsInstancedStereo,
+		const bool bIsInstancedStereoEmulated
+	)
+	{
+		FMeshMaterialShader::SetParameters(GetVertexShader().Get(), MaterialRenderProxy, MaterialResource, View, DrawRenderState.GetViewUniformBuffer(), DrawRenderState.GetPassUniformBuffer().get());
+
+// 		if (IsInstancedStereoParameter.IsBound())
+// 		{
+// 			SetShaderValue(RHICmdList, GetVertexShader(), IsInstancedStereoParameter, bIsInstancedStereo);
+// 		}
+// 
+// 		if (IsInstancedStereoEmulatedParameter.IsBound())
+// 		{
+// 			SetShaderValue(RHICmdList, GetVertexShader(), IsInstancedStereoEmulatedParameter, bIsInstancedStereoEmulated);
+// 		}
+// 
+// 		if (InstancedEyeIndexParameter.IsBound())
+// 		{
+// 			SetShaderValue(RHICmdList, GetVertexShader(), InstancedEyeIndexParameter, 0);
+// 		}
+	}
+
+	void SetMesh(const FVertexFactory* VertexFactory, const FSceneView& View, /*const FPrimitiveSceneProxy* Proxy, */const FMeshBatchElement& BatchElement, const FDrawingPolicyRenderState& DrawRenderState)
+	{
+		FMeshMaterialShader::SetMesh(GetVertexShader(), VertexFactory, View, /*Proxy,*/ BatchElement, DrawRenderState);
+	}
+
+	void SetInstancedEyeIndex(const uint32 EyeIndex)
+	{
+// 		if (InstancedEyeIndexParameter.IsBound())
+// 		{
+// 			SetShaderValue(RHICmdList, GetVertexShader(), InstancedEyeIndexParameter, EyeIndex);
+// 		}
+	}
+};
+
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>, TDepthOnlyVS<true>, ("/Engine/Private/PositionOnlyDepthVertexShader.usf"), ("Main"), SF_Vertex);
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>, TDepthOnlyVS<false>, ("/Engine/Private/DepthOnlyVertexShader.usf"), ("Main"), SF_Vertex);
+
+class FDepthOnlyPS : public FMeshMaterialShader
+{
+	DECLARE_SHADER_TYPE(FDepthOnlyPS, MeshMaterial);
+public:
+
+	static bool ShouldCompilePermutation(const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
+	{
+		return
+			// Compile for materials that are masked.
+			(!Material->WritesEveryPixel() || Material->HasPixelDepthOffsetConnected() || Material->IsTranslucencyWritingCustomDepth())
+			// Mobile uses material pixel shader to write custom stencil to color target
+			|| (/*IsMobilePlatform(Platform) && */(Material->IsDefaultMaterial() || Material->MaterialMayModifyMeshPosition()));
+	}
+
+	FDepthOnlyPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) :
+		FMeshMaterialShader(Initializer)
+	{
+		ApplyDepthOffsetParameter.Bind(Initializer.ParameterMap, ("bApplyDepthOffset"));
+		MobileColorValue.Bind(Initializer.ParameterMap, ("MobileColorValue"));
+		BindSceneTextureUniformBufferDependentOnShadingPath(Initializer, PassUniformBuffer/*, PassUniformBuffer*/);
+	}
+
+	FDepthOnlyPS() {}
+
+	void SetParameters(const FMaterialRenderProxy* MaterialRenderProxy, const FMaterial& MaterialResource, const FSceneView* View, const FDrawingPolicyRenderState& DrawRenderState, float InMobileColorValue)
+	{
+		FMeshMaterialShader::SetParameters(GetPixelShader().Get(), MaterialRenderProxy,MaterialResource, *View, DrawRenderState.GetViewUniformBuffer(), DrawRenderState.GetPassUniformBuffer().get());
+
+		// For debug view shaders, don't apply the depth offset as their base pass PS are using global shaders with depth equal.
+		//SetShaderValue(RHICmdList, GetPixelShader(), ApplyDepthOffsetParameter, !View->Family->UseDebugViewPS());
+		//SetShaderValue(RHICmdList, GetPixelShader(), MobileColorValue, InMobileColorValue);
+	}
+
+	void SetMesh( const FVertexFactory* VertexFactory, const FSceneView& View,/* const FPrimitiveSceneProxy* Proxy,*/ const FMeshBatchElement& BatchElement, const FDrawingPolicyRenderState& DrawRenderState)
+	{
+		FMeshMaterialShader::SetMesh(GetPixelShader(), VertexFactory, View, /*Proxy,*/ BatchElement, DrawRenderState);
+	}
+
+	FShaderParameter ApplyDepthOffsetParameter;
+	FShaderParameter MobileColorValue;
+};
+
+IMPLEMENT_MATERIAL_SHADER_TYPE(, FDepthOnlyPS, ("/Engine/Private/DepthOnlyPixelShader.usf"), ("Main"), SF_Pixel);
 
 void SceneRenderer::RenderPrePassView(FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState)
 {
@@ -116,16 +248,46 @@ void SceneRenderer::RenderPrePass()
 
 FDepthDrawingPolicy::FDepthDrawingPolicy(
 	const FVertexFactory* InVertexFactory, 
-	/*const FMaterialRenderProxy* InMaterialRenderProxy, */ 
-	/*const FMaterial& InMaterialResource, */ 
+	const FMaterialRenderProxy* InMaterialRenderProxy,
+	const FMaterial& InMaterialResource, 
 	/*const FMeshDrawingPolicyOverrideSettings& InOverrideSettings, */ 
 	/*ERHIFeatureLevel::Type InFeatureLevel, */ 
 	float MobileColorValue)
-	: FMeshDrawingPolicy(InVertexFactory)
+	: FMeshDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InMaterialResource)
 {
-	VertexShader;
-	PixelShader;
+	bNeedsPixelShader = /*bUsesMobileColorValue ||*/ (!InMaterialResource.WritesEveryPixel() || InMaterialResource.MaterialUsesPixelDepthOffset() || InMaterialResource.IsTranslucencyWritingCustomDepth());
+
+	if (!bNeedsPixelShader)
+	{
+		PixelShader = nullptr;
+	}
+
+	VertexShader = InMaterialResource.GetShader<TDepthOnlyVS<false> >(VertexFactory->GetType());
+	if (bNeedsPixelShader)
+	{
+		PixelShader = InMaterialResource.GetShader<FDepthOnlyPS>(InVertexFactory->GetType());
+	}
+
 	BaseVertexShader = VertexShader;
+}
+
+void FDepthDrawingPolicy::SetSharedState(const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View/*, const ContextDataType PolicyContext*/) const
+{
+	// Set the depth-only shader parameters for the material.
+	VertexShader->SetParameters(MaterialRenderProxy, *MaterialResource, *View, DrawRenderState, false/*PolicyContext.bIsInstancedStereo*/, false/*PolicyContext.bIsInstancedStereoEmulated*/);
+// 	if (HullShader && DomainShader)
+// 	{
+// 		HullShader->SetParameters(/*MaterialRenderProxy,*/ *View, DrawRenderState.GetViewUniformBuffer(), DrawRenderState.GetPassUniformBuffer());
+// 		DomainShader->SetParameters(/*MaterialRenderProxy,*/ *View, DrawRenderState.GetViewUniformBuffer(), DrawRenderState.GetPassUniformBuffer());
+// 	}
+
+	if (bNeedsPixelShader)
+	{
+		PixelShader->SetParameters(MaterialRenderProxy, *MaterialResource, View, DrawRenderState,0/* MobileColorValue*/);
+	}
+
+	// Set the shared mesh resources.
+	FMeshDrawingPolicy::SetSharedState(D3D11DeviceContext, DrawRenderState, View/*, PolicyContext*/);
 }
 
 void FDepthDrawingPolicy::SetMeshRenderState(
@@ -138,16 +300,26 @@ const FDrawingPolicyRenderState& DrawRenderState/*,  */
 /*const ElementDataType& ElementData, */ 
 /*const ContextDataType PolicyContext */) const
 {
-	//VertexShader->SetMesh(RHICmdList, VertexFactory, View, PrimitiveSceneProxy, BatchElement, DrawRenderState);
+	const FMeshBatchElement& BatchElement = Mesh.Elements[BatchElementIndex];
+	VertexShader->SetMesh(VertexFactory, View, /*PrimitiveSceneProxy,*/ BatchElement, DrawRenderState);
+// 	if (HullShader && DomainShader)
+// 	{
+// 		HullShader->SetMesh(VertexFactory, View, /*PrimitiveSceneProxy,*/ BatchElement, DrawRenderState);
+// 		DomainShader->SetMesh(VertexFactory, View, /*PrimitiveSceneProxy,*/ BatchElement, DrawRenderState);
+// 	}
+	if (bNeedsPixelShader)
+	{
+		PixelShader->SetMesh(VertexFactory, View, /*PrimitiveSceneProxy,*/ BatchElement, DrawRenderState);
+	}
 }
 
 
 FPositionOnlyDepthDrawingPolicy::FPositionOnlyDepthDrawingPolicy(
-	const FVertexFactory* InVertexFactory/*, */ 
-	/*const FMaterialRenderProxy* InMaterialRenderProxy, */ 
-	/*const FMaterial& InMaterialResource, */ 
+	const FVertexFactory* InVertexFactory,
+	const FMaterialRenderProxy* InMaterialRenderProxy, 
+	const FMaterial& InMaterialResource/*,*/
 	/*const FMeshDrawingPolicyOverrideSettings& InOverrideSettings */
-) : FMeshDrawingPolicy(InVertexFactory/*, InMaterialRenderProxy, InMaterialResource, InOverrideSettings, DVSM_None*/)
+) : FMeshDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InMaterialResource/*, InOverrideSettings, DVSM_None*/)
 {
 
 }
@@ -164,9 +336,10 @@ void FPositionOnlyDepthDrawingPolicy::SetMeshRenderState(ID3D11DeviceContext* Co
 
 void FDepthDrawingPolicyFactory::AddStaticMesh(FScene* Scene, FStaticMesh* StaticMesh)
 {
-	FPositionOnlyDepthDrawingPolicy DrawingPolicy(StaticMesh->VertexFactory//,
-		//DefaultProxy,
-		//*DefaultProxy->GetMaterial(Scene->GetFeatureLevel()),
+	const FMaterialRenderProxy* DefaultProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy(false);
+	FPositionOnlyDepthDrawingPolicy DrawingPolicy(StaticMesh->VertexFactory,
+		DefaultProxy,
+		*DefaultProxy->GetMaterial()//,
 		//OverrideSettings
 	);
 

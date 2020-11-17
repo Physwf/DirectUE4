@@ -130,37 +130,37 @@ public:
 	void Register();
 
 	/** @return the shader's vertex shader */
-	inline const ID3D11VertexShader* GetVertexShader()
+	inline const ComPtr<ID3D11VertexShader> GetVertexShader()
 	{
 		assert(Frequency == SF_Vertex);
 		return VertexShader;
 	}
 	/** @return the shader's pixel shader */
-	inline const ID3D11PixelShader* GetPixelShader()
+	inline const ComPtr<ID3D11PixelShader> GetPixelShader()
 	{
 		assert(Frequency == SF_Pixel);
 		return PixelShader;
 	}
 	/** @return the shader's hull shader */
-	inline const ID3D11HullShader* GetHullShader()
+	inline const ComPtr<ID3D11HullShader> GetHullShader()
 	{
 		assert(Frequency == SF_Hull);
 		return HullShader;
 	}
 	/** @return the shader's domain shader */
-	inline const ID3D11DomainShader* GetDomainShader()
+	inline const ComPtr<ID3D11DomainShader> GetDomainShader()
 	{
 		assert(Frequency == SF_Domain);
 		return DomainShader;
 	}
 	/** @return the shader's geometry shader */
-	inline const ID3D11GeometryShader* GetGeometryShader()
+	inline const ComPtr<ID3D11GeometryShader> GetGeometryShader()
 	{
 		assert(Frequency == SF_Geometry);
 		return GeometryShader;
 	}
 	/** @return the shader's compute shader */
-	inline const ID3D11ComputeShader* GetComputeShader()
+	inline const ComPtr<ID3D11ComputeShader> GetComputeShader()
 	{
 		assert(Frequency == SF_Compute);
 		return ComputeShader;
@@ -190,12 +190,12 @@ public:
 
 private:
 	/** Reference to the RHI shader.  Only one of these is ever valid, and it is the one corresponding to Target.Frequency. */
-	ID3D11VertexShader* VertexShader;
-	ID3D11PixelShader* PixelShader;
-	ID3D11HullShader* HullShader;
-	ID3D11DomainShader* DomainShader;
-	ID3D11GeometryShader* GeometryShader;
-	ID3D11ComputeShader* ComputeShader;
+	ComPtr<ID3D11VertexShader> VertexShader;
+	ComPtr<ID3D11PixelShader> PixelShader;
+	ComPtr<ID3D11HullShader> HullShader;
+	ComPtr<ID3D11DomainShader> DomainShader;
+	ComPtr<ID3D11GeometryShader> GeometryShader;
+	ComPtr<ID3D11ComputeShader> ComputeShader;
 
 	/** Target platform and frequency. */
 	uint32 Frequency;
@@ -363,27 +363,27 @@ public:
 	void Deregister();
 
 	virtual const FVertexFactoryParameterRef* GetVertexFactoryParameterRef() const { return NULL; }
-	inline const ID3D11VertexShader* GetVertexShader() const
+	inline const ComPtr<ID3D11VertexShader> GetVertexShader() const
 	{
 		return Resource->GetVertexShader();
 	}
-	inline const ID3D11PixelShader* GetPixelShader() const
+	inline const ComPtr<ID3D11PixelShader> GetPixelShader() const
 	{
 		return Resource->GetPixelShader();
 	}
-	inline const ID3D11HullShader* GetHullShader() const
+	inline const ComPtr<ID3D11HullShader> GetHullShader() const
 	{
 		return Resource->GetHullShader();
 	}
-	inline const ID3D11DomainShader* GetDomainShader() const
+	inline const ComPtr<ID3D11DomainShader> GetDomainShader() const
 	{
 		return Resource->GetDomainShader();
 	}
-	inline const ID3D11GeometryShader* GetGeometryShader() const
+	inline const ComPtr<ID3D11GeometryShader> GetGeometryShader() const
 	{
 		return Resource->GetGeometryShader();
 	}
-	inline const ID3D11ComputeShader* GetComputeShader() const
+	inline const ComPtr<ID3D11ComputeShader> GetComputeShader() const
 	{
 		return Resource->GetComputeShader();
 	}
@@ -406,6 +406,8 @@ public:
 	/** Called from the main thread to register and set the serialized resource */
 	void RegisterSerializedResource();
 
+	static void GetStreamOutElements(FStreamOutElementList& ElementList, std::vector<uint32>& StreamStrides, int32& RasterizedStream) {}
+
 // 	void BeginInitializeResources()
 // 	{
 // 		BeginInitResource(Resource);
@@ -415,9 +417,10 @@ public:
 	{
 		const std::string SearchName = UniformBufferStructType::GetConstantBufferName();
 
-		if (UniformBufferParameters.find(UniformBufferParameters) != UniformBufferParameters.end())
+		if (UniformBufferParameters.find(SearchName) != UniformBufferParameters.end())
 		{
-			return UniformBufferParameters[SearchName];
+			std::shared_ptr<FShaderUniformBufferParameter> Parameter = UniformBufferParameters.at(SearchName);
+			return (const TShaderUniformBufferParameter<UniformBufferStructType>&)(*Parameter.get());
 		}
 		else
 		{
@@ -431,7 +434,7 @@ public:
 	}
 
 	/** Checks that the shader is valid by asserting the canary value is set as expected. */
-	inline void CheckShaderIsValid() const;
+	inline void CheckShaderIsValid() const {}
 	/** Checks that the shader is valid and returns itself. */
 	inline FShader* GetShaderChecked()
 	{
@@ -628,7 +631,10 @@ public:
 	{
 		ShaderIdMap.erase(Id);
 	}
-
+	void GetStreamOutElements(FStreamOutElementList& ElementList, std::vector<uint32>& StreamStrides, int32& RasterizedStream)
+	{
+		(*GetStreamOutElementsRef)(ElementList, StreamStrides, RasterizedStream);
+	}
 private:
 	EShaderTypeForDynamicCast ShaderTypeForDynamicCast;
 	uint32 HashIndex;
@@ -1201,7 +1207,7 @@ private:
 #define IMPLEMENT_SHADER_TYPE(TemplatePrefix,ShaderClass,SourceFilename,FunctionName,Frequency) \
 	TemplatePrefix \
 	ShaderClass::ShaderMetaType ShaderClass::StaticType( \
-		TEXT(#ShaderClass), \
+		#ShaderClass, \
 		SourceFilename, \
 		FunctionName, \
 		Frequency, \

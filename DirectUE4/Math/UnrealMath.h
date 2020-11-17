@@ -1354,6 +1354,15 @@ struct FLinearColor
 	FLinearColor() {}
 	FLinearColor(float InR, float InG, float InB, float InA = 1.0f) : R(InR), G(InG), B(InB), A(InA) {}
 	FLinearColor(struct FColor);
+
+	static const FLinearColor White;
+	static const FLinearColor Gray;
+	static const FLinearColor Black;
+	static const FLinearColor Transparent;
+	static const FLinearColor Red;
+	static const FLinearColor Green;
+	static const FLinearColor Blue;
+	static const FLinearColor Yellow;
 };
 
 struct FColor
@@ -1386,6 +1395,8 @@ struct FColor
 	{
 		return DWColor() != C.DWColor();
 	}
+
+
 };
 
 struct alignas(16) Plane : public FVector

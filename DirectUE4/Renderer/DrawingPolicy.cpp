@@ -1,12 +1,14 @@
 #include "DrawingPolicy.h"
 
 FMeshDrawingPolicy::FMeshDrawingPolicy(
-	const FVertexFactory* InVertexFactory/*, */ 
-/*const FMaterialRenderProxy* InMaterialRenderProxy, */
-/*const FMaterial& InMaterialResource, */ 
+	const FVertexFactory* InVertexFactory,  
+const FMaterialRenderProxy* InMaterialRenderProxy, 
+const FMaterial& InMaterialResource/*, */ 
 /*const FMeshDrawingPolicyOverrideSettings& InOverrideSettings, */
 /*EDebugViewShaderMode InDebugViewShaderMode = DVSM_None */)
-	: VertexFactory(InVertexFactory)
+	: VertexFactory(InVertexFactory),
+	MaterialRenderProxy(InMaterialRenderProxy),
+	MaterialResource(&InMaterialResource)//,
 {
 	MeshFillMode = D3D11_FILL_SOLID;
 	MeshCullMode = D3D11_CULL_BACK;

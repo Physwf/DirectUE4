@@ -1,4 +1,7 @@
 #include "VertexFactory.h"
+#include "Shader.h"
+#include "SceneView.h"
+#include "MeshBach.h"
 
 std::list<FVertexFactoryType*>& FVertexFactoryType::GetTypeList()
 {
@@ -163,6 +166,11 @@ void FLocalVertexFactory::SetData(const FDataType& InData)
 	InitRHI();
 }
 
+bool FLocalVertexFactory::ShouldCompilePermutation(const class FMaterial* Material, const class FShaderType* ShaderType)
+{
+	return true;
+}
+
 void FLocalVertexFactory::InitResource()
 {
 	InitRHI();
@@ -210,6 +218,18 @@ void FLocalVertexFactory::ReleaseRHI()
 
 }
 
+FVertexFactoryShaderParameters* FLocalVertexFactory::ConstructShaderParameters(EShaderFrequency ShaderFrequency)
+{
+	if (ShaderFrequency == SF_Vertex)
+	{
+		return new FLocalVertexFactoryShaderParameters();
+	}
+
+	return NULL;
+}
+
+IMPLEMENT_VERTEX_FACTORY_TYPE(FLocalVertexFactory, "/Engine/Private/LocalVertexFactory.ush", true, true, true, true, true);
+
 TUniformBufferPtr<FLocalVertexFactoryUniformShaderParameters>  CreateLocalVFUniformBuffer(const class FLocalVertexFactory* LocalVertexFactory)
 {
 	FLocalVertexFactoryUniformShaderParameters UniformParameters;
@@ -235,4 +255,60 @@ FVertexFactoryParameterRef::FVertexFactoryParameterRef(FVertexFactoryType* InVer
 	{
 		Parameters->Bind(ParameterMap);
 	}
+}
+
+void FLocalVertexFactoryShaderParameters::Bind(const FShaderParameterMap& ParameterMap)
+{
+// 	LODParameter.Bind(ParameterMap, ("SpeedTreeLODInfo"));
+// 	bAnySpeedTreeParamIsBound = LODParameter.IsBound() || ParameterMap.ContainsParameterAllocation(TEXT("SpeedTreeData"));
+
+}
+
+void FLocalVertexFactoryShaderParameters::SetMesh(FShader* Shader, const FVertexFactory* VertexFactory, const FSceneView& View, const FMeshBatchElement& BatchElement, uint32 DataFlags) const
+{
+	const auto* LocalVertexFactory = static_cast<const FLocalVertexFactory*>(VertexFactory);
+
+	ComPtr<ID3D11VertexShader> VS = Shader->GetVertexShader();
+	if (LocalVertexFactory->SupportsManualVertexFetch())
+	{
+		FUniformBuffer* VertexFactoryUniformBuffer = static_cast<FUniformBuffer*>(BatchElement.VertexFactoryUserData);
+
+		if (!VertexFactoryUniformBuffer)
+		{
+			// No batch element override
+			VertexFactoryUniformBuffer = LocalVertexFactory->GetUniformBuffer();
+		}
+
+		SetUniformBufferParameter(VS.Get(), Shader->GetUniformBufferParameter<FLocalVertexFactoryUniformShaderParameters>(), VertexFactoryUniformBuffer);
+	}
+
+// 	if (BatchElement.bUserDataIsColorVertexBuffer)
+// 	{
+// 		FColorVertexBuffer* OverrideColorVertexBuffer = (FColorVertexBuffer*)BatchElement.UserData;
+// 		check(OverrideColorVertexBuffer);
+// 
+// 		if (!LocalVertexFactory->SupportsManualVertexFetch(View.GetFeatureLevel()))
+// 		{
+// 			LocalVertexFactory->SetColorOverrideStream(RHICmdList, OverrideColorVertexBuffer);
+// 		}
+// 	}
+
+// 	if (bAnySpeedTreeParamIsBound && View.Family != NULL && View.Family->Scene != NULL)
+// 	{
+// 		FUniformBufferRHIParamRef SpeedTreeUniformBuffer = View.Family->Scene->GetSpeedTreeUniformBuffer(VertexFactory);
+// 		if (SpeedTreeUniformBuffer == NULL)
+// 		{
+// 			SpeedTreeUniformBuffer = GSpeedTreeWindNullUniformBuffer.GetUniformBufferRHI();
+// 		}
+// 		check(SpeedTreeUniformBuffer != NULL);
+// 
+// 		SetUniformBufferParameter(RHICmdList, VS, Shader->GetUniformBufferParameter<FSpeedTreeUniformParameters>(), SpeedTreeUniformBuffer);
+// 
+// 		if (LODParameter.IsBound())
+// 		{
+// 			FVector LODData(BatchElement.MinScreenSize, BatchElement.MaxScreenSize, BatchElement.MaxScreenSize - BatchElement.MinScreenSize);
+// 			SetShaderValue(RHICmdList, VS, LODParameter, LODData);
+// 		}
+// 	}
+
 }

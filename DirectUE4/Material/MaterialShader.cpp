@@ -19,27 +19,5 @@ FMaterialShader::FMaterialShader(const FMaterialShaderType::CompiledShaderInitia
 // 	VertexOffset.Bind(Initializer.ParameterMap, TEXT("VertexOffset"));
 }
 
-template< typename ShaderRHIParamRef >
-void FMaterialShader::SetParametersInner(
-	const ShaderRHIParamRef ShaderRHI, 
-	/*const FMaterialRenderProxy* MaterialRenderProxy, */ 
-	const FMaterial& Material, 
-	const FSceneView& View
-	)
-{
 
-}
-
-
-template< typename ShaderRHIParamRef >
-void FMaterialShader::SetParameters(
-	const ShaderRHIParamRef ShaderRHI,
-	/*const FMaterialRenderProxy* MaterialRenderProxy, */
-	const FMaterial& Material,
-	const FSceneView& View,
-	const TUniformBufferPtr<FViewUniformShaderParameters>& ViewUniformBuffer,
-	ESceneTextureSetupMode SceneTextureSetupMode)
-{
-
-}
 

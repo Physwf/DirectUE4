@@ -6,17 +6,24 @@
 
 void InitPrePass();
 
+template<bool>
+class TDepthOnlyVS;
+
+class FDepthOnlyPS;
+
 class FDepthDrawingPolicy : public FMeshDrawingPolicy
 {
 public:
 	FDepthDrawingPolicy(
 		const FVertexFactory* InVertexFactory,
-		//const FMaterialRenderProxy* InMaterialRenderProxy,
-		//const FMaterial& InMaterialResource,
+		const FMaterialRenderProxy* InMaterialRenderProxy,
+		const FMaterial& InMaterialResource,
 		//const FMeshDrawingPolicyOverrideSettings& InOverrideSettings,
 		//ERHIFeatureLevel::Type InFeatureLevel,
 		float MobileColorValue
 	);
+
+	void SetSharedState(const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View/*, const FDepthDrawingPolicy::ContextDataType PolicyContext*/) const;
 
 	void SetMeshRenderState(
 		ID3D11DeviceContext* Context,
@@ -30,8 +37,9 @@ public:
 	) const;
 
 private:
-	ID3D11VertexShader* VertexShader;
-	ID3D11PixelShader* PixelShader;
+	bool bNeedsPixelShader;
+	TDepthOnlyVS<false>* VertexShader;
+	FDepthOnlyPS* PixelShader;
 };
 /**
 * Writes out depth for opaque materials on meshes which support a position-only vertex buffer.
@@ -50,10 +58,10 @@ public:
 	// 	};
 
 	FPositionOnlyDepthDrawingPolicy(
-		const FVertexFactory* InVertexFactory//,
-											 //const FMaterialRenderProxy* InMaterialRenderProxy,
-											 //const FMaterial& InMaterialResource,
-											 //const FMeshDrawingPolicyOverrideSettings& InOverrideSettings
+		const FVertexFactory* InVertexFactory,
+	const FMaterialRenderProxy* InMaterialRenderProxy,
+	const FMaterial& InMaterialResource//,
+	//const FMeshDrawingPolicyOverrideSettings& InOverrideSettings
 	);
 
 	// FMeshDrawingPolicy interface.
