@@ -4,6 +4,11 @@
 
 struct FSceneTexturesUniformParameters
 {
+	FSceneTexturesUniformParameters()
+	{
+		ConstructUniformBufferInfo(*this);
+	}
+
 	struct ConstantStruct
 	{
 

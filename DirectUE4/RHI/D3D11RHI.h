@@ -5,11 +5,14 @@
 #include <wrl/client.h>
 
 #include "UnrealMath.h"
+#include "ShaderParameters.h"
 
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 #include <assert.h>
+
 
 using namespace Microsoft::WRL;
 
@@ -1109,6 +1112,47 @@ enum EUniformBufferBaseType
 	EUniformBufferBaseType_NumBits = 4,
 };
 
+struct UniformBufferInfo
+{
+	std::string ConstantBufferName;
+	std::vector<std::string> SRVNames;
+	std::vector<std::string> SamplerNames;
+	std::vector<std::string> UAVNames;
+};
+struct UniformBufferInfoCompare
+{
+	bool operator()(const UniformBufferInfo& lhs, const UniformBufferInfo& rhs)
+	{
+		return lhs.ConstantBufferName < rhs.ConstantBufferName;
+	}
+};
+typedef std::set<UniformBufferInfo, UniformBufferInfoCompare> UniformBufferInfoSet;
+inline UniformBufferInfoSet& GetUniformBufferInfoList()
+{
+	static UniformBufferInfoSet GUniformInfoList;
+	return GUniformInfoList;
+}
+
+template<typename UniformParameters>
+inline void ConstructUniformBufferInfo(const UniformParameters& Param)
+{
+	UniformBufferInfo UBInfo;
+	UBInfo.ConstantBufferName = UniformParameters::GetConstantBufferName();
+	for (auto it : UniformParameters::GetSRVs(Param))
+	{
+		UBInfo.SRVNames.push_back(it.first);
+	}
+	for (auto it : UniformParameters::GetSamplers(Param))
+	{
+		UBInfo.SamplerNames.push_back(it.first);
+	}
+	for (auto it : UniformParameters::GetUAVs(Param))
+	{
+		UBInfo.UAVNames.push_back(it.first);
+	}
+	GetUniformBufferInfoList().insert(std::move(UBInfo)) ;
+}
+
 struct FUniformBuffer
 {
 	std::string ConstantBufferName;
@@ -1192,7 +1236,7 @@ public:
 	// Accessors.
 	std::shared_ptr<FUniformBuffer> GetUniformBufferRHI() const
 	{
-		assert(UniformBufferRHI.get()); // you are trying to use a UB that was never filled with anything
+		assert(UniformBufferRHI); // you are trying to use a UB that was never filled with anything
 		return UniformBufferRHI;
 	}
 protected:
@@ -1211,3 +1255,173 @@ private:
 };
 
 void SetRenderTarget(ID3D11DeviceContext* Context, ID3D11RenderTargetView* NewRenderTarget, ID3D11DepthStencilView* NewDepthStencilTarget);
+
+inline void SetShaderUniformBuffer(ID3D11VertexShader*, uint32 BaseIndex, ID3D11Buffer* ConstantBuffer)
+{
+	D3D11DeviceContext->VSSetConstantBuffers(BaseIndex, 1,&ConstantBuffer);
+}
+inline void SetShaderUniformBuffer(ID3D11PixelShader*, uint32 BaseIndex, ID3D11Buffer* ConstantBuffer)
+{
+	D3D11DeviceContext->PSSetConstantBuffers(BaseIndex, 1, &ConstantBuffer);
+}
+inline void SetShaderUniformBuffer(ID3D11HullShader*, uint32 BaseIndex, ID3D11Buffer* ConstantBuffer)
+{
+	D3D11DeviceContext->HSSetConstantBuffers(BaseIndex, 1, &ConstantBuffer);
+}
+inline void SetShaderUniformBuffer(ID3D11DomainShader*, uint32 BaseIndex, ID3D11Buffer* ConstantBuffer)
+{
+	D3D11DeviceContext->DSSetConstantBuffers(BaseIndex, 1, &ConstantBuffer);
+}
+inline void SetShaderUniformBuffer(ID3D11GeometryShader*, uint32 BaseIndex, ID3D11Buffer* ConstantBuffer)
+{
+	D3D11DeviceContext->GSSetConstantBuffers(BaseIndex, 1, &ConstantBuffer);
+}
+inline void SetShaderUniformBuffer(ID3D11ComputeShader*, uint32 BaseIndex, ID3D11Buffer* ConstantBuffer)
+{
+	D3D11DeviceContext->CSSetConstantBuffers(BaseIndex, 1, &ConstantBuffer);
+}
+//srv
+inline void SetShaderSRV(ID3D11VertexShader*, uint32 BaseIndex, ID3D11ShaderResourceView* SRV)
+{
+	D3D11DeviceContext->VSSetShaderResources(BaseIndex, 1, &SRV);
+}
+inline void SetShaderSRV(ID3D11PixelShader*, uint32 BaseIndex, ID3D11ShaderResourceView* SRV)
+{
+	D3D11DeviceContext->PSSetShaderResources(BaseIndex, 1, &SRV);
+}
+inline void SetShaderSRV(ID3D11HullShader*, uint32 BaseIndex, ID3D11ShaderResourceView* SRV)
+{
+	D3D11DeviceContext->HSSetShaderResources(BaseIndex, 1, &SRV);
+}
+inline void SetShaderSRV(ID3D11DomainShader*, uint32 BaseIndex, ID3D11ShaderResourceView* SRV)
+{
+	D3D11DeviceContext->DSSetShaderResources(BaseIndex, 1, &SRV);
+}
+inline void SetShaderSRV(ID3D11GeometryShader*, uint32 BaseIndex, ID3D11ShaderResourceView* SRV)
+{
+	D3D11DeviceContext->GSSetShaderResources(BaseIndex, 1, &SRV);
+}
+inline void SetShaderSRV(ID3D11ComputeShader*, uint32 BaseIndex, ID3D11ShaderResourceView* SRV)
+{
+	D3D11DeviceContext->CSSetShaderResources(BaseIndex, 1, &SRV);
+}
+//sampler
+inline void SetShaderSampler(ID3D11VertexShader*, uint32 BaseIndex, ID3D11SamplerState* Sampler)
+{
+	D3D11DeviceContext->VSSetSamplers(BaseIndex, 1, &Sampler);
+}
+inline void SetShaderSampler(ID3D11PixelShader*, uint32 BaseIndex, ID3D11SamplerState* Sampler)
+{
+	D3D11DeviceContext->PSSetSamplers(BaseIndex, 1, &Sampler);
+}
+inline void SetShaderSampler(ID3D11HullShader*, uint32 BaseIndex, ID3D11SamplerState* Sampler)
+{
+	D3D11DeviceContext->HSSetSamplers(BaseIndex, 1, &Sampler);
+}
+inline void SetShaderSampler(ID3D11DomainShader*, uint32 BaseIndex, ID3D11SamplerState* Sampler)
+{
+	D3D11DeviceContext->DSSetSamplers(BaseIndex, 1, &Sampler);
+}
+inline void SetShaderSampler(ID3D11GeometryShader*, uint32 BaseIndex, ID3D11SamplerState* Sampler)
+{
+	D3D11DeviceContext->GSSetSamplers(BaseIndex, 1, &Sampler);
+}
+inline void SetShaderSampler(ID3D11ComputeShader*, uint32 BaseIndex, ID3D11SamplerState* Sampler)
+{
+	D3D11DeviceContext->CSSetSamplers(BaseIndex, 1, &Sampler);
+}
+//UAV
+inline void SetShaderUAV(ID3D11ComputeShader*, uint32 BaseIndex, ID3D11UnorderedAccessView* UAV)
+{
+	//D3D11DeviceContext->CSSetUnorderedAccessViews(BaseIndex, 1, &UAV);
+}
+/** Sets the value of a shader uniform buffer parameter to a uniform buffer containing the struct. */
+template<typename TShaderRHIRef>
+inline void SetUniformBufferParameter(
+	TShaderRHIRef Shader,
+	const FShaderUniformBufferParameter& Parameter,
+	std::shared_ptr<FUniformBuffer> UniformBufferRHI
+)
+{
+	// This will trigger if the parameter was not serialized
+	assert(Parameter.IsInitialized());
+	// If it is bound, we must set it so something valid
+	assert(!Parameter.IsBound() || UniformBufferRHI);
+	if (Parameter.IsBound())
+	{
+		SetShaderUniformBuffer(Shader, Parameter.GetBaseIndex(), UniformBufferRHI->ConstantBuffer.Get());
+		for (auto it : Parameter.GetSRVs())
+		{
+			SetShaderSRV(Shader, it->second, UniformBufferRHI->SRVs[it->first].Get());
+		}
+		for (auto it : Parameter.GetSamplers())
+		{
+			SetShaderSampler(Shader, it->second, UniformBufferRHI->Samplers[it->first].Get());
+		}
+		for (auto it : Parameter.GetUAVs())
+		{
+			SetShaderUAV(Shader, it->second, UniformBufferRHI->UAVs[it->first].Get());
+		}
+	}
+}
+
+/** Sets the value of a shader uniform buffer parameter to a uniform buffer containing the struct. */
+template<typename TShaderRHIRef, typename TBufferStruct>
+inline void SetUniformBufferParameter(
+	TShaderRHIRef Shader,
+	const TShaderUniformBufferParameter<TBufferStruct>& Parameter,
+	const TUniformBufferPtr<TBufferStruct>& UniformBufferRef
+)
+{
+	// This will trigger if the parameter was not serialized
+	assert(Parameter.IsInitialized());
+	// If it is bound, we must set it so something valid
+	assert(!Parameter.IsBound() || UniformBufferRef);
+	if (Parameter.IsBound())
+	{
+		SetShaderUniformBuffer(Shader, Parameter.GetBaseIndex(), UniformBufferRHI->ConstantBuffer.Get());
+		for (auto it : Parameter.GetSRVs())
+		{
+			SetShaderSRV(Shader, it->second, UniformBufferRHI->SRVs[it->first].Get());
+		}
+		for (auto it : Parameter.GetSamplers())
+		{
+			SetShaderSampler(Shader, it->second, UniformBufferRHI->Samplers[it->first].Get());
+		}
+		for (auto it : Parameter.GetUAVs())
+		{
+			SetShaderUAV(Shader, it->second, UniformBufferRHI->UAVs[it->first].Get());
+		}
+	}
+}
+
+/** Sets the value of a shader uniform buffer parameter to a uniform buffer containing the struct. */
+template<typename TShaderRHIRef, typename TBufferStruct>
+inline void SetUniformBufferParameter(
+	TShaderRHIRef Shader,
+	const TShaderUniformBufferParameter<TBufferStruct>& Parameter,
+	const TUniformBuffer<TBufferStruct>& UniformBuffer
+)
+{
+	// This will trigger if the parameter was not serialized
+	assert(Parameter.IsInitialized());
+	// If it is bound, we must set it so something valid
+	assert(!Parameter.IsBound() || UniformBuffer.GetUniformBufferRHI());
+	std::shared_ptr<FUniformBuffer> UniformBufferRHI = UniformBuffer->GetUniformBufferRHI();
+	if (Parameter.IsBound())
+	{
+		SetShaderUniformBuffer(Shader, Parameter.GetBaseIndex(), UniformBufferRHI->ConstantBuffer.Get());
+		for (auto it : Parameter.GetSRVs())
+		{
+			SetShaderSRV(Shader, it->second, UniformBufferRHI->SRVs[it->first].Get());
+		}
+		for (auto it : Parameter.GetSamplers())
+		{
+			SetShaderSampler(Shader, it->second, UniformBufferRHI->Samplers[it->first].Get());
+		}
+		for (auto it : Parameter.GetUAVs())
+		{
+			SetShaderUAV(Shader, it->second, UniformBufferRHI->UAVs[it->first].Get());
+		}
+	}
+}

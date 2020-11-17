@@ -181,6 +181,11 @@ const int32 GMaxGlobalDistanceFieldClipmaps = 4;
 
 struct alignas(16) FViewUniformShaderParameters
 {
+	FViewUniformShaderParameters()
+	{
+		ConstructUniformBufferInfo(*this);
+	}
+
 	struct ConstantStruct
 	{
 		/*
@@ -454,7 +459,7 @@ struct alignas(16) FViewUniformShaderParameters
 
 	static std::string GetConstantBufferName()
 	{
-		return "SceneTexturesStruct";
+		return "View";
 	}
 #define ADD_RES(StructName, MemberName) List.insert(std::make_pair(std::string(#StructName) + "_" + std::string(#MemberName),StructName.MemberName))
 	static std::map<std::string, ComPtr<ID3D11ShaderResourceView>> GetSRVs(const FViewUniformShaderParameters& View)

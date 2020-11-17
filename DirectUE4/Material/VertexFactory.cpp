@@ -210,18 +210,15 @@ void FLocalVertexFactory::ReleaseRHI()
 
 }
 
-std::shared_ptr<FLocalVertexFactoryUniform> CreateLocalVFUniformBuffer(const class FLocalVertexFactory* LocalVertexFactory)
+TUniformBufferPtr<FLocalVertexFactoryUniformShaderParameters>  CreateLocalVFUniformBuffer(const class FLocalVertexFactory* LocalVertexFactory)
 {
 	FLocalVertexFactoryUniformShaderParameters UniformParameters;
 	const int NumTexCoords = LocalVertexFactory->GetNumTexcoords();
 	const int LightMapCoordinateIndex = LocalVertexFactory->GetLightMapCoordinateIndex();
 	int ColorIndexMask = 0;
-	UniformParameters.VertexFetch_Parameters = { ColorIndexMask, NumTexCoords, LightMapCoordinateIndex };
+	UniformParameters.Constants.Parameters = { ColorIndexMask, NumTexCoords, LightMapCoordinateIndex };
+	UniformParameters.PackedTangentsBuffer = LocalVertexFactory->GetTangentsSRV();
+	UniformParameters.TexCoordBuffer = LocalVertexFactory->GetTextureCoordinatesSRV();
 
-	std::shared_ptr<FLocalVertexFactoryUniform> Uniform = std::make_shared<FLocalVertexFactoryUniform>();
-	Uniform->VertexFetch_PackedTangentsBuffer = LocalVertexFactory->GetTangentsSRV();
-	Uniform->VertexFetch_TexCoordBuffer = LocalVertexFactory->GetTextureCoordinatesSRV();
-	Uniform->Resource = CreateConstantBuffer(false, sizeof(UniformParameters), &UniformParameters);
-
-	return Uniform;
+	return TUniformBufferPtr<FLocalVertexFactoryUniformShaderParameters>::CreateUniformBufferImmediate(UniformParameters);
 }

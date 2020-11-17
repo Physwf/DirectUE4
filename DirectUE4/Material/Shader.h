@@ -410,6 +410,26 @@ public:
 // 	{
 // 		BeginInitResource(Resource);
 // 	}
+	template<typename UniformBufferStructType>
+	inline const TShaderUniformBufferParameter<UniformBufferStructType>& GetUniformBufferParameter() const
+	{
+		const std::string SearchName = UniformBufferStructType::GetConstantBufferName();
+
+		if (UniformBufferParameters.find(UniformBufferParameters) != UniformBufferParameters.end())
+		{
+			return UniformBufferParameters[SearchName];
+		}
+		else
+		{
+			// This can happen if the uniform buffer was not bound
+			// There's no good way to distinguish not being bound due to temporary debugging / compiler optimizations or an actual code bug,
+			// Hence failing silently instead of an error message
+			static TShaderUniformBufferParameter<UniformBufferStructType> UnboundParameter;
+			UnboundParameter.SetInitialized();
+			return UnboundParameter;
+		}
+	}
+
 	/** Checks that the shader is valid by asserting the canary value is set as expected. */
 	inline void CheckShaderIsValid() const;
 	/** Checks that the shader is valid and returns itself. */
@@ -427,7 +447,7 @@ public:
 protected:
 	/** Indexed the same as UniformBufferParameters.  Packed densely for coherent traversal. */
 	//TArray<FUniformBufferStruct*> UniformBufferParameterStructs;
-	//TArray<FShaderUniformBufferParameter*> UniformBufferParameters;
+	std::map<std::string,std::shared_ptr<FShaderUniformBufferParameter>> UniformBufferParameters;
 
 private:
 	FSHAHash OutputHash;

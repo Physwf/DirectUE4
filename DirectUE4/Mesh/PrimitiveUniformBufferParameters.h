@@ -4,6 +4,11 @@
 
 struct alignas(16) FPrimitiveUniformShaderParameters
 {
+	FPrimitiveUniformShaderParameters()
+	{
+		ConstructUniformBufferInfo(*this);
+	}
+
 	struct ConstantStruct
 	{
 		FMatrix LocalToWorld;
@@ -26,6 +31,11 @@ struct alignas(16) FPrimitiveUniformShaderParameters
 		uint32 LightingChannelMask;
 		float LpvBiasMultiplier;
 	} Constants;
+
+	static std::string GetConstantBufferName()
+	{
+		return "Primitive";
+	}
 
 	static std::map<std::string, ComPtr<ID3D11ShaderResourceView>> GetSRVs(const FPrimitiveUniformShaderParameters& Primitive)
 	{

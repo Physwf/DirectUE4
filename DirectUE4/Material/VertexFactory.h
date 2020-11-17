@@ -225,16 +225,45 @@ private:
 
 struct alignas(16) FLocalVertexFactoryUniformShaderParameters
 {
-	IntVector VertexFetch_Parameters;
-};
-struct FLocalVertexFactoryUniform
-{
-	ComPtr<ID3D11Buffer> Resource;
-	ComPtr<ID3D11ShaderResourceView> VertexFetch_TexCoordBuffer;
-	ComPtr<ID3D11ShaderResourceView> VertexFetch_PackedTangentsBuffer;
+	FLocalVertexFactoryUniformShaderParameters()
+	{
+		ConstructUniformBufferInfo(*this);
+	}
+
+	struct ConstantStruct
+	{
+		IntVector Parameters;
+	} Constants;
+
+	ComPtr<ID3D11ShaderResourceView> TexCoordBuffer;
+	ComPtr<ID3D11ShaderResourceView> PackedTangentsBuffer;
+
+	static std::string GetConstantBufferName()
+	{
+		return "LocalVF";
+	}
+#define ADD_RES(StructName, MemberName) List.insert(std::make_pair(std::string(#StructName) + "_" + std::string(#MemberName),StructName.MemberName))
+	static std::map<std::string, ComPtr<ID3D11ShaderResourceView>> GetSRVs(const FLocalVertexFactoryUniformShaderParameters& LocalVF)
+	{
+		std::map<std::string, ComPtr<ID3D11ShaderResourceView>> List;
+		ADD_RES(LocalVF, TexCoordBuffer);
+		ADD_RES(LocalVF, PackedTangentsBuffer);
+		return List;
+	}
+	static std::map<std::string, ComPtr<ID3D11SamplerState>> GetSamplers(const FLocalVertexFactoryUniformShaderParameters& LocalVF)
+	{
+		std::map<std::string, ComPtr<ID3D11SamplerState>> List;
+		return List;
+	}
+	static std::map<std::string, ComPtr<ID3D11UnorderedAccessView>> GetUAVs(const FLocalVertexFactoryUniformShaderParameters& LocalVF)
+	{
+		std::map<std::string, ComPtr<ID3D11UnorderedAccessView>> List;
+		return List;
+	}
+#undef ADD_RES
 };
 
-extern std::shared_ptr<FLocalVertexFactoryUniform> CreateLocalVFUniformBuffer(const class FLocalVertexFactory* VertexFactory);
+extern TUniformBufferPtr<FLocalVertexFactoryUniformShaderParameters> CreateLocalVFUniformBuffer(const class FLocalVertexFactory* VertexFactory);
 
 
 class FLocalVertexFactory : public FVertexFactory
@@ -297,7 +326,7 @@ protected:
 	FDataType Data;
 	const FStaticMeshDataType* StaticMeshDataType;
 
-	std::shared_ptr<FLocalVertexFactoryUniform> UniformBuffer;
+	TUniformBufferPtr<FLocalVertexFactoryUniformShaderParameters> UniformBuffer;
 };
 
 class GPUSkinVertexFactory : public FVertexFactory

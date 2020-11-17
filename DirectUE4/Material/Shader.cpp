@@ -72,7 +72,13 @@ FShaderId::FShaderId(const FSHAHash& InMaterialShaderMapHash, FVertexFactoryType
 
 }
 
-FShader::FShader()
+FShader::FShader() :
+	SerializedResource(nullptr),
+	VFType(nullptr),
+	Type(nullptr),
+	PermutationId(0),
+	SetParametersId(0),
+	Canary(ShaderMagic_Uninitialized)
 {
 
 }
@@ -87,7 +93,46 @@ FShader::FShader(const CompiledShaderInitializerType& Initializer) :
 	SetParametersId(0),
 	Canary(ShaderMagic_Initialized)
 {
+	//SourceHash = Type->GetSourceHash();
 
+// 	if (VFType)
+// 	{
+// 		VFSourceHash = VFType->GetSourceHash();
+// 	}
+
+	for (auto It = GetUniformBufferInfoList().begin(); It != GetUniformBufferInfoList().end(); ++It)
+	{
+		if (Initializer.ParameterMap.ContainsParameterAllocation(It->ConstantBufferName.c_str()))
+		{
+			std::shared_ptr<FShaderUniformBufferParameter> Parameter = std::make_shared<FShaderUniformBufferParameter>();
+			UniformBufferParameters.insert(std::make_pair(It->ConstantBufferName, Parameter));
+			Parameter->Bind(Initializer.ParameterMap, It->ConstantBufferName.c_str(), SPF_Mandatory);
+			for(auto& NameIt : It->SRVNames)
+			{
+				if (Initializer.ParameterMap.ContainsParameterAllocation(NameIt.c_str()))
+				{
+					Parameter->BindSRV(Initializer.ParameterMap, NameIt.c_str(), SPF_Optional);
+				}
+			}
+			for (auto& NameIt : It->SamplerNames)
+			{
+				if (Initializer.ParameterMap.ContainsParameterAllocation(NameIt.c_str()))
+				{
+					Parameter->BindSRV(Initializer.ParameterMap, NameIt.c_str(), SPF_Optional);
+				}
+			}
+			for (auto& NameIt : It->UAVNames)
+			{
+				if (Initializer.ParameterMap.ContainsParameterAllocation(NameIt.c_str()))
+				{
+					Parameter->BindSRV(Initializer.ParameterMap, NameIt.c_str(), SPF_Optional);
+				}
+			}
+		}
+	}
+
+	SetResource(Initializer.Resource);
+	Register();
 }
 
 FShader::~FShader()
@@ -97,7 +142,10 @@ FShader::~FShader()
 
 void FShader::Register()
 {
-
+	FShaderId ShaderId = GetId();
+	assert(ShaderId.MaterialShaderMapHash != FSHAHash());
+	assert(Resource);
+	Type->AddToShaderIdMap(ShaderId, this);
 }
 
 void FShader::Deregister()
