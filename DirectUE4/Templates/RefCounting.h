@@ -193,7 +193,7 @@ namespace std
 {
 	template<typename ReferencedType> struct hash<TRefCountPtr<ReferencedType>>
 	{
-		std::size_t operator()(TRefCountPtr const& Ref) const noexcept
+		std::size_t operator()(TRefCountPtr<ReferencedType> const& Ref) const noexcept
 		{
 			return std::hash<ReferencedType*>{}(InPtr.Reference);
 		}

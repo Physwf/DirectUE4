@@ -242,10 +242,18 @@ struct alignas(16) FLocalVertexFactoryUniformShaderParameters
 	struct ConstantStruct
 	{
 		IntVector Parameters;
+		int32 Pading001;
 	} Constants;
 
+	
 	ComPtr<ID3D11ShaderResourceView> TexCoordBuffer;
 	ComPtr<ID3D11ShaderResourceView> PackedTangentsBuffer;
+
+	static constexpr std::size_t GetConstantBufferSize() 
+	{
+		size_t size = sizeof(ConstantStruct);
+		return (1 << size) & size;
+	}
 
 	static std::string GetConstantBufferName()
 	{

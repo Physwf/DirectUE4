@@ -10,15 +10,20 @@
 #include "World.h"
 #include "FBXImporter.h"
 #include "PrimitiveUniformBufferParameters.h"
+#include "Material.h"
 
 void FStaticMeshLODResources::InitResources()
 {
-	VertexBuffers.PositionVertexBufferRHI = CreateVertexBuffer(false, VertexBuffers.PositionVertexBuffer.size() * sizeof(FVector), VertexBuffers.PositionVertexBuffer.data());
-	VertexBuffers.TangentsVertexBufferRHI = CreateVertexBuffer(false, VertexBuffers.TangentsVertexBuffer.size() * sizeof(Vector4), VertexBuffers.TangentsVertexBuffer.data());
-	VertexBuffers.TexCoordVertexBufferRHI = CreateVertexBuffer(false, VertexBuffers.TexCoordVertexBuffer.size() * sizeof(Vector2), VertexBuffers.TexCoordVertexBuffer.data());
+	VertexBuffers.PositionVertexBufferRHI = RHICreateVertexBuffer(VertexBuffers.PositionVertexBuffer.size() * sizeof(FVector), D3D11_USAGE_DEFAULT, D3D11_BIND_SHADER_RESOURCE, 0, VertexBuffers.PositionVertexBuffer.data()); 
+	VertexBuffers.TangentsVertexBufferRHI = RHICreateVertexBuffer(VertexBuffers.TangentsVertexBuffer.size() * sizeof(Vector4), D3D11_USAGE_DEFAULT, D3D11_BIND_SHADER_RESOURCE, 0, VertexBuffers.TangentsVertexBuffer.data());
+	VertexBuffers.TexCoordVertexBufferRHI = RHICreateVertexBuffer(VertexBuffers.TexCoordVertexBuffer.size() * sizeof(Vector2), D3D11_USAGE_DEFAULT, D3D11_BIND_SHADER_RESOURCE, 0, VertexBuffers.TexCoordVertexBuffer.data());
 
+	VertexBuffers.TangentsVertexBufferSRV = RHICreateShaderResourceView(VertexBuffers.TangentsVertexBufferRHI.Get(), sizeof(Vector4) * 2, DXGI_FORMAT_R32G32B32A32_FLOAT);
+	VertexBuffers.TexCoordVertexBufferSRV = RHICreateShaderResourceView(VertexBuffers.TexCoordVertexBufferRHI.Get(), sizeof(Vector2) * 2, DXGI_FORMAT_R32G32_FLOAT);
 
 	IndexBuffer = CreateIndexBuffer(Indices.data(), sizeof(unsigned int) * Indices.size());
+
+
 }
 
 void FStaticMeshLODResources::ReleaseResources()
@@ -37,6 +42,8 @@ void FStaticMeshVertexFactories::InitResources(const FStaticMeshLODResources& Lo
 	Data.TangentBasisComponents[1] = FVertexStreamComponent(LodResources.VertexBuffers.TangentsVertexBufferRHI.Get(), 12, sizeof(FVector), DXGI_FORMAT_R32G32B32A32_FLOAT);
 	Data.TextureCoordinates = FVertexStreamComponent(LodResources.VertexBuffers.TexCoordVertexBufferRHI.Get(), 0, sizeof(Vector2), DXGI_FORMAT_R32G32_FLOAT);
 	Data.LightMapCoordinateComponent = FVertexStreamComponent(LodResources.VertexBuffers.TexCoordVertexBufferRHI.Get(), 8, sizeof(Vector2), DXGI_FORMAT_R32G32_FLOAT);
+	Data.TangentsSRV = LodResources.VertexBuffers.TangentsVertexBufferSRV;
+	Data.TextureCoordinatesSRV = LodResources.VertexBuffers.TexCoordVertexBufferSRV;
 	VertexFactory.SetData(Data);
 	VertexFactory.InitResource();
 }
@@ -82,6 +89,8 @@ void FStaticMeshRenderData::Cache(StaticMesh* Owner/*, const FStaticMeshLODSetti
 StaticMesh::StaticMesh()
 {
 	RegisterMeshAttributes(MD);
+
+	Material = UMaterial::GetDefaultMaterial(MD_Surface);
 }
 
 
@@ -149,6 +158,7 @@ bool StaticMesh::GetMeshElement(int BatchIndex, int SectionIndex, FMeshBatch& Ou
 	//Element.MaterialIndex = Section.MaterialIndex;
 	Element.IndexBuffer = RenderData->LODResources[0]->IndexBuffer.Get();
 	OutMeshBatch.VertexFactory = &VFs.VertexFactory;
+	OutMeshBatch.MaterialRenderProxy = Material->GetRenderProxy(false, false);
 	OutMeshBatch.Elements.emplace_back(Element);
 	return true;
 }

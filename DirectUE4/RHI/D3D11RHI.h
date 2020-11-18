@@ -982,9 +982,10 @@ enum ETextureCreateFlags
 	TexCreate_Transient = 1 << 31
 };
 
+ID3D11Buffer* RHICreateVertexBuffer(UINT Size, D3D11_USAGE InUsage, UINT BindFlags, UINT MiscFlags, const void* Data = NULL);
 FD3D11Texture2D* CreateD3D11Texture2D(uint32 SizeX, uint32 SizeY, uint32 SizeZ, bool bTextureArray, bool bCubeTexture, EPixelFormat Format, uint32 NumMips, uint32 NumSamples, uint32 Flags, FClearValueBinding ClearBindingValue = FClearValueBinding::Transparent, void* BulkData = nullptr, uint32 BulkDataSize = 0);
 ID3D11ShaderResourceView* RHICreateShaderResourceView(FD3D11Texture2D* Texture2DRHI, uint16 MipLevel);
-
+ID3D11ShaderResourceView* RHICreateShaderResourceView(ID3D11Buffer* VertexBuffer, UINT Stride, DXGI_FORMAT Format);
 inline FD3D11Texture2D* RHICreateTexture2D(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 NumSamples, uint32 Flags, FClearValueBinding ClearBindingValue = FClearValueBinding::Transparent, void* BulkData = nullptr, uint32 BulkDataSize = 0)
 {
 	return CreateD3D11Texture2D(SizeX, SizeY,0,false,false, (EPixelFormat)Format, NumMips, NumSamples, Flags, ClearBindingValue, BulkData, BulkDataSize);
@@ -1170,12 +1171,23 @@ std::shared_ptr<FUniformBuffer> RHICreateUniformBuffer(
 );
 
 template<typename TBufferStruct>
+class TUniformBuffer;
+
+template<typename TBufferStruct>
 class TUniformBufferPtr : public std::shared_ptr<FUniformBuffer>
 {
 public:
+	TUniformBufferPtr()
+	{}
+
+	/** Initializes the reference to point to a buffer. */
+	TUniformBufferPtr(const TUniformBuffer<TBufferStruct>& InBuffer)
+		: std::shared_ptr<FUniformBuffer>(InBuffer.GetUniformBufferRHI())
+	{}
+
 	static TUniformBufferPtr<TBufferStruct> CreateUniformBufferImmediate(const TBufferStruct& Value)
 	{
-		TUniformBufferPtr<TBufferStruct> Result;
+		TUniformBufferPtr<TBufferStruct> Result(std::make_shared<FUniformBuffer>());
 		Result->ConstantBuffer = CreateConstantBuffer(false,sizeof(TBufferStruct::ConstantStruct), &Value);
 		Result->ConstantBufferName = TBufferStruct::GetConstantBufferName();
 		Result->SRVs = TBufferStruct::GetSRVs(Value);
@@ -1183,6 +1195,10 @@ public:
 		Result->UAVs = TBufferStruct::GetUAVs(Value);
 		return Result;
 	}
+private:
+	TUniformBufferPtr(std::shared_ptr<FUniformBuffer> InRHIRef)
+		: std::shared_ptr<FUniformBuffer>(InRHIRef)
+	{}
 };
 #define UNIFORM_BUFFER_STRUCT_ALIGNMENT 16
 template<typename TBufferStruct>

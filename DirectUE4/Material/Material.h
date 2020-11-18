@@ -655,7 +655,7 @@ public:
 
 	uint32 StateId;
 
-	EMaterialDomain MaterialDomain;
+	EMaterialDomain MaterialDomain = MD_Surface;
 private:
 	void UpdateResourceAllocations();
 private:

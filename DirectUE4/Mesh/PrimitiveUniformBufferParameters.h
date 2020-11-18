@@ -30,6 +30,9 @@ struct alignas(16) FPrimitiveUniformShaderParameters
 		FVector LocalObjectBoundsMax;
 		uint32 LightingChannelMask;
 		float LpvBiasMultiplier;
+		float Pading001;
+		float Pading002;
+		float Pading003;
 	} Constants;
 
 	static std::string GetConstantBufferName()

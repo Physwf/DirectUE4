@@ -139,7 +139,7 @@ struct FMeshBatch
 	const class FVertexFactory* VertexFactory;
 
 	/** Material proxy for rendering, required. */
-	//const FMaterialRenderProxy* MaterialRenderProxy;
+	const class FMaterialRenderProxy* MaterialRenderProxy;
 
 	/** The current hit proxy ID being rendered. */
 	//FHitProxyId BatchHitProxyId;

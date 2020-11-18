@@ -63,6 +63,8 @@ private:
 	std::unique_ptr<class FStaticMeshRenderData> RenderData;
 
 	std::multimap<int32, int32> OverlappingCorners;
+
+	class UMaterial* Material;
 	
 };
 

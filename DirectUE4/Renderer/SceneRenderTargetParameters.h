@@ -14,7 +14,10 @@ struct FSceneTexturesUniformParameters
 
 	struct ConstantStruct
 	{
-
+		float Pading001;
+		float Pading002;
+		float Pading003;
+		float Pading004;
 	} Constants;
 
 	ComPtr<ID3D11ShaderResourceView> SceneColorTexture;

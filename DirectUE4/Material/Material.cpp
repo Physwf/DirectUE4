@@ -192,6 +192,15 @@ void FMaterialShaderMap::Compile(
 	bCompiledSuccessfully = false;
 
 	GShaderCompilingManager->AddJobs(NewJobs/*, bApplyCompletedShaderMapForRendering && !bSynchronousCompile, bSynchronousCompile || !Material->IsPersistent(), bRecreateComponentRenderStateOnCompletion*/);
+
+	if (bSynchronousCompile)
+	{
+		std::vector<int32> CurrentShaderMapId;
+		CurrentShaderMapId.push_back(CompilingId);
+		GShaderCompilingManager->FinishCompilation(
+			nullptr,
+			CurrentShaderMapId);
+	}
 }
 
 	const FMeshMaterialShaderMap* FMaterialShaderMap::GetMeshShaderMap(FVertexFactoryType* VertexFactoryType) const
@@ -351,6 +360,16 @@ static UMaterial* GDefaultMaterials[MD_MAX] = { 0 };
 
 void UMaterial::InitDefaultMaterials()
 {
+	static bool bInitialized = false;
+	if (!bInitialized)
+	{
+		for (int32 Domain = 0; Domain < MD_DeferredDecal; ++Domain)
+		{
+			GDefaultMaterials[Domain] = new UMaterial();
+			GDefaultMaterials[Domain]->PostLoad();
+		}
+		bInitialized = true;
+	}
 
 }
 
@@ -365,6 +384,10 @@ UMaterial* UMaterial::GetDefaultMaterial(EMaterialDomain Domain)
 
 void UMaterial::PostLoad()
 {
+	DefaultMaterialInstances[0] = new FDefaultMaterialInstance(this, false, false);
+	DefaultMaterialInstances[1] = new FDefaultMaterialInstance(this, true, false);
+	DefaultMaterialInstances[2] = new FDefaultMaterialInstance(this, false, true);
+
 	CacheResourceShadersForRendering(false);
 
 	static uint32 GUIDGenerator = 0;
@@ -406,7 +429,40 @@ const FMaterialResource* UMaterial::GetMaterialResource() const
 
 void UMaterial::UpdateResourceAllocations()
 {
-	Resource = new FMaterialResource();
+	Resource = AllocateResource();
 	Resource->SetMaterial(this);
 }
 
+FMaterialRenderProxy::FMaterialRenderProxy()
+	: bSelected(false)
+	, bHovered(false)
+{
+
+}
+
+FMaterialRenderProxy::FMaterialRenderProxy(bool bInSelected, bool bInHovered)
+	: bSelected(bInSelected)
+	, bHovered(bInHovered)
+{
+
+}
+
+FMaterialRenderProxy::~FMaterialRenderProxy()
+{
+
+}
+
+void FMaterialRenderProxy::CacheUniformExpressions()
+{
+	InitDynamicRHI();
+}
+
+void FMaterialRenderProxy::InitDynamicRHI()
+{
+
+}
+
+void FMaterialRenderProxy::ReleaseDynamicRHI()
+{
+
+}

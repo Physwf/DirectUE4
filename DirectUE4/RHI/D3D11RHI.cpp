@@ -702,6 +702,34 @@ void SetRenderTarget(ID3D11DeviceContext* Context, ID3D11RenderTargetView* NewRe
 	Context->OMSetRenderTargets(1, &NewRenderTarget, NewDepthStencilTarget);
 }
 
+ID3D11Buffer* RHICreateVertexBuffer(UINT Size, D3D11_USAGE InUsage, UINT BindFlags, UINT MiscFlags, const void* Data /*= NULL*/)
+{
+	D3D11_BUFFER_DESC Desc;
+	ZeroMemory(&Desc, sizeof(D3D11_BUFFER_DESC));
+	Desc.ByteWidth = Size;
+	Desc.Usage = InUsage;
+	Desc.BindFlags = D3D11_BIND_VERTEX_BUFFER | BindFlags;
+	Desc.MiscFlags = MiscFlags;
+	Desc.CPUAccessFlags = (InUsage & D3D11_USAGE_DYNAMIC) ? D3D11_CPU_ACCESS_WRITE : 0;
+	//Desc.MiscFlags = 0;
+	//Desc.StructureByteStride = 0;
+
+	// If a resource array was provided for the resource, create the resource pre-populated
+	D3D11_SUBRESOURCE_DATA InitData;
+	D3D11_SUBRESOURCE_DATA* pInitData = NULL;
+	if (Data)
+	{
+		InitData.pSysMem = Data;
+		InitData.SysMemPitch = Size;
+		InitData.SysMemSlicePitch = 0;
+		pInitData = &InitData;
+	}
+
+	ID3D11Buffer* VertexBufferResource;
+	assert(S_OK == D3D11Device->CreateBuffer(&Desc, pInitData, &VertexBufferResource));
+	return VertexBufferResource;
+}
+
 FD3D11Texture2D* CreateD3D11Texture2D(uint32 SizeX, uint32 SizeY, uint32 SizeZ, bool bTextureArray, bool bCubeTexture, EPixelFormat Format, uint32 NumMips, uint32 NumSamples, uint32 Flags, FClearValueBinding ClearBindingValue/* = FClearValueBinding::Transparent*/, void* BulkData /*= nullptr*/, uint32 BulkDataSize /*= 0*/)
 {
 	const bool bSRGB = (Flags & TexCreate_SRGB) != 0;
@@ -1016,6 +1044,23 @@ ID3D11ShaderResourceView* RHICreateShaderResourceView(FD3D11Texture2D* Texture2D
 	SRVDesc.Format = PlatformShaderResourceFormat;
 	ID3D11ShaderResourceView* ShaderResourceView;
 	assert(S_OK == D3D11Device->CreateShaderResourceView(Texture2D->GetResource(), &SRVDesc, &ShaderResourceView));
+
+	return ShaderResourceView;
+}
+
+ID3D11ShaderResourceView* RHICreateShaderResourceView(ID3D11Buffer* VertexBuffer, UINT Stride, DXGI_FORMAT Format)
+{
+	D3D11_BUFFER_DESC BufferDesc;
+	VertexBuffer->GetDesc(&BufferDesc);
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc;
+	ZeroMemory(&SRVDesc, sizeof(SRVDesc));
+	SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+	SRVDesc.Buffer.FirstElement = 0;
+	SRVDesc.Format = Format;
+	SRVDesc.Buffer.NumElements = BufferDesc.ByteWidth / Stride;
+	ID3D11ShaderResourceView* ShaderResourceView;
+	assert(S_OK == D3D11Device->CreateShaderResourceView(VertexBuffer, &SRVDesc, &ShaderResourceView));
 
 	return ShaderResourceView;
 }

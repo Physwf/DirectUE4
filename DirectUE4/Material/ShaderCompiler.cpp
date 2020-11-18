@@ -10,7 +10,12 @@ void FShaderCompilingManager::AddJobs(std::vector<FShaderCompileJob*>& NewJobs/*
 	CompileQueue.insert(CompileQueue.end(),NewJobs.begin(), NewJobs.end());
 }
 
-FShaderCompilingManager* GShaderCompilingManager = NULL;
+void FShaderCompilingManager::FinishCompilation(const char* MaterialName, const std::vector<int32>& ShaderMapIdsToFinishCompiling)
+{
+
+}
+
+FShaderCompilingManager* GShaderCompilingManager = new FShaderCompilingManager();
 
 void GlobalBeginCompileShader(
 	const std::string& DebugGroupName, 

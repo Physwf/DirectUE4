@@ -83,7 +83,7 @@ public:
 	* Blocks until completion of the requested shader maps.
 	* This will not assign the shader map to any materials, the caller is responsible for that.
 	*/
-	//void FinishCompilation(const char* MaterialName, const TArray<int32>& ShaderMapIdsToFinishCompiling);
+	void FinishCompilation(const char* MaterialName, const std::vector<int32>& ShaderMapIdsToFinishCompiling);
 
 	/**
 	* Blocks until completion of all async shader compiling, and assigns shader maps to relevant materials.

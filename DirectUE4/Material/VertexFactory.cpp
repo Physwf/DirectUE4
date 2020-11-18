@@ -162,8 +162,8 @@ uint32 FVertexFactory::NextHashIndex = 0;
 void FLocalVertexFactory::SetData(const FDataType& InData)
 {
 	Data = InData;
-	ReleaseRHI();
-	InitRHI();
+	//ReleaseRHI();
+	//InitRHI();
 }
 
 bool FLocalVertexFactory::ShouldCompilePermutation(const class FMaterial* Material, const class FShaderType* ShaderType)
@@ -215,7 +215,7 @@ void FLocalVertexFactory::InitRHI()
 
 void FLocalVertexFactory::ReleaseRHI()
 {
-
+	UniformBuffer.reset();
 }
 
 FVertexFactoryShaderParameters* FLocalVertexFactory::ConstructShaderParameters(EShaderFrequency ShaderFrequency)

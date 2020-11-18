@@ -637,7 +637,7 @@ public:
 private:
 	void CreatePolygonContour_Internal(const int PolygonID, const std::vector<ContourPoint>& ContourPoints, MeshPolygonContour& Contour)
 	{
-		Contour.VertexInstanceIDs.empty();
+		Contour.VertexInstanceIDs.clear();
 		for (const ContourPoint CP : ContourPoints)
 		{
 			const int VertexInstanceID = CP.VertexInstanceID;

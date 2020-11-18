@@ -63,7 +63,7 @@ FSceneView* Camera::CalcSceneView(SceneViewFamily& ViewFamily, Viewport& VP)
 	InitOptions.ViewOrigin = Position;
 	//InitOptions.ViewRotation = Rotation;
 
-	FSceneView* const View = new FSceneView(InitOptions);
+	FSceneView* const View = new /*(std::align_val_t(alignof(FSceneView)))*/FSceneView(InitOptions);
 	ViewFamily.Views.push_back(View);
 
 	return View;
