@@ -239,7 +239,11 @@ std::map<std::string, FShaderType*>& FShaderType::GetNameToTypeMap()
 
 void FShaderType::Initialize(const std::map<std::string, std::vector<const char*> >& ShaderFileToUniformBufferVariables)
 {
-
+	for (auto It = FShaderType::GetTypeList().begin(); It != FShaderType::GetTypeList().end() ; ++It)
+	{
+		FShaderType* Type = *It;
+		GenerateReferencedUniformBuffers(Type->SourceFilename, Type->Name, ShaderFileToUniformBufferVariables, Type->ReferencedUniformBufferStructsCache);
+	}
 }
 
 void FShaderType::Uninitialize()
@@ -267,6 +271,7 @@ FShaderType::FShaderType(
 	ConstructSerializedRef(InConstructSerializedRef),
 	GetStreamOutElementsRef(InGetStreamOutElementsRef)
 {
+	bCachedUniformBufferStructDeclarations = false;
 	GlobalListLink = GShaderTypeList.insert(GShaderTypeList.begin(),this);
 	GetNameToTypeMap().insert(std::make_pair(TypeName,this));
 	static uint32 NextHashIndex = 0;
@@ -287,6 +292,45 @@ FShader* FShaderType::FindShaderById(const FShaderId& Id)
 FShader* FShaderType::ConstructForDeserialization() const
 {
 	return (*ConstructSerializedRef)();
+}
+
+void FShaderType::AddReferencedUniformBufferIncludes(FShaderCompilerEnvironment& OutEnvironment, std::string& OutSourceFilePrefix)
+{
+	if (!bCachedUniformBufferStructDeclarations)
+	{
+		CacheUniformBufferIncludes(ReferencedUniformBufferStructsCache);
+		bCachedUniformBufferStructDeclarations = true;
+	}
+
+	std::string UniformBufferIncludes;
+
+	for (auto It = ReferencedUniformBufferStructsCache.begin(); It != ReferencedUniformBufferStructsCache.end(); ++It)
+	{
+		assert(It->second.Declaration.get() != NULL);
+		assert(It->second.Declaration->length());
+		char buffer[256];
+		sprintf_s(buffer, sizeof(buffer), "#include \"/Engine/Generated/UniformBuffers/%s.ush\"" "\r\n", It->first);
+		UniformBufferIncludes += std::string(buffer);
+		sprintf_s(buffer, sizeof(buffer), "/Engine/Generated/UniformBuffers/%s.ush", It->first);
+
+		OutEnvironment.IncludeVirtualPathToExternalContentsMap.insert(std::make_pair(
+			std::string(buffer),
+			It->second.Declaration
+		));
+
+// 		for (TLinkedList<FUniformBufferStruct*>::TIterator StructIt(FUniformBufferStruct::GetStructList()); StructIt; StructIt.Next())
+// 		{
+// 			if (It.Key() == StructIt->GetShaderVariableName())
+// 			{
+// 				StructIt->AddResourceTableEntries(OutEnvironment.ResourceTableMap, OutEnvironment.ResourceTableLayoutHashes);
+// 			}
+// 		}
+	}
+
+	std::string& GeneratedUniformBuffersInclude = OutEnvironment.IncludeVirtualPathToContentsMap["/Engine/Generated/GeneratedUniformBuffers.ush"];
+	GeneratedUniformBuffersInclude.append(UniformBufferIncludes);
+
+	OutEnvironment.SetDefine("PLATFORM_SUPPORTS_SRV_UB", "1");
 }
 
 class FShaderCompileJob* FMaterialShaderType::BeginCompileShader(

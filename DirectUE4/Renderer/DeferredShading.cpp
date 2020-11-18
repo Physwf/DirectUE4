@@ -37,6 +37,9 @@ void InitShading()
 	InitLightPass();
 	InitAtomosphereFog();
 	*/
+
+	InitializeShaderTypes();
+
 }
 
 SceneRenderer::SceneRenderer(SceneViewFamily& InViewFamily)

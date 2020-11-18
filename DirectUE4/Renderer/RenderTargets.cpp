@@ -536,3 +536,5 @@ void BindSceneTextureUniformBufferDependentOnShadingPath(const FShader::Compiled
 // 		checkfSlow(!Initializer.ParameterMap.ContainsParameterAllocation(FSceneTexturesUniformParameters::StaticStruct.GetShaderVariableName()), TEXT("Shader for Mobile shading path tried to bind FSceneTexturesUniformParameters which is only available in the deferred shading path: %s"), Initializer.Type->GetName());
 // 	}
 }
+
+FSceneTexturesUniformParameters SceneTexturesUniformParameters;

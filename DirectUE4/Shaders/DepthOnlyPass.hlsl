@@ -1,7 +1,7 @@
 
 #include "Common.hlsl"
 #include "Material.hlsl"
-#include "LocalVertexFactory.hlsl"
+#include "/Generated/VertexFactory.hlsl"
 
 /*
 void VS_Main(PostionOnlyVertexFactoryInput Input, out float4 Position : SV_POSITION)

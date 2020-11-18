@@ -635,6 +635,13 @@ public:
 	{
 		(*GetStreamOutElementsRef)(ElementList, StreamStrides, RasterizedStream);
 	}
+
+	inline const std::map<const char*, FCachedUniformBufferDeclaration>& GetReferencedUniformBufferStructsCache() const
+	{
+		return ReferencedUniformBufferStructsCache;
+	}
+
+	void AddReferencedUniformBufferIncludes(FShaderCompilerEnvironment& OutEnvironment, std::string& OutSourceFilePrefix);
 private:
 	EShaderTypeForDynamicCast ShaderTypeForDynamicCast;
 	uint32 HashIndex;
@@ -658,6 +665,8 @@ private:
 protected:
 	/** Tracks what platforms ReferencedUniformBufferStructsCache has had declarations cached for. */
 	bool bCachedUniformBufferStructDeclarations;
+
+	std::map<const char*, FCachedUniformBufferDeclaration> ReferencedUniformBufferStructsCache;
 };
 namespace std
 {

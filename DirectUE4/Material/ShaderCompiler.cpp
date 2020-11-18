@@ -1,4 +1,6 @@
 #include "ShaderCompiler.h"
+#include <fstream>
+#include <sstream>
 
 FShaderCompilingManager::FShaderCompilingManager()
 {
@@ -12,7 +14,49 @@ void FShaderCompilingManager::AddJobs(std::vector<FShaderCompileJob*>& NewJobs/*
 
 void FShaderCompilingManager::FinishCompilation(const char* MaterialName, const std::vector<int32>& ShaderMapIdsToFinishCompiling)
 {
+	auto StringReplace = [](std::string& InOutString, const std::string& InReplaced, const std::string& InNewString) -> std::string&
+	{
+		for (std::string::size_type pos(0); pos != std::string::npos; pos += InNewString.length())
+		{
+			pos = InOutString.find(InReplaced, pos);
+			if (pos != std::string::npos)
+				InOutString.replace(pos, InReplaced.length(), InNewString);
+			else
+				break;
+		}
+		return InOutString;
+	};
 
+	for (FShaderCompileJob* Job : CompileQueue)
+	{
+		FShaderCompilerInput& Input = Job->Input;
+		FShaderCompilerOutput& Output = Job->Output;
+		std::ifstream ShaderFileStream;
+		std::string ShaderFileContent;
+		if (LoadFileToString(ShaderFileContent, Input.VirtualSourceFilePath.c_str()))
+		{
+			for (auto Pair : Input.Environment.IncludeVirtualPathToContentsMap)
+			{
+				StringReplace(ShaderFileContent, Pair.first, Pair.second);
+			}
+
+			std::vector<D3D_SHADER_MACRO> ShaderMacros;
+			for (auto& Pair : Input.Environment.GetDefinitions())
+			{
+				D3D_SHADER_MACRO Macro;
+				Macro.Name = Pair.first.c_str();
+				Macro.Definition = Pair.second.c_str();
+				ShaderMacros.push_back({ Pair.first.c_str(),Pair.second.c_str() });
+			}
+			ShaderMacros.push_back({ NULL, NULL });
+			const char ShaderTargets[][7] = { "vs_5_0","hs_5_0" ,"ds_5_0" ,"ps_5_0" ,"gs_5_0" ,"cs_5_0" , };
+			Output.ShaderCode = CompileShader(ShaderFileContent, Input.EntryPointName.c_str(), ShaderTargets[Input.Frequency] ,ShaderMacros.data());
+		}
+		else
+		{
+			assert(false);
+		}
+	}
 }
 
 FShaderCompilingManager* GShaderCompilingManager = new FShaderCompilingManager();
@@ -61,6 +105,7 @@ void GlobalBeginCompileShader(
 
 	Input.Environment.SetDefine(("FORWARD_SHADING"), 0);
 
+	ShaderType->AddReferencedUniformBufferIncludes(Input.Environment, Input.SourceFilePrefix);
 
 	NewJobs.push_back(NewJob);
 

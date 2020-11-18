@@ -24,6 +24,21 @@ FVertexFactoryType* FVertexFactoryType::GetVFByName(const std::string& VFName)
 
 void FVertexFactoryType::Initialize(const std::map<std::string, std::vector<const char*>>& ShaderFileToUniformBufferVariables)
 {
+	for (auto It = FVertexFactoryType::GetTypeList().begin(); It != FVertexFactoryType::GetTypeList().end(); ++It)
+	{
+		FVertexFactoryType* Type = *It;
+		GenerateReferencedUniformBuffers(Type->ShaderFilename, Type->Name, ShaderFileToUniformBufferVariables, Type->ReferencedUniformBufferStructsCache);
+
+// 		for (int32 Frequency = 0; Frequency < SF_NumFrequencies; Frequency++)
+// 		{
+// 			// Construct a temporary shader parameter instance, which is initialized to safe values for serialization
+// 			FVertexFactoryShaderParameters* Parameters = Type->CreateShaderParameters((EShaderFrequency)Frequency);
+// 		}
+	}
+}
+
+void FVertexFactoryType::Uninitialize()
+{
 
 }
 
@@ -53,6 +68,7 @@ FVertexFactoryType::FVertexFactoryType(
 	ModifyCompilationEnvironmentRef(InModifyCompilationEnvironment),
 	SupportsTessellationShadersRef(InSupportsTessellationShaders)
 {
+	bCachedUniformBufferStructDeclarations = false;
 	GlobalListLink = GetTypeList().insert(GetTypeList().begin(),this);
 	HashIndex = NextHashIndex++;
 }
@@ -60,6 +76,45 @@ FVertexFactoryType::FVertexFactoryType(
 FVertexFactoryType::~FVertexFactoryType()
 {
 	GetTypeList().erase(GlobalListLink);
+}
+
+void FVertexFactoryType::AddReferencedUniformBufferIncludes(FShaderCompilerEnvironment& OutEnvironment, std::string& OutSourceFilePrefix)
+{
+	if (!bCachedUniformBufferStructDeclarations)
+	{
+		CacheUniformBufferIncludes(ReferencedUniformBufferStructsCache);
+		bCachedUniformBufferStructDeclarations = true;
+	}
+
+	std::string UniformBufferIncludes;
+
+	for (auto It = ReferencedUniformBufferStructsCache.begin(); It != ReferencedUniformBufferStructsCache.end(); ++It)
+	{
+		assert(It->second.Declaration.get() != NULL);
+		assert(It->second.Declaration->length());
+		char buffer[256];
+		sprintf_s(buffer, sizeof(buffer), "#include \"/Engine/Generated/UniformBuffers/%s.ush\"" "\r\n", It->first);
+		UniformBufferIncludes += std::string(buffer);
+		sprintf_s(buffer, sizeof(buffer), "/Engine/Generated/UniformBuffers/%s.ush", It->first);
+
+		OutEnvironment.IncludeVirtualPathToExternalContentsMap.insert(std::make_pair(
+			std::string(buffer),
+			It->second.Declaration
+		));
+
+		// 		for (TLinkedList<FUniformBufferStruct*>::TIterator StructIt(FUniformBufferStruct::GetStructList()); StructIt; StructIt.Next())
+		// 		{
+		// 			if (It.Key() == StructIt->GetShaderVariableName())
+		// 			{
+		// 				StructIt->AddResourceTableEntries(OutEnvironment.ResourceTableMap, OutEnvironment.ResourceTableLayoutHashes);
+		// 			}
+		// 		}
+	}
+
+	std::string& GeneratedUniformBuffersInclude = OutEnvironment.IncludeVirtualPathToContentsMap["/Engine/Generated/GeneratedUniformBuffers.ush"];
+	GeneratedUniformBuffersInclude.append(UniformBufferIncludes);
+
+	OutEnvironment.SetDefine("PLATFORM_SUPPORTS_SRV_UB", "1");
 }
 
 uint32 FVertexFactoryType::NextHashIndex = 2;
@@ -228,7 +283,8 @@ FVertexFactoryShaderParameters* FLocalVertexFactory::ConstructShaderParameters(E
 	return NULL;
 }
 
-IMPLEMENT_VERTEX_FACTORY_TYPE(FLocalVertexFactory, "/Engine/Private/LocalVertexFactory.ush", true, true, true, true, true);
+IMPLEMENT_VERTEX_FACTORY_TYPE(FLocalVertexFactory, "./Shaders/LocalVertexFactory.hlsl", true, true, true, true, true);
+FLocalVertexFactoryUniformShaderParameters LocalVertexFactoryUniformShaderParameters;
 
 TUniformBufferPtr<FLocalVertexFactoryUniformShaderParameters>  CreateLocalVFUniformBuffer(const class FLocalVertexFactory* LocalVertexFactory)
 {

@@ -7,7 +7,14 @@
 
 class FShaderParameterMap;
 struct FShaderCompilerEnvironment;
+struct UniformBufferInfo;
 
+void CacheUniformBufferIncludes(std::map<const char*, struct FCachedUniformBufferDeclaration>& Cache);
+void CreateUniformBufferShaderDeclaration(
+	const char* Name, 
+	const UniformBufferInfo& Info, 
+	std::string& OutDeclaration
+);
 
 enum EShaderParameterFlags
 {

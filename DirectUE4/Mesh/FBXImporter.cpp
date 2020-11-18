@@ -3746,7 +3746,7 @@ public:
 				if (BuildData.OutWarningMessages)
 				{
 					char buffer[256];
-					sprintf_s(buffer, "Missing influence on vert %d. Weighting it to root.", BuildData.Wedges[WedgeIndex].iVertex);
+					sprintf_s(buffer, sizeof(buffer), "Missing influence on vert %d. Weighting it to root.", BuildData.Wedges[WedgeIndex].iVertex);
 					BuildData.OutWarningMessages->push_back(std::string(buffer));
 					if (BuildData.OutWarningNames)
 					{

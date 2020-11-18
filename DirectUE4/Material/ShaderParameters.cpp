@@ -91,3 +91,31 @@ void FShaderUniformBufferParameter::BindUAV(const FShaderParameterMap& Parameter
 		UAVsBaseIndices.insert(std::make_pair(std::string(ParameterName), ResourceIndex));
 	}
 }
+
+void CacheUniformBufferIncludes(std::map<const char*, struct FCachedUniformBufferDeclaration>& Cache)
+{
+	for (auto It = Cache.begin(); It != Cache.end(); ++It)
+	{
+		FCachedUniformBufferDeclaration& BufferDeclaration = It->second;
+		assert(BufferDeclaration.Declaration.get() == NULL);
+
+		for (auto StructIt = GetUniformBufferInfoList().begin(); StructIt != GetUniformBufferInfoList().end(); ++StructIt)
+		{
+			if (It->first == StructIt->ConstantBufferName)
+			{
+				std::string* NewDeclaration = new std::string();
+				CreateUniformBufferShaderDeclaration(StructIt->ConstantBufferName.c_str(), *StructIt, *NewDeclaration);
+				assert(NewDeclaration->length());
+				BufferDeclaration.Declaration.reset(NewDeclaration);
+				break;
+			}
+		}
+	}
+}
+
+void CreateUniformBufferShaderDeclaration(const char* Name, const UniformBufferInfo& Info, std::string& OutDeclaration)
+{
+	char ShaderFileName[128];
+	sprintf_s(ShaderFileName, sizeof(ShaderFileName), "%s.hlsl", Name);
+	assert(LoadFileToString(OutDeclaration, ShaderFileName));
+}

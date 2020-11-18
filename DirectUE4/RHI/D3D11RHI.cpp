@@ -240,6 +240,32 @@ ID3DBlob* CompileVertexShader(const wchar_t* File, const char* EntryPoint, const
 	return NULL; 
 }
 
+ID3DBlob* CompileShader(const std::string& FileContent, const char* EntryPoint, const char* Target, const D3D_SHADER_MACRO* OtherMacros)
+{
+	ShaderIncludeHandler IncludeHandler;
+	ID3DBlob* Bytecode;
+	ID3DBlob* OutErrorMsg;
+	HRESULT HR = D3DCompile(
+		FileContent.c_str(),
+		FileContent.size(),
+		NULL,
+		OtherMacros,
+		&IncludeHandler,
+		EntryPoint,
+		Target,
+		D3DCOMPILE_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION/*| D3DCOMPILE_ENABLE_BACKWARDS_COMPATIBILITY*/,
+		0,
+		&Bytecode,
+		&OutErrorMsg
+	);
+	if (HR != S_OK)
+	{
+		X_LOG("D3DCompileFromFile failed! %s", (const char*)OutErrorMsg->GetBufferPointer());
+		return NULL;
+	}
+	return Bytecode;
+}
+
 ID3DBlob* CompilePixelShader(const wchar_t* File, const char* EntryPoint, const D3D_SHADER_MACRO* OtherMacros/* = NULL*/, int OtherMacrosCount/* = 0*/)
 {
 	ID3DBlob* Bytecode;

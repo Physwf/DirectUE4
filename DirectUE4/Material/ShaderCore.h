@@ -5,7 +5,13 @@
 #include "SecureHash.h"
 #include <vector>
 #include <map>
+#include <string>
 #include <type_traits>
+
+extern void InitializeShaderTypes();
+
+/** Uninitializes cached shader type data.  This is needed before unloading modules that contain FShaderTypes. */
+extern void UninitializeShaderTypes();
 
 class FShaderParameterMap
 {
@@ -270,3 +276,20 @@ struct FShaderCompilerOutput
 	//void GenerateOutputHash();
 
 };
+
+struct FCachedUniformBufferDeclaration
+{
+	// Using SharedPtr so we can hand off lifetime ownership to FShaderCompilerEnvironment::IncludeVirtualPathToExternalContentsMap when invalidating this cache
+	std::shared_ptr<std::string> Declaration;
+};
+
+extern void BuildShaderFileToUniformBufferMap(std::map<std::string, std::vector<const char*> >& ShaderFileToUniformBufferVariables);
+extern bool LoadFileToString(std::string& Result, const char* Filename);
+extern bool LoadShaderSourceFile(const char* VirtualFilePath, std::string& OutFileContents/*, TArray<FShaderCompilerError>* OutCompileErrors*/);
+extern void GetShaderIncludes(const char* EntryPointVirtualFilePath, const char* VirtualFilePath, std::vector<std::string>& IncludeVirtualFilePaths, uint32 DepthLimit = 100);
+
+extern void GenerateReferencedUniformBuffers(
+	const char* SourceFilename,
+	const char* ShaderTypeName,
+	const std::map<std::string, std::vector<const char*> >& ShaderFileToUniformBufferVariables,
+	std::map<const char*, FCachedUniformBufferDeclaration>& UniformBufferEntries);

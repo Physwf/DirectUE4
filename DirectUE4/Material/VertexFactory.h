@@ -112,6 +112,7 @@ public:
 	static FVertexFactoryType* GetVFByName(const std::string& VFName);
 
 	static void Initialize(const std::map<std::string,std::vector<const char*>>& ShaderFileToUniformBufferVariables);
+	static void Uninitialize();
 
 	virtual FVertexFactoryType* GetType() const { return NULL; }
 
@@ -153,14 +154,16 @@ public:
 	void ModifyCompilationEnvironment(const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		char buffer[512];
-		sprintf_s(buffer, "#include \"%s\"", GetShaderFilename());
+		sprintf_s(buffer, sizeof(buffer), "#include \"%s\"", GetShaderFilename());
 		std::string VertexFactoryIncludeString = buffer;
-		OutEnvironment.IncludeVirtualPathToContentsMap["/Engine/Generated/VertexFactory.hlsl"] = VertexFactoryIncludeString;
+		OutEnvironment.IncludeVirtualPathToContentsMap["#include \"/Generated/VertexFactory.hlsl\""] = VertexFactoryIncludeString;
 
 		OutEnvironment.SetDefine(("HAS_PRIMITIVE_UNIFORM_BUFFER"), 1);
 
-		//(*ModifyCompilationEnvironmentRef)(Platform, Material, OutEnvironment);
+		(*ModifyCompilationEnvironmentRef)(Material, OutEnvironment);
 	}
+
+	void AddReferencedUniformBufferIncludes(FShaderCompilerEnvironment& OutEnvironment, std::string& OutSourceFilePrefix);
 private:
 	static uint32 NextHashIndex;
 
@@ -179,6 +182,11 @@ private:
 	SupportsTessellationShadersType SupportsTessellationShadersRef;
 
 	std::list<FVertexFactoryType*>::iterator GlobalListLink;
+
+	std::map<const char*, FCachedUniformBufferDeclaration> ReferencedUniformBufferStructsCache;
+
+	/** Tracks what platforms ReferencedUniformBufferStructsCache has had declarations cached for. */
+	bool bCachedUniformBufferStructDeclarations;
 };
 class FVertexFactory
 {

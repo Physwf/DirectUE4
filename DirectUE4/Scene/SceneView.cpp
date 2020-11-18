@@ -214,6 +214,7 @@ void FSceneView::SetupViewRectUniformBufferParameters(
 // 	}
 
 }
+FViewUniformShaderParameters ViewUniformShaderParameters;
 
 void FSceneView::SetupCommonViewUniformBufferParameters(
 	FViewUniformShaderParameters& ViewUniformParameters, 

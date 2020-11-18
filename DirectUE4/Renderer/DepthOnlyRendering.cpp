@@ -126,8 +126,8 @@ public:
 	}
 };
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>, TDepthOnlyVS<true>, ("/Engine/Private/PositionOnlyDepthVertexShader.usf"), ("Main"), SF_Vertex);
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>, TDepthOnlyVS<false>, ("/Engine/Private/DepthOnlyVertexShader.usf"), ("Main"), SF_Vertex);
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>, TDepthOnlyVS<true>, ("./Shaders/DepthOnlyPass.hlsl"), ("VS_Main"), SF_Vertex);
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>, TDepthOnlyVS<false>, ("./Shaders/DepthOnlyVertexShader.hlsl"), ("Main"), SF_Vertex);
 
 class FDepthOnlyPS : public FMeshMaterialShader
 {
@@ -171,7 +171,7 @@ public:
 	FShaderParameter MobileColorValue;
 };
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(, FDepthOnlyPS, ("/Engine/Private/DepthOnlyPixelShader.usf"), ("Main"), SF_Pixel);
+IMPLEMENT_MATERIAL_SHADER_TYPE(, FDepthOnlyPS, ("./Shaders/DepthOnlyPass.hlsl"), ("PS_Main"), SF_Pixel);
 
 void SceneRenderer::RenderPrePassView(FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState)
 {
