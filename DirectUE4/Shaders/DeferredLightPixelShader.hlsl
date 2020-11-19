@@ -1,7 +1,6 @@
 #include "Common.hlsl"
 #include "DeferredShadingCommon.hlsl"
 #include "DeferredLightingCommon.hlsl"
-#include "UniformBuffers.hlsl"
 
 DeferredLightData SetupLightDataForStandardDeferred()
 {

@@ -117,5 +117,5 @@ void CreateUniformBufferShaderDeclaration(const char* Name, const UniformBufferI
 {
 	char ShaderFileName[128];
 	sprintf_s(ShaderFileName, sizeof(ShaderFileName), "%s.hlsl", Name);
-	assert(LoadFileToString(OutDeclaration, ShaderFileName));
+	assert(LoadShaderSourceFile(ShaderFileName, OutDeclaration));
 }

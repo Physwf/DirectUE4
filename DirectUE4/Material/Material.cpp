@@ -65,7 +65,7 @@ uint32 FMeshMaterialShaderMap::BeginCompile(
 	return NumShadersPerVF;
 }
 
-static inline bool ShouldCacheMaterialShader(const FMaterialShaderType* ShaderType, const FMaterial* Material)
+static bool ShouldCacheMaterialShader(const FMaterialShaderType* ShaderType, const FMaterial* Material)
 {
 	return ShaderType->ShouldCache(Material) && Material->ShouldCache(ShaderType, nullptr);
 }
@@ -309,7 +309,7 @@ bool FMaterial::BeginCompileShaderMap(const FMaterialShaderMapId& ShaderMapId, s
 		const std::string MaterialShaderCode;// = //MaterialTranslator.GetMaterialShaderCode();
 		const bool bSynchronousCompile = true;// RequiresSynchronousCompilation() || !GShaderCompilingManager->AllowAsynchronousShaderCompiling();
 
-		MaterialEnvironment->IncludeVirtualPathToContentsMap.insert(std::make_pair(std::string("/Engine/Generated/Material.ush"), MaterialShaderCode));
+		//MaterialEnvironment->IncludeVirtualPathToContentsMap.insert(std::make_pair(std::string("/Generated/Material.ush"), MaterialShaderCode));
 
 		// Compile the shaders for the material.
 		NewShaderMap->Compile(this, ShaderMapId, MaterialEnvironment, NewCompilationOutput, bSynchronousCompile, bApplyCompletedShaderMapForRendering);
@@ -348,7 +348,7 @@ bool FMaterialResource::IsTranslucencyWritingCustomDepth() const
 
 bool FMaterialResource::IsSpecialEngineMaterial() const
 {
-	return false;
+	return true;
 }
 
 bool FMaterialResource::IsDefaultMaterial() const

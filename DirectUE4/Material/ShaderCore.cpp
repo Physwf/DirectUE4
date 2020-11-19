@@ -92,9 +92,9 @@ static void GetAllVirtualShaderSourcePaths(std::vector<std::string>& OutVirtualF
 	//#todo-rco: No need to loop through Shader Pipeline Types (yet)
 
 	// also always add the MaterialTemplate.usf shader file
-	AddShaderSourceFileEntry(OutVirtualFilePaths, std::string("/Engine/Private/MaterialTemplate.ush"));
-	AddShaderSourceFileEntry(OutVirtualFilePaths, std::string("/Engine/Private/Common.ush"));
-	AddShaderSourceFileEntry(OutVirtualFilePaths, std::string("/Engine/Private/Definitions.usf"));
+	//AddShaderSourceFileEntry(OutVirtualFilePaths, std::string("./Shaders/MaterialTemplate.hlsl"));
+	AddShaderSourceFileEntry(OutVirtualFilePaths, std::string("Common.hlsl"));
+	AddShaderSourceFileEntry(OutVirtualFilePaths, std::string("Definitions.hlsl"));
 }
 
 void LoadShaderSourceFileChecked(const char* VirtualFilePath, std::string& OutFileContents)
@@ -189,7 +189,7 @@ bool LoadShaderSourceFile(const char* VirtualFilePath, std::string& OutFileConte
 	}
 	else
 	{
-		std::string ShaderFilePath = VirtualFilePath;// GetShaderSourceFilePath(VirtualFilePath, OutCompileErrors);
+		std::string ShaderFilePath = std::string("./Shaders/") + VirtualFilePath;// GetShaderSourceFilePath(VirtualFilePath, OutCompileErrors);
 
 		// verify SHA hash of shader files on load. missing entries trigger an error
 		if (ShaderFilePath.length() && LoadFileToString(OutFileContents, ShaderFilePath.c_str()))
@@ -259,19 +259,19 @@ extern void GetShaderIncludes(const char* EntryPointVirtualFilePath, const char*
 					std::string ExtractedIncludeFilename(std::string(IncludeFilenameBegin + 1, (int32)(IncludeFilenameEnd - IncludeFilenameBegin - 1)));
 
 					// If the include is relative, then it must be relative to the current virtual file path.
-					if (!StartsWith(ExtractedIncludeFilename,"/"))
-					{
-						ExtractedIncludeFilename = std::string("./Shaders/") + ExtractedIncludeFilename;
-					}
+// 					if (!StartsWith(ExtractedIncludeFilename,"/"))
+// 					{
+// 						ExtractedIncludeFilename = std::string("./Shaders/") + ExtractedIncludeFilename;
+// 					}
 
 					//CRC the template, not the filled out version so that this shader's CRC will be independent of which material references it.
-					if (strcmp( ExtractedIncludeFilename.c_str(), "/Engine/Generated/Material.ush" ) == 0)
+					if (strcmp( ExtractedIncludeFilename.c_str(), "/Generated/Material.ush" ) == 0)
 					{
-						ExtractedIncludeFilename = "/Engine/Private/MaterialTemplate.ush";
+						ExtractedIncludeFilename = "/MaterialTemplate.ush";
 					}
 
 					// Ignore uniform buffer, vertex factory and instanced stereo includes
-					bool bIgnoreInclude = StartsWith(ExtractedIncludeFilename, "/Engine/Generated/");
+					bool bIgnoreInclude = StartsWith(ExtractedIncludeFilename, "/Generated/");
 
 					// Check virtual.
 					//bIgnoreInclude |= !CheckVirtualShaderFilePath(ExtractedIncludeFilename);

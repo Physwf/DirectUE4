@@ -1,6 +1,6 @@
 #include "ShaderCompiler.h"
-#include <fstream>
-#include <sstream>
+#include "VertexFactory.h"
+#include "ShaderPreprocessor.h"
 
 FShaderCompilingManager::FShaderCompilingManager()
 {
@@ -31,15 +31,12 @@ void FShaderCompilingManager::FinishCompilation(const char* MaterialName, const 
 	{
 		FShaderCompilerInput& Input = Job->Input;
 		FShaderCompilerOutput& Output = Job->Output;
-		std::ifstream ShaderFileStream;
 		std::string ShaderFileContent;
-		if (LoadFileToString(ShaderFileContent, Input.VirtualSourceFilePath.c_str()))
+		FShaderCompilerDefinitions AdditionalDefines;
+		AdditionalDefines.SetDefine("SM5_PROFILE", 1);
+		AdditionalDefines.SetDefine("COMPILER_HLSL", 1);
+		if (PreprocessShader(ShaderFileContent, Output, Input, AdditionalDefines))
 		{
-			for (auto Pair : Input.Environment.IncludeVirtualPathToContentsMap)
-			{
-				StringReplace(ShaderFileContent, Pair.first, Pair.second);
-			}
-
 			std::vector<D3D_SHADER_MACRO> ShaderMacros;
 			for (auto& Pair : Input.Environment.GetDefinitions())
 			{
@@ -50,7 +47,7 @@ void FShaderCompilingManager::FinishCompilation(const char* MaterialName, const 
 			}
 			ShaderMacros.push_back({ NULL, NULL });
 			const char ShaderTargets[][7] = { "vs_5_0","hs_5_0" ,"ds_5_0" ,"ps_5_0" ,"gs_5_0" ,"cs_5_0" , };
-			Output.ShaderCode = CompileShader(ShaderFileContent, Input.EntryPointName.c_str(), ShaderTargets[Input.Frequency] ,ShaderMacros.data());
+			Output.ShaderCode = CompileShader(ShaderFileContent, Input.EntryPointName.c_str(), ShaderTargets[Input.Frequency] , Input.Environment.IncludeVirtualPathToContentsMap, Input.Environment.IncludeVirtualPathToExternalContentsMap, ShaderMacros.data());
 		}
 		else
 		{
@@ -106,6 +103,11 @@ void GlobalBeginCompileShader(
 	Input.Environment.SetDefine(("FORWARD_SHADING"), 0);
 
 	ShaderType->AddReferencedUniformBufferIncludes(Input.Environment, Input.SourceFilePrefix);
+
+	if (VFType)
+	{
+		VFType->AddReferencedUniformBufferIncludes(Input.Environment, Input.SourceFilePrefix);
+	}
 
 	NewJobs.push_back(NewJob);
 

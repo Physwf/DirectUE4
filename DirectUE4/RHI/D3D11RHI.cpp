@@ -130,6 +130,7 @@ public:
 		switch (IncludeType)
 		{
 		case D3D_INCLUDE_LOCAL:
+			if (strncmp(pFileName, "/Generated/", strlen("/Generated/"))) return S_OK;//skip Generated Include
 			IncludeFile = std::string("./Shaders/") + pFileName;
 			break;
 		case D3D_INCLUDE_SYSTEM:
@@ -188,6 +189,82 @@ private:
 	std::unique_ptr<char[]> filedata;
 	//ID3DBlob* blob;
 };
+
+class ShaderVirtualIncludeHandler : public ID3DInclude
+{
+public:
+	ShaderVirtualIncludeHandler(const std::map<std::string, std::string>& InIncludeVirtualPathToContentsMap, const std::map<std::string, std::shared_ptr<std::string>>& InIncludeVirtualPathToExternalContentsMap)
+		:IncludeVirtualPathToContentsMap(InIncludeVirtualPathToContentsMap),
+		IncludeVirtualPathToExternalContentsMap(InIncludeVirtualPathToExternalContentsMap)
+	{}
+
+	HRESULT __stdcall Open(D3D_INCLUDE_TYPE IncludeType, LPCSTR pFileName, LPCVOID pParentData, LPCVOID *ppData, UINT *pBytes)
+	{
+		std::string IncludeFile;
+		switch (IncludeType)
+		{
+		case D3D_INCLUDE_LOCAL:
+			if (strncmp(pFileName, "/Generated/", strlen("/Generated/")) == 0)
+			{
+				for (auto& Pair : IncludeVirtualPathToContentsMap)
+				{
+					if (Pair.first.find(pFileName) != std::string::npos)
+					{
+						char* buf = new char[Pair.second.size() + 1];
+						strcpy_s(buf, Pair.second.size() + 1, Pair.second.c_str());
+						*ppData = buf;
+						*pBytes = Pair.second.size();
+						return S_OK;
+					}
+				}
+				for (auto& Pair : IncludeVirtualPathToExternalContentsMap)
+				{
+					//if (strstr(pFileName, Pair.first.c_str()) != NULL)
+					if (Pair.first.find(pFileName) != std::string::npos)
+					{
+						char* buf = new char[Pair.second->size() + 1];
+						strcpy_s(buf, Pair.second->size() + 1, Pair.second->c_str());
+						*ppData = buf;
+						*pBytes = Pair.second->size();
+						return S_OK;
+					}
+				}
+				return E_FAIL;
+			}
+			IncludeFile = std::string("./Shaders/") + pFileName;
+			break;
+		case D3D_INCLUDE_SYSTEM:
+			IncludeFile = std::string("./Shaders/") + pFileName;
+			break;
+		}
+		X_LOG("filename:%s\n", IncludeFile.c_str());
+		std::ifstream includeFile(IncludeFile.c_str(), std::ios::in | std::ios::binary | std::ios::ate);
+		if (includeFile.is_open()) {
+			unsigned int fileSize = (unsigned int)includeFile.tellg();
+			char* buf = new char[fileSize];
+			includeFile.seekg(0, std::ios::beg);
+			includeFile.read(buf, fileSize);
+			includeFile.close();
+			*ppData = buf;
+			*pBytes = fileSize;
+			return S_OK;
+		}
+		else {
+			return E_FAIL;
+		}
+		return E_FAIL;
+	}
+	HRESULT __stdcall Close(LPCVOID pData)
+	{
+		char* buf = (char*)pData;
+		delete[] buf;
+		return S_OK;
+	}
+private:
+	std::unique_ptr<char[]> filedata;
+	const std::map<std::string, std::string>& IncludeVirtualPathToContentsMap;
+	const std::map<std::string, std::shared_ptr<std::string>>& IncludeVirtualPathToExternalContentsMap;
+};
 ID3DBlob* CompileVertexShader(const wchar_t* File, const char* EntryPoint, const D3D_SHADER_MACRO* OtherMacros/* = NULL*/, int OtherMacrosCount/* = 0*/)
 {
 	ID3DBlob* Bytecode;
@@ -240,11 +317,12 @@ ID3DBlob* CompileVertexShader(const wchar_t* File, const char* EntryPoint, const
 	return NULL; 
 }
 
-ID3DBlob* CompileShader(const std::string& FileContent, const char* EntryPoint, const char* Target, const D3D_SHADER_MACRO* OtherMacros)
+ID3DBlob* CompileShader(const std::string& FileContent, const char* EntryPoint, const char* Target, const std::map<std::string, std::string>& InIncludeVirtualPathToContentsMap, std::map<std::string, std::shared_ptr<std::string>>& InIncludeVirtualPathToExternalContentsMap, const D3D_SHADER_MACRO* OtherMacros)
 {
-	ShaderIncludeHandler IncludeHandler;
+	ShaderVirtualIncludeHandler IncludeHandler(InIncludeVirtualPathToContentsMap, InIncludeVirtualPathToExternalContentsMap);
 	ID3DBlob* Bytecode;
 	ID3DBlob* OutErrorMsg;
+	X_LOG("%s", FileContent.c_str());
 	HRESULT HR = D3DCompile(
 		FileContent.c_str(),
 		FileContent.size(),

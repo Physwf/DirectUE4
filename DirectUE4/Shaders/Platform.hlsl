@@ -109,3 +109,4 @@
 
 
 #define STENCIL_COMPONENT_SWIZZLE .x
+

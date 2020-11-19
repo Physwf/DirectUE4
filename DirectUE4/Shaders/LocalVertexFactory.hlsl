@@ -1,7 +1,7 @@
 #include "VertexFactoryCommon.hlsl"
 #include "LocalVertexFactoryCommon.hlsl"
 
-#include "PrecomputedLightingBuffer.hlsl"
+#include "/Generated/PrecomputedLightingBuffer.hlsl"
 
 #ifndef MANUAL_VERTEX_FETCH
 #define MANUAL_VERTEX_FETCH 0

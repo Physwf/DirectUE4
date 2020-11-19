@@ -45,4 +45,3 @@ void MeshPrimitive::RemoveStaticMeshes(FScene* Scene)
 
 }
 
-FPrimitiveUniformShaderParameters PrimitiveUniformShaderParameters;

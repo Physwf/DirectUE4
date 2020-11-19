@@ -1,0 +1,78 @@
+#include "Common.hlsl"
+#include "Material.hlsl"
+#include "/Generated/VertexFactory.hlsl"
+
+struct FDepthOnlyVSToPS
+{
+	#if !MATERIALBLENDING_SOLID || OUTPUT_PIXEL_DEPTH_OFFSET
+		FVertexFactoryInterpolantsVSToPS FactoryInterpolants;
+		float4 PixelPosition : TEXCOORD6;
+	#endif
+
+	float4 Position : SV_POSITION;
+};
+
+	#define FDepthOnlyVSOutput FDepthOnlyVSToPS
+	#define VertexFactoryGetInterpolants VertexFactoryGetInterpolantsVSToPS
+
+
+#if VERTEXSHADER
+
+void Main(
+	FVertexFactoryInput Input,
+	OPTIONAL_VertexID
+	out FDepthOnlyVSOutput Output
+#if USE_GLOBAL_CLIP_PLANE && !USING_TESSELLATION
+	, out float OutGlobalClipPlaneDistance : SV_ClipDistance
+#endif
+	)
+{
+	ResolvedView = ResolveView();
+
+	FVertexFactoryIntermediates VFIntermediates = GetVertexFactoryIntermediates(Input);
+	float4 WorldPos = VertexFactoryGetWorldPosition(Input, VFIntermediates);
+
+	float3x3 TangentToLocal = VertexFactoryGetTangentToLocal(Input, VFIntermediates);
+	FMaterialVertexParameters VertexParameters = GetMaterialVertexParameters(Input, VFIntermediates, WorldPos.xyz, TangentToLocal);
+
+	// Isolate instructions used for world position offset
+	// As these cause the optimizer to generate different position calculating instructions in each pass, resulting in self-z-fighting.
+	// This is only necessary for shaders used in passes that have depth testing enabled.
+	ISOLATE
+	{
+		WorldPos.xyz += GetMaterialWorldPositionOffset(VertexParameters);
+	}
+
+	ISOLATE
+	{
+		float4 RasterizedWorldPosition = VertexFactoryGetRasterizedWorldPosition(Input, VFIntermediates, WorldPos);
+	#if ODS_CAPTURE
+		float3 ODS = OffsetODS(RasterizedWorldPosition.xyz, ResolvedView.TranslatedWorldCameraOrigin.xyz, ResolvedView.StereoIPD);
+		Output.Position = INVARIANT(mul(float4(RasterizedWorldPosition.xyz + ODS, 1.0), ResolvedView.TranslatedWorldToClip));
+	#else
+		Output.Position = INVARIANT(mul(RasterizedWorldPosition, ResolvedView.TranslatedWorldToClip));
+	#endif
+	}
+
+#if USE_GLOBAL_CLIP_PLANE
+	OutGlobalClipPlaneDistance = dot(ResolvedView.GlobalClippingPlane, float4(WorldPos.xyz - ResolvedView.PreViewTranslation.xyz, 1));
+#endif
+
+#if !MATERIALBLENDING_SOLID || USING_TESSELLATION || OUTPUT_PIXEL_DEPTH_OFFSET
+	// Masked and transparent materials need texture coords to clip, and tessellated
+	// materials need texture coords to displace
+	Output.FactoryInterpolants = VertexFactoryGetInterpolants(Input, VFIntermediates, VertexParameters);
+
+#endif
+
+#if !MATERIALBLENDING_SOLID || OUTPUT_PIXEL_DEPTH_OFFSET
+	#if !USING_TESSELLATION	
+		Output.PixelPosition = WorldPos;
+	#endif
+
+#endif
+
+	OutputVertexID( Output );
+}
+
+#endif // VERTEXSHADER

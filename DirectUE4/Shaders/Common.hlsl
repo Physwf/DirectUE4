@@ -25,7 +25,7 @@
 	#define MaterialFloat4x3 float4x3 
 #endif
 
-#include "UniformBuffers.hlsl"
+#include "/Generated/GeneratedUniformBuffers.hlsl"
 
 //#include "CommonViewUniformBuffer.ush"
 

@@ -309,9 +309,9 @@ void FShaderType::AddReferencedUniformBufferIncludes(FShaderCompilerEnvironment&
 		assert(It->second.Declaration.get() != NULL);
 		assert(It->second.Declaration->length());
 		char buffer[256];
-		sprintf_s(buffer, sizeof(buffer), "#include \"/Engine/Generated/UniformBuffers/%s.ush\"" "\r\n", It->first);
+		sprintf_s(buffer, sizeof(buffer), "#include \"/Generated/%s.hlsl\"" "\r\n", It->first);
 		UniformBufferIncludes += std::string(buffer);
-		sprintf_s(buffer, sizeof(buffer), "/Engine/Generated/UniformBuffers/%s.ush", It->first);
+		sprintf_s(buffer, sizeof(buffer), "/Generated/%s.hlsl", It->first);
 
 		OutEnvironment.IncludeVirtualPathToExternalContentsMap.insert(std::make_pair(
 			std::string(buffer),
@@ -327,7 +327,7 @@ void FShaderType::AddReferencedUniformBufferIncludes(FShaderCompilerEnvironment&
 // 		}
 	}
 
-	std::string& GeneratedUniformBuffersInclude = OutEnvironment.IncludeVirtualPathToContentsMap["/Engine/Generated/GeneratedUniformBuffers.ush"];
+	std::string& GeneratedUniformBuffersInclude = OutEnvironment.IncludeVirtualPathToContentsMap["/Generated/GeneratedUniformBuffers.hlsl"];
 	GeneratedUniformBuffersInclude.append(UniformBufferIncludes);
 
 	OutEnvironment.SetDefine("PLATFORM_SUPPORTS_SRV_UB", "1");

@@ -39,7 +39,6 @@ struct alignas(16) FPrimitiveUniformShaderParameters
 	{
 		return "Primitive";
 	}
-
 	static std::map<std::string, ComPtr<ID3D11ShaderResourceView>> GetSRVs(const FPrimitiveUniformShaderParameters& Primitive)
 	{
 		std::map<std::string, ComPtr<ID3D11ShaderResourceView>> List;

@@ -556,6 +556,201 @@ struct alignas(16) FViewUniformShaderParameters
 	void TransposeMatrices();
 };
 
+struct alignas(16) FInstancedViewUniformShaderParameters
+{
+	FInstancedViewUniformShaderParameters()
+	{
+		ConstructUniformBufferInfo(*this);
+	}
+
+	struct ConstantStruct
+	{
+		FMatrix TranslatedWorldToClip;
+		FMatrix WorldToClip;
+		FMatrix TranslatedWorldToView;
+		FMatrix ViewToTranslatedWorld;
+		FMatrix TranslatedWorldToCameraView;
+		FMatrix CameraViewToTranslatedWorld;
+		FMatrix ViewToClip;
+		FMatrix ViewToClipNoAA;
+		FMatrix ClipToView;
+		FMatrix ClipToTranslatedWorld;
+		FMatrix SVPositionToTranslatedWorld;
+		FMatrix ScreenToWorld;
+		FMatrix ScreenToTranslatedWorld;
+		FVector ViewForward;//EShaderPrecisionModifier::Half;;
+		float pading001;
+		FVector ViewUp;//EShaderPrecisionModifier::Half;;
+		float pading002;
+		FVector ViewRight;//EShaderPrecisionModifier::Half;;
+		float pading003;
+		FVector HMDViewNoRollUp;//EShaderPrecisionModifier::Half;;
+		float pading004;
+		FVector HMDViewNoRollRight;//EShaderPrecisionModifier::Half;;
+		float pading005;
+		Vector4 InvDeviceZToWorldZTransform;
+		Vector4 ScreenPositionScaleBias;//EShaderPrecisionModifier::Half;;
+		FVector WorldCameraOrigin;
+		float pading006;
+		FVector TranslatedWorldCameraOrigin;
+		float pading007;
+		FVector WorldViewOrigin;
+		float pading008;
+		FVector PreViewTranslation;
+		float pading009;
+		FMatrix PrevProjection;
+		FMatrix PrevViewProj;
+		FMatrix PrevViewRotationProj;
+		FMatrix PrevViewToClip;
+		FMatrix PrevClipToView;
+		FMatrix PrevTranslatedWorldToClip;
+		FMatrix PrevTranslatedWorldToView;
+		FMatrix PrevViewToTranslatedWorld;
+		FMatrix PrevTranslatedWorldToCameraView;
+		FMatrix PrevCameraViewToTranslatedWorld;
+		FVector PrevWorldCameraOrigin;
+		float pading010;
+		FVector PrevWorldViewOrigin;
+		float pading011;
+		FVector PrevPreViewTranslation;
+		float pading012;
+		FMatrix PrevInvViewProj;
+		FMatrix PrevScreenToTranslatedWorld;
+		FMatrix ClipToPrevClip;
+		Vector4 TemporalAAJitter;
+		Vector4 GlobalClippingPlane;
+		Vector2 FieldOfViewWideAngles;
+		Vector2 PrevFieldOfViewWideAngles;
+		Vector4 ViewRectMin;//EShaderPrecisionModifier::Half;;
+		Vector4 ViewSizeAndInvSize;
+		Vector4 BufferSizeAndInvSize;
+		Vector4 BufferBilinearUVMinMax;
+		int32 NumSceneColorMSAASamples;
+		float PreExposure;//EShaderPrecisionModifier::Half;;
+		float OneOverPreExposure;//EShaderPrecisionModifier::Half;;
+		float pading013;
+		Vector4 DiffuseOverrideParameter;//EShaderPrecisionModifier::Half;;
+		Vector4 SpecularOverrideParameter;//;//EShaderPrecisionModifier::Half;;;
+		Vector4 NormalOverrideParameter;//;//EShaderPrecisionModifier::Half;;;
+		Vector2 RoughnessOverrideParameter;//EShaderPrecisionModifier::Half;;
+		float PrevFrameGameTime;
+		float PrevFrameRealTime;
+		float OutOfBoundsMask;//EShaderPrecisionModifier::Half;;
+		float pading014;
+		float pading015;
+		FVector WorldCameraMovementSinceLastFrame;
+		float CullingSign;
+		float NearPlane;//EShaderPrecisionModifier::Half;;
+		float AdaptiveTessellationFactor;
+		float GameTime;
+		float RealTime;
+		float MaterialTextureMipBias;
+		float MaterialTextureDerivativeMultiply;
+		uint32 Random;
+		uint32 FrameNumber;
+		uint32 StateFrameIndexMod8;
+		float CameraCut;//EShaderPrecisionModifier::Half;;
+		float UnlitViewmodeMask;//EShaderPrecisionModifier::Half;;
+		float pading016;
+		FLinearColor DirectionalLightColor;//EShaderPrecisionModifier::Half;;
+		FVector DirectionalLightDirection;//EShaderPrecisionModifier::Half;;
+		float pading017;
+		Vector4 TranslucencyLightingVolumeMin[TVC_MAX];
+		Vector4 TranslucencyLightingVolumeInvSize[TVC_MAX];
+		Vector4 TemporalAAParams;
+		Vector4 CircleDOFParams;
+		float DepthOfFieldSensorWidth;
+		float DepthOfFieldFocalDistance;
+		float DepthOfFieldScale;
+		float DepthOfFieldFocalLength;
+		float DepthOfFieldFocalRegion;
+		float DepthOfFieldNearTransitionRegion;
+		float DepthOfFieldFarTransitionRegion;
+		float MotionBlurNormalizedToPixel;
+		float bSubsurfacePostprocessEnabled;
+		float GeneralPurposeTweak;
+		float DemosaicVposOffset;//EShaderPrecisionModifier::Half;;
+		float pading018;
+		FVector IndirectLightingColorScale;
+		float HDR32bppEncodingMode;//EShaderPrecisionModifier::Half;;
+		FVector AtmosphericFogSunDirection;
+		float AtmosphericFogSunPower;//EShaderPrecisionModifier::Half;;
+		float AtmosphericFogPower;//EShaderPrecisionModifier::Half;;
+		float AtmosphericFogDensityScale;//EShaderPrecisionModifier::Half;;
+		float AtmosphericFogDensityOffset;//EShaderPrecisionModifier::Half;;
+		float AtmosphericFogGroundOffset;//EShaderPrecisionModifier::Half;;
+		float AtmosphericFogDistanceScale;//EShaderPrecisionModifier::Half;;
+		float AtmosphericFogAltitudeScale;//EShaderPrecisionModifier::Half;;
+		float AtmosphericFogHeightScaleRayleigh;//EShaderPrecisionModifier::Half;;
+		float AtmosphericFogStartDistance;//EShaderPrecisionModifier::Half;;
+		float AtmosphericFogDistanceOffset;//EShaderPrecisionModifier::Half;;
+		float AtmosphericFogSunDiscScale;//EShaderPrecisionModifier::Half;;
+		uint32 AtmosphericFogRenderMask;
+		uint32 AtmosphericFogInscatterAltitudeSampleNum;
+		FLinearColor AtmosphericFogSunColor;
+		FVector NormalCurvatureToRoughnessScaleBias;
+		float RenderingReflectionCaptureMask;
+		FLinearColor AmbientCubemapTint;
+		float AmbientCubemapIntensity;
+		float SkyLightParameters;
+		float pading019;
+		float pading020;
+		FLinearColor SkyLightColor;
+		Vector4 SkyIrradianceEnvironmentMap[7];
+		float MobilePreviewMode;
+		float HMDEyePaddingOffset;
+		float ReflectionCubemapMaxMip;//EShaderPrecisionModifier::Half;;
+		float ShowDecalsMask;
+		uint32 DistanceFieldAOSpecularOcclusionMode;
+		float IndirectCapsuleSelfShadowingIntensity;
+		float pading021;
+		float pading022;
+		FVector ReflectionEnvironmentRoughnessMixingScaleBiasAndLargestWeight;
+		int32 StereoPassIndex;
+		Vector4 GlobalVolumeCenterAndExtent[GMaxGlobalDistanceFieldClipmaps];
+		Vector4 GlobalVolumeWorldToUVAddAndMul[GMaxGlobalDistanceFieldClipmaps];
+		float GlobalVolumeDimension;
+		float GlobalVolumeTexelSize;
+		float MaxGlobalDistance;
+		float bCheckerboardSubsurfaceProfileRendering;
+		FVector VolumetricFogInvGridSize;
+		float pading023;
+		FVector VolumetricFogGridZParams;
+		float pading024;
+		Vector2 VolumetricFogSVPosToVolumeUV;
+		float VolumetricFogMaxDistance;
+		float pading025;
+		FVector VolumetricLightmapWorldToUVScale;
+		float pading026;
+		FVector VolumetricLightmapWorldToUVAdd;
+		float pading027;
+		FVector VolumetricLightmapIndirectionTextureSize;
+		float VolumetricLightmapBrickSize;
+		FVector VolumetricLightmapBrickTexelSize;
+		float StereoIPD;
+	} Constants;
+
+	static std::string GetConstantBufferName()
+	{
+		return "InstancedView";
+	}
+	static std::map<std::string, ComPtr<ID3D11ShaderResourceView>> GetSRVs(const FInstancedViewUniformShaderParameters& InstancedView)
+	{
+		std::map<std::string, ComPtr<ID3D11ShaderResourceView>> List;
+		return List;
+	}
+	static std::map<std::string, ComPtr<ID3D11SamplerState>> GetSamplers(const FInstancedViewUniformShaderParameters& InstancedView)
+	{
+		std::map<std::string, ComPtr<ID3D11SamplerState>> List;
+		return List;
+	}
+	static std::map<std::string, ComPtr<ID3D11UnorderedAccessView>> GetUAVs(const FInstancedViewUniformShaderParameters& InstancedView)
+	{
+		std::map<std::string, ComPtr<ID3D11UnorderedAccessView>> List;
+		return List;
+	}
+};
+
 class FSceneView
 {
 public:

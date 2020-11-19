@@ -1,7 +1,7 @@
 //Primitive
 #ifndef __UniformBuffer_Primitive_Definition__
 #define __UniformBuffer_Primitive_Definition__
-cbuffer	Primitive : register(b1)
+cbuffer	Primitive 
 {
     float4x4 Primitive_LocalToWorld;
 	float4x4 Primitive_WorldToLocal;

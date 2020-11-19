@@ -22,3 +22,7 @@
 #ifndef GBUFFER_HAS_VELOCITY
 #define GBUFFER_HAS_VELOCITY							0
 #endif
+
+#ifndef NEEDS_LIGHTMAP_COORDINATE
+#define NEEDS_LIGHTMAP_COORDINATE						0
+#endif
