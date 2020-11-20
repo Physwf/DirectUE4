@@ -1,6 +1,7 @@
 #include "ShaderCompiler.h"
 #include "VertexFactory.h"
 #include "ShaderPreprocessor.h"
+#include "Material.h"
 
 FShaderCompilingManager::FShaderCompilingManager()
 {
@@ -10,6 +11,16 @@ FShaderCompilingManager::FShaderCompilingManager()
 void FShaderCompilingManager::AddJobs(std::vector<FShaderCompileJob*>& NewJobs/*, bool bApplyCompletedShaderMapForRendering, bool bOptimizeForLowLatency, bool bRecreateComponentRenderStateOnCompletion*/)
 {
 	CompileQueue.insert(CompileQueue.end(),NewJobs.begin(), NewJobs.end());
+
+
+	for (uint32 JobIndex = 0; JobIndex < NewJobs.size(); JobIndex++)
+	{
+		//NewJobs[JobIndex]->bOptimizeForLowLatency = bOptimizeForLowLatency;
+		FShaderMapCompileResults& ShaderMapInfo = ShaderMapJobs[NewJobs[JobIndex]->Id];
+		//ShaderMapInfo.bApplyCompletedShaderMapForRendering = bApplyCompletedShaderMapForRendering;
+		//ShaderMapInfo.bRecreateComponentRenderStateOnCompletion = bRecreateComponentRenderStateOnCompletion;
+		ShaderMapInfo.NumJobsQueued++;
+	}
 }
 
 void FShaderCompilingManager::FinishCompilation(const char* MaterialName, const std::vector<int32>& ShaderMapIdsToFinishCompiling)
@@ -35,6 +46,10 @@ void FShaderCompilingManager::FinishCompilation(const char* MaterialName, const 
 		FShaderCompilerDefinitions AdditionalDefines;
 		AdditionalDefines.SetDefine("SM5_PROFILE", 1);
 		AdditionalDefines.SetDefine("COMPILER_HLSL", 1);
+
+		if(Input.SharedEnvironment)
+			Input.Environment.Merge(*Input.SharedEnvironment);
+
 		if (PreprocessShader(ShaderFileContent, Output, Input, AdditionalDefines))
 		{
 			std::vector<D3D_SHADER_MACRO> ShaderMacros;
@@ -47,11 +62,80 @@ void FShaderCompilingManager::FinishCompilation(const char* MaterialName, const 
 			}
 			ShaderMacros.push_back({ NULL, NULL });
 			const char ShaderTargets[][7] = { "vs_5_0","hs_5_0" ,"ds_5_0" ,"ps_5_0" ,"gs_5_0" ,"cs_5_0" , };
-			Output.ShaderCode = CompileShader(ShaderFileContent, Input.EntryPointName.c_str(), ShaderTargets[Input.Frequency] , Input.Environment.IncludeVirtualPathToContentsMap, Input.Environment.IncludeVirtualPathToExternalContentsMap, ShaderMacros.data());
+			Job->bSucceeded = CompileShader(ShaderFileContent, Input.EntryPointName.c_str(), ShaderTargets[Input.Frequency], ShaderMacros.data(), Output.ShaderCode.GetAddressOf());
+			if (Job->bSucceeded)
+			{
+				GetShaderParameterAllocations(Output.ShaderCode.Get(),Job->Output.ParameterMap);
+			}
 		}
 		else
 		{
 			assert(false);
+		}
+	}
+
+	for (uint32 JobIndex = 0; JobIndex < CompileQueue.size(); JobIndex++)
+	{
+		FShaderMapCompileResults& ShaderMapResults = ShaderMapJobs[CompileQueue[JobIndex]->Id];
+		ShaderMapResults.FinishedJobs.push_back(CompileQueue[JobIndex]);
+		ShaderMapResults.bAllJobsSucceeded = ShaderMapResults.bAllJobsSucceeded && CompileQueue[JobIndex]->bSucceeded;
+	}
+
+	std::map<int32, FShaderMapCompileResults> CompiledShaderMaps;
+	for (uint32 ShaderMapIndex = 0; ShaderMapIndex < ShaderMapIdsToFinishCompiling.size(); ShaderMapIndex++)
+	{
+		if (ShaderMapJobs.find(ShaderMapIdsToFinishCompiling[ShaderMapIndex]) != ShaderMapJobs.end())
+		{
+			const FShaderMapCompileResults& Results = ShaderMapJobs[ShaderMapIdsToFinishCompiling[ShaderMapIndex]];
+			assert(Results.FinishedJobs.size() == Results.NumJobsQueued);
+
+			CompiledShaderMaps.insert(std::make_pair(ShaderMapIdsToFinishCompiling[ShaderMapIndex], Results));
+			ShaderMapJobs.erase(ShaderMapIdsToFinishCompiling[ShaderMapIndex]);
+		}
+	}
+
+	for (auto ProcessIt = CompiledShaderMaps.begin(); ProcessIt != CompiledShaderMaps.end(); ++ProcessIt)
+	{
+		FMaterialShaderMap* ShaderMap = NULL;
+		std::vector<FMaterial*>* Materials = NULL;
+
+		for (auto ShaderMapIt = FMaterialShaderMap::ShaderMapsBeingCompiled.begin(); ShaderMapIt != FMaterialShaderMap::ShaderMapsBeingCompiled.end(); ++ShaderMapIt)
+		{
+			if (ShaderMapIt->first->CompilingId == ProcessIt->first)
+			{
+				ShaderMap = ShaderMapIt->first;
+				Materials = &ShaderMapIt->second;
+				break;
+			}
+		}
+
+		if (ShaderMap && Materials)
+		{
+			//TArray<FString> Errors;
+			FShaderMapCompileResults& CompileResults = ProcessIt->second;
+			const std::vector<FShaderCompileJob*>& ResultArray = CompileResults.FinishedJobs;
+
+			// Make a copy of the array as this entry of FMaterialShaderMap::ShaderMapsBeingCompiled will be removed below
+			std::vector<FMaterial*> MaterialsArray = *Materials;
+			bool bSuccess = true;
+
+			for (uint32 JobIndex = 0; JobIndex < ResultArray.size(); JobIndex++)
+			{
+				FShaderCompileJob& CurrentJob = *ResultArray[JobIndex];
+				bSuccess = bSuccess && CurrentJob.bSucceeded;
+			}
+
+			bool bShaderMapComplete = true;
+
+			if (bSuccess)
+			{
+				bShaderMapComplete = ShaderMap->ProcessCompilationResults(ResultArray);
+			}
+
+			if (bShaderMapComplete)
+			{
+				ShaderMap->bCompiledSuccessfully = bSuccess;
+			}
 		}
 	}
 }

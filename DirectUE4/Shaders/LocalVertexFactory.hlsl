@@ -70,11 +70,18 @@ struct VertexFactoryInput
 	float2	LightMapCoordinate : ATTRIBUTE15;
 #endif
 
+#if GPUSKIN_PASS_THROUGH || MANUAL_VERTEX_FETCH
+	uint VertexId : SV_VertexID;
+#endif
 };
 
 struct PositionOnlyVertexFactoryInput
 {
     float4 Position 	        : ATTRIBUTE0;
+
+#if MANUAL_VERTEX_FETCH
+	uint VertexId : SV_VertexID;
+#endif
 };
 
 struct VertexFactoryIntermediates
@@ -136,7 +143,11 @@ VertexFactoryIntermediates GetVertexFactoryIntermediates(VertexFactoryInput Inpu
     VertexFactoryIntermediates Intermediates;
     Intermediates = (VertexFactoryIntermediates)0;
 
-    Intermediates.Color = Input.Color;
+#if MANUAL_VERTEX_FETCH
+	Intermediates.Color = LocalVF.VertexFetch_ColorComponentsBuffer[(VertexOffset + Input.VertexId) & LocalVF.VertexFetch_Parameters[VF_ColorIndexMask_Index]] FMANUALFETCH_COLOR_COMPONENT_SWIZZLE; // Swizzle vertex color.
+#else
+	Intermediates.Color = Input.Color FCOLOR_COMPONENT_SWIZZLE; // Swizzle vertex color.
+#endif
 
     float TangentSign;
     Intermediates.TangentToLocal = CalcTangentToLocal(Input,TangentSign);

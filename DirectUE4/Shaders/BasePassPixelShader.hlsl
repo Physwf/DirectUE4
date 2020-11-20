@@ -1,5 +1,5 @@
 //#include "SHCommon.hlsl"
-#include "Material.hlsl"
+#include "/Generated/Material.hlsl"
 #include "BasePassCommon.hlsl"
 #include "LocalVertexFactory.hlsl"
 #include "LightmapCommon.hlsl"  

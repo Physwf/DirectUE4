@@ -2,6 +2,7 @@
 #include "ShaderCompiler.h"
 #include "Material.h"
 #include "VertexFactory.h"
+#include "MeshMaterialShader.h"
 
 FShaderResource::FShaderResource()
 {
@@ -67,7 +68,12 @@ void FShaderResource::GetAllShaderResourceId(std::vector<FShaderResourceId>& Ids
 
 std::unordered_map<FShaderResourceId, FShaderResource*> FShaderResource::ShaderResourceIdMap;
 
-FShaderId::FShaderId(const FSHAHash& InMaterialShaderMapHash, FVertexFactoryType* InVertexFactoryType, FShaderType* InShaderType, int32 PermutationId, uint32 InFrequency)
+FShaderId::FShaderId(const FSHAHash& InMaterialShaderMapHash, FVertexFactoryType* InVertexFactoryType, FShaderType* InShaderType, int32 InPermutationId, uint32 InFrequency)
+	: MaterialShaderMapHash(InMaterialShaderMapHash)
+	, ShaderType(InShaderType)
+	, PermutationId(InPermutationId)
+	//, SourceHash(InShaderType->GetSourceHash())
+	, Frequency(InFrequency)
 {
 
 }
@@ -168,7 +174,7 @@ FShaderId FShader::GetId() const
 
 void FShader::SetResource(FShaderResource* InResource)
 {
-
+	Resource.reset(InResource);
 }
 
 void FShader::RegisterSerializedResource()
@@ -285,8 +291,11 @@ FShaderType::~FShaderType()
 
 FShader* FShaderType::FindShaderById(const FShaderId& Id)
 {
-	FShader* Result = ShaderIdMap.at(Id);
-	return Result;
+	if (ShaderIdMap.find(Id) != ShaderIdMap.end())
+	{
+		return ShaderIdMap[Id];
+	}
+	return NULL;
 }
 
 FShader* FShaderType::ConstructForDeserialization() const
@@ -372,6 +381,35 @@ class FShaderCompileJob* FMaterialShaderType::BeginCompileShader(
 	return NewJob;
 }
 
+FShader* FMaterialShaderType::FinishCompileShader(const FUniformExpressionSet& UniformExpressionSet, const FSHAHash& MaterialShaderMapHash, const FShaderCompileJob& CurrentJob, const std::string& InDebugDescription)
+{
+	assert(CurrentJob.bSucceeded);
+
+	FShaderType* SpecificType = CurrentJob.ShaderType->LimitShaderResourceToThisType() ? CurrentJob.ShaderType : NULL;
+
+	// Reuse an existing resource with the same key or create a new one based on the compile output
+	// This allows FShaders to share compiled bytecode and RHI shader references
+	FShaderResource* Resource = FShaderResource::FindOrCreateShaderResource(CurrentJob.Output, SpecificType, /* PermutationId = */ 0);
+
+// 	if (ShaderPipelineType && !ShaderPipelineType->ShouldOptimizeUnusedOutputs())
+// 	{
+// 		// If sharing shaders in this pipeline, remove it from the type/id so it uses the one in the shared shadermap list
+// 		ShaderPipelineType = nullptr;
+// 	}
+
+	// Find a shader with the same key in memory
+	FShader* Shader = CurrentJob.ShaderType->FindShaderById(FShaderId(MaterialShaderMapHash, CurrentJob.VFType, CurrentJob.ShaderType, /* PermutationId = */ 0, CurrentJob.Input.Frequency));
+
+	// There was no shader with the same key so create a new one with the compile output, which will bind shader parameters
+	if (!Shader)
+	{
+		Shader = (*ConstructCompiledRef)(CompiledShaderInitializerType(this, CurrentJob.Output, Resource, UniformExpressionSet, MaterialShaderMapHash, nullptr, InDebugDescription));
+		CurrentJob.Output.ParameterMap.VerifyBindingsAreComplete(GetName(),/* CurrentJob.Output.Frequency,*/ CurrentJob.VFType);
+	}
+
+	return Shader;
+}
+
 class FShaderCompileJob* FMeshMaterialShaderType::BeginCompileShader(
 	uint32 ShaderMapId, 
 	const FMaterial* Material, 
@@ -416,5 +454,33 @@ class FShaderCompileJob* FMeshMaterialShaderType::BeginCompileShader(
 		bAllowDevelopmentShaderCompile
 	);
 	return NewJob;
+}
+
+FShader* FMeshMaterialShaderType::FinishCompileShader(const FUniformExpressionSet& UniformExpressionSet, const FSHAHash& MaterialShaderMapHash, const FShaderCompileJob& CurrentJob, const std::string& InDebugDescription)
+{
+	FShaderType* SpecificType = CurrentJob.ShaderType->LimitShaderResourceToThisType() ? CurrentJob.ShaderType : NULL;
+
+	// Reuse an existing resource with the same key or create a new one based on the compile output
+	// This allows FShaders to share compiled bytecode and RHI shader references
+	FShaderResource* Resource = FShaderResource::FindOrCreateShaderResource(CurrentJob.Output, SpecificType, /* PermutationId = */ 0);
+
+// 	if (ShaderPipelineType && !ShaderPipelineType->ShouldOptimizeUnusedOutputs())
+// 	{
+// 		// If sharing shaders in this pipeline, remove it from the type/id so it uses the one in the shared shadermap list
+// 		ShaderPipelineType = nullptr;
+// 	}
+
+	// Find a shader with the same key in memory
+	FShader* Shader = CurrentJob.ShaderType->FindShaderById(FShaderId(MaterialShaderMapHash,  CurrentJob.VFType, CurrentJob.ShaderType, /** PermutationId = */ 0, CurrentJob.Input.Frequency));
+
+	// There was no shader with the same key so create a new one with the compile output, which will bind shader parameters
+	if (!Shader)
+	{
+		Shader = (*ConstructCompiledRef)(CompiledShaderInitializerType(this, CurrentJob.Output, Resource, UniformExpressionSet, MaterialShaderMapHash, InDebugDescription, CurrentJob.VFType));
+		((FMeshMaterialShader*)Shader)->ValidateAfterBind();
+		CurrentJob.Output.ParameterMap.VerifyBindingsAreComplete(GetName(), /*CurrentJob.Output.Target,*/ CurrentJob.VFType);
+	}
+
+	return Shader;
 }
 

@@ -230,6 +230,20 @@ float4 Pow6( float4 x )
 	float4 xx = x*x;
 	return xx * xx * xx;
 }
+
+// Optional VertexID - used by tessellation to uniquely identify control points.
+#if USING_TESSELLATION && DISPLACEMENT_ANTICRACK
+	#define OPTIONAL_VertexID			uint VertexID : SV_VertexID,
+	#define OPTIONAL_VertexID_PARAM		VertexID,
+	#define OPTIONAL_VertexID_VS_To_DS	uint VertexID : VS_To_DS_VertexID;
+	#define OutputVertexID( Out ) Out.VertexID = VertexID
+#else // #if USING_TESSELLATION && DISPLACEMENT_ANTICRACK
+	#define OPTIONAL_VertexID
+	#define OPTIONAL_VertexID_PARAM
+	#define OPTIONAL_VertexID_VS_To_DS
+	#define OutputVertexID( Out )
+#endif // #if USING_TESSELLATION && DISPLACEMENT_ANTICRACK
+
 // This would need to be a #define in GLSL to ignore the SamplerState, however, it is currently a function call in HLSL
 // for type checking of the parameters - ironically the type checking is really only needed in GLSL!
 MaterialFloat4 Texture1DSample(Texture1D Tex, SamplerState Sampler, float UV)

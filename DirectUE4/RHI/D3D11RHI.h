@@ -44,7 +44,8 @@ ID3D11Buffer* CreateVertexBuffer(bool bDynamic,unsigned int Size, void* Data = N
 ID3D11Buffer* CreateIndexBuffer(void* Data, unsigned int Size);
 ID3D11Buffer* CreateConstantBuffer(bool bDynamic, unsigned int Size,const void* Data = NULL);
 ID3DBlob* CompileVertexShader(const wchar_t* File, const char* EntryPoint, const D3D_SHADER_MACRO* OtherMacros = NULL, int OtherMacrosCount = 0);
-ID3DBlob* CompileShader(const std::string& FileContent, const char* EntryPoint, const char* Target, const std::map<std::string, std::string>& InIncludeVirtualPathToContentsMap, std::map<std::string, std::shared_ptr<std::string>>& InIncludeVirtualPathToExternalContentsMap, const D3D_SHADER_MACRO* OtherMacros);
+bool CompileShader(const std::string& FileContent, const char* EntryPoint, const char* Target, const D3D_SHADER_MACRO* OtherMacros, ID3DBlob** OutBytecode);
+void GetShaderParameterAllocations(ID3DBlob* Code, FShaderParameterMap& OutShaderParameterMap);
 ID3DBlob* CompilePixelShader(const wchar_t* File, const char* EntryPoint,const D3D_SHADER_MACRO* OtherMacros = NULL, int OtherMacrosCount = 0);
 void GetShaderParameterAllocations(ID3DBlob* Code,std::map<std::string, ParameterAllocation>& OutParams);
 ID3D11VertexShader* CreateVertexShader(ID3DBlob* VSBytecode);

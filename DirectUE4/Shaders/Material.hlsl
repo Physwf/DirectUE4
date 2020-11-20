@@ -368,6 +368,19 @@ void CalcMaterialParametersEx(
 
     CalcPixelMaterialInputs(Parameters, Inputs);
 }
+// convenience function to setup CalcMaterialParameters assuming we don't support TranslatedWorldPositionExcludingShaderOffsets
+// @param SvPosition from SV_Position when rendering the view, for other projections e.g. shadowmaps this function cannot be used and you need to call CalcMaterialParametersEx()
+void CalcMaterialParameters(
+	in out MaterialPixelParameters Parameters,
+	in out PixelMaterialInputs Inputs,
+	float4 SvPosition,
+	bool bIsFrontFace)
+{
+	float4 ScreenPosition = SvPositionToResolvedScreenPosition(SvPosition);
+	float3 TranslatedWorldPosition = SvPositionToResolvedTranslatedWorld(SvPosition);
+
+	CalcMaterialParametersEx(Parameters, Inputs, SvPosition, ScreenPosition, bIsFrontFace, TranslatedWorldPosition, TranslatedWorldPosition);
+}
 
 /** Assemble the transform from tangent space into world space */
 half3x3 AssembleTangentToWorld( half3 TangentToWorld0, half4 TangentToWorld2 )

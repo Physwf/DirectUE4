@@ -1,6 +1,6 @@
 
 #include "Common.hlsl"
-#include "Material.hlsl"
+#include "/Generated/Material.hlsl"
 #include "/Generated/VertexFactory.hlsl"
 
 /*

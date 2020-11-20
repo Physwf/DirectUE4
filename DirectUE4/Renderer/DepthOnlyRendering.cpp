@@ -321,7 +321,9 @@ FPositionOnlyDepthDrawingPolicy::FPositionOnlyDepthDrawingPolicy(
 	/*const FMeshDrawingPolicyOverrideSettings& InOverrideSettings */
 ) : FMeshDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InMaterialResource/*, InOverrideSettings, DVSM_None*/)
 {
-
+	VertexShader = InMaterialResource.GetShader<TDepthOnlyVS<true>>(InVertexFactory->GetType());
+	bUsePositionOnlyVS = true;
+	BaseVertexShader = VertexShader;
 }
 
 void FPositionOnlyDepthDrawingPolicy::SetSharedState(ID3D11DeviceContext* Context, const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View/*, const ContextDataType PolicyContext*/) const

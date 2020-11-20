@@ -640,6 +640,10 @@ public:
 	{
 		return ReferencedUniformBufferStructsCache;
 	}
+	bool LimitShaderResourceToThisType() const
+	{
+		return GetStreamOutElementsRef != &FShader::GetStreamOutElements;
+	}
 
 	void AddReferencedUniformBufferIncludes(FShaderCompilerEnvironment& OutEnvironment, std::string& OutSourceFilePrefix);
 private:
@@ -1026,7 +1030,6 @@ public:
 		const FUniformExpressionSet& UniformExpressionSet,
 		const FSHAHash& MaterialShaderMapHash,
 		const FShaderCompileJob& CurrentJob,
-		const FShaderPipelineType* ShaderPipeline,
 		const std::string& InDebugDescription
 	);
 	/**

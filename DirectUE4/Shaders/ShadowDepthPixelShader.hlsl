@@ -1,5 +1,5 @@
 #include "Common.hlsl"
-#include "Material.hlsl"
+#include "/Generated/Material.hlsl"
 #include "LocalVertexFactory.hlsl"
 #include "ShadowDepthCommon.hlsl"
 

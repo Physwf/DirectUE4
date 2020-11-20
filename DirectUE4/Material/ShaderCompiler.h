@@ -6,6 +6,14 @@
 class FShaderCompileJob 
 {
 public:
+	/** Id of the shader map this shader belongs to. */
+	uint32 Id;
+	/** true if the results of the shader compile have been processed. */
+	bool bFinalized;
+	/** Output of the shader compile */
+	bool bSucceeded;
+	bool bOptimizeForLowLatency;
+
 	/** Vertex factory type that this shader belongs to, may be NULL */
 	FVertexFactoryType * VFType;
 	/** Shader type that this shader belongs to, must be valid */
@@ -20,7 +28,7 @@ public:
 	//std::map<const FVertexFactoryType*, std::vector<const FShaderPipelineType*>> SharingPipelines;
 
 	FShaderCompileJob(uint32 InId, FVertexFactoryType* InVFType, FShaderType* InShaderType, int32 InPermutationId) :
-		//FShaderCommonCompileJob(InId),
+		Id(InId),
 		VFType(InVFType),
 		ShaderType(InShaderType),
 		PermutationId(InPermutationId)
@@ -45,6 +53,22 @@ public:
 	/** Either returns an equivalent existing shader of this type, or constructs a new instance. */
 	//static FShader* FinishCompileShader(FGlobalShaderType* ShaderType, const FShaderCompileJob& CompileJob, const FShaderPipelineType* ShaderPipelineType);
 };
+/** Results for a single compiled shader map. */
+struct FShaderMapCompileResults
+{
+	FShaderMapCompileResults() :
+		NumJobsQueued(0),
+		bAllJobsSucceeded(true),
+		bApplyCompletedShaderMapForRendering(true),
+		bRecreateComponentRenderStateOnCompletion(false)
+	{}
+
+	int32 NumJobsQueued;
+	bool bAllJobsSucceeded;
+	bool bApplyCompletedShaderMapForRendering;
+	bool bRecreateComponentRenderStateOnCompletion;
+	std::vector<FShaderCompileJob*> FinishedJobs;
+};
 
 class FShaderCompilingManager
 {
@@ -52,7 +76,7 @@ private:
 	/** Queue of tasks that haven't been assigned to a worker yet. */
 	std::vector<FShaderCompileJob*> CompileQueue;
 	/** Map from shader map Id to the compile results for that map, used to gather compiled results. */
-	//std::map<int32, FShaderMapCompileResults> ShaderMapJobs;
+	std::map<int32, FShaderMapCompileResults> ShaderMapJobs;
 
 	/** Base directory where temporary files are written out during multi core shader compiling. */
 	std::string ShaderBaseWorkingDirectory;

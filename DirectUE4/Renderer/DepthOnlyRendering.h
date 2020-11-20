@@ -102,7 +102,7 @@ public:
 
 private:
 	//FShaderPipeline * ShaderPipeline;
-	ID3D11VertexShader * VertexShader;
+	TDepthOnlyVS<true>* VertexShader;
 };
 
 class FStaticMesh;

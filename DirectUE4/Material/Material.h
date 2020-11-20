@@ -20,12 +20,107 @@ enum EMaterialDomain
 
 	MD_MAX
 };
+/** This is used by the drawing passes to determine tessellation policy, so changes here need to be supported in native code. */
+enum EMaterialTessellationMode
+{
+	/** Tessellation disabled. */
+	MTM_NoTessellation ,
+	/** Simple tessellation. */
+	MTM_FlatTessellation ,
+	/** Simple spline based tessellation. */
+	MTM_PNTriangles,
+	MTM_MAX,
+};
+enum EBlendMode
+{
+	BLEND_Opaque ,
+	BLEND_Masked ,
+	BLEND_Translucent ,
+	BLEND_Additive,
+	BLEND_Modulate ,
+	BLEND_AlphaComposite,
+	BLEND_MAX,
+};
+enum ERefractionMode
+{
+	/**
+	* Refraction is computed based on the camera vector entering a medium whose index of refraction is defined by the Refraction material input.
+	* The new medium's surface is defined by the material's normal.  With this mode, a flat plane seen from the side will have a constant refraction offset.
+	* This is a physical model of refraction but causes reading outside the scene color texture so is a poor fit for large refractive surfaces like water.
+	*/
+	RM_IndexOfRefraction,
 
+	/**
+	* The refraction offset into Scene Color is computed based on the difference between the per-pixel normal and the per-vertex normal.
+	* With this mode, a material whose normal is the default (0, 0, 1) will never cause any refraction.  This mode is only valid with tangent space normals.
+	* The refraction material input scales the offset, although a value of 1.0 maps to no refraction, and a value of 2 maps to a scale of 1.0 on the offset.
+	* This is a non-physical model of refraction but is useful on large refractive surfaces like water, since offsets have to stay small to avoid reading outside scene color.
+	*/
+	RM_PixelNormalOffset
+};
+enum EMaterialShadingModel
+{
+	MSM_Unlit				,
+	MSM_DefaultLit			,
+	MSM_Subsurface			,
+	MSM_PreintegratedSkin	,
+	MSM_ClearCoat			,
+	MSM_SubsurfaceProfile	,
+	MSM_TwoSidedFoliage		,
+	MSM_Hair				,
+	MSM_Cloth				,
+	MSM_Eye					,
+	MSM_MAX,
+};
+enum ETranslucencyLightingMode
+{
+	/**
+	* Lighting will be calculated for a volume, without directionality.  Use this on particle effects like smoke and dust.
+	* This is the cheapest per-pixel lighting method, however the material normal is not taken into account.
+	*/
+	TLM_VolumetricNonDirectional,
+
+	/**
+	* Lighting will be calculated for a volume, with directionality so that the normal of the material is taken into account.
+	* Note that the default particle tangent space is facing the camera, so enable bGenerateSphericalParticleNormals to get a more useful tangent space.
+	*/
+	TLM_VolumetricDirectional,
+
+	/**
+	* Same as Volumetric Non Directional, but lighting is only evaluated at vertices so the pixel shader cost is significantly less.
+	* Note that lighting still comes from a volume texture, so it is limited in range.  Directional lights become unshadowed in the distance.
+	*/
+	TLM_VolumetricPerVertexNonDirectional,
+
+	/**
+	* Same as Volumetric Directional, but lighting is only evaluated at vertices so the pixel shader cost is significantly less.
+	* Note that lighting still comes from a volume texture, so it is limited in range.  Directional lights become unshadowed in the distance.
+	*/
+	TLM_VolumetricPerVertexDirectional,
+
+	/**
+	* Lighting will be calculated for a surface. The light in accumulated in a volume so the result is blurry,
+	* limited distance but the per pixel cost is very low. Use this on translucent surfaces like glass and water.
+	* Only diffuse lighting is supported.
+	*/
+	TLM_Surface,
+
+	/**
+	* Lighting will be calculated for a surface. Use this on translucent surfaces like glass and water.
+	* This is implemented with forward shading so specular highlights from local lights are supported, however many deferred-only features are not.
+	* This is the most expensive translucency lighting method as each light's contribution is computed per-pixel.
+	*/
+	TLM_SurfacePerPixelLighting,
+
+	TLM_MAX,
+};
 /** Contains all the information needed to uniquely identify a FMaterialShaderMap. */
 class FMaterialShaderMapId
 {
 public:
 	uint32 BaseMaterialId;
+
+	void GetMaterialHash(FSHAHash& OutHash) const;
 
 	bool operator==(const FMaterialShaderMapId& ReferenceSet) const;
 
@@ -235,7 +330,7 @@ public:
 		bool bSynchronousCompile,
 		bool bApplyCompletedShaderMapForRendering
 	);
-
+	bool ProcessCompilationResults(const std::vector<FShaderCompileJob*>& InCompilationResults);
 	const FMaterialShaderMapId& GetShaderMapId() const { return ShaderMapId; }
 	uint32 GetCompilingId() const { return CompilingId; }
 	bool CompiledSuccessfully() const { return bCompiledSuccessfully; }
@@ -253,6 +348,8 @@ private:
 
 	static uint32 NextCompilingId;
 
+	FMaterialCompilationOutput MaterialCompilationOutput;
+
 	/** Uniquely identifies this shader map during compilation, needed for deferred compilation where shaders from multiple shader maps are compiled together. */
 	uint32 CompilingId;
 
@@ -261,6 +358,14 @@ private:
 	static std::vector<FMaterialShaderMap*> AllMaterialShaderMaps;
 
 	std::vector<FMeshMaterialShaderMap*> OrderedMeshShaderMaps;
+
+	FShader* ProcessCompilationResultsForSingleJob(class FShaderCompileJob* SingleJob,  const FSHAHash& MaterialShaderMapHash);
+
+
+	void InitOrderedMeshShaderMaps();
+
+	static std::map<FMaterialShaderMap*, std::vector<FMaterial*>> ShaderMapsBeingCompiled;
+	friend class FShaderCompilingManager;
 };
 
 class FMaterial
@@ -283,18 +388,19 @@ public:
 		return (ShaderType*)GetShader(&ShaderType::StaticType, VertexFactoryType, bFatalIfMissing);
 	}
 
+	virtual EMaterialDomain GetMaterialDomain() const = 0; // See EMaterialDomain.
 	virtual bool IsTwoSided() const = 0;
-// 	virtual bool IsDitheredLODTransition() const = 0;
+	virtual bool IsDitheredLODTransition() const = 0;
 	virtual bool IsTranslucencyWritingCustomDepth() const { return false; }
-// 	virtual bool IsTangentSpaceNormal() const { return false; }
-// 	virtual bool ShouldInjectEmissiveIntoLPV() const { return false; }
-// 	virtual bool ShouldBlockGI() const { return false; }
-// 	virtual bool ShouldGenerateSphericalParticleNormals() const { return false; }
+	virtual bool IsTangentSpaceNormal() const { return false; }
+	virtual bool ShouldInjectEmissiveIntoLPV() const { return false; }
+	virtual bool ShouldBlockGI() const { return false; }
+	virtual bool ShouldGenerateSphericalParticleNormals() const { return false; }
 // 	virtual	bool ShouldDisableDepthTest() const { return false; }
 // 	virtual	bool ShouldWriteOnlyAlpha() const { return false; }
 // 	virtual	bool ShouldEnableResponsiveAA() const { return false; }
-// 	virtual bool ShouldDoSSR() const { return false; }
-// 	virtual bool ShouldDoContactShadows() const { return false; }
+	virtual bool ShouldDoSSR() const { return false; }
+	virtual bool ShouldDoContactShadows() const { return false; }
 // 	virtual bool IsLightFunction() const = 0;
 // 	virtual bool IsUsedWithEditorCompositing() const { return false; }
 // 	virtual bool IsDeferredDecal() const = 0;
@@ -318,26 +424,26 @@ public:
 // 	virtual bool IsUsedWithAPEXCloth() const { return false; }
 // 	virtual bool IsUsedWithUI() const { return false; }
 // 	virtual bool IsUsedWithGeometryCache() const { return false; }
-	//virtual enum EMaterialTessellationMode GetTessellationMode() const;
-// 	virtual bool IsCrackFreeDisplacementEnabled() const { return false; }
-// 	virtual bool IsAdaptiveTessellationEnabled() const { return false; }
+	virtual enum EMaterialTessellationMode GetTessellationMode() const;
+	virtual bool IsCrackFreeDisplacementEnabled() const { return false; }
+	virtual bool IsAdaptiveTessellationEnabled() const { return false; }
 // 	virtual bool IsFullyRough() const { return false; }
-// 	virtual bool UseNormalCurvatureToRoughness() const { return false; }
-// 	virtual bool IsUsingFullPrecision() const { return false; }
-// 	virtual bool IsUsingHQForwardReflections() const { return false; }
-// 	virtual bool IsUsingPlanarForwardReflections() const { return false; }
+	virtual bool UseNormalCurvatureToRoughness() const { return false; }
+	virtual bool IsUsingFullPrecision() const { return false; }
+	virtual bool IsUsingHQForwardReflections() const { return false; }
+	virtual bool IsUsingPlanarForwardReflections() const { return false; }
 // 	virtual bool OutputsVelocityOnBasePass() const { return true; }
-// 	virtual bool IsNonmetal() const { return false; }
-// 	virtual bool UseLmDirectionality() const { return true; }
+	virtual bool IsNonmetal() const { return false; }
+	virtual bool UseLmDirectionality() const { return true; }
 // 	virtual bool IsMasked() const = 0;
-// 	virtual bool IsDitherMasked() const { return false; }
-// 	virtual bool AllowNegativeEmissiveColor() const { return false; }
-	//virtual enum EBlendMode GetBlendMode() const = 0;
-	//virtual enum ERefractionMode GetRefractionMode() const;
-	//virtual enum EMaterialShadingModel GetShadingModel() const = 0;
-	//virtual enum ETranslucencyLightingMode GetTranslucencyLightingMode() const { return TLM_VolumetricNonDirectional; };
+	virtual bool IsDitherMasked() const { return false; }
+	virtual bool AllowNegativeEmissiveColor() const { return false; }
+	virtual enum EBlendMode GetBlendMode() const = 0;
+	virtual enum ERefractionMode GetRefractionMode() const;
+	virtual enum EMaterialShadingModel GetShadingModel() const = 0;
+	virtual enum ETranslucencyLightingMode GetTranslucencyLightingMode() const { return TLM_VolumetricNonDirectional; };
 // 	virtual float GetOpacityMaskClipValue() const = 0;
-// 	virtual bool GetCastDynamicShadowAsMasked() const = 0;
+	virtual bool GetCastDynamicShadowAsMasked() const = 0;
 // 	virtual bool IsDistorted() const { return false; };
 // 	virtual float GetTranslucencyDirectionalLightingIntensity() const { return 1.0f; }
 // 	virtual float GetTranslucentShadowDensityScale() const { return 1.0f; }
@@ -363,7 +469,7 @@ public:
 	virtual bool IsDefaultMaterial() const { return false; };
 // 	virtual int32 GetNumCustomizedUVs() const { return 0; }
 // 	virtual int32 GetBlendableLocation() const { return 0; }
-// 	virtual bool GetBlendableOutputAlpha() const { return false; }
+	virtual bool GetBlendableOutputAlpha() const { return false; }
 
 
 	bool WritesEveryPixel(bool bShadowPass = false) const
@@ -388,8 +494,24 @@ private:
 		const FMaterialShaderMapId& ShaderMapId,
 		std::shared_ptr<class FMaterialShaderMap>& OutShaderMap,
 		bool bApplyCompletedShaderMapForRendering);
+
+	void SetupMaterialEnvironment(
+		const FUniformExpressionSet& InUniformExpressionSet,
+		FShaderCompilerEnvironment& OutEnvironment
+	) const;
+
+	friend class FMaterialShaderMap;
+	friend class FShaderCompilingManager;
+	friend class FHLSLMaterialTranslator;
 };
 class UMaterial;
+/**
+* @return True if BlendMode is translucent (should be part of the translucent rendering).
+*/
+inline bool IsTranslucentBlendMode(enum EBlendMode BlendMode)
+{
+	return BlendMode != BLEND_Opaque && BlendMode != BLEND_Masked;
+}
 class FMaterialResource : public FMaterial
 {
 public:
@@ -400,18 +522,19 @@ public:
 	virtual uint32 GetMaterialId() const override;
 	virtual std::string GetFriendlyName() const override;
 
+	virtual EMaterialDomain GetMaterialDomain() const override;
 	virtual bool IsTwoSided() const override;
-// 	virtual bool IsDitheredLODTransition() const override;
+	virtual bool IsDitheredLODTransition() const override;
 	virtual bool IsTranslucencyWritingCustomDepth() const override;
-// 	virtual bool IsTangentSpaceNormal() const override;
-// 	virtual bool ShouldInjectEmissiveIntoLPV() const override;
+	virtual bool IsTangentSpaceNormal() const override;
+	virtual bool ShouldInjectEmissiveIntoLPV() const override;
 // 	virtual bool ShouldBlockGI() const override;
-// 	virtual bool ShouldGenerateSphericalParticleNormals() const override;
+	virtual bool ShouldGenerateSphericalParticleNormals() const override;
 // 	virtual bool ShouldDisableDepthTest() const override;
 // 	virtual bool ShouldWriteOnlyAlpha() const override;
 // 	virtual bool ShouldEnableResponsiveAA() const override;
-// 	virtual bool ShouldDoSSR() const override;
-// 	virtual bool ShouldDoContactShadows() const override;
+	virtual bool ShouldDoSSR() const override;
+	virtual bool ShouldDoContactShadows() const override;
 // 	virtual bool IsLightFunction() const override;
 // 	virtual bool IsUsedWithEditorCompositing() const override;
 // 	virtual bool IsDeferredDecal() const override;
@@ -434,26 +557,26 @@ public:
 // 	virtual bool IsUsedWithInstancedStaticMeshes() const override;
 // 	virtual bool IsUsedWithAPEXCloth() const override;
 // 	virtual bool IsUsedWithGeometryCache() const override;
-	//virtual enum EMaterialTessellationMode GetTessellationMode() const override;
-// 	virtual bool IsCrackFreeDisplacementEnabled() const override;
-// 	virtual bool IsAdaptiveTessellationEnabled() const override;
+	virtual enum EMaterialTessellationMode GetTessellationMode() const override;
+	virtual bool IsCrackFreeDisplacementEnabled() const override;
+	virtual bool IsAdaptiveTessellationEnabled() const override;
 // 	virtual bool IsFullyRough() const override;
 // 	virtual bool UseNormalCurvatureToRoughness() const override;
-// 	virtual bool IsUsingFullPrecision() const override;
-// 	virtual bool IsUsingHQForwardReflections() const override;
-// 	virtual bool IsUsingPlanarForwardReflections() const override;
+	virtual bool IsUsingFullPrecision() const override;
+	virtual bool IsUsingHQForwardReflections() const override;
+	virtual bool IsUsingPlanarForwardReflections() const override;
 // 	virtual bool OutputsVelocityOnBasePass() const override;
-// 	virtual bool IsNonmetal() const override;
-// 	virtual bool UseLmDirectionality() const override;
-	//virtual enum EBlendMode GetBlendMode() const override;
-	//virtual enum ERefractionMode GetRefractionMode() const override;
+	virtual bool IsNonmetal() const override;
+	virtual bool UseLmDirectionality() const override;
+	virtual enum EBlendMode GetBlendMode() const override;
+	virtual enum ERefractionMode GetRefractionMode() const override;
 // 	virtual uint32 GetDecalBlendMode() const override;
 // 	virtual uint32 GetMaterialDecalResponse() const override;
 // 	virtual bool HasNormalConnected() const override;
-	//virtual enum EMaterialShadingModel GetShadingModel() const override;
-	//virtual enum ETranslucencyLightingMode GetTranslucencyLightingMode() const override;
+	virtual enum EMaterialShadingModel GetShadingModel() const override;
+	virtual enum ETranslucencyLightingMode GetTranslucencyLightingMode() const override;
 // 	virtual float GetOpacityMaskClipValue() const override;
-// 	virtual bool GetCastDynamicShadowAsMasked() const override;
+	virtual bool GetCastDynamicShadowAsMasked() const override;
 // 	virtual bool IsDistorted() const override;
 // 	virtual float GetTranslucencyDirectionalLightingIntensity() const override;
 // 	virtual float GetTranslucentShadowDensityScale() const override;
@@ -466,7 +589,7 @@ public:
 // 	virtual FLinearColor GetTranslucentMultipleScatteringExtinction() const override;
 // 	virtual float GetTranslucentShadowStartOffset() const override;
 // 	virtual bool IsMasked() const override;
-// 	virtual bool IsDitherMasked() const override;
+	virtual bool IsDitherMasked() const override;
 // 	virtual bool AllowNegativeEmissiveColor() const override;
 // 	virtual bool RequiresSynchronousCompilation() const override;
 	virtual bool IsDefaultMaterial() const override;

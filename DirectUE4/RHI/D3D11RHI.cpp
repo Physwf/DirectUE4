@@ -9,6 +9,7 @@
 #include <fstream>
 #include <vector>
 #include <iterator>
+#include "ShaderCore.h"
 
 // #define STB_IMAGE_IMPLEMENTATION
 // #include "stb_image.h"
@@ -318,10 +319,9 @@ ID3DBlob* CompileVertexShader(const wchar_t* File, const char* EntryPoint, const
 	return NULL; 
 }
 
-ID3DBlob* CompileShader(const std::string& FileContent, const char* EntryPoint, const char* Target, const std::map<std::string, std::string>& InIncludeVirtualPathToContentsMap, std::map<std::string, std::shared_ptr<std::string>>& InIncludeVirtualPathToExternalContentsMap, const D3D_SHADER_MACRO* OtherMacros)
+bool CompileShader(const std::string& FileContent, const char* EntryPoint, const char* Target, const D3D_SHADER_MACRO* OtherMacros, ID3DBlob** OutBytecode)
 {
-	ShaderVirtualIncludeHandler IncludeHandler(InIncludeVirtualPathToContentsMap, InIncludeVirtualPathToExternalContentsMap);
-	ID3DBlob* Bytecode;
+	//ShaderVirtualIncludeHandler IncludeHandler(InIncludeVirtualPathToContentsMap, InIncludeVirtualPathToExternalContentsMap);
 	ID3DBlob* OutErrorMsg;
 	//X_LOG("%s", FileContent.c_str());
 	HRESULT HR = D3DCompile(
@@ -329,20 +329,20 @@ ID3DBlob* CompileShader(const std::string& FileContent, const char* EntryPoint, 
 		FileContent.size(),
 		NULL,
 		OtherMacros,
-		&IncludeHandler,
+		NULL,
 		EntryPoint,
 		Target,
 		D3DCOMPILE_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION/*| D3DCOMPILE_ENABLE_BACKWARDS_COMPATIBILITY*/,
 		0,
-		&Bytecode,
+		OutBytecode,
 		&OutErrorMsg
 	);
-	if (HR != S_OK)
+	if(HR != S_OK)
 	{
 		X_LOG("D3DCompileFromFile failed! %s", (const char*)OutErrorMsg->GetBufferPointer());
-		return NULL;
+		return false;
 	}
-	return Bytecode;
+	return true;
 }
 
 ID3DBlob* CompilePixelShader(const wchar_t* File, const char* EntryPoint, const D3D_SHADER_MACRO* OtherMacros/* = NULL*/, int OtherMacrosCount/* = 0*/)
@@ -444,6 +444,74 @@ void GetShaderParameterAllocations(ID3DBlob* Code, std::map<std::string, Paramet
 			BindDesc.Type == D3D11_SIT_UAV_RWBYTEADDRESS || BindDesc.Type == D3D11_SIT_UAV_RWSTRUCTURED_WITH_COUNTER ||
 			BindDesc.Type == D3D11_SIT_UAV_APPEND_STRUCTURED)
 		{
+		}
+	}
+
+}
+
+void GetShaderParameterAllocations(ID3DBlob* Code, FShaderParameterMap& OutShaderParameterMap)
+{
+	ID3D11ShaderReflection* pReflector = NULL;
+	D3DReflect(Code->GetBufferPointer(), Code->GetBufferSize(), IID_ID3D11ShaderReflection, (void**)&pReflector);
+	D3D11_SHADER_DESC ShaderDesc;
+	pReflector->GetDesc(&ShaderDesc);
+	for (UINT ResourceIndex = 0; ResourceIndex < ShaderDesc.BoundResources; ResourceIndex++)
+	{
+		D3D11_SHADER_INPUT_BIND_DESC BindDesc;
+		pReflector->GetResourceBindingDesc(ResourceIndex, &BindDesc);
+		if (BindDesc.Type == D3D10_SIT_CBUFFER || BindDesc.Type == D3D10_SIT_TBUFFER)
+		{
+			const UINT CBIndex = BindDesc.BindPoint;
+			ID3D11ShaderReflectionConstantBuffer* ConstantBuffer = pReflector->GetConstantBufferByName(BindDesc.Name);
+			D3D11_SHADER_BUFFER_DESC CBDesc;
+			ConstantBuffer->GetDesc(&CBDesc);
+			bool bGlobalCB = (strcmp(CBDesc.Name, "$Globals") == 0);
+			if (bGlobalCB)
+			{
+				for (UINT ContantIndex = 0; ContantIndex < CBDesc.Variables; ContantIndex++)
+				{
+					ID3D11ShaderReflectionVariable* Variable = ConstantBuffer->GetVariableByIndex(ContantIndex);
+					D3D11_SHADER_VARIABLE_DESC VariableDesc;
+					Variable->GetDesc(&VariableDesc);
+					if (VariableDesc.uFlags & D3D10_SVF_USED)
+					{
+						//OutParams.insert(std::make_pair<std::string, ParameterAllocation>(VariableDesc.Name, { CBIndex ,VariableDesc.StartOffset,VariableDesc.Size }));
+						OutShaderParameterMap.AddParameterAllocation(VariableDesc.Name, CBIndex, VariableDesc.StartOffset, VariableDesc.Size);
+					}
+				}
+			}
+			else
+			{
+				//OutParams.insert(std::make_pair<std::string, ParameterAllocation>(CBDesc.Name, { CBIndex,0,0 }));
+				OutShaderParameterMap.AddParameterAllocation(CBDesc.Name, CBIndex, 0, 0);
+			}
+		}
+		else if (BindDesc.Type == D3D10_SIT_TEXTURE || BindDesc.Type == D3D10_SIT_SAMPLER)
+		{
+			UINT BindCount = BindDesc.BindCount;
+
+			//OutParams.insert(std::make_pair<std::string, ParameterAllocation>(BindDesc.Name, { 0,BindDesc.BindPoint,BindCount }));
+			OutShaderParameterMap.AddParameterAllocation(BindDesc.Name, 0, BindDesc.BindPoint, BindCount);
+		}
+		else if (BindDesc.Type == D3D11_SIT_UAV_RWTYPED || BindDesc.Type == D3D11_SIT_UAV_RWSTRUCTURED ||
+			BindDesc.Type == D3D11_SIT_UAV_RWBYTEADDRESS || BindDesc.Type == D3D11_SIT_UAV_RWSTRUCTURED_WITH_COUNTER ||
+			BindDesc.Type == D3D11_SIT_UAV_APPEND_STRUCTURED)
+		{
+			OutShaderParameterMap.AddParameterAllocation(
+				BindDesc.Name,
+				0,
+				BindDesc.BindPoint,
+				1
+			);
+		}
+		else if (BindDesc.Type == D3D11_SIT_STRUCTURED || BindDesc.Type == D3D11_SIT_BYTEADDRESS)
+		{
+			OutShaderParameterMap.AddParameterAllocation(
+				BindDesc.Name,
+				0,
+				BindDesc.BindPoint,
+				1
+			);
 		}
 	}
 
