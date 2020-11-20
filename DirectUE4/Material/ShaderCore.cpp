@@ -9,18 +9,24 @@
 
 bool FShaderParameterMap::FindParameterAllocation(const char* ParameterName, uint16& OutBufferIndex, uint16& OutBaseIndex, uint16& OutSize) const
 {
-	const FParameterAllocation& Allocation = ParameterMap.at(ParameterName);
-
-	OutBufferIndex = Allocation.BufferIndex;
-	OutBaseIndex = Allocation.BaseIndex;
-	OutSize = Allocation.Size;
-	if (Allocation.bBound)
+	if (ParameterMap.find(ParameterName) != ParameterMap.end())
 	{
-		// Can detect copy-paste errors in binding parameters.  Need to fix all the false positives before enabling.
-		//UE_LOG(LogShaders, Warning, TEXT("Parameter %s was bound multiple times. Code error?"), ParameterName);
+		const FParameterAllocation& Allocation = ParameterMap.at(ParameterName);
+		OutBufferIndex = Allocation.BufferIndex;
+		OutBaseIndex = Allocation.BaseIndex;
+		OutSize = Allocation.Size;
+		if (Allocation.bBound)
+		{
+			// Can detect copy-paste errors in binding parameters.  Need to fix all the false positives before enabling.
+			//UE_LOG(LogShaders, Warning, TEXT("Parameter %s was bound multiple times. Code error?"), ParameterName);
+		}
+		Allocation.bBound = true;
+		return true;
 	}
-	Allocation.bBound = true;
-	return true;
+	else
+	{
+		return false;
+	}
 }
 
 bool FShaderParameterMap::ContainsParameterAllocation(const char* ParameterName) const

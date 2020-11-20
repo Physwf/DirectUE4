@@ -283,7 +283,7 @@ FVertexFactoryShaderParameters* FLocalVertexFactory::ConstructShaderParameters(E
 	return NULL;
 }
 
-IMPLEMENT_VERTEX_FACTORY_TYPE(FLocalVertexFactory, "/LocalVertexFactory.hlsl", true, true, true, true, true);
+IMPLEMENT_VERTEX_FACTORY_TYPE(FLocalVertexFactory, "LocalVertexFactory.hlsl", true, true, true, true, true);
 FLocalVertexFactoryUniformShaderParameters LocalVertexFactoryUniformShaderParameters;
 
 TUniformBufferPtr<FLocalVertexFactoryUniformShaderParameters>  CreateLocalVFUniformBuffer(const class FLocalVertexFactory* LocalVertexFactory)

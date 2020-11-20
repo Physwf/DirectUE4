@@ -9,6 +9,7 @@
 #include "RenderTargets.h"
 #include "SceneFilterRendering.h"
 #include "CompositionLighting.h"
+#include "SystemTextures.h"
 
 #include <new>
 
@@ -38,6 +39,7 @@ void InitShading()
 	InitAtomosphereFog();
 	*/
 
+	GSystemTextures.InitializeTextures();
 	InitializeShaderTypes();
 
 }
@@ -73,6 +75,9 @@ void SceneRenderer::InitViews()
 void SceneRenderer::Render()
 {
 	PrepareViewRectsForRendering();
+
+	RenderTargets& SceneContext = RenderTargets::Get();
+	SceneContext.Allocate(this);
 
 	InitViews();
 	RenderPrePass();

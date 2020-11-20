@@ -47,7 +47,7 @@ void FShaderCompilingManager::FinishCompilation(const char* MaterialName, const 
 		AdditionalDefines.SetDefine("SM5_PROFILE", 1);
 		AdditionalDefines.SetDefine("COMPILER_HLSL", 1);
 
-		if(Input.SharedEnvironment)
+		if (Input.SharedEnvironment)
 			Input.Environment.Merge(*Input.SharedEnvironment);
 
 		if (PreprocessShader(ShaderFileContent, Output, Input, AdditionalDefines))

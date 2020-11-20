@@ -991,7 +991,7 @@ ID3D11ShaderResourceView* RHICreateShaderResourceView(FD3D11Texture2D* Texture2D
 ID3D11ShaderResourceView* RHICreateShaderResourceView(ID3D11Buffer* VertexBuffer, UINT Stride, DXGI_FORMAT Format);
 inline FD3D11Texture2D* RHICreateTexture2D(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 NumSamples, uint32 Flags, FClearValueBinding ClearBindingValue = FClearValueBinding::Transparent, void* BulkData = nullptr, uint32 BulkDataSize = 0)
 {
-	return CreateD3D11Texture2D(SizeX, SizeY,0,false,false, (EPixelFormat)Format, NumMips, NumSamples, Flags, ClearBindingValue, BulkData, BulkDataSize);
+	return CreateD3D11Texture2D(SizeX, SizeY,1,false,false, (EPixelFormat)Format, NumMips, NumSamples, Flags, ClearBindingValue, BulkData, BulkDataSize);
 }
 
 enum class ERenderTargetLoadAction : uint8
@@ -999,6 +999,15 @@ enum class ERenderTargetLoadAction : uint8
 	ENoAction,
 	ELoad,
 	EClear,
+
+	Num,
+	NumBits = 2,
+};
+enum class ERenderTargetStoreAction : uint8
+{
+	ENoAction,
+	EStore,
+	EMultisampleResolve,
 
 	Num,
 	NumBits = 2,

@@ -22,9 +22,8 @@ void Main(
 #endif
 	)
 {
-    #if !MATERIALBLENDING_SOLID || OUTPUT_PIXEL_DEPTH_OFFSET
+#if !MATERIALBLENDING_SOLID || OUTPUT_PIXEL_DEPTH_OFFSET
         ResolvedView = ResolveView();
-	#endif
 
 	MaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(FactoryInterpolants, SvPosition);
 	PixelMaterialInputs =Inputs;

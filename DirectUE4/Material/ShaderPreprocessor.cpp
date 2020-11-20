@@ -272,7 +272,7 @@ private:
 			{
 				// Adds a #line 1 "<Absolute file path>" on top of every file content to have nice absolute virtual source
 				// file path in error messages.
-				char buffer[32 * 1024];
+				char buffer[64 * 1024];
 				sprintf_s(buffer,sizeof(buffer), "#line 1 \"%s\"\n%s", VirtualFilePath.c_str(), FileContents.c_str());
 				FileContents = buffer;
 				This->CachedFileContents.insert(std::make_pair(VirtualFilePath, FileContents));
@@ -341,6 +341,7 @@ bool PreprocessShader(
 	AddMcppDefines(McppOptions, ShaderInput.Environment.GetDefinitions());
 	AddMcppDefines(McppOptions, AdditionalDefines.GetDefinitionMap());
 	McppOptions += " -V199901L";
+	McppOptions += " -I1";
 
 	int32 Result = mcpp_run(
 		McppOptions.c_str(),

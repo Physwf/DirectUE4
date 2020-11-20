@@ -397,3 +397,5 @@ half3x3 AssembleTangentToWorld( half3 TangentToWorld0, half4 TangentToWorld2 )
 
 #define INPUT_POSITION_QUALIFIERS linear noperspective centroid
 
+#define OUTPUT_PIXEL_DEPTH_OFFSET (WANT_PIXEL_DEPTH_OFFSET && (MATERIALBLENDING_SOLID || MATERIALBLENDING_MASKED) && !ES2_PROFILE)
+

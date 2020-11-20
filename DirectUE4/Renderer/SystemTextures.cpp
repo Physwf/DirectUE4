@@ -65,10 +65,10 @@ void FSystemTextures::InternalInitializeTextures()
 			GRenderTargetPool.FindFreeElement(Desc, PerlinNoiseGradient, TEXT("PerlinNoiseGradient"));
 			// Write the contents of the texture.
 			uint32 DestStride;
-			D3D11_MAPPED_SUBRESOURCE MapSubResource;
-			D3D11DeviceContext->Map(PerlinNoiseGradient->ShaderResourceTexture->GetResource(),0,D3D11_MAP_WRITE,0,&MapSubResource);
-			uint8* DestBuffer = (uint8*)MapSubResource.pData;
-			DestStride = MapSubResource.RowPitch;
+			//D3D11_MAPPED_SUBRESOURCE MapSubResource;
+			//ZeroMemory(&MapSubResource, sizeof(MapSubResource));
+			uint8* DestBuffer = new uint8[Desc.Extent.X * Desc.Extent.Y * 4]();
+			DestStride = Desc.Extent.X*4;
 			//uint8* DestBuffer = (uint8*)RHICmdList.LockTexture2D((FTexture2DRHIRef&)PerlinNoiseGradient->ShaderResourceTexture, 0, RLM_WriteOnly, DestStride, false);
 			// seed the pseudo random stream with a good value
 			FRandomStream RandomStream(12345);
@@ -91,7 +91,9 @@ void FSystemTextures::InternalInitializeTextures()
 					*Dest = gradtable[(uint32)(RandomStream.GetFraction() * 11.9999999f)];
 				}
 			}
-			D3D11DeviceContext->Unmap(PerlinNoiseGradient->ShaderResourceTexture->GetResource(), 0);
+			D3D11DeviceContext->UpdateSubresource(PerlinNoiseGradient->ShaderResourceTexture->GetResource(), 0, NULL, DestBuffer, DestStride, 0);
+			delete[] DestBuffer;
+			//D3D11DeviceContext->Unmap(PerlinNoiseGradient->ShaderResourceTexture->GetResource(), 0);
 			//RHICmdList.UnlockTexture2D((FTexture2DRHIRef&)PerlinNoiseGradient->ShaderResourceTexture, 0, false);
 		}
 
@@ -103,10 +105,10 @@ void FSystemTextures::InternalInitializeTextures()
 			GRenderTargetPool.FindFreeElement(Desc, SobolSampling, TEXT("SobolSampling"));
 			// Write the contents of the texture.
 			uint32 DestStride;
-			D3D11_MAPPED_SUBRESOURCE MapSubResource;
-			D3D11DeviceContext->Map(SobolSampling->ShaderResourceTexture->GetResource(), 0, D3D11_MAP_WRITE, 0, &MapSubResource);
-			DestStride = MapSubResource.RowPitch;
-			uint8* DestBuffer = (uint8*)MapSubResource.pData;// (uint8*)RHICmdList.LockTexture2D((FTexture2DRHIRef&)SobolSampling->ShaderResourceTexture, 0, RLM_WriteOnly, DestStride, false);
+			//D3D11_MAPPED_SUBRESOURCE MapSubResource;
+			//D3D11DeviceContext->Map(SobolSampling->ShaderResourceTexture->GetResource(), 0, D3D11_MAP_WRITE, 0, &MapSubResource);
+			DestStride = Desc.Extent.X * 2;
+			uint8* DestBuffer = new uint8[Desc.Extent.X * Desc.Extent.Y * 4]();// (uint8*)RHICmdList.LockTexture2D((FTexture2DRHIRef&)SobolSampling->ShaderResourceTexture, 0, RLM_WriteOnly, DestStride, false);
 			uint16 Result, *Dest;
 			for (int y = 0; y < 16; ++y)
 			{
@@ -140,8 +142,10 @@ void FSystemTextures::InternalInitializeTextures()
 					*Dest = Result;
 				}
 			}
+			D3D11DeviceContext->UpdateSubresource(SobolSampling->ShaderResourceTexture->GetResource(), 0, NULL, DestBuffer, DestStride, 0);
+			delete[] DestBuffer;
 			//RHICmdList.UnlockTexture2D((FTexture2DRHIRef&)SobolSampling->ShaderResourceTexture, 0, false);
-			D3D11DeviceContext->Unmap(SobolSampling->ShaderResourceTexture->GetResource(), 0);
+			//D3D11DeviceContext->Unmap(SobolSampling->ShaderResourceTexture->GetResource(), 0);
 		}
 #if 0
 		if (!GSupportsShaderFramebufferFetch && GPixelFormats[PF_FloatRGBA].Supported)
@@ -155,18 +159,19 @@ void FSystemTextures::InternalInitializeTextures()
 			RHICmdList.SetRenderTargetsAndClear(Info);
 			RHICmdList.CopyToResolveTarget(MaxFP16Depth->TargetableTexture, MaxFP16Depth->ShaderResourceTexture, FResolveParams());
 		}
-
+#endif
 		// Create dummy 1x1 depth texture		
 		{
 			PooledRenderTargetDesc Desc(PooledRenderTargetDesc::Create2DDesc(FIntPoint(1, 1), PF_DepthStencil, FClearValueBinding::DepthFar, TexCreate_None, TexCreate_DepthStencilTargetable, false));
 			Desc.AutoWritable = false;
-			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, DepthDummy, TEXT("DepthDummy"), true);
+			GRenderTargetPool.FindFreeElement(Desc, DepthDummy, TEXT("DepthDummy"));
 
-			FRHISetRenderTargetsInfo Info(0, nullptr, FRHIDepthRenderTargetView(DepthDummy->TargetableTexture, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore));
-			RHICmdList.SetRenderTargetsAndClear(Info);
-			RHICmdList.CopyToResolveTarget(DepthDummy->TargetableTexture, DepthDummy->ShaderResourceTexture, FResolveParams());
+			//FRHISetRenderTargetsInfo Info(0, nullptr, FRHIDepthRenderTargetView(DepthDummy->TargetableTexture, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore));
+			//RHICmdList.SetRenderTargetsAndClear(Info);
+			//RHICmdList.CopyToResolveTarget(DepthDummy->TargetableTexture, DepthDummy->ShaderResourceTexture, FResolveParams());
+			SetRenderTarget(D3D11DeviceContext, NULL, DepthDummy->TargetableTexture->GetDepthStencilView(FExclusiveDepthStencil::DepthWrite));
+			D3D11DeviceContext->ResolveSubresource(DepthDummy->ShaderResourceTexture->GetResource(), 0, DepthDummy->TargetableTexture->GetResource(), 0, (DXGI_FORMAT)GPixelFormats[PF_DepthStencil].PlatformFormat);
 		}
-#endif
 	}
 #if 0
 	// Create the PerlinNoise3D texture (similar to http://prettyprocs.wordpress.com/2012/10/20/fast-perlin-noise/)

@@ -97,7 +97,8 @@ bool RenderTargetPool::FindFreeElement(const PooledRenderTargetDesc& InputDesc, 
 	// 	}
 	// 
 	// 	// Override the descriptor if necessary
-	// 	const FPooledRenderTargetDesc& Desc = bMakeTransient ? ModifiedDesc : InputDesc;	// if we can keep the current one, do that
+	// 	const FPooledRenderTargetDesc& Desc = bMakeTransient ? ModifiedDesc : InputDesc;
+	// if we can keep the current one, do that
 
 	const PooledRenderTargetDesc& Desc = InputDesc;
 	if (Out.Get())
@@ -316,14 +317,14 @@ Done:
 			if (Desc.Is2DTexture())
 			{
 				// this is useful to get a CPU lockable texture through the same interface
-// 				Found->RenderTargetItem.ShaderResourceTexture = RHICreateTexture2D(
-// 					Desc.Extent.X,
-// 					Desc.Extent.Y,
-// 					Desc.Format,
-// 					Desc.NumMips,
-// 					Desc.NumSamples,
-// 					Desc.Flags,
-// 					CreateInfo);
+				Found->ShaderResourceTexture = RHICreateTexture2D(
+					Desc.Extent.X,
+					Desc.Extent.Y,
+					Desc.Format,
+					Desc.NumMips,
+					Desc.NumSamples,
+					Desc.Flags,
+					Desc.ClearValue);
 			}
 			else if (Desc.Is3DTexture())
 			{
@@ -372,7 +373,10 @@ Done:
 
 		FoundIndex = PooledRenderTargets.size() - 1;
 	}
-	return true;
+
+	Out = Found;
+
+	return false;
 }
 
 int32 RenderTargetPool::FindIndex(PooledRenderTarget* In) const
