@@ -196,4 +196,7 @@ protected:
 	uint32 bIsDitheredLODTransitionMaterial : 1;
 	uint32 bUsePositionOnlyVS : 1;
 	uint32 DebugViewShaderMode : 6; // EDebugViewShaderMode
+
+private:
+	void SetInstanceParameters( const FSceneView& View, uint32 InVertexOffset, uint32 InInstanceOffset, uint32 InInstanceCount) const;
 };

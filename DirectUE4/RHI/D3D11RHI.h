@@ -12,7 +12,8 @@
 #include <string>
 #include <vector>
 #include <assert.h>
-
+#include <malloc.h>
+#include <stdlib.h>
 
 using namespace Microsoft::WRL;
 
@@ -1231,7 +1232,7 @@ public:
 	{
 		if (!Contents)
 		{
-			Contents = (uint8*)std::aligned_alloc(UNIFORM_BUFFER_STRUCT_ALIGNMENT, sizeof(TBufferStruct));
+			Contents = (uint8*)_aligned_malloc(sizeof(TBufferStruct), UNIFORM_BUFFER_STRUCT_ALIGNMENT);
 		}
 		memset(Contents,0, sizeof(TBufferStruct));
 		ReleaseDynamicRHI();
@@ -1272,6 +1273,85 @@ private:
 };
 
 void SetRenderTarget(ID3D11DeviceContext* Context, ID3D11RenderTargetView* NewRenderTarget, ID3D11DepthStencilView* NewDepthStencilTarget);
+
+class FD3D11ConstantBuffer
+{
+public:
+	FD3D11ConstantBuffer(uint32 InSize = 0, uint32 SubBuffers = 1);
+	virtual ~FD3D11ConstantBuffer();
+
+	void	InitDynamicRHI();
+	void	ReleaseDynamicRHI();
+
+	void UpdateConstant(const uint8* Data, uint16 Offset, uint16 InSize)
+	{
+		// Check that the data we are shadowing fits in the allocated shadow data
+		assert((uint32)Offset + (uint32)InSize <= MaxSize);
+		memcpy(ShadowData + Offset, Data, InSize);
+		CurrentUpdateSize = FMath::Max((uint32)(Offset + InSize), CurrentUpdateSize);
+	}
+	bool CommitConstantsToDevice(bool bDiscardSharedConstants);
+
+	ID3D11Buffer* GetConstantBuffer() const
+	{
+		return ConstantBufferRHI.Get();
+	}
+protected:
+	ComPtr<ID3D11Buffer> ConstantBufferRHI;
+	uint32	MaxSize;
+	uint8*	ShadowData;
+	uint32	CurrentUpdateSize;
+	uint32	TotalUpdateSize;
+};
+
+
+void InitConstantBuffers();
+void CommitNonComputeShaderConstants();
+
+void RHISetShaderParameter(ID3D11VertexShader* Shader, uint32 BufferIndex, uint32 BaseIndex, uint32 NumBytes, const void* NewValue);
+void RHISetShaderParameter(ID3D11HullShader* Shader, uint32 BufferIndex, uint32 BaseIndex, uint32 NumBytes, const void* NewValue);
+void RHISetShaderParameter(ID3D11DomainShader* Shader, uint32 BufferIndex, uint32 BaseIndex, uint32 NumBytes, const void* NewValue);
+void RHISetShaderParameter(ID3D11PixelShader* Shader, uint32 BufferIndex, uint32 BaseIndex, uint32 NumBytes, const void* NewValue);
+void RHISetShaderParameter(ID3D11GeometryShader* Shader, uint32 BufferIndex, uint32 BaseIndex, uint32 NumBytes, const void* NewValue);
+
+template<typename ShaderRHIParamRef, class ParameterType>
+void SetShaderValue(
+	ShaderRHIParamRef Shader,
+	const FShaderParameter& Parameter,
+	const ParameterType& Value,
+	uint32 ElementIndex = 0
+)
+{
+	//static_assert(!TIsPointer<ParameterType>::Value, "Passing by value is not valid.");
+
+	const uint32 AlignedTypeSize = Align(sizeof(ParameterType), 16);
+	const int32 NumBytesToSet = FMath::Min<int32>(sizeof(ParameterType), Parameter.GetNumBytes() - ElementIndex * AlignedTypeSize);
+
+	// This will trigger if the parameter was not serialized
+	assert(Parameter.IsInitialized());
+
+	if (NumBytesToSet > 0)
+	{
+		RHISetShaderParameter(
+			Shader,
+			Parameter.GetBufferIndex(),
+			Parameter.GetBaseIndex() + ElementIndex * AlignedTypeSize,
+			(uint32)NumBytesToSet,
+			&Value
+		);
+	}
+}
+template<typename ShaderRHIParamRef>
+void SetShaderValue(
+	ShaderRHIParamRef Shader,
+	const FShaderParameter& Parameter,
+	const bool& Value,
+	uint32 ElementIndex = 0
+)
+{
+	const uint32 BoolValue = Value;
+	SetShaderValue(Shader, Parameter, BoolValue, ElementIndex);
+}
 
 inline void SetShaderUniformBuffer(ID3D11VertexShader*, uint32 BaseIndex, ID3D11Buffer* ConstantBuffer)
 {

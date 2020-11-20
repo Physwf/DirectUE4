@@ -58,8 +58,8 @@ cbuffer PrecomputedLightingParameters
     float4 PrecomputedLighting_IndirectLightingSHSingleCoefficient;// FCachedPointIndirectLightingPolicy
     float4 PrecomputedLighting_LightMapCoordinateScaleBias; // TLightMapPolicy
     float4 PrecomputedLighting_ShadowMapCoordinateScaleBias;// TDistanceFieldShadowsAndLightMapPolicy
-    float4 PrecomputedLighting_LightMapScale[MAX_NUM_LIGHTMAP_COEF];// TLightMapPolicy
-    float4 PrecomputedLighting_LightMapAdd[MAX_NUM_LIGHTMAP_COEF];// TLightMapPolicy
+    float4 PrecomputedLighting_LightMapScale[2];// TLightMapPolicy
+    float4 PrecomputedLighting_LightMapAdd[2];// TLightMapPolicy
 };
 
 Texture2D PrecomputedLighting_LightMapTexture;// TLightMapPolicy
@@ -93,8 +93,8 @@ static const struct
     float4 IndirectLightingSHSingleCoefficient;
     float4 LightMapCoordinateScaleBias;
     float4 ShadowMapCoordinateScaleBias;
-    float4 LightMapScale[MAX_NUM_LIGHTMAP_COEF];
-    float4 LightMapAdd[MAX_NUM_LIGHTMAP_COEF];
+    float4 LightMapScale[2];
+    float4 LightMapAdd[2];
     Texture2D LightMapTexture;
     Texture2D SkyOcclusionTexture;
     Texture2D AOMaterialMaskTexture;

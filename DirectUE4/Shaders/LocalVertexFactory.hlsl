@@ -7,6 +7,19 @@
 #define MANUAL_VERTEX_FETCH 0
 #endif
 
+#if MANUAL_VERTEX_FETCH
+	Buffer<float4> VertexFetch_InstanceOriginBuffer;
+	Buffer<float4> VertexFetch_InstanceTransformBuffer;
+	Buffer<float4> VertexFetch_InstanceLightmapBuffer;
+
+	uint InstanceOffset;
+	uint VertexOffset;
+
+	#define VF_ColorIndexMask_Index 0
+	#define VF_NumTexcoords_Index 1
+	#define FV_LightMapIndex_Index 2
+#endif
+
 struct VertexFactoryInput
 {
     float4 Position 	        : ATTRIBUTE0;
@@ -77,8 +90,13 @@ half3x3 CalcTangentToLocal(VertexFactoryInput Input,out float TangentSign)
 {
     half3x3 Result;
 
-    half3 TangentInputX = Input.TangentX;
-    half4 TangentInputZ = Input.TangentZ;
+#if MANUAL_VERTEX_FETCH
+	half3 TangentInputX = LocalVF.VertexFetch_PackedTangentsBuffer[2 * (VertexOffset + Input.VertexId) + 0].xyz;
+	half4 TangentInputZ = LocalVF.VertexFetch_PackedTangentsBuffer[2 * (VertexOffset + Input.VertexId) + 1].xyzw;
+#else
+	half3 TangentInputX = Input.TangentX;
+	half4 TangentInputZ = Input.TangentZ;
+#endif
 
     //half3 TangentX = TangentBias(TangentInputX);
 	//half4 TangentZ = TangentBias(TangentInputZ);

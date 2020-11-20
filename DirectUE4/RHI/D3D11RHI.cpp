@@ -30,6 +30,7 @@ LONG WindowWidth = 1920;
 LONG WindowHeight = 1080;
 
 
+
 ID3D11Buffer* CreateVertexBuffer(bool bDynamic, unsigned int Size, void* Data /*= NULL*/)
 {
 	D3D11_BUFFER_DESC VertexDesc;
@@ -322,7 +323,7 @@ ID3DBlob* CompileShader(const std::string& FileContent, const char* EntryPoint, 
 	ShaderVirtualIncludeHandler IncludeHandler(InIncludeVirtualPathToContentsMap, InIncludeVirtualPathToExternalContentsMap);
 	ID3DBlob* Bytecode;
 	ID3DBlob* OutErrorMsg;
-	X_LOG("%s", FileContent.c_str());
+	//X_LOG("%s", FileContent.c_str());
 	HRESULT HR = D3DCompile(
 		FileContent.c_str(),
 		FileContent.size(),
@@ -1371,3 +1372,119 @@ const FClearValueBinding FClearValueBinding::DepthFar((float)ERHIZBuffer::FarPla
 const FClearValueBinding FClearValueBinding::Green(FLinearColor(0.0f, 1.0f, 0.0f, 1.0f));
 // Note: this is used as the default normal for DBuffer decals.  It must decode to a value of 0 in DecodeDBufferData.
 const FClearValueBinding FClearValueBinding::DefaultNormal8Bit(FLinearColor(128.0f / 255.0f, 128.0f / 255.0f, 128.0f / 255.0f, 1.0f));
+
+char VSConstBuffer[4096];
+uint32 VSBufferIndex;
+char HSConstBuffer[4096];
+uint32 HSBufferIndex;
+char DSConstBuffer[4096];
+uint32 DSBufferIndex;
+char GSConstBuffer[4096];
+uint32 GSBufferIndex;
+char PSConstBuffer[4096];
+uint32 PSBufferIndex;
+
+FD3D11ConstantBuffer::FD3D11ConstantBuffer(uint32 InSize /*= 0*/, uint32 SubBuffers /*= 1*/)
+	:MaxSize(InSize)
+{
+
+}
+
+FD3D11ConstantBuffer::~FD3D11ConstantBuffer()
+{
+
+}
+
+void FD3D11ConstantBuffer::InitDynamicRHI()
+{
+	D3D11_BUFFER_DESC BufferDesc;
+	ZeroMemory(&BufferDesc, sizeof(D3D11_BUFFER_DESC));
+	// Verify constant buffer ByteWidth requirements
+	//check(MaxSize <= D3D11_REQ_CONSTANT_BUFFER_ELEMENT_COUNT && (MaxSize % 16) == 0);
+	BufferDesc.ByteWidth = MaxSize;
+
+	BufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	BufferDesc.CPUAccessFlags = 0;
+	BufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	BufferDesc.MiscFlags = 0;
+
+	assert(S_OK == D3D11Device->CreateBuffer(&BufferDesc,NULL, ConstantBufferRHI.GetAddressOf()));
+
+	ShadowData = (uint8*)_aligned_malloc(MaxSize,16);
+}
+
+void FD3D11ConstantBuffer::ReleaseDynamicRHI()
+{
+	free(ShadowData);
+}
+
+bool FD3D11ConstantBuffer::CommitConstantsToDevice(bool bDiscardSharedConstants)
+{
+	if (CurrentUpdateSize == 0)
+	{
+		return false;
+	}
+
+	if (bDiscardSharedConstants)
+	{
+		// If we're discarding shared constants, just use constants that have been updated since the last Commit.
+		TotalUpdateSize = CurrentUpdateSize;
+	}
+	else
+	{
+		// If we're re-using shared constants, use all constants.
+		TotalUpdateSize = FMath::Max(CurrentUpdateSize, TotalUpdateSize);
+	}
+
+	D3D11DeviceContext->UpdateSubresource(ConstantBufferRHI.Get(), 0, NULL, (void*)ShadowData, MaxSize, MaxSize);
+
+	CurrentUpdateSize = 0;
+	return true;
+}
+
+std::shared_ptr<FD3D11ConstantBuffer> VSConstantBuffer;
+std::shared_ptr<FD3D11ConstantBuffer> PSConstantBuffer;
+
+void RHISetShaderParameter(ID3D11VertexShader* Shader, uint32 BufferIndex, uint32 BaseIndex, uint32 NumBytes, const void* NewValue)
+{
+	assert(0 == BufferIndex);
+	VSConstantBuffer->UpdateConstant((uint8*)NewValue, BaseIndex, NumBytes);
+}
+void RHISetShaderParameter(ID3D11HullShader* Shader, uint32 BufferIndex, uint32 BaseIndex, uint32 NumBytes, const void* NewValue)
+{
+	assert(0 == BufferIndex);
+}
+void RHISetShaderParameter(ID3D11DomainShader* Shader, uint32 BufferIndex, uint32 BaseIndex, uint32 NumBytes, const void* NewValue)
+{
+	assert(0 == BufferIndex);
+}
+void RHISetShaderParameter(ID3D11GeometryShader* Shader, uint32 BufferIndex, uint32 BaseIndex, uint32 NumBytes, const void* NewValue)
+{
+	assert(0 == BufferIndex);
+}
+void RHISetShaderParameter(ID3D11PixelShader* Shader, uint32 BufferIndex, uint32 BaseIndex, uint32 NumBytes, const void* NewValue)
+{
+	assert(0 == BufferIndex);
+	PSConstantBuffer->UpdateConstant((uint8*)NewValue, BaseIndex, NumBytes);
+}
+void InitConstantBuffers()
+{
+	VSConstantBuffer = std::make_shared<FD3D11ConstantBuffer>(4096);
+	VSConstantBuffer->InitDynamicRHI();
+	PSConstantBuffer = std::make_shared<FD3D11ConstantBuffer>(4096);
+	PSConstantBuffer->InitDynamicRHI();
+}
+
+void CommitNonComputeShaderConstants()
+{
+	if (VSConstantBuffer->CommitConstantsToDevice(false))
+	{
+		ID3D11Buffer* ConstantBuffer = VSConstantBuffer->GetConstantBuffer();
+		D3D11DeviceContext->VSSetConstantBuffers(0, 1, &ConstantBuffer);
+	}
+	if (PSConstantBuffer->CommitConstantsToDevice(false))
+	{
+		ID3D11Buffer* ConstantBuffer = PSConstantBuffer->GetConstantBuffer();
+		D3D11DeviceContext->PSSetConstantBuffers(0, 1, &ConstantBuffer);
+	}
+}

@@ -4058,3 +4058,11 @@ private:
 	int32 InitialSeed;
 	mutable int32 Seed;
 };
+
+template <typename T>
+inline constexpr T Align(T Val, uint64 Alignment)
+{
+	//static_assert(TIsIntegral<T>::Value || TIsPointer<T>::Value, "Align expects an integer or pointer type");
+
+	return (T)(((uint64)Val + Alignment - 1) & ~(Alignment - 1));
+}

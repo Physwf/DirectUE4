@@ -72,13 +72,13 @@ public:
 	// FShader interface.
 	//virtual uint32 GetAllocatedSize() const override;
 
-// 	void SetInstanceParameters(uint32 InVertexOffset, uint32 InInstanceOffset, uint32 InInstanceCount) const
-// 	{
-// 		bool const bZeroInstanceOffset = IsVulkanPlatform(GMaxRHIShaderPlatform) || IsVulkanMobilePlatform(GMaxRHIShaderPlatform);
-// 		SetShaderValue(RHICmdList, GetVertexShader(), VertexOffset, bZeroInstanceOffset ? 0 : InVertexOffset);
-// 		SetShaderValue(RHICmdList, GetVertexShader(), InstanceOffset, bZeroInstanceOffset ? 0 : InInstanceOffset);
-// 		SetShaderValue(RHICmdList, GetVertexShader(), InstanceCount, InInstanceCount);
-// 	}
+	void SetInstanceParameters(uint32 InVertexOffset, uint32 InInstanceOffset, uint32 InInstanceCount) const
+	{
+		bool const bZeroInstanceOffset = false;// IsVulkanPlatform(GMaxRHIShaderPlatform) || IsVulkanMobilePlatform(GMaxRHIShaderPlatform);
+		SetShaderValue(GetVertexShader().Get(), VertexOffset, bZeroInstanceOffset ? 0 : InVertexOffset);
+		//SetShaderValue(RHICmdList, GetVertexShader(), InstanceOffset, bZeroInstanceOffset ? 0 : InInstanceOffset);
+		//SetShaderValue(RHICmdList, GetVertexShader(), InstanceCount, InInstanceCount);
+	}
 
 protected:
 
@@ -91,7 +91,7 @@ private:
 
 // 	FShaderParameter InstanceCount;
 // 	FShaderParameter InstanceOffset;
-// 	FShaderParameter VertexOffset;
+	FShaderParameter VertexOffset;
 
 	/** If true, cached uniform expressions are allowed. */
 	static int32 bAllowCachedUniformExpressions;

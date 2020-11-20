@@ -18,7 +18,10 @@ const FMaterial& InMaterialResource/*, */
 void FMeshDrawingPolicy::DrawMesh(ID3D11DeviceContext* Context, const FSceneView& View, const FMeshBatch& Mesh, int32 BatchElementIndex, const bool bIsInstancedStereo /*= false*/) const
 {
 	const FMeshBatchElement& BatchElement = Mesh.Elements[BatchElementIndex];
+	const uint32 InstanceCount = ((bIsInstancedStereo && !BatchElement.bIsInstancedMesh) ? 2 : BatchElement.NumInstances);
+	SetInstanceParameters(View, BatchElement.BaseVertexIndex, 0, InstanceCount);
 
+	CommitNonComputeShaderConstants();
 	Context->IASetIndexBuffer((ID3D11Buffer*)BatchElement.IndexBuffer,DXGI_FORMAT_R32_UINT,0);
 	Context->IASetPrimitiveTopology(Mesh.Type);
 	Context->DrawIndexed(BatchElement.NumPrimitives, BatchElement.FirstIndex, BatchElement.BaseVertexIndex);
@@ -27,5 +30,10 @@ void FMeshDrawingPolicy::DrawMesh(ID3D11DeviceContext* Context, const FSceneView
 void FMeshDrawingPolicy::SetSharedState(ID3D11DeviceContext* Context, const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View/*, const ContextDataType PolicyContext*/) const
 {
 	VertexFactory->SetStreams(Context);
+}
+
+void FMeshDrawingPolicy::SetInstanceParameters(const FSceneView& View, uint32 InVertexOffset, uint32 InInstanceOffset, uint32 InInstanceCount) const
+{
+	BaseVertexShader->SetInstanceParameters(InVertexOffset, InInstanceOffset, InInstanceCount);
 }
 

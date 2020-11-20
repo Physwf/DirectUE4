@@ -5,6 +5,8 @@ ID3D11Buffer* GScreenRectangleIndexBuffer;
 ID3D11InputLayout* GFilterInputLayout;
 ID3D11VertexShader* GCommonPostProcessVS;
 
+FDrawRectangleParameters DrawRectangleParameters;
+
 void InitScreenRectangleResources()
 {
 	FilterVertex Vertices[] =
