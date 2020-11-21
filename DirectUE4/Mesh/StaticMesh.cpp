@@ -96,53 +96,14 @@ StaticMesh::StaticMesh()
 
 void StaticMesh::InitResources()
 {
+	MeshPrimitive::InitResources();
 	RenderData->InitResources(this);
-
-	//FPrimitiveUniformShaderParameters PU = GetPrimitiveUniformShaderParameters(
-		//GetWorldMatrix(),
-		//Position,
-		//Bounds,
-		//LocalBounds,
-		///*bReceivesDecals*/false,
-		///*HasDistanceFieldRepresentation()*/false,
-		///*HasDynamicIndirectShadowCasterRepresentation()*/false,
-		///*UseSingleSampleShadowFromStationaryLights()*/false,
-		///*Scene->HasPrecomputedVolumetricLightmap_RenderThread()*/false,
-		///*UseEditorDepthTest()*/false,
-		///*GetLightingChannelMask()*/0,
-		///*LpvBiasMultiplier*/ 1.f
-	//);;
-	//PrimitiveUniformBuffer = CreateConstantBuffer(false,sizeof(PU),&PU);
 }
 
 void StaticMesh::ReleaseResources()
 {
 	RenderData->ReleaseResources();
-}
-
-void StaticMesh::UpdateUniformBuffer()
-{
-#if 0
-	if (bTransformDirty)
-	{
-		FPrimitiveUniformShaderParameters PU = GetPrimitiveUniformShaderParameters(
-			GetWorldMatrix(),
-			Position,
-			//Bounds,
-			//LocalBounds,
-			/*bReceivesDecals*/false,
-			/*HasDistanceFieldRepresentation()*/false,
-			/*HasDynamicIndirectShadowCasterRepresentation()*/false,
-			/*UseSingleSampleShadowFromStationaryLights()*/false,
-			/*Scene->HasPrecomputedVolumetricLightmap_RenderThread()*/false,
-			/*UseEditorDepthTest()*/false,
-			/*GetLightingChannelMask()*/0,
-			/*LpvBiasMultiplier*/ 1.f
-		);
-		D3D11DeviceContext->UpdateSubresource(PrimitiveUniformBuffer, 0, 0, &PU, 0, 0);
-		bTransformDirty = false;
-	}
-#endif
+	MeshPrimitive::ReleaseResources();
 }
 
 bool StaticMesh::GetMeshElement(int BatchIndex, int SectionIndex, FMeshBatch& OutMeshBatch)

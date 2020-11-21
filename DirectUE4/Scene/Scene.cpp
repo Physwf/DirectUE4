@@ -402,7 +402,6 @@ void FViewInfo::InitRHIResources()
 		VolumeBounds,
 		TVC_MAX,
 		*CachedViewUniformShaderParameters);
-
 	ViewUniformBuffer = TUniformBufferPtr<FViewUniformShaderParameters>::CreateUniformBufferImmediate(*CachedViewUniformShaderParameters); //TUniformBufferRef<FViewUniformShaderParameters>::CreateUniformBufferImmediate(*CachedViewUniformShaderParameters, UniformBuffer_SingleFrame);
 }
 
@@ -513,6 +512,11 @@ void FScene::RemovePrimitive(MeshPrimitive* Primitive)
 	if(it!=Primitives.end())
 		Primitives.erase(it);
 	Primitive->RemoveFromScene(this);
+}
+
+void FScene::UpdatePrimitiveTransform(Actor* Component)
+{
+	Component->Proxy->SetTransform(Component->GetWorldMatrix(), FBoxSphereBounds(), FBoxSphereBounds(), Component->GetPosition());
 }
 
 void UpdateView()

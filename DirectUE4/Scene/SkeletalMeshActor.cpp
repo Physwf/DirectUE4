@@ -7,7 +7,7 @@ SkeletalMeshActor::SkeletalMeshActor(const char* ResourcePath)
 {
 	FBXImporter Importer;
 	Mesh = Importer.ImportSkeletalMesh(ResourcePath);
-	
+	Proxy = Mesh;
 }
 
 SkeletalMeshActor::~SkeletalMeshActor()

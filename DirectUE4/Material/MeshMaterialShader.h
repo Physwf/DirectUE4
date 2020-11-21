@@ -99,5 +99,9 @@ void FMeshMaterialShader::SetMesh(
 	{
 		SetUniformBufferParameter(ShaderRHI, GetUniformBufferParameter<FPrimitiveUniformShaderParameters>(), BatchElement.PrimitiveUniformBuffer);
 	}
+	else
+	{
+		SetUniformBufferParameter(ShaderRHI, GetUniformBufferParameter<FPrimitiveUniformShaderParameters>(), *BatchElement.PrimitiveUniformBufferResource);
+	}
 }
 

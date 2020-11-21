@@ -80,6 +80,7 @@ void Viewport::Draw(bool bShouldPresent /*= true*/)
 	{
 		FSceneView* View = C->CalcSceneView(ViewFamily,*this);
 	}
+	GWorld.SendAllEndOfFrameUpdates();
 	SceneRenderer Renderer(ViewFamily);
 	Renderer.Render();
 	if (bShouldPresent)

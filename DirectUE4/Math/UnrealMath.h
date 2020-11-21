@@ -1439,7 +1439,7 @@ struct FMatrix
 	 bool operator==(const FMatrix& Other) const;
 	inline bool operator!=(const FMatrix& Other) const;
 	FVector Transform(const FVector& InVector) const;
-	inline FVector GetUnitAxis(EAxis::Type Axis) const;
+	FVector GetUnitAxis(EAxis::Type Axis) const;
 	inline FMatrix InverseFast() const
 	{
 		FMatrix Result;

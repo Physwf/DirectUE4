@@ -12,11 +12,21 @@ public:
 	virtual void PostLoad() = 0;
 
 	void SetPosition(FVector InPosition);
+	FVector GetPosition() { return Position; }
 	void SetRotation(FRotator InRotation);
+	FRotator GetRotation() { return Rotation; }
 
 	class World* GetWorld() { return WorldPrivite; }
-protected:
+
+	void DoDeferredRenderUpdates_Concurrent();
+
+	virtual void SendRenderTransform_Concurrent();
+	
+	class MeshPrimitive* Proxy;
+
 	FMatrix GetWorldMatrix();
+
+protected:
 
 	FVector Position;
 	FRotator Rotation;

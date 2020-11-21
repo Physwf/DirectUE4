@@ -441,6 +441,7 @@ public:
 	void InitScene();
 	void AddPrimitive(MeshPrimitive* Primitive);
 	void RemovePrimitive(MeshPrimitive* Primitive);
+	void UpdatePrimitiveTransform(Actor* Coomponet);
 public:
 
 

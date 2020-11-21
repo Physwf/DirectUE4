@@ -46,8 +46,6 @@ public:
 
 	virtual void InitResources();
 	virtual void ReleaseResources();
-	virtual void UpdateTransform() {};
-	void UpdateUniformBuffer();
 	int GetNumberBatches() { return 1; }
 	bool GetMeshElement(int BatchIndex, int SectionIndex, FMeshBatch& OutMeshBatch);
 	virtual void DrawStaticElements() override;

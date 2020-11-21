@@ -18,6 +18,16 @@ void Actor::SetRotation(FRotator InRotation)
 	Rotation = InRotation;
 }
 
+void Actor::DoDeferredRenderUpdates_Concurrent()
+{
+	SendRenderTransform_Concurrent();
+}
+
+void Actor::SendRenderTransform_Concurrent()
+{
+
+}
+
 FMatrix Actor::GetWorldMatrix()
 {
 	FMatrix R = FMatrix(

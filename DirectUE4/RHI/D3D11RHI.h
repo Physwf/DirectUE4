@@ -130,7 +130,7 @@ public:
 template<D3D11_FILL_MODE FillMode = D3D11_FILL_SOLID,
 	D3D11_CULL_MODE CullMode = D3D11_CULL_NONE,
 	bool bEnableLineAA = false,
-	bool bEnableMSAA = true
+	bool bEnableMSAA = false
 >
 class TStaticRasterizerState : public TStaticStateRHI<TStaticRasterizerState<FillMode, CullMode, bEnableLineAA, bEnableMSAA>, ComPtr<ID3D11RasterizerState>, ID3D11RasterizerState*>
 {
@@ -1188,6 +1188,7 @@ struct FUniformBuffer
 };
 
 std::shared_ptr<FUniformBuffer> RHICreateUniformBuffer(
+	UINT Size,
 	const void* Contents, 
 	std::map<std::string, ComPtr<ID3D11ShaderResourceView>>& SRVs, 
 	std::map<std::string, ComPtr<ID3D11SamplerState>>& Samplers, 
@@ -1212,7 +1213,7 @@ public:
 	static TUniformBufferPtr<TBufferStruct> CreateUniformBufferImmediate(const TBufferStruct& Value)
 	{
 		TUniformBufferPtr<TBufferStruct> Result(std::make_shared<FUniformBuffer>());
-		Result->ConstantBuffer = CreateConstantBuffer(false,sizeof(TBufferStruct::ConstantStruct), &Value);
+		Result->ConstantBuffer = CreateConstantBuffer(false,sizeof(TBufferStruct::ConstantStruct), &Value.Constants);
 		Result->ConstantBufferName = TBufferStruct::GetConstantBufferName();
 		Result->SRVs = TBufferStruct::GetSRVs(Value);
 		Result->Samplers = TBufferStruct::GetSamplers(Value);
@@ -1266,7 +1267,7 @@ public:
 		UniformBufferRHI.reset();
 		if (Contents)
 		{
-			UniformBufferRHI = RHICreateUniformBuffer(Contents, TBufferStruct::GetSRVs(*(TBufferStruct*)Contents), TBufferStruct::GetSamplers(*(TBufferStruct*)Contents), TBufferStruct::GetUAVs(*(TBufferStruct*)Contents));
+			UniformBufferRHI = RHICreateUniformBuffer(sizeof(TBufferStruct), Contents, TBufferStruct::GetSRVs(*(TBufferStruct*)Contents), TBufferStruct::GetSamplers(*(TBufferStruct*)Contents), TBufferStruct::GetUAVs(*(TBufferStruct*)Contents));
 		}
 	}
 	void ReleaseDynamicRHI()
@@ -1285,7 +1286,7 @@ protected:
 	{
 		if (!Contents)
 		{
-			Contents = (uint8*)std::aligned_alloc(UNIFORM_BUFFER_STRUCT_ALIGNMENT,sizeof(TBufferStruct));
+			Contents = (uint8*)_aligned_malloc(sizeof(TBufferStruct), UNIFORM_BUFFER_STRUCT_ALIGNMENT);
 		}
 		memcpy(Contents, &NewContents, sizeof(TBufferStruct));
 	}
@@ -1546,7 +1547,7 @@ inline void SetUniformBufferParameter(
 	assert(Parameter.IsInitialized());
 	// If it is bound, we must set it so something valid
 	assert(!Parameter.IsBound() || UniformBuffer.GetUniformBufferRHI());
-	std::shared_ptr<FUniformBuffer> UniformBufferRHI = UniformBuffer->GetUniformBufferRHI();
+	std::shared_ptr<FUniformBuffer> UniformBufferRHI = UniformBuffer.GetUniformBufferRHI();
 	if (Parameter.IsBound())
 	{
 		SetShaderUniformBuffer(Shader, Parameter.GetBaseIndex(), UniformBuffer.GetUniformBufferRHI()->ConstantBuffer.Get());

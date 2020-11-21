@@ -71,6 +71,11 @@ void SceneRenderer::InitViews()
 		// Initialize the view's RHI resources.
 		View.InitRHIResources();
 	}
+
+	for (MeshPrimitive* Primitive : Scene->Primitives)
+	{
+		Primitive->ConditionalUpdateUniformBuffer();
+	}
 }
 void SceneRenderer::Render()
 {

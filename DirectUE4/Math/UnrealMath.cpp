@@ -43,7 +43,7 @@ FMatrix FMatrix::GetTransposed() const
 	return Result;
 }
 
-inline FVector FMatrix::GetUnitAxis(EAxis::Type Axis) const
+FVector FMatrix::GetUnitAxis(EAxis::Type Axis) const
 {
 	return GetScaledAxis(Axis).GetSafeNormal();
 }

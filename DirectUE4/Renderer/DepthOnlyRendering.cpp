@@ -231,6 +231,7 @@ void SceneRenderer::RenderPrePassView(FViewInfo& View, const FDrawingPolicyRende
 void SceneRenderer::RenderPrePass()
 {
 	RenderTargets& SceneContext = RenderTargets::Get();
+
 	for (uint32 ViewIndex = 0; ViewIndex < Views.size(); ++ViewIndex)
 	{
 		FViewInfo& View = Views[ViewIndex];
@@ -239,7 +240,8 @@ void SceneRenderer::RenderPrePass()
 		TUniformBufferPtr<FSceneTexturesUniformParameters> PassUniformBuffer = TUniformBufferPtr<FSceneTexturesUniformParameters>::CreateUniformBufferImmediate(SceneTextureParameters);
 		FDrawingPolicyRenderState DrawRenderState(View, PassUniformBuffer);
 
-		DrawRenderState.SetBlendState(TStaticBlendState<FALSE,FALSE,0>::GetRHI());
+		DrawRenderState.SetDepthStencilState(TStaticDepthStencilState<true, D3D11_COMPARISON_GREATER>::GetRHI());
+		DrawRenderState.SetBlendState(TStaticBlendState<>::GetRHI());
 
 		RenderPrePassView(View, DrawRenderState);
 

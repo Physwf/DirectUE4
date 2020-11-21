@@ -11,6 +11,8 @@ public:
 
 	virtual void Tick(float fDeltaTime) override;
 
+	virtual void SendRenderTransform_Concurrent() override;
+
 private:
 	StaticMesh * Mesh;
 };

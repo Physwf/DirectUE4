@@ -340,6 +340,7 @@ bool CompileShader(const std::string& FileContent, const char* EntryPoint, const
 	if(HR != S_OK)
 	{
 		X_LOG("D3DCompileFromFile failed! %s", (const char*)OutErrorMsg->GetBufferPointer());
+		assert(false);
 		return false;
 	}
 	return true;
@@ -860,10 +861,15 @@ FPixelFormatInfo	GPixelFormats[PF_MAX] =
 	{ TEXT("R16G16B16A16_SINT"),1,			1,			1,			8,			4,				0,				1,				PF_R16G16B16A16_SNORM },
 };
 
-std::shared_ptr<FUniformBuffer> RHICreateUniformBuffer(const void* Contents, std::map<std::string, ComPtr<ID3D11ShaderResourceView>>& SRVs, std::map<std::string, ComPtr<ID3D11SamplerState>>& Samplers, std::map<std::string, ComPtr<ID3D11UnorderedAccessView>>& UAVs)
+std::shared_ptr<FUniformBuffer> RHICreateUniformBuffer(
+	UINT Size, 
+	const void* Contents, 
+	std::map<std::string, ComPtr<ID3D11ShaderResourceView>>& SRVs, 
+	std::map<std::string, ComPtr<ID3D11SamplerState>>& Samplers, 
+	std::map<std::string, ComPtr<ID3D11UnorderedAccessView>>& UAVs)
 {
 	std::shared_ptr<FUniformBuffer> Result = std::make_shared<FUniformBuffer>();
-
+	Result->ConstantBuffer = CreateConstantBuffer(false, Size, Contents);
 	Result->SRVs = SRVs;
 	Result->Samplers = Samplers;
 	Result->UAVs = UAVs;
@@ -1455,7 +1461,8 @@ uint32 PSBufferIndex;
 FD3D11ConstantBuffer::FD3D11ConstantBuffer(uint32 InSize /*= 0*/, uint32 SubBuffers /*= 1*/)
 	:MaxSize(InSize)
 {
-
+	CurrentUpdateSize = 0;
+	TotalUpdateSize = 0;
 }
 
 FD3D11ConstantBuffer::~FD3D11ConstantBuffer()

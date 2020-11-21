@@ -24,6 +24,9 @@ public:
 	}
 	void DestroyActor(Actor* InActor);
 	const std::vector<Camera*> GetCameras() const { return mCameras; }
+
+	void SendAllEndOfFrameUpdates();
+
 private:
 	std::vector<Camera*> mCameras;
 	DirectionalLight* mDirLight;

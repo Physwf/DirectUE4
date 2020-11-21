@@ -23,7 +23,7 @@ void FMeshDrawingPolicy::DrawMesh(ID3D11DeviceContext* Context, const FSceneView
 
 	CommitNonComputeShaderConstants();
 	Context->IASetIndexBuffer((ID3D11Buffer*)BatchElement.IndexBuffer,DXGI_FORMAT_R32_UINT,0);
-	Context->DrawIndexed(BatchElement.NumPrimitives, BatchElement.FirstIndex, BatchElement.BaseVertexIndex);
+	Context->DrawIndexed(BatchElement.NumPrimitives*3, BatchElement.FirstIndex, BatchElement.BaseVertexIndex);
 }
 
 void FMeshDrawingPolicy::SetSharedState(ID3D11DeviceContext* Context, const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View/*, const ContextDataType PolicyContext*/) const

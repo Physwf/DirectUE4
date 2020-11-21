@@ -17,6 +17,8 @@ class FScene;
 
 class MeshPrimitive
 {
+	friend class FScene;
+
 public:
 	MeshPrimitive();
 	virtual ~MeshPrimitive() {}
@@ -24,11 +26,12 @@ public:
 	virtual void Register(FScene* Scene);
 	virtual void UnRegister(FScene* Scene);
 
-	virtual void InitResources() = 0;
-	virtual void ReleaseResources() = 0;
+	virtual void InitResources();
+	virtual void ReleaseResources();
 
-	virtual void UpdateTransform() = 0;
+	void ConditionalUpdateUniformBuffer();
 
+	void UpdateUniformBuffer();
 	//FPrimitiveSceneInfo
 	/** Adds the primitive to the scene. */
 	void AddToScene(FScene* Scene/*FRHICommandListImmediate& RHICmdList, bool bUpdateStaticDrawLists, bool bAddToStaticDrawLists = true*/);
@@ -54,19 +57,23 @@ public:
 	//FPrimitiveSceneInfo
 	/** The primitive's static meshes. */
 	std::vector<FStaticMesh*> StaticMeshes;
+
 private:
+	void SetTransform(const FMatrix& InLocalToWorld, const FBoxSphereBounds& InBounds, const FBoxSphereBounds& InLocalBounds, FVector InActorPosition);
 
 	FMatrix LocalToWorld;
 
 	/** The primitive's bounds. */
-	//FBoxSphereBounds Bounds;
+	FBoxSphereBounds Bounds;
 
 	/** The primitive's local space bounds. */
-	//FBoxSphereBounds LocalBounds;
+	FBoxSphereBounds LocalBounds;
 
 	/** The component's actor's position. */
 	FVector ActorPosition;
 
+	uint32 bIsLocalToWorldDeterminantNegative : 1;
 
+	bool bNeedsUniformBufferUpdate;
 	TUniformBuffer<FPrimitiveUniformShaderParameters> UniformBuffer;
 };

@@ -46,4 +46,12 @@ void World::DestroyActor(Actor* InActor)
 	}
 }
 
+void World::SendAllEndOfFrameUpdates()
+{
+	for (Actor* actor : mAllActors)
+	{
+		actor->DoDeferredRenderUpdates_Concurrent();
+	}
+}
+
 World GWorld;
