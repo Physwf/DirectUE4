@@ -23,7 +23,6 @@ void FMeshDrawingPolicy::DrawMesh(ID3D11DeviceContext* Context, const FSceneView
 
 	CommitNonComputeShaderConstants();
 	Context->IASetIndexBuffer((ID3D11Buffer*)BatchElement.IndexBuffer,DXGI_FORMAT_R32_UINT,0);
-	Context->IASetPrimitiveTopology(Mesh.Type);
 	Context->DrawIndexed(BatchElement.NumPrimitives, BatchElement.FirstIndex, BatchElement.BaseVertexIndex);
 }
 
@@ -32,8 +31,15 @@ void FMeshDrawingPolicy::SetSharedState(ID3D11DeviceContext* Context, const FDra
 	VertexFactory->SetStreams(Context);
 }
 
+const std::shared_ptr<std::vector<D3D11_INPUT_ELEMENT_DESC>>& FMeshDrawingPolicy::GetVertexDeclaration() const
+{
+	const std::shared_ptr<std::vector<D3D11_INPUT_ELEMENT_DESC>>& VertexDeclaration = VertexFactory->GetDeclaration();
+	return VertexDeclaration;
+}
+
 void FMeshDrawingPolicy::SetInstanceParameters(const FSceneView& View, uint32 InVertexOffset, uint32 InInstanceOffset, uint32 InInstanceCount) const
 {
 	BaseVertexShader->SetInstanceParameters(InVertexOffset, InInstanceOffset, InInstanceCount);
 }
 
+std::map<std::vector<D3D11_INPUT_ELEMENT_DESC>*, ComPtr<ID3D11InputLayout>> InputLayoutCache;

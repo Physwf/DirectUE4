@@ -17,15 +17,19 @@ void RenderTargets::BeginRenderingSceneColor()
 
 void RenderTargets::BeginRenderingPrePass(bool bClear)
 {
-// 	if (bClear)
-// 	{
-// 		D3D11DeviceContext->OMSetRenderTargets(0, NULL, SceneDepthDSV);
-// 		D3D11DeviceContext->ClearDepthStencilView(SceneDepthDSV, D3D11_CLEAR_DEPTH, 0.f, 0);
-// 	}
-// 	else
-// 	{
-// 		D3D11DeviceContext->OMSetRenderTargets(0, NULL, SceneDepthDSV);
-// 	}
+	ID3D11DepthStencilView* DVS = GetSceneDepthSurface()->GetDepthStencilView(FExclusiveDepthStencil::DepthWrite);
+	if (bClear)
+	{
+		float fClearDepth;
+		UINT StencialClearValue;
+		GetSceneDepthSurface()->GetDepthStencilClearValue(fClearDepth, StencialClearValue);
+		D3D11DeviceContext->OMSetRenderTargets(0, NULL, DVS);
+		D3D11DeviceContext->ClearDepthStencilView(DVS, D3D11_CLEAR_DEPTH, fClearDepth, StencialClearValue);
+	}
+	else
+	{
+		D3D11DeviceContext->OMSetRenderTargets(0, NULL, DVS);
+	}
 }
 
 void RenderTargets::FinishRenderingPrePass()
@@ -116,6 +120,10 @@ void RenderTargets::Allocate(const SceneRenderer* Renderer)
 	FIntPoint DesiredBufferSize = ComputeDesiredSize(Renderer->ViewFamily);
 
 	int GBufferFormat = 1; //CVarGBufferFormat.GetValueOnRenderThread();
+
+
+	SetDefaultColorClear(FClearValueBinding::Black);
+	SetDefaultDepthClear(FClearValueBinding::DepthFar);
 
 	bool bNewAllowStaticLighting;
 	{

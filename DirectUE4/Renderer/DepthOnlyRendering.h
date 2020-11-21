@@ -25,6 +25,8 @@ public:
 
 	void SetSharedState(const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View/*, const FDepthDrawingPolicy::ContextDataType PolicyContext*/) const;
 
+	FBoundShaderStateInput GetBoundShaderStateInput() const;
+
 	void SetMeshRenderState(
 		ID3D11DeviceContext* Context,
 		const FSceneView& View,
@@ -83,7 +85,7 @@ public:
 	* as well as the shaders needed to draw the mesh
 	* @return new bound shader state object
 	*/
-	//FBoundShaderStateInput GetBoundShaderStateInput(ERHIFeatureLevel::Type InFeatureLevel) const;
+	FBoundShaderStateInput GetBoundShaderStateInput() const;
 
 	void SetMeshRenderState(
 		ID3D11DeviceContext* Context,

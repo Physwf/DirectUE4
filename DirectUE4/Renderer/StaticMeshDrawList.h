@@ -57,7 +57,7 @@ class TStaticMeshDrawList
 		//TArray<FElementCompact>		 CompactElements;
 		std::vector<FElement>			 Elements;
 		DrawingPolicyType		 		 DrawingPolicy;
-		//FBoundShaderStateInput		 BoundShaderStateInput;
+		FBoundShaderStateInput		 BoundShaderStateInput;
 		//ERHIFeatureLevel::Type		 FeatureLevel;
 
 		/** Used when sorting policy links */
@@ -78,7 +78,7 @@ class TStaticMeshDrawList
 			VisibleCount(0)
 		{
 			//check(IsInRenderingThread());
-			//BoundShaderStateInput = DrawingPolicy.GetBoundShaderStateInput(FeatureLevel);
+			BoundShaderStateInput = DrawingPolicy.GetBoundShaderStateInput();
 		}
 
 // 		SIZE_T GetSizeBytes() const
@@ -86,7 +86,7 @@ class TStaticMeshDrawList
 // 			return sizeof(*this) + CompactElements.GetAllocatedSize() + Elements.GetAllocatedSize();
 // 		}
 	};
-	int32 DrawElement(ID3D11DeviceContext* Context, const FViewInfo& View, /*const typename DrawingPolicyType::ContextDataType PolicyContext,*/ FDrawingPolicyRenderState& DrawRenderState, const FElement& Element, /*uint64 BatchElementMask, */FDrawingPolicyLink* DrawingPolicyLink/*, bool &bDrawnShared*/);
+	int32 DrawElement(ID3D11DeviceContext* Context, const FViewInfo& View, /*const typename DrawingPolicyType::ContextDataType PolicyContext,*/ FDrawingPolicyRenderState& DrawRenderState, const FElement& Element, /*uint64 BatchElementMask, */FDrawingPolicyLink* DrawingPolicyLink, bool &bDrawnShared);
 public:
 	void AddMesh(
 		FStaticMesh* Mesh,
@@ -138,7 +138,7 @@ bool TStaticMeshDrawList<DrawingPolicyType>::DrawVisible(
 			const FElement& Element = DrawingPolicyLink->Elements[ElementIndex];
 			// Avoid the cache miss looking up batch visibility if there is only one element.
 			//uint64 BatchElementMask = Element.Mesh->bRequiresPerElementVisibility ? (*BatchVisibilityArray)[Element.Mesh->BatchVisibilityId] : ((1ull << SubCount) - 1);
-			Count += DrawElement(Context, View, /*PolicyContext, */DrawRenderStateLocal, Element, /*BatchElementMask,*/ DrawingPolicyLink/*, bDrawnShared*/);
+			Count += DrawElement(Context, View, /*PolicyContext, */DrawRenderStateLocal, Element, /*BatchElementMask,*/ DrawingPolicyLink, bDrawnShared);
 		}
 	}
 	return true;
@@ -146,8 +146,51 @@ bool TStaticMeshDrawList<DrawingPolicyType>::DrawVisible(
 
 
 template<typename DrawingPolicyType>
-int32 TStaticMeshDrawList<DrawingPolicyType>::DrawElement(ID3D11DeviceContext* Context, const FViewInfo& View, /*const typename DrawingPolicyType::ContextDataType PolicyContext,*/ FDrawingPolicyRenderState& DrawRenderState, const FElement& Element, /*uint64 BatchElementMask, */FDrawingPolicyLink* DrawingPolicyLink/*, bool &bDrawnShared*/)
+int32 TStaticMeshDrawList<DrawingPolicyType>::DrawElement(
+	ID3D11DeviceContext* Context, 
+	const FViewInfo& View, 
+	/*const typename DrawingPolicyType::ContextDataType PolicyContext,*/ 
+	FDrawingPolicyRenderState& DrawRenderState, 
+	const FElement& Element, 
+	/*uint64 BatchElementMask, */
+	FDrawingPolicyLink* DrawingPolicyLink, 
+	bool &bDrawnShared)
 {
+// 	FDepthStencilStateRHIParamRef PreDitherDepth = DrawRenderState.GetDepthStencilState();
+// 	uint32 PreDitherRef = DrawRenderState.GetStencilRef();
+// 	DrawingPolicyLink->DrawingPolicy.ApplyDitheredLODTransitionState(DrawRenderState, View, *Element.Mesh, View.bAllowStencilDither);
+// 
+// 	if (PreDitherDepth != DrawRenderState.GetDepthStencilState())
+// 	{
+// 		bDrawnShared = false;
+// 	}
+// 	const bool bSRefChanged = PreDitherRef != DrawRenderState.GetStencilRef();
+
+	if (!bDrawnShared)
+	{
+		DrawingPolicyLink->DrawingPolicy.SetupPipelineState(DrawRenderState, View);
+		FBoundShaderStateInput BoundShaderStateInput;
+		if (DrawingPolicyLink->BoundShaderStateInput.VertexShaderRHI != nullptr)
+		{
+			BoundShaderStateInput = DrawingPolicyLink->BoundShaderStateInput;
+		}
+		else
+		{
+			BoundShaderStateInput = DrawingPolicyLink->DrawingPolicy.GetBoundShaderStateInput();
+		}
+
+		CommitGraphicsPipelineState(DrawingPolicyLink->DrawingPolicy, DrawRenderState, BoundShaderStateInput);
+		DrawingPolicyLink->DrawingPolicy.SetSharedState(D3D11DeviceContext,  DrawRenderState, &View/*, PolicyContext*/);
+
+		bDrawnShared = true;
+	}
+	//stencil ref is not part of the PSO and depends on the primcomponent.  may still need to be applied.
+// 	else if (bSRefChanged)
+// 	{
+// 		RHICmdList.SetStencilRef(DrawRenderState.GetStencilRef());
+// 	}
+
+
 	int32 BatchElementIndex = 0;
 
 	DrawingPolicyLink->DrawingPolicy.SetMeshRenderState(

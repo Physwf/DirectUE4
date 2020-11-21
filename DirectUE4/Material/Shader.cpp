@@ -5,13 +5,27 @@
 #include "MeshMaterialShader.h"
 
 FShaderResource::FShaderResource()
+	: SpecificType(NULL)
+	, SpecificPermutationId(0)
+	, NumInstructions(0)
+	, NumTextureSamplers(0)
+	, Canary(FShader::ShaderMagic_Uninitialized)
+	, bCodeInSharedLocation(false)
 {
 
 }
 
 FShaderResource::FShaderResource(const FShaderCompilerOutput& Output, FShaderType* InSpecificType, int32 InSpecificPermutationId)
+	: SpecificType(InSpecificType)
+	, SpecificPermutationId(InSpecificPermutationId)
+	, NumInstructions(Output.NumInstructions)
+	, NumTextureSamplers(Output.NumTextureSamplers)
+	, Canary(FShader::ShaderMagic_Initialized)
+	, bCodeInSharedLocation(false)
 {
-
+	Frequency = Output.Frequency;
+	Code = Output.ShaderCode;
+	InitRHI();
 }
 
 FShaderResource::~FShaderResource()
@@ -31,6 +45,27 @@ FShaderResourceId FShaderResource::GetId() const
 
 void FShaderResource::InitRHI()
 {
+	if (Frequency == SF_Vertex)
+	{
+		assert(S_OK == D3D11Device->CreateVertexShader(Code->GetBufferPointer(),Code->GetBufferSize(),NULL, VertexShader.GetAddressOf()));
+	}
+	else if (Frequency == SF_Pixel)
+	{
+		assert(S_OK == D3D11Device->CreatePixelShader(Code->GetBufferPointer(), Code->GetBufferSize(), NULL, PixelShader.GetAddressOf()));
+	}
+	else if (Frequency == SF_Hull)
+	{
+	}
+	else if (Frequency == SF_Domain)
+	{
+	}
+	else if (Frequency == SF_Geometry)
+	{
+		
+	}
+	else if (Frequency == SF_Compute)
+	{
+	}
 
 }
 

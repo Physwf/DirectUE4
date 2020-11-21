@@ -214,7 +214,7 @@ Done:
 						Desc.Flags,
 						Desc.TargetableFlags,
 						Desc.bForceSeparateTargetAndShaderResource,
-						FClearValueBinding::Transparent,
+						Desc.ClearValue,
 						Found->TargetableTexture,
 						Found->ShaderResourceTexture,
 						Desc.NumSamples

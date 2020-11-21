@@ -27,8 +27,8 @@ struct FDrawingPolicyRenderState
 	FDrawingPolicyRenderState() :
 		BlendState(nullptr)
 		, DepthStencilState(nullptr)
-		//, ViewUniformBuffer(nullptr)
-		//, PassUniformBuffer(nullptr)
+		, ViewUniformBuffer()
+		, PassUniformBuffer(nullptr)
 		, StencilRef(0)
 		//, ViewOverrideFlags(EDrawingPolicyOverrideFlags::None)
 		, DitheredLODTransitionAlpha(0.0f)
@@ -154,6 +154,48 @@ private:
 	float							DitheredLODTransitionAlpha;
 };
 
+extern std::map<std::vector<D3D11_INPUT_ELEMENT_DESC>*, ComPtr<ID3D11InputLayout>> InputLayoutCache;
+/**
+* Creates and sets the base PSO so that resources can be set. Generally best to call during SetSharedState.
+*/
+template<class DrawingPolicyType>
+void CommitGraphicsPipelineState(const DrawingPolicyType& DrawingPolicy, const FDrawingPolicyRenderState& DrawRenderState, const FBoundShaderStateInput& BoundShaderStateInput)
+{
+	//FGraphicsPipelineStateInitializer GraphicsPSOInit;
+
+	//GraphicsPSOInit.PrimitiveType = DrawingPolicy.GetPrimitiveType();
+	//GraphicsPSOInit.BoundShaderState = BoundShaderStateInput;
+	//GraphicsPSOInit.RasterizerState = DrawingPolicy.ComputeRasterizerState(DrawRenderState.GetViewOverrideFlags());
+
+	D3D11DeviceContext->IASetPrimitiveTopology(DrawingPolicy.GetPrimitiveType());
+	D3D11DeviceContext->VSSetShader(BoundShaderStateInput.VertexShaderRHI.Get(), 0, 0);
+	D3D11DeviceContext->PSSetShader(BoundShaderStateInput.PixelShaderRHI.Get(), 0, 0);
+	D3D11DeviceContext->RSSetState(TStaticRasterizerState<>::GetRHI());
+
+	//check(DrawRenderState.GetDepthStencilState());
+	//check(DrawRenderState.GetBlendState());
+	//DrawRenderState.ApplyToPSO(GraphicsPSOInit);
+	auto It = InputLayoutCache.find(BoundShaderStateInput.VertexDeclarationRHI.get());
+	if (It != InputLayoutCache.end())
+	{
+		D3D11DeviceContext->IASetInputLayout(It->second.Get());
+	}
+	else
+	{
+		ComPtr<ID3D11InputLayout> InputLayout;
+		D3D11Device->CreateInputLayout(BoundShaderStateInput.VertexDeclarationRHI->data(), BoundShaderStateInput.VertexDeclarationRHI->size(), BoundShaderStateInput.VSCode->GetBufferPointer(), BoundShaderStateInput.VSCode->GetBufferSize(), InputLayout.GetAddressOf());
+		InputLayoutCache[BoundShaderStateInput.VertexDeclarationRHI.get()] = InputLayout;
+		D3D11DeviceContext->IASetInputLayout(InputLayout.Get());
+	}
+	D3D11DeviceContext->OMSetBlendState((ID3D11BlendState*)DrawRenderState.GetBlendState(),NULL,0xffffffff);
+	D3D11DeviceContext->OMSetDepthStencilState((ID3D11DepthStencilState*)DrawRenderState.GetDepthStencilState(),0);
+
+	//RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
+	//CreateGraphicsPipelineState
+	//SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+	//RHICmdList.SetStencilRef(DrawRenderState.GetStencilRef());
+}
 
 class FMeshDrawingPolicy
 {
@@ -181,7 +223,35 @@ public:
 
 	void DrawMesh(ID3D11DeviceContext* Context, const FSceneView& View, const FMeshBatch& Mesh, int32 BatchElementIndex, const bool bIsInstancedStereo = false) const;
 
+	void SetupPipelineState(FDrawingPolicyRenderState& DrawRenderState, const FSceneView& View) const {}
+
 	void SetSharedState(ID3D11DeviceContext* Context, const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View/*, const FMeshDrawingPolicy::ContextDataType PolicyContext*/) const;
+
+	const std::shared_ptr<std::vector<D3D11_INPUT_ELEMENT_DESC>>& GetVertexDeclaration() const;
+
+	// Accessors.
+	bool IsTwoSided() const
+	{
+		return MeshCullMode == D3D11_CULL_NONE;
+	}
+	bool IsDitheredLODTransition() const
+	{
+		return bIsDitheredLODTransitionMaterial;
+	}
+	bool IsWireframe() const
+	{
+		return MeshFillMode == D3D11_FILL_WIREFRAME;
+	}
+
+	D3D11_PRIMITIVE_TOPOLOGY GetPrimitiveType() const
+	{
+		return MeshPrimitiveType;
+	}
+
+	bool GetUsePositionOnlyVS() const
+	{
+		return bUsePositionOnlyVS;
+	}
 protected:
 	const FMaterialShader* BaseVertexShader = nullptr;
 	const FVertexFactory* VertexFactory;

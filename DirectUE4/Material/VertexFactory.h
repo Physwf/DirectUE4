@@ -199,9 +199,9 @@ public:
 	void InitDeclaration(std::vector<D3D11_INPUT_ELEMENT_DESC>& Elements);
 	void InitPositionDeclaration(std::vector<D3D11_INPUT_ELEMENT_DESC>& Elements);
 
-	std::vector<D3D11_INPUT_ELEMENT_DESC>& GetDeclaration() { return Declaration; }
-	const std::vector<D3D11_INPUT_ELEMENT_DESC>& GetDeclaration() const { return Declaration; }
-	const std::vector<D3D11_INPUT_ELEMENT_DESC>& GetPositionDeclaration() const { return PositionDeclaration; }
+	std::shared_ptr<std::vector<D3D11_INPUT_ELEMENT_DESC>>& GetDeclaration() { return Declaration; }
+	const std::shared_ptr<std::vector<D3D11_INPUT_ELEMENT_DESC>>& GetDeclaration() const { return Declaration; }
+	const std::shared_ptr<std::vector<D3D11_INPUT_ELEMENT_DESC>>& GetPositionDeclaration() const { return PositionDeclaration; }
 
 	bool SupportsManualVertexFetch() const
 	{
@@ -236,8 +236,8 @@ private:
 	static uint32 NextHashIndex;
 
 	std::vector<FVertexStream> PositionStream;
-	std::vector<D3D11_INPUT_ELEMENT_DESC> Declaration;
-	std::vector<D3D11_INPUT_ELEMENT_DESC> PositionDeclaration;
+	std::shared_ptr<std::vector<D3D11_INPUT_ELEMENT_DESC>> Declaration;
+	std::shared_ptr<std::vector<D3D11_INPUT_ELEMENT_DESC>> PositionDeclaration;
 };
 
 struct alignas(16) FLocalVertexFactoryUniformShaderParameters

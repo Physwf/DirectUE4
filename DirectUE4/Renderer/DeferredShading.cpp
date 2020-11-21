@@ -41,7 +41,7 @@ void InitShading()
 
 	GSystemTextures.InitializeTextures();
 	InitializeShaderTypes();
-
+	InitConstantBuffers();
 }
 
 SceneRenderer::SceneRenderer(SceneViewFamily& InViewFamily)

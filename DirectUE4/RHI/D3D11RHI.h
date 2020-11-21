@@ -813,7 +813,19 @@ public:
 	, bCreatedRTVsPerSlice(bInCreatedRTVsPerSlice)
 	, RTVArraySize(InRTVArraySize)
 	, NumDepthStencilViews(0)
-	{}
+	{
+		if (InDepthStencilViews != nullptr)
+		{
+			for (uint32 Index = 0; Index < FExclusiveDepthStencil::MaxIndex; Index++)
+			{
+				DepthStencilViews[Index] = InDepthStencilViews[Index];
+				// New Monolithic Graphics drivers have optional "fast calls" replacing various D3d functions
+				// You can't use fast version of XXSetShaderResources (called XXSetFastShaderResource) on dynamic or d/s targets
+				if (DepthStencilViews[Index] != NULL)
+					NumDepthStencilViews++;
+			}
+		}
+	}
 
 	uint32 GetSizeX() const { return SizeX; }
 	uint32 GetSizeY() const { return SizeY; }
@@ -1363,102 +1375,102 @@ void SetShaderValue(
 	SetShaderValue(Shader, Parameter, BoolValue, ElementIndex);
 }
 
-inline void SetShaderUniformBuffer(ID3D11VertexShader*, uint32 BaseIndex, ID3D11Buffer* ConstantBuffer)
+inline void SetShaderUniformBuffer(ComPtr<ID3D11VertexShader>, uint32 BaseIndex, ID3D11Buffer* ConstantBuffer)
 {
 	D3D11DeviceContext->VSSetConstantBuffers(BaseIndex, 1,&ConstantBuffer);
 }
-inline void SetShaderUniformBuffer(ID3D11PixelShader*, uint32 BaseIndex, ID3D11Buffer* ConstantBuffer)
+inline void SetShaderUniformBuffer(ComPtr<ID3D11PixelShader>, uint32 BaseIndex, ID3D11Buffer* ConstantBuffer)
 {
 	D3D11DeviceContext->PSSetConstantBuffers(BaseIndex, 1, &ConstantBuffer);
 }
-inline void SetShaderUniformBuffer(ID3D11HullShader*, uint32 BaseIndex, ID3D11Buffer* ConstantBuffer)
+inline void SetShaderUniformBuffer(ComPtr<ID3D11HullShader>, uint32 BaseIndex, ID3D11Buffer* ConstantBuffer)
 {
 	D3D11DeviceContext->HSSetConstantBuffers(BaseIndex, 1, &ConstantBuffer);
 }
-inline void SetShaderUniformBuffer(ID3D11DomainShader*, uint32 BaseIndex, ID3D11Buffer* ConstantBuffer)
+inline void SetShaderUniformBuffer(ComPtr<ID3D11DomainShader>, uint32 BaseIndex, ID3D11Buffer* ConstantBuffer)
 {
 	D3D11DeviceContext->DSSetConstantBuffers(BaseIndex, 1, &ConstantBuffer);
 }
-inline void SetShaderUniformBuffer(ID3D11GeometryShader*, uint32 BaseIndex, ID3D11Buffer* ConstantBuffer)
+inline void SetShaderUniformBuffer(ComPtr<ID3D11GeometryShader>, uint32 BaseIndex, ID3D11Buffer* ConstantBuffer)
 {
 	D3D11DeviceContext->GSSetConstantBuffers(BaseIndex, 1, &ConstantBuffer);
 }
-inline void SetShaderUniformBuffer(ID3D11ComputeShader*, uint32 BaseIndex, ID3D11Buffer* ConstantBuffer)
+inline void SetShaderUniformBuffer(ComPtr<ID3D11ComputeShader>, uint32 BaseIndex, ID3D11Buffer* ConstantBuffer)
 {
 	D3D11DeviceContext->CSSetConstantBuffers(BaseIndex, 1, &ConstantBuffer);
 }
 //srv
-inline void SetShaderSRV(ID3D11VertexShader*, uint32 BaseIndex, ID3D11ShaderResourceView* SRV)
+inline void SetShaderSRV(ComPtr<ID3D11VertexShader>, uint32 BaseIndex, ID3D11ShaderResourceView* SRV)
 {
 	D3D11DeviceContext->VSSetShaderResources(BaseIndex, 1, &SRV);
 }
-inline void SetShaderSRV(ID3D11PixelShader*, uint32 BaseIndex, ID3D11ShaderResourceView* SRV)
+inline void SetShaderSRV(ComPtr<ID3D11PixelShader>, uint32 BaseIndex, ID3D11ShaderResourceView* SRV)
 {
 	D3D11DeviceContext->PSSetShaderResources(BaseIndex, 1, &SRV);
 }
-inline void SetShaderSRV(ID3D11HullShader*, uint32 BaseIndex, ID3D11ShaderResourceView* SRV)
+inline void SetShaderSRV(ComPtr<ID3D11HullShader>, uint32 BaseIndex, ID3D11ShaderResourceView* SRV)
 {
 	D3D11DeviceContext->HSSetShaderResources(BaseIndex, 1, &SRV);
 }
-inline void SetShaderSRV(ID3D11DomainShader*, uint32 BaseIndex, ID3D11ShaderResourceView* SRV)
+inline void SetShaderSRV(ComPtr<ID3D11DomainShader>, uint32 BaseIndex, ID3D11ShaderResourceView* SRV)
 {
 	D3D11DeviceContext->DSSetShaderResources(BaseIndex, 1, &SRV);
 }
-inline void SetShaderSRV(ID3D11GeometryShader*, uint32 BaseIndex, ID3D11ShaderResourceView* SRV)
+inline void SetShaderSRV(ComPtr<ID3D11GeometryShader>, uint32 BaseIndex, ID3D11ShaderResourceView* SRV)
 {
 	D3D11DeviceContext->GSSetShaderResources(BaseIndex, 1, &SRV);
 }
-inline void SetShaderSRV(ID3D11ComputeShader*, uint32 BaseIndex, ID3D11ShaderResourceView* SRV)
+inline void SetShaderSRV(ComPtr<ID3D11ComputeShader>, uint32 BaseIndex, ID3D11ShaderResourceView* SRV)
 {
 	D3D11DeviceContext->CSSetShaderResources(BaseIndex, 1, &SRV);
 }
 //sampler
-inline void SetShaderSampler(ID3D11VertexShader*, uint32 BaseIndex, ID3D11SamplerState* Sampler)
+inline void SetShaderSampler(ComPtr<ID3D11VertexShader>, uint32 BaseIndex, ID3D11SamplerState* Sampler)
 {
 	D3D11DeviceContext->VSSetSamplers(BaseIndex, 1, &Sampler);
 }
-inline void SetShaderSampler(ID3D11PixelShader*, uint32 BaseIndex, ID3D11SamplerState* Sampler)
+inline void SetShaderSampler(ComPtr<ID3D11PixelShader>, uint32 BaseIndex, ID3D11SamplerState* Sampler)
 {
 	D3D11DeviceContext->PSSetSamplers(BaseIndex, 1, &Sampler);
 }
-inline void SetShaderSampler(ID3D11HullShader*, uint32 BaseIndex, ID3D11SamplerState* Sampler)
+inline void SetShaderSampler(ComPtr<ID3D11HullShader>, uint32 BaseIndex, ID3D11SamplerState* Sampler)
 {
 	D3D11DeviceContext->HSSetSamplers(BaseIndex, 1, &Sampler);
 }
-inline void SetShaderSampler(ID3D11DomainShader*, uint32 BaseIndex, ID3D11SamplerState* Sampler)
+inline void SetShaderSampler(ComPtr<ID3D11DomainShader>, uint32 BaseIndex, ID3D11SamplerState* Sampler)
 {
 	D3D11DeviceContext->DSSetSamplers(BaseIndex, 1, &Sampler);
 }
-inline void SetShaderSampler(ID3D11GeometryShader*, uint32 BaseIndex, ID3D11SamplerState* Sampler)
+inline void SetShaderSampler(ComPtr<ID3D11GeometryShader>, uint32 BaseIndex, ID3D11SamplerState* Sampler)
 {
 	D3D11DeviceContext->GSSetSamplers(BaseIndex, 1, &Sampler);
 }
-inline void SetShaderSampler(ID3D11ComputeShader*, uint32 BaseIndex, ID3D11SamplerState* Sampler)
+inline void SetShaderSampler(ComPtr<ID3D11ComputeShader>, uint32 BaseIndex, ID3D11SamplerState* Sampler)
 {
 	D3D11DeviceContext->CSSetSamplers(BaseIndex, 1, &Sampler);
 }
 //UAV
-inline void SetShaderUAV(ID3D11VertexShader*, uint32 BaseIndex, ID3D11UnorderedAccessView* UAV)
+inline void SetShaderUAV(ComPtr<ID3D11VertexShader>, uint32 BaseIndex, ID3D11UnorderedAccessView* UAV)
 {
 	assert(false);
 }
-inline void SetShaderUAV(ID3D11PixelShader*, uint32 BaseIndex, ID3D11UnorderedAccessView* UAV)
+inline void SetShaderUAV(ComPtr<ID3D11PixelShader>, uint32 BaseIndex, ID3D11UnorderedAccessView* UAV)
 {
 	assert(false);
 }
-inline void SetShaderUAV(ID3D11HullShader*, uint32 BaseIndex, ID3D11UnorderedAccessView* UAV)
+inline void SetShaderUAV(ComPtr<ID3D11HullShader>, uint32 BaseIndex, ID3D11UnorderedAccessView* UAV)
 {
 	assert(false);
 }
-inline void SetShaderUAV(ID3D11DomainShader*, uint32 BaseIndex, ID3D11UnorderedAccessView* UAV)
+inline void SetShaderUAV(ComPtr<ID3D11DomainShader>, uint32 BaseIndex, ID3D11UnorderedAccessView* UAV)
 {
 	assert(false);
 }
-inline void SetShaderUAV(ID3D11GeometryShader*, uint32 BaseIndex, ID3D11UnorderedAccessView* UAV)
+inline void SetShaderUAV(ComPtr<ID3D11GeometryShader>, uint32 BaseIndex, ID3D11UnorderedAccessView* UAV)
 {
 	assert(false);
 }
-inline void SetShaderUAV(ID3D11ComputeShader*, uint32 BaseIndex, ID3D11UnorderedAccessView* UAV)
+inline void SetShaderUAV(ComPtr<ID3D11ComputeShader>, uint32 BaseIndex, ID3D11UnorderedAccessView* UAV)
 {
 	//D3D11DeviceContext->CSSetUnorderedAccessViews(BaseIndex, 1, &UAV);
 }
@@ -1552,3 +1564,44 @@ inline void SetUniformBufferParameter(
 		}
 	}
 }
+
+struct FBoundShaderStateInput
+{
+	std::shared_ptr<std::vector<D3D11_INPUT_ELEMENT_DESC>> VertexDeclarationRHI;
+	ComPtr<ID3DBlob> VSCode;
+	ComPtr<ID3D11VertexShader> VertexShaderRHI;
+	ComPtr<ID3D11HullShader> HullShaderRHI;
+	ComPtr<ID3D11DomainShader> DomainShaderRHI;
+	ComPtr<ID3D11PixelShader> PixelShaderRHI;
+	ComPtr<ID3D11GeometryShader> GeometryShaderRHI;
+
+	inline FBoundShaderStateInput()
+		: VertexDeclarationRHI(nullptr)
+		, VSCode(nullptr)
+		, VertexShaderRHI(nullptr)
+		, HullShaderRHI(nullptr)
+		, DomainShaderRHI(nullptr)
+		, PixelShaderRHI(nullptr)
+		, GeometryShaderRHI(nullptr)
+	{
+	}
+
+	inline FBoundShaderStateInput(
+		std::shared_ptr<std::vector<D3D11_INPUT_ELEMENT_DESC>> InVertexDeclarationRHI,
+		ComPtr<ID3DBlob> InVSCode,
+		ComPtr<ID3D11VertexShader> InVertexShaderRHI,
+		ComPtr<ID3D11HullShader> InHullShaderRHI,
+		ComPtr<ID3D11DomainShader> InDomainShaderRHI,
+		ComPtr<ID3D11PixelShader> InPixelShaderRHI,
+		ComPtr<ID3D11GeometryShader> InGeometryShaderRHI
+	)
+		: VertexDeclarationRHI(InVertexDeclarationRHI)
+		, VSCode(InVSCode)
+		, VertexShaderRHI(InVertexShaderRHI)
+		, HullShaderRHI(InHullShaderRHI)
+		, DomainShaderRHI(InDomainShaderRHI)
+		, PixelShaderRHI(InPixelShaderRHI)
+		, GeometryShaderRHI(InGeometryShaderRHI)
+	{
+	}
+};

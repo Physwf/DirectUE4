@@ -159,7 +159,7 @@ bool StaticMesh::GetMeshElement(int BatchIndex, int SectionIndex, FMeshBatch& Ou
 	Element.IndexBuffer = RenderData->LODResources[0]->IndexBuffer.Get();
 	OutMeshBatch.VertexFactory = &VFs.VertexFactory;
 	OutMeshBatch.MaterialRenderProxy = Material->GetRenderProxy(false, false);
-	OutMeshBatch.Elements.emplace_back(Element);
+	OutMeshBatch.Elements[0] = Element;
 	return true;
 }
 

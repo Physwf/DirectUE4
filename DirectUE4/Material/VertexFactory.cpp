@@ -161,12 +161,12 @@ void FVertexFactory::SetPositionStream(ID3D11DeviceContext* Context) const
 
 void FVertexFactory::InitDeclaration(std::vector<D3D11_INPUT_ELEMENT_DESC>& Elements)
 {
-	Declaration = Elements;
+	Declaration = std::make_shared<std::vector<D3D11_INPUT_ELEMENT_DESC>>(Elements) ;
 }
 
 void FVertexFactory::InitPositionDeclaration(std::vector<D3D11_INPUT_ELEMENT_DESC>& Elements)
 {
-	PositionDeclaration = Elements;
+	PositionDeclaration = std::make_shared<std::vector<D3D11_INPUT_ELEMENT_DESC>>(Elements);
 }
 
 D3D11_INPUT_ELEMENT_DESC FVertexFactory::AccessStreamComponent(const FVertexStreamComponent& Component, uint8 AttributeIndex)
@@ -335,7 +335,7 @@ void FLocalVertexFactoryShaderParameters::SetMesh(FShader* Shader, const FVertex
 			VertexFactoryUniformBuffer = LocalVertexFactory->GetUniformBuffer();
 		}
 
-		SetUniformBufferParameter(VS.Get(), Shader->GetUniformBufferParameter<FLocalVertexFactoryUniformShaderParameters>(), VertexFactoryUniformBuffer);
+		SetUniformBufferParameter(VS, Shader->GetUniformBufferParameter<FLocalVertexFactoryUniformShaderParameters>(), VertexFactoryUniformBuffer);
 	}
 
 // 	if (BatchElement.bUserDataIsColorVertexBuffer)

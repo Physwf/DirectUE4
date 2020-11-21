@@ -45,6 +45,20 @@ public:
 	void BeginRenderingSeparateTranslucency();
 	void FinishRenderingSeparateTranslucency();
 
+	void SetDefaultColorClear(const FClearValueBinding ColorClear)
+	{
+		DefaultColorClear = ColorClear;
+	}
+
+	void SetDefaultDepthClear(const FClearValueBinding DepthClear)
+	{
+		DefaultDepthClear = DepthClear;
+	}
+
+	FClearValueBinding GetDefaultDepthClear()
+	{
+		return DefaultDepthClear;
+	}
 
 	void FinishRendering();
 

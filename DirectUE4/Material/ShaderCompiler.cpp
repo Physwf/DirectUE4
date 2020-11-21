@@ -65,6 +65,7 @@ void FShaderCompilingManager::FinishCompilation(const char* MaterialName, const 
 			Job->bSucceeded = CompileShader(ShaderFileContent, Input.EntryPointName.c_str(), ShaderTargets[Input.Frequency], ShaderMacros.data(), Output.ShaderCode.GetAddressOf());
 			if (Job->bSucceeded)
 			{
+				Output.Frequency = Input.Frequency;
 				GetShaderParameterAllocations(Output.ShaderCode.Get(),Job->Output.ParameterMap);
 			}
 		}

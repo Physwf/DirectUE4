@@ -93,6 +93,11 @@ void FMeshMaterialShader::SetMesh(
 	const FDrawingPolicyRenderState& DrawRenderState,
 	uint32 DataFlags /*= 0 */)
 {
+	VertexFactoryParameters.SetMesh(this, VertexFactory, View, BatchElement,0);
 
+	if (BatchElement.PrimitiveUniformBuffer)
+	{
+		SetUniformBufferParameter(ShaderRHI, GetUniformBufferParameter<FPrimitiveUniformShaderParameters>(), BatchElement.PrimitiveUniformBuffer);
+	}
 }
 
