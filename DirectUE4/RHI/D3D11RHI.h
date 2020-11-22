@@ -792,8 +792,8 @@ public:
 		EPixelFormat InFormat,
 		uint32 InFlags, 
 		const FClearValueBinding& InClearValue,
-		ID3D11Texture2D* InResource,
-		ID3D11ShaderResourceView* InShaderResourceView,
+		ComPtr<ID3D11Texture2D> InResource,
+		ComPtr<ID3D11ShaderResourceView> InShaderResourceView,
 		int32 InRTVArraySize,
 		bool bInCreatedRTVsPerSlice,
 		const std::vector<ComPtr<ID3D11RenderTargetView>>& InRenderTargetViews,
@@ -998,10 +998,10 @@ enum ETextureCreateFlags
 };
 
 ID3D11Buffer* RHICreateVertexBuffer(UINT Size, D3D11_USAGE InUsage, UINT BindFlags, UINT MiscFlags, const void* Data = NULL);
-FD3D11Texture2D* CreateD3D11Texture2D(uint32 SizeX, uint32 SizeY, uint32 SizeZ, bool bTextureArray, bool bCubeTexture, EPixelFormat Format, uint32 NumMips, uint32 NumSamples, uint32 Flags, FClearValueBinding ClearBindingValue = FClearValueBinding::Transparent, void* BulkData = nullptr, uint32 BulkDataSize = 0);
-ID3D11ShaderResourceView* RHICreateShaderResourceView(FD3D11Texture2D* Texture2DRHI, uint16 MipLevel);
-ID3D11ShaderResourceView* RHICreateShaderResourceView(ID3D11Buffer* VertexBuffer, UINT Stride, DXGI_FORMAT Format);
-inline FD3D11Texture2D* RHICreateTexture2D(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 NumSamples, uint32 Flags, FClearValueBinding ClearBindingValue = FClearValueBinding::Transparent, void* BulkData = nullptr, uint32 BulkDataSize = 0)
+std::shared_ptr<FD3D11Texture2D> CreateD3D11Texture2D(uint32 SizeX, uint32 SizeY, uint32 SizeZ, bool bTextureArray, bool bCubeTexture, EPixelFormat Format, uint32 NumMips, uint32 NumSamples, uint32 Flags, FClearValueBinding ClearBindingValue = FClearValueBinding::Transparent, void* BulkData = nullptr, uint32 BulkDataSize = 0);
+ComPtr<ID3D11ShaderResourceView> RHICreateShaderResourceView(std::shared_ptr<FD3D11Texture2D> Texture2DRHI, uint16 MipLevel);
+ComPtr<ID3D11ShaderResourceView> RHICreateShaderResourceView(ID3D11Buffer* VertexBuffer, UINT Stride, DXGI_FORMAT Format);
+inline std::shared_ptr<FD3D11Texture2D> RHICreateTexture2D(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 NumSamples, uint32 Flags, FClearValueBinding ClearBindingValue = FClearValueBinding::Transparent, void* BulkData = nullptr, uint32 BulkDataSize = 0)
 {
 	return CreateD3D11Texture2D(SizeX, SizeY,1,false,false, (EPixelFormat)Format, NumMips, NumSamples, Flags, ClearBindingValue, BulkData, BulkDataSize);
 }
@@ -1033,8 +1033,8 @@ inline void RHICreateTargetableShaderResource2D(
 	uint32 TargetableTextureFlags,
 	bool bForceSeparateTargetAndShaderResource,
 	FClearValueBinding ClearValue,
-	FD3D11Texture2D*& OutTargetableTexture,
-	FD3D11Texture2D*& OutShaderResourceTexture,
+	std::shared_ptr<FD3D11Texture2D>& OutTargetableTexture,
+	std::shared_ptr<FD3D11Texture2D>& OutShaderResourceTexture,
 	uint32 NumSamples = 1
 )
 {
@@ -1181,18 +1181,18 @@ inline void ConstructUniformBufferInfo(const UniformParameters& Param)
 struct FUniformBuffer
 {
 	std::string ConstantBufferName;
-	ComPtr<ID3D11Buffer> ConstantBuffer = NULL;
-	std::map<std::string, ComPtr<ID3D11ShaderResourceView>> SRVs;
-	std::map<std::string, ComPtr<ID3D11SamplerState>> Samplers;
-	std::map<std::string, ComPtr<ID3D11UnorderedAccessView>> UAVs;
+	ID3D11Buffer* ConstantBuffer = NULL;
+	std::map<std::string, ID3D11ShaderResourceView*> SRVs;
+	std::map<std::string, ID3D11SamplerState*> Samplers;
+	std::map<std::string, ID3D11UnorderedAccessView*> UAVs;
 };
 
 std::shared_ptr<FUniformBuffer> RHICreateUniformBuffer(
 	UINT Size,
 	const void* Contents, 
-	std::map<std::string, ComPtr<ID3D11ShaderResourceView>>& SRVs, 
-	std::map<std::string, ComPtr<ID3D11SamplerState>>& Samplers, 
-	std::map<std::string, ComPtr<ID3D11UnorderedAccessView>>& UAVs
+	std::map<std::string, ID3D11ShaderResourceView*>& SRVs,
+	std::map<std::string, ID3D11SamplerState*>& Samplers,
+	std::map<std::string, ID3D11UnorderedAccessView*>& UAVs
 );
 
 template<typename TBufferStruct>
@@ -1295,8 +1295,9 @@ private:
 	uint8* Contents;
 };
 
-void SetRenderTarget(ID3D11DeviceContext* Context, ID3D11RenderTargetView* NewRenderTarget, ID3D11DepthStencilView* NewDepthStencilTarget);
-
+void SetRenderTarget(FD3D11Texture2D* NewRenderTarget, FD3D11Texture2D* NewDepthStencilTarget);
+void SetRenderTarget(FD3D11Texture2D* NewRenderTarget, FD3D11Texture2D* NewDepthStencilTarget,bool bClearColor=false, bool bClearDepth = false,bool bClearStencil = false);
+void CopyToResolveTarget(FD3D11Texture2D* SourceTextureRHI, FD3D11Texture2D* DestTextureRHI/*, const FResolveParams& ResolveParams*/);
 class FD3D11ConstantBuffer
 {
 public:
@@ -1489,18 +1490,18 @@ inline void SetUniformBufferParameter(
 	assert(!Parameter.IsBound() || UniformBufferRHI);
 	if (Parameter.IsBound())
 	{
-		SetShaderUniformBuffer(Shader, Parameter.GetBaseIndex(), UniformBufferRHI->ConstantBuffer.Get());
+		SetShaderUniformBuffer(Shader, Parameter.GetBaseIndex(), UniformBufferRHI->ConstantBuffer);
 		for (auto& Pair : Parameter.GetSRVs())
 		{
-			SetShaderSRV(Shader, Pair.second, UniformBufferRHI->SRVs[Pair.first].Get());
+			SetShaderSRV(Shader, Pair.second, UniformBufferRHI->SRVs[Pair.first]);
 		}
 		for (auto& Pair : Parameter.GetSamplers())
 		{
-			SetShaderSampler(Shader, Pair.second, UniformBufferRHI->Samplers[Pair.first].Get());
+			SetShaderSampler(Shader, Pair.second, UniformBufferRHI->Samplers[Pair.first]);
 		}
 		for (auto& Pair : Parameter.GetUAVs())
 		{
-			SetShaderUAV(Shader, Pair.second, UniformBufferRHI->UAVs[Pair.first].Get());
+			SetShaderUAV(Shader, Pair.second, UniformBufferRHI->UAVs[Pair.first]);
 		}
 	}
 }
@@ -1519,18 +1520,18 @@ inline void SetUniformBufferParameter(
 	assert(!Parameter.IsBound() || UniformBufferRef);
 	if (Parameter.IsBound())
 	{
-		SetShaderUniformBuffer(Shader, Parameter.GetBaseIndex(), UniformBufferRef->ConstantBuffer.Get());
+		SetShaderUniformBuffer(Shader, Parameter.GetBaseIndex(), UniformBufferRef->ConstantBuffer);
 		for (auto& Pair : Parameter.GetSRVs())
 		{
-			SetShaderSRV(Shader, Pair.second, UniformBufferRef->SRVs[Pair.first].Get());
+			SetShaderSRV(Shader, Pair.second, UniformBufferRef->SRVs[Pair.first]);
 		}
 		for (auto& Pair : Parameter.GetSamplers())
 		{
-			SetShaderSampler(Shader, Pair.second, UniformBufferRef->Samplers[Pair.first].Get());
+			SetShaderSampler(Shader, Pair.second, UniformBufferRef->Samplers[Pair.first]);
 		}
 		for (auto& Pair : Parameter.GetUAVs())
 		{
-			SetShaderUAV(Shader, Pair.second, UniformBufferRef->UAVs[Pair.first].Get());
+			SetShaderUAV(Shader, Pair.second, UniformBufferRef->UAVs[Pair.first]);
 		}
 	}
 }
@@ -1550,18 +1551,18 @@ inline void SetUniformBufferParameter(
 	std::shared_ptr<FUniformBuffer> UniformBufferRHI = UniformBuffer.GetUniformBufferRHI();
 	if (Parameter.IsBound())
 	{
-		SetShaderUniformBuffer(Shader, Parameter.GetBaseIndex(), UniformBuffer.GetUniformBufferRHI()->ConstantBuffer.Get());
+		SetShaderUniformBuffer(Shader, Parameter.GetBaseIndex(), UniformBuffer.GetUniformBufferRHI()->ConstantBuffer);
 		for (auto& Pair : Parameter.GetSRVs())
 		{
-			SetShaderSRV(Shader, Pair.second, UniformBuffer.GetUniformBufferRHI()->SRVs[Pair.first].Get());
+			SetShaderSRV(Shader, Pair.second, UniformBuffer.GetUniformBufferRHI()->SRVs[Pair.first]);
 		}
 		for (auto& Pair : Parameter.GetSamplers())
 		{
-			SetShaderSampler(Shader, Pair.second, UniformBuffer.GetUniformBufferRHI()->Samplers[Pair.first].Get());
+			SetShaderSampler(Shader, Pair.second, UniformBuffer.GetUniformBufferRHI()->Samplers[Pair.first]);
 		}
 		for (auto& Pair : Parameter.GetUAVs())
 		{
-			SetShaderUAV(Shader, Pair.second, UniformBuffer.GetUniformBufferRHI()->UAVs[Pair.first].Get());
+			SetShaderUAV(Shader, Pair.second, UniformBuffer.GetUniformBufferRHI()->UAVs[Pair.first]);
 		}
 	}
 }

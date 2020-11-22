@@ -20,45 +20,45 @@ struct FSceneTexturesUniformParameters
 		float Pading004;
 	} Constants;
 
-	ComPtr<ID3D11ShaderResourceView> SceneColorTexture;
-	ComPtr<ID3D11SamplerState> SceneColorTextureSampler;
-	ComPtr<ID3D11ShaderResourceView> SceneDepthTexture;
-	ComPtr<ID3D11SamplerState> SceneDepthTextureSampler;
-	ComPtr<ID3D11SamplerState> SceneDepthTextureNonMS;
+	ID3D11ShaderResourceView* SceneColorTexture;
+	ID3D11SamplerState* SceneColorTextureSampler;
+	ID3D11ShaderResourceView* SceneDepthTexture;
+	ID3D11SamplerState* SceneDepthTextureSampler;
+	ID3D11SamplerState* SceneDepthTextureNonMS;
 	// GBuffer
-	ComPtr<ID3D11ShaderResourceView> GBufferATexture;
-	ComPtr<ID3D11ShaderResourceView> GBufferBTexture;
-	ComPtr<ID3D11ShaderResourceView> GBufferCTexture;
-	ComPtr<ID3D11ShaderResourceView> GBufferDTexture;
-	ComPtr<ID3D11ShaderResourceView> GBufferETexture;
-	ComPtr<ID3D11ShaderResourceView> GBufferVelocityTexture;
-	ComPtr<ID3D11ShaderResourceView> GBufferATextureNonMS;
-	ComPtr<ID3D11ShaderResourceView> GBufferBTextureNonMS;
-	ComPtr<ID3D11ShaderResourceView> GBufferCTextureNonMS;
-	ComPtr<ID3D11ShaderResourceView> GBufferDTextureNonMS;
-	ComPtr<ID3D11ShaderResourceView> GBufferETextureNonMS;
-	ComPtr<ID3D11ShaderResourceView> GBufferVelocityTextureNonMS;
-	ComPtr<ID3D11SamplerState> GBufferATextureSampler;
-	ComPtr<ID3D11SamplerState> GBufferBTextureSampler;
-	ComPtr<ID3D11SamplerState> GBufferCTextureSampler;
-	ComPtr<ID3D11SamplerState> GBufferDTextureSampler;
-	ComPtr<ID3D11SamplerState> GBufferETextureSampler;
-	ComPtr<ID3D11SamplerState> GBufferVelocityTextureSampler;
+	ID3D11ShaderResourceView* GBufferATexture;
+	ID3D11ShaderResourceView* GBufferBTexture;
+	ID3D11ShaderResourceView* GBufferCTexture;
+	ID3D11ShaderResourceView* GBufferDTexture;
+	ID3D11ShaderResourceView* GBufferETexture;
+	ID3D11ShaderResourceView* GBufferVelocityTexture;
+	ID3D11ShaderResourceView* GBufferATextureNonMS;
+	ID3D11ShaderResourceView* GBufferBTextureNonMS;
+	ID3D11ShaderResourceView* GBufferCTextureNonMS;
+	ID3D11ShaderResourceView* GBufferDTextureNonMS;
+	ID3D11ShaderResourceView* GBufferETextureNonMS;
+	ID3D11ShaderResourceView* GBufferVelocityTextureNonMS;
+	ID3D11SamplerState* GBufferATextureSampler;
+	ID3D11SamplerState* GBufferBTextureSampler;
+	ID3D11SamplerState* GBufferCTextureSampler;
+	ID3D11SamplerState* GBufferDTextureSampler;
+	ID3D11SamplerState* GBufferETextureSampler;
+	ID3D11SamplerState* GBufferVelocityTextureSampler;
 	// SSAO
-	ComPtr<ID3D11ShaderResourceView> ScreenSpaceAOTexture;
-	ComPtr<ID3D11SamplerState> ScreenSpaceAOTextureSampler;
+	ID3D11ShaderResourceView* ScreenSpaceAOTexture;
+	ID3D11SamplerState* ScreenSpaceAOTextureSampler;
 
 	// Custom Depth / Stencil
-	ComPtr<ID3D11ShaderResourceView> CustomDepthTextureNonMS;
-	ComPtr<ID3D11ShaderResourceView> CustomDepthTexture;
-	ComPtr<ID3D11SamplerState> CustomDepthTextureSampler;
-	ComPtr<ID3D11ShaderResourceView> CustomStencilTexture;
-	ComPtr<ID3D11ShaderResourceView> SceneStencilTexture;
+	ID3D11ShaderResourceView* CustomDepthTextureNonMS;
+	ID3D11ShaderResourceView* CustomDepthTexture;
+	ID3D11SamplerState* CustomDepthTextureSampler;
+	ID3D11ShaderResourceView* CustomStencilTexture;
+	ID3D11ShaderResourceView* SceneStencilTexture;
 
 	// Misc
-	ComPtr<ID3D11ShaderResourceView> EyeAdaptation;
-	ComPtr<ID3D11ShaderResourceView> SceneColorCopyTexture;
-	ComPtr<ID3D11SamplerState> SceneColorCopyTextureSampler;
+	ID3D11ShaderResourceView* EyeAdaptation;
+	ID3D11ShaderResourceView* SceneColorCopyTexture;
+	ID3D11SamplerState* SceneColorCopyTextureSampler;
 
 	static std::string GetConstantBufferName()
 	{
@@ -66,9 +66,9 @@ struct FSceneTexturesUniformParameters
 	}
 
 #define ADD_RES(StructName, MemberName) List.insert(std::make_pair(std::string(#StructName) + "_" + std::string(#MemberName),StructName.MemberName))
-	static std::map<std::string, ComPtr<ID3D11ShaderResourceView>> GetSRVs(const FSceneTexturesUniformParameters& SceneTexturesStruct)
+	static std::map<std::string, ID3D11ShaderResourceView*> GetSRVs(const FSceneTexturesUniformParameters& SceneTexturesStruct)
 	{
-		std::map<std::string, ComPtr<ID3D11ShaderResourceView>> List;
+		std::map<std::string, ID3D11ShaderResourceView*> List;
 		ADD_RES(SceneTexturesStruct, SceneColorTexture);
 		ADD_RES(SceneTexturesStruct, SceneDepthTexture);
 		ADD_RES(SceneTexturesStruct, GBufferATexture);
@@ -91,9 +91,9 @@ struct FSceneTexturesUniformParameters
 		ADD_RES(SceneTexturesStruct, SceneColorCopyTexture);
 		return List;
 	}
-	static std::map<std::string, ComPtr<ID3D11SamplerState>> GetSamplers(const FSceneTexturesUniformParameters& SceneTexturesStruct)
+	static std::map<std::string, ID3D11SamplerState*> GetSamplers(const FSceneTexturesUniformParameters& SceneTexturesStruct)
 	{
-		std::map<std::string, ComPtr<ID3D11SamplerState>> List;
+		std::map<std::string, ID3D11SamplerState*> List;
 		ADD_RES(SceneTexturesStruct, SceneColorTextureSampler);
 		ADD_RES(SceneTexturesStruct, SceneDepthTextureNonMS);
 		ADD_RES(SceneTexturesStruct, GBufferATextureSampler);
@@ -106,9 +106,9 @@ struct FSceneTexturesUniformParameters
 		ADD_RES(SceneTexturesStruct, SceneColorCopyTextureSampler);
 		return List;
 	}
-	static std::map<std::string, ComPtr<ID3D11UnorderedAccessView>> GetUAVs(const FSceneTexturesUniformParameters& SceneTexturesStruct)
+	static std::map<std::string, ID3D11UnorderedAccessView*> GetUAVs(const FSceneTexturesUniformParameters& SceneTexturesStruct)
 	{
-		std::map<std::string, ComPtr<ID3D11UnorderedAccessView>> List;
+		std::map<std::string, ID3D11UnorderedAccessView*> List;
 		return List;
 	}
 #undef ADD_RES

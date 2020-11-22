@@ -213,16 +213,16 @@ struct PooledRenderTarget
 	}
 	virtual const PooledRenderTargetDesc& GetDesc() const;
 	/** The 2D or cubemap texture that may be used as a render or depth-stencil target. */
-	FD3D11Texture2D* TargetableTexture;
+	std::shared_ptr<FD3D11Texture2D> TargetableTexture;
 	/** The 2D or cubemap shader-resource 2D texture that the targetable textures may be resolved to. */
-	FD3D11Texture2D* ShaderResourceTexture;
+	std::shared_ptr<FD3D11Texture2D> ShaderResourceTexture;
 	/** only created if requested through the flag, same as MipUAVs[0] */
 	// TODO: refactor all the code to only use MipUAVs?
-	ID3D11UnorderedAccessView* UAV;
+	ComPtr<ID3D11UnorderedAccessView> UAV;
 	/** only created if requested through the flag  */
-	std::vector<ID3D11UnorderedAccessView*> MipUAVs;
+	std::vector<ComPtr<ID3D11UnorderedAccessView>> MipUAVs;
 	/** only created if requested through the flag  */
-	std::vector<ID3D11ShaderResourceView*> MipSRVs;
+	std::vector<ComPtr<ID3D11ShaderResourceView>> MipSRVs;
 
 	//ID3D11ShaderResourceView* RTWriteMaskBufferRHI_SRV;
 	//FStructuredBufferRHIRef RTWriteMaskDataBufferRHI;

@@ -345,14 +345,14 @@ void RenderTargets::AllocGBufferTargets()
 	//GBufferRefCount = 1;
 }
 
-const FD3D11Texture2D* RenderTargets::GetActualDepthTexture() const
+const std::shared_ptr<FD3D11Texture2D>* RenderTargets::GetActualDepthTexture() const
 {
-	const FD3D11Texture2D* DepthTexture = NULL;
+	const std::shared_ptr<FD3D11Texture2D>* DepthTexture = NULL;
 	//if ((CurrentFeatureLevel >= ERHIFeatureLevel::SM4) || IsPCPlatform(GShaderPlatformForFeatureLevel[CurrentFeatureLevel]))
 	{
 		//if (GSupportsDepthFetchDuringDepthTest)
 		{
-			DepthTexture = GetSceneDepthTexture();
+			DepthTexture = &GetSceneDepthTexture();
 		}
 		//else
 		{
@@ -395,27 +395,27 @@ FIntPoint RenderTargets::ComputeDesiredSize(const SceneViewFamily& ViewFamily)
 int RenderTargets::GetGBufferRenderTargets(ERenderTargetLoadAction ColorLoadAction, FD3D11Texture2D* OutRenderTargets[8], int32& OutVelocityRTIndex)
 {
 	int32 MRTCount = 0;
-	OutRenderTargets[MRTCount++] = (FD3D11Texture2D*)GetSceneColorSurface();
-	OutRenderTargets[MRTCount++] = (FD3D11Texture2D*)GBufferA->TargetableTexture;
-	OutRenderTargets[MRTCount++] = (FD3D11Texture2D*)GBufferB->TargetableTexture;
-	OutRenderTargets[MRTCount++] = (FD3D11Texture2D*)GBufferC->TargetableTexture;
+	OutRenderTargets[MRTCount++] = (FD3D11Texture2D*)GetSceneColorSurface().get();
+	OutRenderTargets[MRTCount++] = (FD3D11Texture2D*)GBufferA->TargetableTexture.get();
+	OutRenderTargets[MRTCount++] = (FD3D11Texture2D*)GBufferB->TargetableTexture.get();
+	OutRenderTargets[MRTCount++] = (FD3D11Texture2D*)GBufferC->TargetableTexture.get();
 
 	return MRTCount;
 }
 
 void SetupSceneTextureUniformParameters(RenderTargets& SceneContext, ESceneTextureSetupMode SetupMode, FSceneTexturesUniformParameters& SceneTextureParameters)
 {
-	FD3D11Texture2D* WhiteDefault2D = GSystemTextures.WhiteDummy->ShaderResourceTexture;
-	FD3D11Texture2D* BlackDefault2D = GSystemTextures.BlackDummy->ShaderResourceTexture;
-	FD3D11Texture2D* DepthDefault = GSystemTextures.DepthDummy->ShaderResourceTexture;
+	std::shared_ptr<FD3D11Texture2D> WhiteDefault2D = GSystemTextures.WhiteDummy->ShaderResourceTexture;
+	std::shared_ptr<FD3D11Texture2D> BlackDefault2D = GSystemTextures.BlackDummy->ShaderResourceTexture;
+	std::shared_ptr<FD3D11Texture2D> DepthDefault = GSystemTextures.DepthDummy->ShaderResourceTexture;
 
 	// Scene Color / Depth
 	{
 		const bool bSetupDepth = (SetupMode & ESceneTextureSetupMode::SceneDepth) != ESceneTextureSetupMode::None;
 		SceneTextureParameters.SceneColorTexture = bSetupDepth ? SceneContext.GetSceneColorTexture()->GetShaderResourceView() : BlackDefault2D->GetShaderResourceView();
 		SceneTextureParameters.SceneColorTextureSampler = TStaticSamplerState<D3D11_FILTER_MIN_MAG_MIP_POINT, D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_CLAMP>::GetRHI();
-		const FD3D11Texture2D* ActualDepthTexture = SceneContext.GetActualDepthTexture();
-		SceneTextureParameters.SceneDepthTexture = bSetupDepth && ActualDepthTexture ? ActualDepthTexture->GetShaderResourceView() : DepthDefault->GetShaderResourceView();
+		const std::shared_ptr<FD3D11Texture2D>* ActualDepthTexture = SceneContext.GetActualDepthTexture();
+		SceneTextureParameters.SceneDepthTexture = bSetupDepth && ActualDepthTexture ? (*ActualDepthTexture)->GetShaderResourceView() : DepthDefault->GetShaderResourceView();
 
 // 		if (bSetupDepth && SceneContext.IsSeparateTranslucencyPass() && SceneContext.IsDownsampledTranslucencyDepthValid())
 // 		{

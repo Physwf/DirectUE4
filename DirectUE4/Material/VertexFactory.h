@@ -254,8 +254,8 @@ struct alignas(16) FLocalVertexFactoryUniformShaderParameters
 	} Constants;
 
 	
-	ComPtr<ID3D11ShaderResourceView> TexCoordBuffer;
-	ComPtr<ID3D11ShaderResourceView> PackedTangentsBuffer;
+	ID3D11ShaderResourceView* TexCoordBuffer;
+	ID3D11ShaderResourceView* PackedTangentsBuffer;
 
 	static constexpr std::size_t GetConstantBufferSize() 
 	{
@@ -268,21 +268,21 @@ struct alignas(16) FLocalVertexFactoryUniformShaderParameters
 		return "LocalVF";
 	}
 #define ADD_RES(StructName, MemberName) List.insert(std::make_pair(std::string(#StructName) + "_" + std::string(#MemberName),StructName.MemberName))
-	static std::map<std::string, ComPtr<ID3D11ShaderResourceView>> GetSRVs(const FLocalVertexFactoryUniformShaderParameters& LocalVF)
+	static std::map<std::string, ID3D11ShaderResourceView*> GetSRVs(const FLocalVertexFactoryUniformShaderParameters& LocalVF)
 	{
-		std::map<std::string, ComPtr<ID3D11ShaderResourceView>> List;
+		std::map<std::string, ID3D11ShaderResourceView*> List;
 		ADD_RES(LocalVF, TexCoordBuffer);
 		ADD_RES(LocalVF, PackedTangentsBuffer);
 		return List;
 	}
-	static std::map<std::string, ComPtr<ID3D11SamplerState>> GetSamplers(const FLocalVertexFactoryUniformShaderParameters& LocalVF)
+	static std::map<std::string, ID3D11SamplerState*> GetSamplers(const FLocalVertexFactoryUniformShaderParameters& LocalVF)
 	{
-		std::map<std::string, ComPtr<ID3D11SamplerState>> List;
+		std::map<std::string, ID3D11SamplerState*> List;
 		return List;
 	}
-	static std::map<std::string, ComPtr<ID3D11UnorderedAccessView>> GetUAVs(const FLocalVertexFactoryUniformShaderParameters& LocalVF)
+	static std::map<std::string, ID3D11UnorderedAccessView*> GetUAVs(const FLocalVertexFactoryUniformShaderParameters& LocalVF)
 	{
-		std::map<std::string, ComPtr<ID3D11UnorderedAccessView>> List;
+		std::map<std::string, ID3D11UnorderedAccessView*> List;
 		return List;
 	}
 #undef ADD_RES

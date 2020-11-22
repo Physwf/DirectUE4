@@ -34,19 +34,19 @@ struct alignas(16) FDrawRectangleParameters
 	{
 		return "DrawRectangleParameters";
 	}
-	static std::map<std::string, ComPtr<ID3D11ShaderResourceView>> GetSRVs(const FDrawRectangleParameters& DrawRectangleParameters)
+	static std::map<std::string, ID3D11ShaderResourceView*> GetSRVs(const FDrawRectangleParameters& DrawRectangleParameters)
 	{
-		std::map<std::string, ComPtr<ID3D11ShaderResourceView>> List;
+		std::map<std::string, ID3D11ShaderResourceView*> List;
 		return List;
 	}
-	static std::map<std::string, ComPtr<ID3D11SamplerState>> GetSamplers(const FDrawRectangleParameters& DrawRectangleParameters)
+	static std::map<std::string, ID3D11SamplerState*> GetSamplers(const FDrawRectangleParameters& DrawRectangleParameters)
 	{
-		std::map<std::string, ComPtr<ID3D11SamplerState>> List;
+		std::map<std::string, ID3D11SamplerState*> List;
 		return List;
 	}
-	static std::map<std::string, ComPtr<ID3D11UnorderedAccessView>> GetUAVs(const FDrawRectangleParameters& DrawRectangleParameters)
+	static std::map<std::string, ID3D11UnorderedAccessView*> GetUAVs(const FDrawRectangleParameters& DrawRectangleParameters)
 	{
-		std::map<std::string, ComPtr<ID3D11UnorderedAccessView>> List;
+		std::map<std::string, ID3D11UnorderedAccessView*> List;
 		return List;
 	}
 

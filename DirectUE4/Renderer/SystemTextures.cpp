@@ -17,8 +17,8 @@ void FSystemTextures::InternalInitializeTextures()
 			Desc.AutoWritable = false;
 			GRenderTargetPool.FindFreeElement(Desc, WhiteDummy, TEXT("WhiteDummy"));
 
-			SetRenderTarget(D3D11DeviceContext, WhiteDummy->TargetableTexture->GetRenderTargetView(0, 0), NULL);
-			D3D11DeviceContext->ResolveSubresource(WhiteDummy->ShaderResourceTexture->GetResource(), 0,WhiteDummy->TargetableTexture->GetResource(),0, (DXGI_FORMAT)GPixelFormats[PF_B8G8R8A8].PlatformFormat);
+			SetRenderTarget(WhiteDummy->TargetableTexture.get(), NULL,true);
+			CopyToResolveTarget(WhiteDummy->TargetableTexture.get(), WhiteDummy->ShaderResourceTexture.get());
 		}
 
 		// Create a BlackDummy texture
@@ -27,8 +27,8 @@ void FSystemTextures::InternalInitializeTextures()
 			Desc.AutoWritable = false;
 			GRenderTargetPool.FindFreeElement(Desc, BlackDummy, TEXT("BlackDummy"));
 
-			SetRenderTarget(D3D11DeviceContext, BlackDummy->TargetableTexture->GetRenderTargetView(0, 0), NULL);
-			D3D11DeviceContext->ResolveSubresource(BlackDummy->ShaderResourceTexture->GetResource(), 0, BlackDummy->TargetableTexture->GetResource(), 0, (DXGI_FORMAT)GPixelFormats[PF_B8G8R8A8].PlatformFormat);
+			SetRenderTarget(BlackDummy->TargetableTexture.get(), NULL, true);
+			CopyToResolveTarget(BlackDummy->TargetableTexture.get(), BlackDummy->ShaderResourceTexture.get());
 		}
 
 		// Create a BlackAlphaOneDummy texture
@@ -37,8 +37,8 @@ void FSystemTextures::InternalInitializeTextures()
 			Desc.AutoWritable = false;
 			GRenderTargetPool.FindFreeElement(Desc, BlackAlphaOneDummy, TEXT("BlackAlphaOneDummy"));
 
-			SetRenderTarget(D3D11DeviceContext, BlackAlphaOneDummy->TargetableTexture->GetRenderTargetView(0, 0), NULL);
-			D3D11DeviceContext->ResolveSubresource(BlackAlphaOneDummy->ShaderResourceTexture->GetResource(), 0, BlackAlphaOneDummy->TargetableTexture->GetResource(), 0, (DXGI_FORMAT)GPixelFormats[PF_B8G8R8A8].PlatformFormat);
+			SetRenderTarget(BlackAlphaOneDummy->TargetableTexture.get(), NULL, true);
+			CopyToResolveTarget(BlackAlphaOneDummy->TargetableTexture.get(), BlackAlphaOneDummy->ShaderResourceTexture.get());
 		}
 
 		// Create a GreenDummy texture
@@ -46,8 +46,8 @@ void FSystemTextures::InternalInitializeTextures()
 			PooledRenderTargetDesc Desc(PooledRenderTargetDesc::Create2DDesc(FIntPoint(1, 1), PF_B8G8R8A8, FClearValueBinding::Green, TexCreate_HideInVisualizeTexture, TexCreate_RenderTargetable | TexCreate_NoFastClear, false));
 			Desc.AutoWritable = false;
 			GRenderTargetPool.FindFreeElement(Desc, GreenDummy, TEXT("GreenDummy"));
-			SetRenderTarget(D3D11DeviceContext, GreenDummy->TargetableTexture->GetRenderTargetView(0, 0), NULL);
-			D3D11DeviceContext->ResolveSubresource(GreenDummy->ShaderResourceTexture->GetResource(), 0, GreenDummy->TargetableTexture->GetResource(), 0, (DXGI_FORMAT)GPixelFormats[PF_B8G8R8A8].PlatformFormat);
+			SetRenderTarget(GreenDummy->TargetableTexture.get(), NULL, true);
+			CopyToResolveTarget(GreenDummy->TargetableTexture.get(), GreenDummy->ShaderResourceTexture.get());
 		}
 
 		// Create a DefaultNormal8Bit texture
@@ -55,8 +55,8 @@ void FSystemTextures::InternalInitializeTextures()
 			PooledRenderTargetDesc Desc(PooledRenderTargetDesc::Create2DDesc(FIntPoint(1, 1), PF_B8G8R8A8, FClearValueBinding::DefaultNormal8Bit, TexCreate_HideInVisualizeTexture, TexCreate_RenderTargetable | TexCreate_NoFastClear, false));
 			Desc.AutoWritable = false;
 			GRenderTargetPool.FindFreeElement(Desc, DefaultNormal8Bit, TEXT("DefaultNormal8Bit"));
-			SetRenderTarget(D3D11DeviceContext, DefaultNormal8Bit->TargetableTexture->GetRenderTargetView(0, 0), NULL);
-			D3D11DeviceContext->ResolveSubresource(DefaultNormal8Bit->ShaderResourceTexture->GetResource(), 0, DefaultNormal8Bit->TargetableTexture->GetResource(), 0, (DXGI_FORMAT)GPixelFormats[PF_B8G8R8A8].PlatformFormat);
+			SetRenderTarget(DefaultNormal8Bit->TargetableTexture.get(), NULL, true);
+			CopyToResolveTarget(DefaultNormal8Bit->TargetableTexture.get(), DefaultNormal8Bit->ShaderResourceTexture.get());
 		}
 		// Create the PerlinNoiseGradient texture
 		{
@@ -169,8 +169,8 @@ void FSystemTextures::InternalInitializeTextures()
 			//FRHISetRenderTargetsInfo Info(0, nullptr, FRHIDepthRenderTargetView(DepthDummy->TargetableTexture, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore));
 			//RHICmdList.SetRenderTargetsAndClear(Info);
 			//RHICmdList.CopyToResolveTarget(DepthDummy->TargetableTexture, DepthDummy->ShaderResourceTexture, FResolveParams());
-			SetRenderTarget(D3D11DeviceContext, NULL, DepthDummy->TargetableTexture->GetDepthStencilView(FExclusiveDepthStencil::DepthWrite));
-			D3D11DeviceContext->ResolveSubresource(DepthDummy->ShaderResourceTexture->GetResource(), 0, DepthDummy->TargetableTexture->GetResource(), 0, (DXGI_FORMAT)GPixelFormats[PF_DepthStencil].PlatformFormat);
+			SetRenderTarget(NULL, DepthDummy->TargetableTexture.get(),false, true);
+			CopyToResolveTarget(DepthDummy->TargetableTexture.get(), DepthDummy->ShaderResourceTexture.get());
 		}
 	}
 #if 0

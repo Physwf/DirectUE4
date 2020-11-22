@@ -49,29 +49,29 @@ struct alignas(16) FPrecomputedLightingParameters
 		Vector4 LightMapAdd[MAX_NUM_LIGHTMAP_COEF];// EShaderPrecisionModifier::Half; // TLightMapPolicy
 	};
 
-	ComPtr<ID3D11ShaderResourceView> LightMapTexture; // TLightMapPolicy
-	ComPtr<ID3D11ShaderResourceView> SkyOcclusionTexture; // TLightMapPolicy
-	ComPtr<ID3D11ShaderResourceView> AOMaterialMaskTexture; // TLightMapPolicy
-	ComPtr<ID3D11ShaderResourceView> IndirectLightingCacheTexture0; //Texture3D  FCachedVolumeIndirectLightingPolicy
-	ComPtr<ID3D11ShaderResourceView> IndirectLightingCacheTexture1; //Texture3D FCachedVolumeIndirectLightingPolicy
-	ComPtr<ID3D11ShaderResourceView> IndirectLightingCacheTexture2; //Texture3D FCachedVolumeIndirectLightingPolicy
-	ComPtr<ID3D11ShaderResourceView> StaticShadowTexture; // 
-	ComPtr<ID3D11SamplerState> LightMapSampler; // TLightMapPolicy
-	ComPtr<ID3D11SamplerState> SkyOcclusionSampler; // TLightMapPolicy
-	ComPtr<ID3D11SamplerState> AOMaterialMaskSampler; // TLightMapPolicy
-	ComPtr<ID3D11SamplerState> IndirectLightingCacheTextureSampler0; // FCachedVolumeIndirectLightingPolicy
-	ComPtr<ID3D11SamplerState> IndirectLightingCacheTextureSampler1; // FCachedVolumeIndirectLightingPolicy
-	ComPtr<ID3D11SamplerState> IndirectLightingCacheTextureSampler2; // FCachedVolumeIndirectLightingPolicy
-	ComPtr<ID3D11SamplerState> StaticShadowTextureSampler; // TDistanceFieldShadowsAndLightMapPolicy
+	ID3D11ShaderResourceView* LightMapTexture; // TLightMapPolicy
+	ID3D11ShaderResourceView* SkyOcclusionTexture; // TLightMapPolicy
+	ID3D11ShaderResourceView* AOMaterialMaskTexture; // TLightMapPolicy
+	ID3D11ShaderResourceView* IndirectLightingCacheTexture0; //Texture3D  FCachedVolumeIndirectLightingPolicy
+	ID3D11ShaderResourceView* IndirectLightingCacheTexture1; //Texture3D FCachedVolumeIndirectLightingPolicy
+	ID3D11ShaderResourceView* IndirectLightingCacheTexture2; //Texture3D FCachedVolumeIndirectLightingPolicy
+	ID3D11ShaderResourceView* StaticShadowTexture; // 
+	ID3D11SamplerState* LightMapSampler; // TLightMapPolicy
+	ID3D11SamplerState* SkyOcclusionSampler; // TLightMapPolicy
+	ID3D11SamplerState* AOMaterialMaskSampler; // TLightMapPolicy
+	ID3D11SamplerState* IndirectLightingCacheTextureSampler0; // FCachedVolumeIndirectLightingPolicy
+	ID3D11SamplerState* IndirectLightingCacheTextureSampler1; // FCachedVolumeIndirectLightingPolicy
+	ID3D11SamplerState* IndirectLightingCacheTextureSampler2; // FCachedVolumeIndirectLightingPolicy
+	ID3D11SamplerState* StaticShadowTextureSampler; // TDistanceFieldShadowsAndLightMapPolicy
 
 	static std::string GetConstantBufferName()
 	{
 		return "PrecomputedLightingBuffer";
 	}
 #define ADD_RES(StructName, MemberName) List.insert(std::make_pair(std::string(#StructName) + "_" + std::string(#MemberName),StructName.MemberName))
-	static std::map<std::string, ComPtr<ID3D11ShaderResourceView>> GetSRVs(const FPrecomputedLightingParameters& PrecomputedLightingBuffer)
+	static std::map<std::string, ID3D11ShaderResourceView*> GetSRVs(const FPrecomputedLightingParameters& PrecomputedLightingBuffer)
 	{
-		std::map<std::string, ComPtr<ID3D11ShaderResourceView>> List;
+		std::map<std::string,ID3D11ShaderResourceView*> List;
 		ADD_RES(PrecomputedLightingBuffer, LightMapTexture);
 		ADD_RES(PrecomputedLightingBuffer, SkyOcclusionTexture);
 		ADD_RES(PrecomputedLightingBuffer, AOMaterialMaskTexture);
@@ -81,9 +81,9 @@ struct alignas(16) FPrecomputedLightingParameters
 		ADD_RES(PrecomputedLightingBuffer, StaticShadowTexture);
 		return List;
 	}
-	static std::map<std::string, ComPtr<ID3D11SamplerState>> GetSamplers(const FPrecomputedLightingParameters& PrecomputedLightingBuffer)
+	static std::map<std::string, ID3D11SamplerState*> GetSamplers(const FPrecomputedLightingParameters& PrecomputedLightingBuffer)
 	{
-		std::map<std::string, ComPtr<ID3D11SamplerState>> List;
+		std::map<std::string, ID3D11SamplerState*> List;
 		ADD_RES(PrecomputedLightingBuffer, LightMapSampler);
 		ADD_RES(PrecomputedLightingBuffer, SkyOcclusionSampler);
 		ADD_RES(PrecomputedLightingBuffer, AOMaterialMaskSampler);
@@ -93,9 +93,9 @@ struct alignas(16) FPrecomputedLightingParameters
 		ADD_RES(PrecomputedLightingBuffer, StaticShadowTextureSampler);
 		return List;
 	}
-	static std::map<std::string, ComPtr<ID3D11UnorderedAccessView>> GetUAVs(const FPrecomputedLightingParameters& PrecomputedLightingBuffer)
+	static std::map<std::string, ID3D11UnorderedAccessView*> GetUAVs(const FPrecomputedLightingParameters& PrecomputedLightingBuffer)
 	{
-		std::map<std::string, ComPtr<ID3D11UnorderedAccessView>> List;
+		std::map<std::string, ID3D11UnorderedAccessView*> List;
 		return List;
 	}
 #undef ADD_RES

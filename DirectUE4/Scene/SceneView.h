@@ -431,67 +431,67 @@ struct alignas(16) FViewUniformShaderParameters
 	} Constants;
 
 
-	ComPtr<ID3D11SamplerState> MaterialTextureBilinearWrapedSampler;
-	ComPtr<ID3D11SamplerState> MaterialTextureBilinearClampedSampler;
+	ID3D11SamplerState* MaterialTextureBilinearWrapedSampler;
+	ID3D11SamplerState* MaterialTextureBilinearClampedSampler;
 
-	ComPtr<ID3D11ShaderResourceView> VolumetricLightmapIndirectionTexture; // FPrecomputedVolumetricLightmapLightingPolicy
-	ComPtr<ID3D11ShaderResourceView> VolumetricLightmapBrickAmbientVector; // FPrecomputedVolumetricLightmapLightingPolicy
-	ComPtr<ID3D11ShaderResourceView> VolumetricLightmapBrickSHCoefficients0; // FPrecomputedVolumetricLightmapLightingPolicy
-	ComPtr<ID3D11ShaderResourceView> VolumetricLightmapBrickSHCoefficients1; // FPrecomputedVolumetricLightmapLightingPolicy
-	ComPtr<ID3D11ShaderResourceView> VolumetricLightmapBrickSHCoefficients2; // FPrecomputedVolumetricLightmapLightingPolicy
-	ComPtr<ID3D11ShaderResourceView> VolumetricLightmapBrickSHCoefficients3; // FPrecomputedVolumetricLightmapLightingPolicy
-	ComPtr<ID3D11ShaderResourceView> VolumetricLightmapBrickSHCoefficients4; // FPrecomputedVolumetricLightmapLightingPolicy
-	ComPtr<ID3D11ShaderResourceView> VolumetricLightmapBrickSHCoefficients5; // FPrecomputedVolumetricLightmapLightingPolicy
-	ComPtr<ID3D11ShaderResourceView> SkyBentNormalBrickTexture; // FPrecomputedVolumetricLightmapLightingPolicy
-	ComPtr<ID3D11ShaderResourceView> DirectionalLightShadowingBrickTexture; // FPrecomputedVolumetricLightmapLightingPolicy
+	ID3D11ShaderResourceView* VolumetricLightmapIndirectionTexture; // FPrecomputedVolumetricLightmapLightingPolicy
+	ID3D11ShaderResourceView* VolumetricLightmapBrickAmbientVector; // FPrecomputedVolumetricLightmapLightingPolicy
+	ID3D11ShaderResourceView* VolumetricLightmapBrickSHCoefficients0; // FPrecomputedVolumetricLightmapLightingPolicy
+	ID3D11ShaderResourceView* VolumetricLightmapBrickSHCoefficients1; // FPrecomputedVolumetricLightmapLightingPolicy
+	ID3D11ShaderResourceView* VolumetricLightmapBrickSHCoefficients2; // FPrecomputedVolumetricLightmapLightingPolicy
+	ID3D11ShaderResourceView* VolumetricLightmapBrickSHCoefficients3; // FPrecomputedVolumetricLightmapLightingPolicy
+	ID3D11ShaderResourceView* VolumetricLightmapBrickSHCoefficients4; // FPrecomputedVolumetricLightmapLightingPolicy
+	ID3D11ShaderResourceView* VolumetricLightmapBrickSHCoefficients5; // FPrecomputedVolumetricLightmapLightingPolicy
+	ID3D11ShaderResourceView* SkyBentNormalBrickTexture; // FPrecomputedVolumetricLightmapLightingPolicy
+	ID3D11ShaderResourceView* DirectionalLightShadowingBrickTexture; // FPrecomputedVolumetricLightmapLightingPolicy
 
-	ComPtr<ID3D11SamplerState> VolumetricLightmapBrickAmbientVectorSampler; // FPrecomputedVolumetricLightmapLightingPolicy
-	ComPtr<ID3D11SamplerState> VolumetricLightmapTextureSampler0; // FPrecomputedVolumetricLightmapLightingPolicy
-	ComPtr<ID3D11SamplerState> VolumetricLightmapTextureSampler1; // FPrecomputedVolumetricLightmapLightingPolicy
-	ComPtr<ID3D11SamplerState> VolumetricLightmapTextureSampler2; // FPrecomputedVolumetricLightmapLightingPolicy
-	ComPtr<ID3D11SamplerState> VolumetricLightmapTextureSampler3; // FPrecomputedVolumetricLightmapLightingPolicy
-	ComPtr<ID3D11SamplerState> VolumetricLightmapTextureSampler4; // FPrecomputedVolumetricLightmapLightingPolicy
-	ComPtr<ID3D11SamplerState> VolumetricLightmapTextureSampler5; // FPrecomputedVolumetricLightmapLightingPolicy
-	ComPtr<ID3D11SamplerState> SkyBentNormalTextureSampler; // FPrecomputedVolumetricLightmapLightingPolicy
-	ComPtr<ID3D11SamplerState> DirectionalLightShadowingTextureSampler; // FPrecomputedVolumetricLightmapLightingPolicy
+	ID3D11SamplerState* VolumetricLightmapBrickAmbientVectorSampler; // FPrecomputedVolumetricLightmapLightingPolicy
+	ID3D11SamplerState* VolumetricLightmapTextureSampler0; // FPrecomputedVolumetricLightmapLightingPolicy
+	ID3D11SamplerState* VolumetricLightmapTextureSampler1; // FPrecomputedVolumetricLightmapLightingPolicy
+	ID3D11SamplerState* VolumetricLightmapTextureSampler2; // FPrecomputedVolumetricLightmapLightingPolicy
+	ID3D11SamplerState* VolumetricLightmapTextureSampler3; // FPrecomputedVolumetricLightmapLightingPolicy
+	ID3D11SamplerState* VolumetricLightmapTextureSampler4; // FPrecomputedVolumetricLightmapLightingPolicy
+	ID3D11SamplerState* VolumetricLightmapTextureSampler5; // FPrecomputedVolumetricLightmapLightingPolicy
+	ID3D11SamplerState* SkyBentNormalTextureSampler; // FPrecomputedVolumetricLightmapLightingPolicy
+	ID3D11SamplerState* DirectionalLightShadowingTextureSampler; // FPrecomputedVolumetricLightmapLightingPolicy
 
-	ComPtr<ID3D11ShaderResourceView> GlobalDistanceFieldTexture0;
-	ComPtr<ID3D11SamplerState> GlobalDistanceFieldSampler0;
-	ComPtr<ID3D11ShaderResourceView> GlobalDistanceFieldTexture1;
-	ComPtr<ID3D11SamplerState> GlobalDistanceFieldSampler1;
-	ComPtr<ID3D11ShaderResourceView> GlobalDistanceFieldTexture2;
-	ComPtr<ID3D11SamplerState> GlobalDistanceFieldSampler2;
-	ComPtr<ID3D11ShaderResourceView> GlobalDistanceFieldTexture3;
-	ComPtr<ID3D11SamplerState> GlobalDistanceFieldSampler3;
+	ID3D11ShaderResourceView* GlobalDistanceFieldTexture0;
+	ID3D11SamplerState* GlobalDistanceFieldSampler0;
+	ID3D11ShaderResourceView* GlobalDistanceFieldTexture1;
+	ID3D11SamplerState* GlobalDistanceFieldSampler1;
+	ID3D11ShaderResourceView* GlobalDistanceFieldTexture2;
+	ID3D11SamplerState* GlobalDistanceFieldSampler2;
+	ID3D11ShaderResourceView* GlobalDistanceFieldTexture3;
+	ID3D11SamplerState* GlobalDistanceFieldSampler3;
 
-	ComPtr<ID3D11ShaderResourceView> AtmosphereTransmittanceTexture;
-	ComPtr<ID3D11SamplerState> AtmosphereTransmittanceTextureSampler;
-	ComPtr<ID3D11ShaderResourceView> AtmosphereIrradianceTexture;
-	ComPtr<ID3D11SamplerState> AtmosphereIrradianceTextureSampler;
-	ComPtr<ID3D11ShaderResourceView> AtmosphereInscatterTexture;
-	ComPtr<ID3D11SamplerState> AtmosphereInscatterTextureSampler;
-	ComPtr<ID3D11ShaderResourceView> PerlinNoiseGradientTexture;
-	ComPtr<ID3D11SamplerState> PerlinNoiseGradientTextureSampler;
-	ComPtr<ID3D11ShaderResourceView> PerlinNoise3DTexture;
-	ComPtr<ID3D11SamplerState> PerlinNoise3DTextureSampler;
-	ComPtr<ID3D11ShaderResourceView> SobolSamplingTexture;
-	ComPtr<ID3D11SamplerState> SharedPointWrappedSampler;
-	ComPtr<ID3D11SamplerState> SharedPointClampedSampler;
-	ComPtr<ID3D11SamplerState> SharedBilinearWrappedSampler;
-	ComPtr<ID3D11SamplerState> SharedBilinearClampedSampler;
-	ComPtr<ID3D11SamplerState> SharedTrilinearWrappedSampler;
-	ComPtr<ID3D11SamplerState> SharedTrilinearClampedSampler;
-	ComPtr<ID3D11ShaderResourceView> PreIntegratedBRDF;
-	ComPtr<ID3D11SamplerState> PreIntegratedBRDFSampler;
+	ID3D11ShaderResourceView* AtmosphereTransmittanceTexture;
+	ID3D11SamplerState* AtmosphereTransmittanceTextureSampler;
+	ID3D11ShaderResourceView* AtmosphereIrradianceTexture;
+	ID3D11SamplerState* AtmosphereIrradianceTextureSampler;
+	ID3D11ShaderResourceView* AtmosphereInscatterTexture;
+	ID3D11SamplerState* AtmosphereInscatterTextureSampler;
+	ID3D11ShaderResourceView* PerlinNoiseGradientTexture;
+	ID3D11SamplerState* PerlinNoiseGradientTextureSampler;
+	ID3D11ShaderResourceView* PerlinNoise3DTexture;
+	ID3D11SamplerState* PerlinNoise3DTextureSampler;
+	ID3D11ShaderResourceView* SobolSamplingTexture;
+	ID3D11SamplerState* SharedPointWrappedSampler;
+	ID3D11SamplerState* SharedPointClampedSampler;
+	ID3D11SamplerState* SharedBilinearWrappedSampler;
+	ID3D11SamplerState* SharedBilinearClampedSampler;
+	ID3D11SamplerState* SharedTrilinearWrappedSampler;
+	ID3D11SamplerState* SharedTrilinearClampedSampler;
+	ID3D11ShaderResourceView* PreIntegratedBRDF;
+	ID3D11SamplerState* PreIntegratedBRDFSampler;
 
 	static std::string GetConstantBufferName()
 	{
 		return "View";
 	}
 #define ADD_RES(StructName, MemberName) List.insert(std::make_pair(std::string(#StructName) + "_" + std::string(#MemberName),StructName.MemberName))
-	static std::map<std::string, ComPtr<ID3D11ShaderResourceView>> GetSRVs(const FViewUniformShaderParameters& View)
+	static std::map<std::string, ID3D11ShaderResourceView*> GetSRVs(const FViewUniformShaderParameters& View)
 	{
-		std::map<std::string, ComPtr<ID3D11ShaderResourceView>> List;
+		std::map<std::string, ID3D11ShaderResourceView*> List;
 		ADD_RES(View, VolumetricLightmapIndirectionTexture);
 		ADD_RES(View, VolumetricLightmapBrickAmbientVector);
 		ADD_RES(View, VolumetricLightmapBrickSHCoefficients0);
@@ -515,9 +515,9 @@ struct alignas(16) FViewUniformShaderParameters
 		ADD_RES(View, PreIntegratedBRDF);
 		return List;
 	}
-	static std::map<std::string, ComPtr<ID3D11SamplerState>> GetSamplers(const FViewUniformShaderParameters& View)
+	static std::map<std::string, ID3D11SamplerState*> GetSamplers(const FViewUniformShaderParameters& View)
 	{
-		std::map<std::string, ComPtr<ID3D11SamplerState>> List;
+		std::map<std::string, ID3D11SamplerState*> List;
 		ADD_RES(View, MaterialTextureBilinearWrapedSampler);
 		ADD_RES(View, MaterialTextureBilinearClampedSampler);
 		ADD_RES(View, VolumetricLightmapBrickAmbientVectorSampler);
@@ -546,9 +546,9 @@ struct alignas(16) FViewUniformShaderParameters
 		ADD_RES(View, PreIntegratedBRDFSampler);
 		return List;
 	}
-	static std::map<std::string, ComPtr<ID3D11UnorderedAccessView>> GetUAVs(const FViewUniformShaderParameters& View)
+	static std::map<std::string, ID3D11UnorderedAccessView*> GetUAVs(const FViewUniformShaderParameters& View)
 	{
-		std::map<std::string, ComPtr<ID3D11UnorderedAccessView>> List;
+		std::map<std::string, ID3D11UnorderedAccessView*> List;
 		return List;
 	}
 #undef ADD_RES
@@ -734,19 +734,19 @@ struct alignas(16) FInstancedViewUniformShaderParameters
 	{
 		return "InstancedView";
 	}
-	static std::map<std::string, ComPtr<ID3D11ShaderResourceView>> GetSRVs(const FInstancedViewUniformShaderParameters& InstancedView)
+	static std::map<std::string, ID3D11ShaderResourceView*> GetSRVs(const FInstancedViewUniformShaderParameters& InstancedView)
 	{
-		std::map<std::string, ComPtr<ID3D11ShaderResourceView>> List;
+		std::map<std::string, ID3D11ShaderResourceView*> List;
 		return List;
 	}
-	static std::map<std::string, ComPtr<ID3D11SamplerState>> GetSamplers(const FInstancedViewUniformShaderParameters& InstancedView)
+	static std::map<std::string, ID3D11SamplerState*> GetSamplers(const FInstancedViewUniformShaderParameters& InstancedView)
 	{
-		std::map<std::string, ComPtr<ID3D11SamplerState>> List;
+		std::map<std::string, ID3D11SamplerState*> List;
 		return List;
 	}
-	static std::map<std::string, ComPtr<ID3D11UnorderedAccessView>> GetUAVs(const FInstancedViewUniformShaderParameters& InstancedView)
+	static std::map<std::string, ID3D11UnorderedAccessView*> GetUAVs(const FInstancedViewUniformShaderParameters& InstancedView)
 	{
-		std::map<std::string, ComPtr<ID3D11UnorderedAccessView>> List;
+		std::map<std::string, ID3D11UnorderedAccessView*> List;
 		return List;
 	}
 };

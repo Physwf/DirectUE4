@@ -293,8 +293,8 @@ TUniformBufferPtr<FLocalVertexFactoryUniformShaderParameters>  CreateLocalVFUnif
 	const int LightMapCoordinateIndex = LocalVertexFactory->GetLightMapCoordinateIndex();
 	int ColorIndexMask = 0;
 	UniformParameters.Constants.Parameters = { ColorIndexMask, NumTexCoords, LightMapCoordinateIndex };
-	UniformParameters.PackedTangentsBuffer = LocalVertexFactory->GetTangentsSRV();
-	UniformParameters.TexCoordBuffer = LocalVertexFactory->GetTextureCoordinatesSRV();
+	UniformParameters.PackedTangentsBuffer = LocalVertexFactory->GetTangentsSRV().Get();
+	UniformParameters.TexCoordBuffer = LocalVertexFactory->GetTextureCoordinatesSRV().Get();
 
 	return TUniformBufferPtr<FLocalVertexFactoryUniformShaderParameters>::CreateUniformBufferImmediate(UniformParameters);
 }

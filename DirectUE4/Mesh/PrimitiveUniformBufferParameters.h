@@ -39,19 +39,19 @@ struct alignas(16) FPrimitiveUniformShaderParameters
 	{
 		return "Primitive";
 	}
-	static std::map<std::string, ComPtr<ID3D11ShaderResourceView>> GetSRVs(const FPrimitiveUniformShaderParameters& Primitive)
+	static std::map<std::string, ID3D11ShaderResourceView*> GetSRVs(const FPrimitiveUniformShaderParameters& Primitive)
 	{
-		std::map<std::string, ComPtr<ID3D11ShaderResourceView>> List;
+		std::map<std::string, ID3D11ShaderResourceView*> List;
 		return List;
 	}
-	static std::map<std::string, ComPtr<ID3D11SamplerState>> GetSamplers(const FPrimitiveUniformShaderParameters& Primitive)
+	static std::map<std::string, ID3D11SamplerState*> GetSamplers(const FPrimitiveUniformShaderParameters& Primitive)
 	{
-		std::map<std::string, ComPtr<ID3D11SamplerState>> List;
+		std::map<std::string, ID3D11SamplerState*> List;
 		return List;
 	}
-	static std::map<std::string, ComPtr<ID3D11UnorderedAccessView>> GetUAVs(const FPrimitiveUniformShaderParameters& Primitive)
+	static std::map<std::string, ID3D11UnorderedAccessView*> GetUAVs(const FPrimitiveUniformShaderParameters& Primitive)
 	{
-		std::map<std::string, ComPtr<ID3D11UnorderedAccessView>> List;
+		std::map<std::string, ID3D11UnorderedAccessView*> List;
 		return List;
 	}
 };

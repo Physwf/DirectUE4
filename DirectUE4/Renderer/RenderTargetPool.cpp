@@ -1,6 +1,6 @@
 #include "RenderTargetPool.h"
 
-#define SafeRelease(Resource) if(Resource) Resource->Release(); Resource = NULL;
+#define SafeRelease(Resource) if(Resource){ Resource->Release(); Resource = NULL;}
 
 uint32 PooledRenderTarget::AddRef() const
 {
@@ -19,17 +19,6 @@ uint32 PooledRenderTarget::Release()
 		uint32 Refs = uint32(--NumRefs);
 		if (Refs == 0)
 		{
-			SafeRelease(TargetableTexture);
-			SafeRelease(ShaderResourceTexture);
-			SafeRelease(UAV);
-			for (size_t i = 0; i < MipUAVs.size(); i++)
-			{
-				SafeRelease(MipUAVs[i]);
-			}
-			for (size_t i = 0; i < MipSRVs.size(); i++)
-			{
-				SafeRelease(MipSRVs[i]);
-			}
 			delete this;
 		}
 		else if (Refs == 1 && Pool && IsTransient())
