@@ -130,10 +130,10 @@ void FSHA1::Update(const uint8 *data, uint32 len)
 }
 
 // Use this function to hash in strings
-// void FSHA1::UpdateWithString(const TCHAR *String, uint32 Length)
-// {
-// 	Update((const uint8*)StringCast<UCS2CHAR>(String, Length).Get(), Length * sizeof(UCS2CHAR));
-// }
+void FSHA1::UpdateWithString(const char *String, uint32 Length)
+{
+	Update((const uint8*)String, Length * sizeof(char));
+}
 
 void FSHA1::Final()
 {

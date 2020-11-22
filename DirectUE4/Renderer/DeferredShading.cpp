@@ -10,6 +10,7 @@
 #include "SceneFilterRendering.h"
 #include "CompositionLighting.h"
 #include "SystemTextures.h"
+#include "ShaderCompiler.h"
 
 #include <new>
 
@@ -42,6 +43,7 @@ void InitShading()
 	GSystemTextures.InitializeTextures();
 	InitializeShaderTypes();
 	InitConstantBuffers();
+	CompileGlobalShaderMap(false);
 }
 
 SceneRenderer::SceneRenderer(SceneViewFamily& InViewFamily)

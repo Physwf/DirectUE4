@@ -362,10 +362,34 @@ void GenerateReferencedUniformBuffers(
 	}
 }
 
+
+void VerifyShaderSourceFiles()
+{
+	std::vector<std::string> VirtualShaderSourcePaths;
+	GetAllVirtualShaderSourcePaths(VirtualShaderSourcePaths);
+	for (uint32 ShaderFileIdx = 0; ShaderFileIdx < VirtualShaderSourcePaths.size(); ShaderFileIdx++)
+	{
+		std::string FileContents;
+		// load each shader source file. This will cache the shader source data after it has been verified
+		LoadShaderSourceFile(VirtualShaderSourcePaths[ShaderFileIdx].c_str(), FileContents/*, nullptr*/);
+	}
+}
+void StartupModule()
+{
+	// Create the global shader map hash
+	{
+		FSHA1 HashState;
+		const char* GlobalShaderString = "GlobalShaderMap";
+		HashState.UpdateWithString(GlobalShaderString, strlen(GlobalShaderString));
+		HashState.Final();
+		HashState.GetHash(&GGlobalShaderMapHash.Hash[0]);
+	}
+}
 void InitializeShaderTypes()
 {
 	X_LOG("InitializeShaderTypes() begin");
 
+	StartupModule();//dirty
 	//LogShaderSourceDirectoryMappings();
 
 	std::map<std::string, std::vector<const char*> > ShaderFileToUniformBufferVariables;

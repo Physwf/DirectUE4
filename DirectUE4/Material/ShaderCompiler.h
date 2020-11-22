@@ -51,7 +51,7 @@ public:
 	* Enqueues compilation of a shader pipeline of this type.
 
 	/** Either returns an equivalent existing shader of this type, or constructs a new instance. */
-	//static FShader* FinishCompileShader(FGlobalShaderType* ShaderType, const FShaderCompileJob& CompileJob, const FShaderPipelineType* ShaderPipelineType);
+	static FShader* FinishCompileShader(FGlobalShaderType* ShaderType, const FShaderCompileJob& CompileJob);
 };
 /** Results for a single compiled shader map. */
 struct FShaderMapCompileResults
@@ -128,7 +128,6 @@ extern void GlobalBeginCompileShader(
 	const std::string& DebugGroupName,
 	class FVertexFactoryType* VFType,
 	class FShaderType* ShaderType,
-	const class FShaderPipelineType* ShaderPipelineType,
 	const char* SourceFilename,
 	const char* FunctionName,
 	uint32 Frequency,
@@ -136,3 +135,9 @@ extern void GlobalBeginCompileShader(
 	std::vector<FShaderCompileJob*>& NewJobs,
 	bool bAllowDevelopmentShaderCompile = true
 );
+
+void VerifyGlobalShaders(bool bLoadedFromCacheFile);
+
+extern void ProcessCompiledGlobalShaders(const std::vector<FShaderCompileJob*>& CompilationResults);
+
+void CompileGlobalShaderMap(bool bRefreshShaderMap = false);

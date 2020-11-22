@@ -18,6 +18,8 @@ class FShaderType;
 class FVertexFactoryParameterRef;
 class FVertexFactoryType;
 
+extern FSHAHash GGlobalShaderMapHash;
+
 template<typename MetaShaderType>
 struct TShaderTypePermutation
 {
@@ -130,40 +132,40 @@ public:
 	void Register();
 
 	/** @return the shader's vertex shader */
-	inline const ComPtr<ID3D11VertexShader> GetVertexShader()
+	inline ID3D11VertexShader* const GetVertexShader()
 	{
 		assert(Frequency == SF_Vertex);
-		return VertexShader;
+		return VertexShader.Get();
 	}
 	/** @return the shader's pixel shader */
-	inline const ComPtr<ID3D11PixelShader> GetPixelShader()
+	inline ID3D11PixelShader* const GetPixelShader()
 	{
 		assert(Frequency == SF_Pixel);
-		return PixelShader;
+		return PixelShader.Get();
 	}
 	/** @return the shader's hull shader */
-	inline const ComPtr<ID3D11HullShader> GetHullShader()
+	inline ID3D11HullShader* const GetHullShader()
 	{
 		assert(Frequency == SF_Hull);
-		return HullShader;
+		return HullShader.Get();
 	}
 	/** @return the shader's domain shader */
-	inline const ComPtr<ID3D11DomainShader> GetDomainShader()
+	inline ID3D11DomainShader* const GetDomainShader()
 	{
 		assert(Frequency == SF_Domain);
-		return DomainShader;
+		return DomainShader.Get();
 	}
 	/** @return the shader's geometry shader */
-	inline const ComPtr<ID3D11GeometryShader> GetGeometryShader()
+	inline ID3D11GeometryShader* const GetGeometryShader()
 	{
 		assert(Frequency == SF_Geometry);
-		return GeometryShader;
+		return GeometryShader.Get();
 	}
 	/** @return the shader's compute shader */
-	inline const ComPtr<ID3D11ComputeShader> GetComputeShader()
+	inline ID3D11ComputeShader* const GetComputeShader()
 	{
 		assert(Frequency == SF_Compute);
-		return ComputeShader;
+		return ComputeShader.Get();
 	}
 
 	FShaderResourceId GetId() const;
@@ -363,27 +365,27 @@ public:
 	void Deregister();
 
 	virtual const FVertexFactoryParameterRef* GetVertexFactoryParameterRef() const { return NULL; }
-	inline const ComPtr<ID3D11VertexShader> GetVertexShader() const
+	inline ID3D11VertexShader* const GetVertexShader() const
 	{
 		return Resource->GetVertexShader();
 	}
-	inline const ComPtr<ID3D11PixelShader> GetPixelShader() const
+	inline ID3D11PixelShader* const GetPixelShader() const
 	{
 		return Resource->GetPixelShader();
 	}
-	inline const ComPtr<ID3D11HullShader> GetHullShader() const
+	inline ID3D11HullShader* const GetHullShader() const
 	{
 		return Resource->GetHullShader();
 	}
-	inline const ComPtr<ID3D11DomainShader> GetDomainShader() const
+	inline ID3D11DomainShader* const GetDomainShader() const
 	{
 		return Resource->GetDomainShader();
 	}
-	inline const ComPtr<ID3D11GeometryShader> GetGeometryShader() const
+	inline ID3D11GeometryShader* const GetGeometryShader() const
 	{
 		return Resource->GetGeometryShader();
 	}
-	inline const ComPtr<ID3D11ComputeShader> GetComputeShader() const
+	inline ID3D11ComputeShader* const GetComputeShader() const
 	{
 		return Resource->GetComputeShader();
 	}
@@ -686,17 +688,6 @@ namespace std
 template<typename ShaderMetaType>
 class TShaderMap
 {
-	/** Container for serialized shader pipeline stages to be registered on the game thread */
-	struct FSerializedShaderPipeline
-	{
-		const FShaderPipelineType* ShaderPipelineType;
-		std::vector<std::shared_ptr<FShader> > ShaderStages;
-		FSerializedShaderPipeline()
-			: ShaderPipelineType(nullptr)
-		{
-		}
-	};
-
 	/** List of serialzied shaders to be processed and registered on the game thread */
 	std::vector<FShader*> SerializedShaders;
 private:
@@ -1018,7 +1009,6 @@ public:
 		uint32 ShaderMapId,
 		const FMaterial* Material,
 		FShaderCompilerEnvironment* MaterialEnvironment,
-		const FShaderPipelineType* ShaderPipeline,
 		std::vector<FShaderCompileJob*>& NewJobs
 	);
 	/**

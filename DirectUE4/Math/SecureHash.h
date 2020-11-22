@@ -67,7 +67,7 @@ public:
 	void Update(const uint8 *data, uint32 len);
 
 	// Update the hash value with string
-	//void UpdateWithString(const TCHAR *data, uint32 len);
+	void UpdateWithString(const char *data, uint32 len);
 
 	// Finalize hash and report
 	void Final();

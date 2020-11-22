@@ -3,6 +3,7 @@
 #include "RenderTargets.h"
 #include "DeferredShading.h"
 #include "GPUProfiler.h"
+#include "GlobalShader.h"
 
 #define MAXNumMips 10
 ID3D11Texture2D* HZBRTVTexture;
@@ -27,6 +28,90 @@ ID3D11PixelShader* PS0;
 ID3D11PixelShader* PS1;
 std::map<std::string, ParameterAllocation> PSParams0;
 std::map<std::string, ParameterAllocation> PSParams1;
+
+template< uint32 Stage >
+class THZBBuildPS : public FGlobalShader
+{
+	DECLARE_SHADER_TYPE(THZBBuildPS, Global);
+
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
+	{
+		//return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
+		return true;
+	}
+
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
+		OutEnvironment.SetDefine("STAGE", Stage);
+		//OutEnvironment.SetRenderTargetOutputFormat(0, PF_R32_FLOAT);
+	}
+
+	THZBBuildPS() {}
+
+public:
+	FShaderParameter				InvSizeParameter;
+	FShaderParameter				InputUvFactorAndOffsetParameter;
+	FShaderParameter				InputViewportMaxBoundParameter;
+	FSceneTextureShaderParameters	SceneTextureParameters;
+	FShaderResourceParameter		TextureParameter;
+	FShaderResourceParameter		TextureParameterSampler;
+
+	THZBBuildPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		: FGlobalShader(Initializer)
+	{
+		InvSizeParameter.Bind(Initializer.ParameterMap, ("InvSize"));
+		InputUvFactorAndOffsetParameter.Bind(Initializer.ParameterMap, ("InputUvFactorAndOffset"));
+		InputViewportMaxBoundParameter.Bind(Initializer.ParameterMap, ("InputViewportMaxBound"));
+		SceneTextureParameters.Bind(Initializer);
+		TextureParameter.Bind(Initializer.ParameterMap, ("Texture"));
+		TextureParameterSampler.Bind(Initializer.ParameterMap, ("TextureSampler"));
+	}
+
+	void SetParameters(const FViewInfo& View)
+	{
+		ID3D11PixelShader* const ShaderRHI = GetPixelShader();
+
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(ShaderRHI, View.ViewUniformBuffer);
+		RenderTargets& SceneContext = RenderTargets::Get();
+
+		const FIntPoint GBufferSize = SceneContext.GetBufferSizeXY();
+		const Vector2 InvSize(1.0f / float(GBufferSize.X), 1.0f / float(GBufferSize.Y));
+		const Vector4 InputUvFactorAndOffset(
+			float(2 * View.HZBMipmap0Size.X) / float(GBufferSize.X),
+			float(2 * View.HZBMipmap0Size.Y) / float(GBufferSize.Y),
+			float(View.ViewRect.Min.X) / float(GBufferSize.X),
+			float(View.ViewRect.Min.Y) / float(GBufferSize.Y)
+		);
+		const Vector2 InputViewportMaxBound(
+			float(View.ViewRect.Max.X) / float(GBufferSize.X) - 0.5f * InvSize.X,
+			float(View.ViewRect.Max.Y) / float(GBufferSize.Y) - 0.5f * InvSize.Y
+		);
+		SetShaderValue(ShaderRHI, InvSizeParameter, InvSize);
+		SetShaderValue(ShaderRHI, InputUvFactorAndOffsetParameter, InputUvFactorAndOffset);
+		SetShaderValue(ShaderRHI, InputViewportMaxBoundParameter, InputViewportMaxBound);
+
+		SceneTextureParameters.Set(ShaderRHI, ESceneTextureSetupMode::SceneDepth);
+	}
+
+	void SetParameters(const FSceneView& View, const FIntPoint& Size, ID3D11ShaderResourceView* ShaderResourceView)
+	{
+		ID3D11PixelShader* const ShaderRHI = GetPixelShader();
+
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(ShaderRHI, View.ViewUniformBuffer);
+
+		const Vector2 InvSize(1.0f / Size.X, 1.0f / Size.Y);
+		SetShaderValue(ShaderRHI, InvSizeParameter, InvSize);
+
+		//SetTextureParameter( ShaderRHI, TextureParameter, TextureParameterSampler, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), Texture );
+
+		SetSRVParameter(ShaderRHI, TextureParameter, ShaderResourceView);
+		SetSamplerParameter(ShaderRHI, TextureParameterSampler, TStaticSamplerState<D3D11_FILTER_MIN_MAG_MIP_POINT, D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_CLAMP>::GetRHI());
+	}
+};
+
+IMPLEMENT_SHADER_TYPE(template<>, THZBBuildPS<0>, ("HZBOcclusion.hlsl"), ("HZBBuildPS"), SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>, THZBBuildPS<1>, ("HZBOcclusion.hlsl"), ("HZBBuildPS"), SF_Pixel);
 
 void InitHZB()
 {

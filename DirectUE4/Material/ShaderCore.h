@@ -293,3 +293,5 @@ extern void GenerateReferencedUniformBuffers(
 	const char* ShaderTypeName,
 	const std::map<std::string, std::vector<const char*> >& ShaderFileToUniformBufferVariables,
 	std::map<const char*, FCachedUniformBufferDeclaration>& UniformBufferEntries);
+
+void VerifyShaderSourceFiles();

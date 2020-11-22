@@ -198,7 +198,6 @@ void FMaterialShaderMap::Compile(
 						CompilingId,
 						Material,
 						MaterialEnvironment.get(),
-						nullptr,
 						NewJobs
 					);
 					//check(!SharedShaderJobs.Find(ShaderType));

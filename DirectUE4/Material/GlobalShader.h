@@ -2,6 +2,11 @@
 
 #include "Shader.h"
 
+extern const int32 GlobalShaderMapId;
+
+
+extern TShaderMap<FGlobalShaderType>* GGlobalShaderMap;
+
 /**
 * FGlobalShader
 *
@@ -9,14 +14,7 @@
 */
 class FGlobalShader : public FShader
 {
-	//DECLARE_SHADER_TYPE(FGlobalShader, Global);
-public: 
-	//using FPermutationDomain = FShaderPermutationNone; 
-	using ShaderMetaType = FGlobalShaderType; 
-	static ShaderMetaType StaticType; 
-	static FShader* ConstructSerializedInstance() { return new FGlobalShader(); } 
-	static FShader* ConstructCompiledInstance(const ShaderMetaType::CompiledShaderInitializerType& Initializer)  { return new FGlobalShader(Initializer); }
-	//virtual uint32 GetTypeSize() const override { return sizeof(*this); }
+	DECLARE_SHADER_TYPE(FGlobalShader, Global);
 public:
 
 	FGlobalShader() : FShader() {}
@@ -24,7 +22,7 @@ public:
 	FGlobalShader(const ShaderMetaType::CompiledShaderInitializerType& Initializer);
 
 	template<typename TViewUniformShaderParameters, typename ShaderRHIParamRef>
-	inline void SetParameters(const ShaderRHIParamRef ShaderRHI, const std::shared_ptr<FUniformBuffer> ViewUniformBuffer)
+	inline void SetParameters(const ShaderRHIParamRef ShaderRHI, FUniformBuffer* const ViewUniformBuffer)
 	{
 		const auto& ViewUniformBufferParameter = static_cast<const FShaderUniformBufferParameter&>(GetUniformBufferParameter<TViewUniformShaderParameters>());
 		CheckShaderIsValid();
@@ -57,3 +55,5 @@ public:
 	{
 	}
 };
+
+extern TShaderMap<FGlobalShaderType>* GetGlobalShaderMap();

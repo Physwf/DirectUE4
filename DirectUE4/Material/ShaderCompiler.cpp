@@ -2,6 +2,8 @@
 #include "VertexFactory.h"
 #include "ShaderPreprocessor.h"
 #include "Material.h"
+#include "GlobalShader.h"
+#include "log.h"
 
 FShaderCompilingManager::FShaderCompilingManager()
 {
@@ -137,8 +139,31 @@ void FShaderCompilingManager::FinishCompilation(const char* MaterialName, const 
 			{
 				ShaderMap->bCompiledSuccessfully = bSuccess;
 			}
+
+			//ProcessIt = CompiledShaderMaps.erase(ShaderMap->CompilingId);
+		}
+		else if (ProcessIt->first == GlobalShaderMapId)
+		{
+			 auto It = CompiledShaderMaps.find(GlobalShaderMapId);
+
+			if (It!= CompiledShaderMaps.end())
+			{
+				FShaderMapCompileResults* GlobalShaderResults = &It->second;
+				const std::vector<FShaderCompileJob*>& CompilationResults = GlobalShaderResults->FinishedJobs;
+
+				ProcessCompiledGlobalShaders(CompilationResults);
+
+				for (uint32 ResultIndex = 0; ResultIndex < CompilationResults.size(); ResultIndex++)
+				{
+					delete CompilationResults[ResultIndex];
+				}
+
+				//ProcessIt = CompiledShaderMaps.erase(GlobalShaderMapId);
+			}
 		}
 	}
+	CompileQueue.clear();
+	ShaderMapJobs.clear();
 }
 
 FShaderCompilingManager* GShaderCompilingManager = new FShaderCompilingManager();
@@ -147,7 +172,6 @@ void GlobalBeginCompileShader(
 	const std::string& DebugGroupName, 
 	class FVertexFactoryType* VFType, 
 	class FShaderType* ShaderType, 
-	const class FShaderPipelineType* ShaderPipelineType, 
 	const char* SourceFilename, 
 	const char* FunctionName,
 	uint32 Frequency, 
@@ -196,5 +220,173 @@ void GlobalBeginCompileShader(
 
 	NewJobs.push_back(NewJob);
 
+}
+
+class FShaderCompileJob* FGlobalShaderTypeCompiler::BeginCompileShader(FGlobalShaderType* ShaderType, int32 PermutationId, std::vector<FShaderCompileJob*>& NewJobs)
+{
+	FShaderCompileJob* NewJob = new FShaderCompileJob(GlobalShaderMapId, nullptr, ShaderType, PermutationId);
+	FShaderCompilerEnvironment& ShaderEnvironment = NewJob->Input.Environment;
+
+	// Allow the shader type to modify the compile environment.
+	ShaderType->SetupCompileEnvironment(PermutationId, ShaderEnvironment);
+
+	static std::string GlobalName(("Global"));
+
+	// Compile the shader environment passed in with the shader type's source code.
+	::GlobalBeginCompileShader(
+		GlobalName,
+		nullptr,
+		ShaderType,
+		ShaderType->GetShaderFilename(),
+		ShaderType->GetFunctionName(),
+		ShaderType->GetFrequency(),
+		NewJob,
+		NewJobs
+	);
+
+	return NewJob;
+}
+
+FShader* FGlobalShaderTypeCompiler::FinishCompileShader(FGlobalShaderType* ShaderType, const FShaderCompileJob& CurrentJob)
+{
+	FShader* Shader = nullptr;
+	if (CurrentJob.bSucceeded)
+	{
+		FShaderType* SpecificType = nullptr;
+		int32 SpecificPermutationId = 0;
+		if (CurrentJob.ShaderType->LimitShaderResourceToThisType())
+		{
+			SpecificType = CurrentJob.ShaderType;
+			SpecificPermutationId = CurrentJob.PermutationId;
+		}
+
+		// Reuse an existing resource with the same key or create a new one based on the compile output
+		// This allows FShaders to share compiled bytecode and RHI shader references
+		FShaderResource* Resource = FShaderResource::FindOrCreateShaderResource(CurrentJob.Output, SpecificType, SpecificPermutationId);
+		assert(Resource);
+
+		// Find a shader with the same key in memory
+		Shader = CurrentJob.ShaderType->FindShaderById(FShaderId(GGlobalShaderMapHash, nullptr, CurrentJob.ShaderType, CurrentJob.PermutationId, CurrentJob.Input.Frequency));
+
+		// There was no shader with the same key so create a new one with the compile output, which will bind shader parameters
+		if (!Shader)
+		{
+			Shader = (*(ShaderType->ConstructCompiledRef))(FGlobalShaderType::CompiledShaderInitializerType(ShaderType, CurrentJob.PermutationId, CurrentJob.Output, Resource, GGlobalShaderMapHash, nullptr));
+			CurrentJob.Output.ParameterMap.VerifyBindingsAreComplete(ShaderType->GetName(), CurrentJob.VFType);
+		}
+	}
+
+	return Shader;
+}
+
+void VerifyGlobalShaders(bool bLoadedFromCacheFile)
+{
+	TShaderMap<FGlobalShaderType>* GlobalShaderMap = GetGlobalShaderMap();
+
+	const bool bEmptyMap = GlobalShaderMap->IsEmpty();
+
+	bool bErrorOnMissing = bLoadedFromCacheFile;
+	// All jobs, single & pipeline
+	std::vector<FShaderCompileJob*> GlobalShaderJobs;
+
+	// Add the single jobs first
+	std::unordered_map<TShaderTypePermutation<const FShaderType>, FShaderCompileJob*> SharedShaderJobs;
+
+	for (auto ShaderTypeIt = FShaderType::GetTypeList().begin(); ShaderTypeIt != FShaderType::GetTypeList().end(); ++ShaderTypeIt)
+	{
+		FGlobalShaderType* GlobalShaderType = (*ShaderTypeIt)->GetGlobalShaderType();
+		if (!GlobalShaderType)
+		{
+			continue;
+		}
+
+		int32 PermutationCountToCompile = 0;
+		for (int32 PermutationId = 0; PermutationId < GlobalShaderType->GetPermutationCount(); PermutationId++)
+		{
+			if (GlobalShaderType->ShouldCompilePermutation(PermutationId) && !GlobalShaderMap->HasShader(GlobalShaderType, PermutationId))
+			{
+				if (bErrorOnMissing)
+				{
+					X_LOG("Missing global shader %s's permutation %i, Please make sure cooking was successful.", GlobalShaderType->GetName(), PermutationId);
+					assert(false);
+				}
+				// Compile this global shader type.
+				auto* Job = FGlobalShaderTypeCompiler::BeginCompileShader(GlobalShaderType, PermutationId, GlobalShaderJobs);
+				TShaderTypePermutation<const FShaderType> ShaderTypePermutation(GlobalShaderType, PermutationId);
+				assert(SharedShaderJobs.find(ShaderTypePermutation) == SharedShaderJobs.end());
+				SharedShaderJobs.insert(std::make_pair(ShaderTypePermutation, Job));
+				PermutationCountToCompile++;
+			}
+		}
+		if (PermutationCountToCompile >= 200 || strcmp(GlobalShaderType->GetName(), ("FPostProcessTonemapPS_ES2"))==0)
+		{
+			X_LOG("Global shader %s has %i permutation: probably more that it needs.", GlobalShaderType->GetName(), PermutationCountToCompile);
+			assert(false);
+		}
+
+		if (!bEmptyMap && PermutationCountToCompile > 0)
+		{
+			X_LOG("	%s (%i out of %i)", GlobalShaderType->GetName(), PermutationCountToCompile, GlobalShaderType->GetPermutationCount());
+		}
+	}
+
+	if (GlobalShaderJobs.size() > 0)
+	{
+		GShaderCompilingManager->AddJobs(GlobalShaderJobs/*, true, true, false*/);
+
+		const bool bAllowAsynchronousGlobalShaderCompiling = false;
+// 			// OpenGL requires that global shader maps are compiled before attaching
+// 			// primitives to the scene as it must be able to find FNULLPS.
+// 			// TODO_OPENGL: Allow shaders to be compiled asynchronously.
+// 			// Metal also needs this when using RHI thread because it uses TOneColorVS very early in RHIPostInit()
+// 			!IsOpenGLPlatform(GMaxRHIShaderPlatform) && !IsVulkanPlatform(GMaxRHIShaderPlatform) &&
+// 			!IsMetalPlatform(GMaxRHIShaderPlatform) &&
+// 			GShaderCompilingManager->AllowAsynchronousShaderCompiling();
+
+		if (!bAllowAsynchronousGlobalShaderCompiling)
+		{
+			std::vector<int32> ShaderMapIds;
+			ShaderMapIds.push_back(GlobalShaderMapId);
+
+			GShaderCompilingManager->FinishCompilation(("Global"), ShaderMapIds);
+		}
+	}
+}
+
+static inline FShader* ProcessCompiledJob(FShaderCompileJob* SingleJob)
+{
+	FGlobalShaderType* GlobalShaderType = SingleJob->ShaderType->GetGlobalShaderType();
+	assert(GlobalShaderType);
+	FShader* Shader = FGlobalShaderTypeCompiler::FinishCompileShader(GlobalShaderType, *SingleJob);
+	if (Shader)
+	{
+		GGlobalShaderMap->AddShader(GlobalShaderType, SingleJob->PermutationId, Shader);
+	}
+	else
+	{
+		X_LOG("Failed to compile global shader %s .  Enable 'r.ShaderDevelopmentMode' in ConsoleVariables.ini for retries.",GlobalShaderType->GetName());
+	}
+
+	return Shader;
+};
+
+void ProcessCompiledGlobalShaders(const std::vector<FShaderCompileJob*>& CompilationResults)
+{
+	for (uint32 ResultIndex = 0; ResultIndex < CompilationResults.size(); ResultIndex++)
+	{
+		ProcessCompiledJob((FShaderCompileJob*)CompilationResults[ResultIndex]);
+	}
+}
+
+void CompileGlobalShaderMap(bool bRefreshShaderMap /*= false*/)
+{
+	if (!GGlobalShaderMap)
+	{
+		VerifyShaderSourceFiles();
+
+		GGlobalShaderMap = new TShaderMap<FGlobalShaderType>();
+	}
+
+	VerifyGlobalShaders(false);
 }
 

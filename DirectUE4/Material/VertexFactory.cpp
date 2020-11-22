@@ -324,7 +324,7 @@ void FLocalVertexFactoryShaderParameters::SetMesh(FShader* Shader, const FVertex
 {
 	const auto* LocalVertexFactory = static_cast<const FLocalVertexFactory*>(VertexFactory);
 
-	ComPtr<ID3D11VertexShader> VS = Shader->GetVertexShader();
+	ID3D11VertexShader* VS = Shader->GetVertexShader();
 	if (LocalVertexFactory->SupportsManualVertexFetch())
 	{
 		FUniformBuffer* VertexFactoryUniformBuffer = static_cast<FUniformBuffer*>(BatchElement.VertexFactoryUserData);

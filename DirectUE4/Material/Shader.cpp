@@ -4,6 +4,8 @@
 #include "VertexFactory.h"
 #include "MeshMaterialShader.h"
 
+FSHAHash GGlobalShaderMapHash;
+
 FShaderResource::FShaderResource()
 	: SpecificType(NULL)
 	, SpecificPermutationId(0)
@@ -234,10 +236,10 @@ void FShader::RegisterSerializedResource()
 	}
 }
 
-static std::list<FShaderType*>	GShaderTypeList;
 
 std::list<FShaderType*>& FShaderType::GetTypeList()
 {
+	static std::list<FShaderType*>	GShaderTypeList;
 	return GShaderTypeList;
 }
 
@@ -313,7 +315,7 @@ FShaderType::FShaderType(
 	GetStreamOutElementsRef(InGetStreamOutElementsRef)
 {
 	bCachedUniformBufferStructDeclarations = false;
-	GlobalListLink = GShaderTypeList.insert(GShaderTypeList.begin(),this);
+	GlobalListLink = GetTypeList().insert(GetTypeList().begin(),this);
 	GetNameToTypeMap().insert(std::make_pair(TypeName,this));
 	static uint32 NextHashIndex = 0;
 	HashIndex = NextHashIndex++;
@@ -321,7 +323,7 @@ FShaderType::FShaderType(
 
 FShaderType::~FShaderType()
 {
-	GShaderTypeList.erase(GlobalListLink);
+	GetTypeList().erase(GlobalListLink);
 }
 
 FShader* FShaderType::FindShaderById(const FShaderId& Id)
@@ -381,7 +383,6 @@ class FShaderCompileJob* FMaterialShaderType::BeginCompileShader(
 	uint32 ShaderMapId, 
 	const FMaterial* Material, 
 	FShaderCompilerEnvironment* MaterialEnvironment, 
-	const FShaderPipelineType* ShaderPipeline, 
 	std::vector<FShaderCompileJob*>& NewJobs
 	)
 {
@@ -406,7 +407,6 @@ class FShaderCompileJob* FMaterialShaderType::BeginCompileShader(
 		Material->GetFriendlyName(),
 		nullptr,
 		this,
-		ShaderPipeline,
 		GetShaderFilename(),
 		GetFunctionName(),
 		GetFrequency(),
@@ -480,7 +480,6 @@ class FShaderCompileJob* FMeshMaterialShaderType::BeginCompileShader(
 		Material->GetFriendlyName(),
 		VertexFactoryType,
 		this,
-		ShaderPipeline,
 		GetShaderFilename(),
 		GetFunctionName(),
 		GetFrequency(),
