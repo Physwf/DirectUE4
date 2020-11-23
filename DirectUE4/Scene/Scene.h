@@ -18,7 +18,7 @@ class FViewInfo : public FSceneView
 {
 public:
 	/* Final position of the view in the final render target (in pixels), potentially scaled by ScreenPercentage */
-	IntRect ViewRect;
+	FIntRect ViewRect;
 
 	/** Cached view uniform shader parameters, to allow recreating the view uniform buffer without having to fill out the entire struct. */
 	FViewUniformShaderParameters* CachedViewUniformShaderParameters;
@@ -189,7 +189,7 @@ public:
 	//FOcclusionQueryBatcher GroupedOcclusionQueries;
 
 	// Hierarchical Z Buffer
-	//TRefCountPtr<IPooledRenderTarget> HZB;
+	ComPtr<struct PooledRenderTarget> HZB;
 
 	//int32 NumBoxReflectionCaptures;
 	//int32 NumSphereReflectionCaptures;
@@ -216,7 +216,7 @@ public:
 
 	//FHeightfieldLightingViewInfo HeightfieldLightingViewInfo;
 
-	//TShaderMap<FGlobalShaderType>* ShaderMap;
+	TShaderMap<FGlobalShaderType>* ShaderMap;
 
 	//bool bIsSnapshot;
 
@@ -345,7 +345,7 @@ private:
 	//FSceneViewState* GetEffectiveViewState() const;
 
 	/** Initialization that is common to the constructors. */
-	//void Init();
+	void Init();
 
 	/** Calculates bounding boxes for the translucency lighting volume cascades. */
 	//void CalcTranslucencyLightingVolumeBounds(FBox* InOutCascadeBoundsArray, int32 NumCascades) const;

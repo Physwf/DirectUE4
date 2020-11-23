@@ -227,7 +227,7 @@ Vector4 GetHZBValue(const FViewInfo& View)
 	return HZBRemappingValue;
 }
 
-void RCPassPostProcessAmbientOcclusion::ProcessPS(ID3D11RenderTargetView* DestRenderTarget, FViewInfo& View, const IntRect& ViewRect, const FIntPoint& TexSize, int32 ShaderQuality, bool bDoUpsample)
+void RCPassPostProcessAmbientOcclusion::ProcessPS(ID3D11RenderTargetView* DestRenderTarget, FViewInfo& View, const FIntRect& ViewRect, const FIntPoint& TexSize, int32 ShaderQuality, bool bDoUpsample)
 {
 	/*
 	D3D11DeviceContext->OMSetRenderTargets(1, &DestRenderTarget, NULL);

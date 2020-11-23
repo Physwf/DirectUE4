@@ -151,6 +151,29 @@ void InitHZB()
 
 void BuildHZB(FViewInfo& View)
 {
+	const int32 NumMipsX = FMath::Max(FMath::CeilToInt(FMath::Log2(float(View.ViewRect.Width()))) - 1, 1);
+	const int32 NumMipsY = FMath::Max(FMath::CeilToInt(FMath::Log2(float(View.ViewRect.Height()))) - 1, 1);
+	const uint32 NumMips = FMath::Max(NumMipsX, NumMipsY);
+
+	const FIntPoint HZBSize(1 << NumMipsX, 1 << NumMipsY);
+	View.HZBMipmap0Size = HZBSize;
+	
+	PooledRenderTargetDesc Desc(PooledRenderTargetDesc::Create2DDesc(HZBSize, PF_R16F, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable | TexCreate_ShaderResource | TexCreate_NoFastClear, false, NumMips));
+	//Desc.Flags |= GFastVRamConfig.HZB;
+	GRenderTargetPool.FindFreeElement(Desc, View.HZB, TEXT("HZB"));
+
+	D3D11DeviceContext->OMSetBlendState(TStaticBlendState<>::GetRHI(), NULL, 0xffffffff);
+	D3D11DeviceContext->RSSetState(TStaticRasterizerState<>::GetRHI());
+	D3D11DeviceContext->OMSetDepthStencilState(TStaticDepthStencilState<TRUE,D3D11_COMPARISON_ALWAYS>::GetRHI(),0);
+
+
+	FD3D11Texture2D* HZBRenderTarget = View.HZB->TargetableTexture.get();
+
+	{
+		SCOPED_DRAW_EVENT_FORMAT(BuildHZB, TEXT("HZB SetupMip 0 %dx%d"), HZBSize.X, HZBSize.Y);
+		D3D11DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	}
 	/*
 	D3D11DeviceContext->OMSetRenderTargets(1, &HZBRTVs[0], NULL);
 	D3D11DeviceContext->IASetInputLayout(GFilterInputLayout);

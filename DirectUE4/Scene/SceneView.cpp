@@ -156,7 +156,7 @@ FSceneView::FSceneView(const ViewInitOptions& InitOptions)
 void FSceneView::SetupViewRectUniformBufferParameters(
 	FViewUniformShaderParameters& ViewUniformParameters,
 	const FIntPoint& BufferSize,
-	const IntRect& EffectiveViewRect,
+	const FIntRect& EffectiveViewRect,
 	const ViewMatrices& InViewMatrices,
 	const ViewMatrices& InPrevViewMatrices) const
 {
@@ -224,7 +224,7 @@ void FSceneView::SetupCommonViewUniformBufferParameters(
 	FViewUniformShaderParameters& ViewUniformParameters, 
 	const FIntPoint& BufferSize, 
 	int32 NumMSAASamples, 
-	const IntRect& EffectiveViewRect, 
+	const FIntRect& EffectiveViewRect, 
 	const ViewMatrices& InViewMatrices, 
 	const ViewMatrices& InPrevViewMatrices) const
 {

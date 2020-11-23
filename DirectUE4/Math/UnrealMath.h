@@ -2766,98 +2766,98 @@ struct IntVector
 
 inline IntVector::IntVector(int32 InX, int32 InY, int32 InZ) : X(InX) , Y(InY) , Z(InZ) { }
 
-struct IntRect
+struct FIntRect
 {
 	FIntPoint Min;
 	FIntPoint Max;
 public:
-	IntRect() {};
-	IntRect(int32 X0, int32 Y0, int32 X1, int32 Y1);
-	IntRect(FIntPoint InMin, FIntPoint InMax);
+	FIntRect() {};
+	FIntRect(int32 X0, int32 Y0, int32 X1, int32 Y1);
+	FIntRect(FIntPoint InMin, FIntPoint InMax);
 public:
 	const FIntPoint& operator()(int32 PointIndex) const;
 	FIntPoint& operator()(int32 PointIndex);
-	bool operator==(const IntRect& Other) const;
-	bool operator!=(const IntRect& Other) const;
-	IntRect& operator*=(int32 Scale);
-	IntRect& operator+=(const FIntPoint& Point);
-	IntRect& operator-=(const FIntPoint& Point);
-	IntRect operator*(int32 Scale) const;
-	IntRect operator/(int32 Div) const;
-	IntRect operator+(const FIntPoint& Point) const;
-	IntRect operator/(const FIntPoint& Point) const;
-	IntRect operator-(const FIntPoint& Point) const;
-	IntRect operator+(const IntRect& Other) const;
-	IntRect operator-(const IntRect& Other) const;
+	bool operator==(const FIntRect& Other) const;
+	bool operator!=(const FIntRect& Other) const;
+	FIntRect& operator*=(int32 Scale);
+	FIntRect& operator+=(const FIntPoint& Point);
+	FIntRect& operator-=(const FIntPoint& Point);
+	FIntRect operator*(int32 Scale) const;
+	FIntRect operator/(int32 Div) const;
+	FIntRect operator+(const FIntPoint& Point) const;
+	FIntRect operator/(const FIntPoint& Point) const;
+	FIntRect operator-(const FIntPoint& Point) const;
+	FIntRect operator+(const FIntRect& Other) const;
+	FIntRect operator-(const FIntRect& Other) const;
 public:
 	int32 Area() const;
-	IntRect Bottom(int32 InHeight) const;
-	void Clip(const IntRect& Other);
-	void Union(const IntRect& Other);
+	FIntRect Bottom(int32 InHeight) const;
+	void Clip(const FIntRect& Other);
+	void Union(const FIntRect& Other);
 	bool Contains(FIntPoint Point) const;
 	void GetCenterAndExtents(FIntPoint& OutCenter, FIntPoint& OutExtent) const;
 	int32 Height() const;
 	void InflateRect(int32 Amount);
 	void Include(FIntPoint Point);
-	IntRect Inner(FIntPoint Shrink) const;
-	IntRect Right(int32 InWidth) const;
-	IntRect Scale(float Fraction) const;
+	FIntRect Inner(FIntPoint Shrink) const;
+	FIntRect Right(int32 InWidth) const;
+	FIntRect Scale(float Fraction) const;
 	FIntPoint Size() const;
 	int32 Width() const;
 	bool IsEmpty() const;
 public:
-	static IntRect DivideAndRoundUp(IntRect lhs, int32 Div);
-	static IntRect DivideAndRoundUp(IntRect lhs, FIntPoint Div);
+	static FIntRect DivideAndRoundUp(FIntRect lhs, int32 Div);
+	static FIntRect DivideAndRoundUp(FIntRect lhs, FIntPoint Div);
 	static int32 Num();
 };
 
 
-inline IntRect IntRect::Scale(float Fraction) const
+inline FIntRect FIntRect::Scale(float Fraction) const
 {
 	Vector2 Min2D = Vector2((float)Min.X, (float)Min.Y) * Fraction;
 	Vector2 Max2D = Vector2((float)Max.X, (float)Max.Y) * Fraction;
 
-	return IntRect(FMath::FloorToInt(Min2D.X), FMath::FloorToInt(Min2D.Y), FMath::CeilToInt(Max2D.X), FMath::CeilToInt(Max2D.Y));
+	return FIntRect(FMath::FloorToInt(Min2D.X), FMath::FloorToInt(Min2D.Y), FMath::CeilToInt(Max2D.X), FMath::CeilToInt(Max2D.Y));
 }
 /* IntRect inline functions
 *****************************************************************************/
-inline IntRect::IntRect(int32 X0, int32 Y0, int32 X1, int32 Y1)
+inline FIntRect::FIntRect(int32 X0, int32 Y0, int32 X1, int32 Y1)
 	: Min(X0, Y0)
 	, Max(X1, Y1)
 { }
 
 
-inline IntRect::IntRect(FIntPoint InMin, FIntPoint InMax)
+inline FIntRect::FIntRect(FIntPoint InMin, FIntPoint InMax)
 	: Min(InMin)
 	, Max(InMax)
 { }
 
 
-inline const FIntPoint& IntRect::operator()(int32 PointIndex) const
+inline const FIntPoint& FIntRect::operator()(int32 PointIndex) const
 {
 	return (&Min)[PointIndex];
 }
 
 
-inline FIntPoint& IntRect::operator()(int32 PointIndex)
+inline FIntPoint& FIntRect::operator()(int32 PointIndex)
 {
 	return (&Min)[PointIndex];
 }
 
 
-inline bool IntRect::operator==(const IntRect& Other) const
+inline bool FIntRect::operator==(const FIntRect& Other) const
 {
 	return Min == Other.Min && Max == Other.Max;
 }
 
 
-inline bool IntRect::operator!=(const IntRect& Other) const
+inline bool FIntRect::operator!=(const FIntRect& Other) const
 {
 	return Min != Other.Min || Max != Other.Max;
 }
 
 
-inline IntRect& IntRect::operator*=(int32 Scale)
+inline FIntRect& FIntRect::operator*=(int32 Scale)
 {
 	Min *= Scale;
 	Max *= Scale;
@@ -2866,7 +2866,7 @@ inline IntRect& IntRect::operator*=(int32 Scale)
 }
 
 
-inline IntRect& IntRect::operator+=(const FIntPoint& Point)
+inline FIntRect& FIntRect::operator+=(const FIntPoint& Point)
 {
 	Min += Point;
 	Max += Point;
@@ -2875,7 +2875,7 @@ inline IntRect& IntRect::operator+=(const FIntPoint& Point)
 }
 
 
-inline IntRect& IntRect::operator-=(const FIntPoint& Point)
+inline FIntRect& FIntRect::operator-=(const FIntPoint& Point)
 {
 	Min -= Point;
 	Max -= Point;
@@ -2884,61 +2884,61 @@ inline IntRect& IntRect::operator-=(const FIntPoint& Point)
 }
 
 
-inline IntRect IntRect::operator*(int32 Scale) const
+inline FIntRect FIntRect::operator*(int32 Scale) const
 {
-	return IntRect(Min * Scale, Max * Scale);
+	return FIntRect(Min * Scale, Max * Scale);
 }
 
 
-inline IntRect IntRect::operator/(int32 Div) const
+inline FIntRect FIntRect::operator/(int32 Div) const
 {
-	return IntRect(Min / Div, Max / Div);
+	return FIntRect(Min / Div, Max / Div);
 }
 
 
-inline IntRect IntRect::operator+(const FIntPoint& Point) const
+inline FIntRect FIntRect::operator+(const FIntPoint& Point) const
 {
-	return IntRect(Min + Point, Max + Point);
+	return FIntRect(Min + Point, Max + Point);
 }
 
 
-inline IntRect IntRect::operator/(const FIntPoint& Point) const
+inline FIntRect FIntRect::operator/(const FIntPoint& Point) const
 {
-	return IntRect(Min / Point, Max / Point);
+	return FIntRect(Min / Point, Max / Point);
 }
 
 
-inline IntRect IntRect::operator-(const FIntPoint& Point) const
+inline FIntRect FIntRect::operator-(const FIntPoint& Point) const
 {
-	return IntRect(Min - Point, Max - Point);
+	return FIntRect(Min - Point, Max - Point);
 }
 
 
-inline IntRect IntRect::operator+(const IntRect& Other) const
+inline FIntRect FIntRect::operator+(const FIntRect& Other) const
 {
-	return IntRect(Min + Other.Min, Max + Other.Max);
+	return FIntRect(Min + Other.Min, Max + Other.Max);
 }
 
 
-inline IntRect IntRect::operator-(const IntRect& Other) const
+inline FIntRect FIntRect::operator-(const FIntRect& Other) const
 {
-	return IntRect(Min - Other.Min, Max - Other.Max);
+	return FIntRect(Min - Other.Min, Max - Other.Max);
 }
 
 
-inline int32 IntRect::Area() const
+inline int32 FIntRect::Area() const
 {
 	return (Max.X - Min.X) * (Max.Y - Min.Y);
 }
 
 
-inline IntRect IntRect::Bottom(int32 InHeight) const
+inline FIntRect FIntRect::Bottom(int32 InHeight) const
 {
-	return IntRect(Min.X, FMath::Max(Min.Y, Max.Y - InHeight), Max.X, Max.Y);
+	return FIntRect(Min.X, FMath::Max(Min.Y, Max.Y - InHeight), Max.X, Max.Y);
 }
 
 
-inline void IntRect::Clip(const IntRect& R)
+inline void FIntRect::Clip(const FIntRect& R)
 {
 	Min.X = FMath::Max<int32>(Min.X, R.Min.X);
 	Min.Y = FMath::Max<int32>(Min.Y, R.Min.Y);
@@ -2950,7 +2950,7 @@ inline void IntRect::Clip(const IntRect& R)
 	Max.Y = FMath::Max<int32>(Min.Y, Max.Y);
 }
 
-inline void IntRect::Union(const IntRect& R)
+inline void FIntRect::Union(const FIntRect& R)
 {
 	Min.X = FMath::Min<int32>(Min.X, R.Min.X);
 	Min.Y = FMath::Min<int32>(Min.Y, R.Min.Y);
@@ -2958,23 +2958,23 @@ inline void IntRect::Union(const IntRect& R)
 	Max.Y = FMath::Max<int32>(Max.Y, R.Max.Y);
 }
 
-inline bool IntRect::Contains(FIntPoint P) const
+inline bool FIntRect::Contains(FIntPoint P) const
 {
 	return P.X >= Min.X && P.X < Max.X && P.Y >= Min.Y && P.Y < Max.Y;
 }
 
 
-inline IntRect IntRect::DivideAndRoundUp(IntRect lhs, int32 Div)
+inline FIntRect FIntRect::DivideAndRoundUp(FIntRect lhs, int32 Div)
 {
 	return DivideAndRoundUp(lhs, FIntPoint(Div, Div));
 }
 
-inline IntRect IntRect::DivideAndRoundUp(IntRect lhs, FIntPoint Div)
+inline FIntRect FIntRect::DivideAndRoundUp(FIntRect lhs, FIntPoint Div)
 {
-	return IntRect(lhs.Min / Div, FIntPoint::DivideAndRoundUp(lhs.Max, Div));
+	return FIntRect(lhs.Min / Div, FIntPoint::DivideAndRoundUp(lhs.Max, Div));
 }
 
-inline void IntRect::GetCenterAndExtents(FIntPoint& OutCenter, FIntPoint& OutExtent) const
+inline void FIntRect::GetCenterAndExtents(FIntPoint& OutCenter, FIntPoint& OutExtent) const
 {
 	OutExtent.X = (Max.X - Min.X) / 2;
 	OutExtent.Y = (Max.Y - Min.Y) / 2;
@@ -2984,13 +2984,13 @@ inline void IntRect::GetCenterAndExtents(FIntPoint& OutCenter, FIntPoint& OutExt
 }
 
 
-inline int32 IntRect::Height() const
+inline int32 FIntRect::Height() const
 {
 	return (Max.Y - Min.Y);
 }
 
 
-inline void IntRect::InflateRect(int32 Amount)
+inline void FIntRect::InflateRect(int32 Amount)
 {
 	Min.X -= Amount;
 	Min.Y -= Amount;
@@ -2999,7 +2999,7 @@ inline void IntRect::InflateRect(int32 Amount)
 }
 
 
-inline void IntRect::Include(FIntPoint Point)
+inline void FIntRect::Include(FIntPoint Point)
 {
 	Min.X = FMath::Min(Min.X, Point.X);
 	Min.Y = FMath::Min(Min.Y, Point.Y);
@@ -3007,36 +3007,36 @@ inline void IntRect::Include(FIntPoint Point)
 	Max.Y = FMath::Max(Max.Y, Point.Y);
 }
 
-inline IntRect IntRect::Inner(FIntPoint Shrink) const
+inline FIntRect FIntRect::Inner(FIntPoint Shrink) const
 {
-	return IntRect(Min + Shrink, Max - Shrink);
+	return FIntRect(Min + Shrink, Max - Shrink);
 }
 
 
-inline int32 IntRect::Num()
+inline int32 FIntRect::Num()
 {
 	return 2;
 }
 
 
-inline IntRect IntRect::Right(int32 InWidth) const
+inline FIntRect FIntRect::Right(int32 InWidth) const
 {
-	return IntRect(FMath::Max(Min.X, Max.X - InWidth), Min.Y, Max.X, Max.Y);
+	return FIntRect(FMath::Max(Min.X, Max.X - InWidth), Min.Y, Max.X, Max.Y);
 }
 
 
-inline FIntPoint IntRect::Size() const
+inline FIntPoint FIntRect::Size() const
 {
 	return FIntPoint(Max.X - Min.X, Max.Y - Min.Y);
 }
 
 
-inline int32 IntRect::Width() const
+inline int32 FIntRect::Width() const
 {
 	return Max.X - Min.X;
 }
 
-inline bool IntRect::IsEmpty() const
+inline bool FIntRect::IsEmpty() const
 {
 	return Width() == 0 && Height() == 0;
 }

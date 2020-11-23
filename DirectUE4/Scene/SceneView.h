@@ -19,17 +19,17 @@ struct ViewInitOptions
 	float DesiredFOV;
 
 	//The unconstrained (no aspect ratio bars applied) view rectangle (also unscaled)
-	IntRect ViewRect;
+	FIntRect ViewRect;
 	// The constrained view rectangle (identical to UnconstrainedUnscaledViewRect if aspect ratio is not constrained)
-	IntRect ConstrainedViewRect;
+	FIntRect ConstrainedViewRect;
 
-	void SetViewRectangle(const IntRect& InViewRect)
+	void SetViewRectangle(const FIntRect& InViewRect)
 	{
 		ViewRect = InViewRect;
 		ConstrainedViewRect = InViewRect;
 	}
-	const IntRect& GetViewRect() const { return ViewRect; }
-	const IntRect& GetConstrainedViewRect() const { return ConstrainedViewRect; }
+	const FIntRect& GetViewRect() const { return ViewRect; }
+	const FIntRect& GetConstrainedViewRect() const { return ConstrainedViewRect; }
 };
 
 struct ViewMatrices
@@ -769,9 +769,9 @@ public:
 	/** The actor which is being viewed from. */
 	const class Actor* ViewActor;
 	/* Final position of the view in the final render target (in pixels), potentially constrained by an aspect ratio requirement (black bars) */
-	const IntRect UnscaledViewRect;
+	const FIntRect UnscaledViewRect;
 	/* Raw view size (in pixels), used for screen space calculations */
-	IntRect UnconstrainedViewRect;
+	FIntRect UnconstrainedViewRect;
 
 	FVector	ViewLocation;
 	FRotator	ViewRotation;
@@ -818,7 +818,7 @@ public:
 	/** Sets up the view rect parameters in the view's uniform shader parameters */
 	void SetupViewRectUniformBufferParameters(FViewUniformShaderParameters& ViewUniformParameters,
 		const FIntPoint& InBufferSize,
-		const IntRect& InEffectiveViewRect,
+		const FIntRect& InEffectiveViewRect,
 		const ViewMatrices& InViewMatrices,
 		const ViewMatrices& InPrevViewMatrice) const;
 
@@ -830,7 +830,7 @@ public:
 	void SetupCommonViewUniformBufferParameters(FViewUniformShaderParameters& ViewUniformParameters,
 		const FIntPoint& InBufferSize,
 		int32 NumMSAASamples,
-		const IntRect& InEffectiveViewRect,
+		const FIntRect& InEffectiveViewRect,
 		const ViewMatrices& InViewMatrices,
 		const ViewMatrices& InPrevViewMatrices) const;
 };

@@ -2,11 +2,13 @@
 
 #include "ShaderCore.h"
 #include "SecureHash.h"
+#include "ShaderPermutation.h"
 
 #include <vector>
 #include <map>
 #include <unordered_map>
 #include <list>
+#include <type_traits>
 #include <assert.h>
 
 class FGlobalShaderType;
@@ -1194,6 +1196,7 @@ private:
 */
 #define DECLARE_EXPORTED_SHADER_TYPE(ShaderClass,ShaderMetaTypeShortcut,RequiredAPI, ...) \
 	public: \
+	using FPermutationDomain = FShaderPermutationNone; \
 	using ShaderMetaType = F##ShaderMetaTypeShortcut##ShaderType; \
 	\
 	static RequiredAPI ShaderMetaType StaticType; \
@@ -1221,3 +1224,37 @@ private:
 		ShaderClass::ValidateCompiledResult, \
 		ShaderClass::GetStreamOutElements \
 		);
+
+
+/** A reference which is initialized with the requested shader type from a shader map. */
+template<typename ShaderType>
+class TShaderMapRef
+{
+public:
+	TShaderMapRef(const TShaderMap<typename ShaderType::ShaderMetaType>* ShaderIndex)
+		: Shader(ShaderIndex->template GetShader<ShaderType>(/* PermutationId = */ 0)) // gcc3 needs the template quantifier so it knows the < is not a less-than
+	{
+		static_assert(
+			std::is_same<typename ShaderType::FPermutationDomain, FShaderPermutationNone>::Value,
+			"Missing permutation vector argument for shader that have a permutation domain.");
+	}
+
+	TShaderMapRef(
+		const TShaderMap<typename ShaderType::ShaderMetaType>* ShaderIndex,
+		const typename ShaderType::FPermutationDomain& PermutationVector)
+		: Shader(ShaderIndex->template GetShader<ShaderType>(PermutationVector.ToDimensionValueId())) // gcc3 needs the template quantifier so it knows the < is not a less-than
+	{ }
+
+	inline ShaderType* operator->() const
+	{
+		return Shader;
+	}
+
+	inline ShaderType* operator*() const
+	{
+		return Shader;
+	}
+
+private:
+	ShaderType * Shader;
+};

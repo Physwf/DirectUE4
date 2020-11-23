@@ -38,7 +38,7 @@ FSceneView* Camera::CalcSceneView(SceneViewFamily& ViewFamily, Viewport& VP)
 	uint32 SizeX = FMath::TruncToInt(Size.X * VP.GetSizeXY().X);
 	uint32 SizeY = FMath::TruncToInt(Size.Y * VP.GetSizeXY().Y);
 
-	IntRect UnconstrainedRectangle = IntRect(X, Y, X + SizeX, Y + SizeY);
+	FIntRect UnconstrainedRectangle = FIntRect(X, Y, X + SizeX, Y + SizeY);
 
 	InitOptions.SetViewRectangle(UnconstrainedRectangle);
 

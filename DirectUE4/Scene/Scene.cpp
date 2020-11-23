@@ -3,19 +3,20 @@
 #include "D3D11RHI.h"
 #include "RenderTargets.h"
 #include "AtmosphereRendering.h"
+#include "GlobalShader.h"
 
 FViewInfo::FViewInfo(const ViewInitOptions& InitOptions)
 	: FSceneView(InitOptions),
 	CachedViewUniformShaderParameters(NULL)
 {
-
+	Init();
 }
 
 FViewInfo::FViewInfo(const FSceneView* InView)
 	: FSceneView(*InView),
 	CachedViewUniformShaderParameters(NULL)
 {
-
+	Init();
 }
 
 FViewInfo::~FViewInfo()
@@ -37,7 +38,7 @@ void FViewInfo::SetupUniformBufferParameters(
 	// Create the view's uniform buffer.
 	bool bIsMobileMultiViewEnabled = false;
 	// Mobile multi-view is not side by side
-	const IntRect EffectiveViewRect = (bIsMobileMultiViewEnabled) ? IntRect(0, 0, ViewRect.Width(), ViewRect.Height()) : ViewRect;
+	const FIntRect EffectiveViewRect = (bIsMobileMultiViewEnabled) ? FIntRect(0, 0, ViewRect.Width(), ViewRect.Height()) : ViewRect;
 
 	// TODO: We should use a view and previous view uniform buffer to avoid code duplication and keep consistency
 	SetupCommonViewUniformBufferParameters(
@@ -403,6 +404,89 @@ void FViewInfo::InitRHIResources()
 		TVC_MAX,
 		*CachedViewUniformShaderParameters);
 	ViewUniformBuffer = TUniformBufferPtr<FViewUniformShaderParameters>::CreateUniformBufferImmediate(*CachedViewUniformShaderParameters); //TUniformBufferRef<FViewUniformShaderParameters>::CreateUniformBufferImmediate(*CachedViewUniformShaderParameters, UniformBuffer_SingleFrame);
+}
+
+void FViewInfo::Init()
+{
+	ViewRect = FIntRect(0, 0, 0, 0);
+
+	CachedViewUniformShaderParameters = nullptr;
+// 	bHasNoVisiblePrimitive = false;
+// 	bHasTranslucentViewMeshElements = 0;
+// 	bPrevTransformsReset = false;
+// 	bIgnoreExistingQueries = false;
+// 	bDisableQuerySubmissions = false;
+// 	bDisableDistanceBasedFadeTransitions = false;
+// 	ShadingModelMaskInView = 0;
+// 
+// 	NumVisibleStaticMeshElements = 0;
+// 	PrecomputedVisibilityData = 0;
+// 	bSceneHasDecals = 0;
+// 
+// 	bIsViewInfo = true;
+
+	//bUsesGlobalDistanceField = false;
+// 	bUsesLightingChannels = false;
+// 	bTranslucentSurfaceLighting = false;
+	//bUsesSceneDepth = false;
+
+// 	ExponentialFogParameters = FVector4(0, 1, 1, 0);
+// 	ExponentialFogColor = FVector::ZeroVector;
+// 	FogMaxOpacity = 1;
+// 	ExponentialFogParameters3 = FVector4(0, 0, 0, 0);
+// 	SinCosInscatteringColorCubemapRotation = FVector2D(0, 0);
+// 	FogInscatteringColorCubemap = NULL;
+// 	FogInscatteringTextureParameters = FVector::ZeroVector;
+// 
+// 	bUseDirectionalInscattering = false;
+// 	DirectionalInscatteringExponent = 0;
+// 	DirectionalInscatteringStartDistance = 0;
+// 	InscatteringLightDirection = FVector(0);
+// 	DirectionalInscatteringColor = FLinearColor(ForceInit);
+
+// 	for (int32 CascadeIndex = 0; CascadeIndex < TVC_MAX; CascadeIndex++)
+// 	{
+// 		TranslucencyLightingVolumeMin[CascadeIndex] = FVector(0);
+// 		TranslucencyVolumeVoxelSize[CascadeIndex] = 0;
+// 		TranslucencyLightingVolumeSize[CascadeIndex] = FVector(0);
+// 	}
+
+// 	const int32 MaxMobileShadowCascadeCount = FMath::Clamp(CVarMaxMobileShadowCascades.GetValueOnAnyThread(), 0, MAX_MOBILE_SHADOWCASCADES);
+// 	const int32 MaxShadowCascadeCountUpperBound = GetFeatureLevel() >= ERHIFeatureLevel::SM4 ? 10 : MaxMobileShadowCascadeCount;
+// 
+// 	MaxShadowCascades = FMath::Clamp<int32>(CVarMaxShadowCascades.GetValueOnAnyThread(), 0, MaxShadowCascadeCountUpperBound);
+
+	ShaderMap = GetGlobalShaderMap();
+
+// 	ViewState = (FSceneViewState*)State;
+// 	bIsSnapshot = false;
+// 
+// 	bAllowStencilDither = false;
+// 
+// 	ForwardLightingResources = nullptr;
+// 
+// 	NumBoxReflectionCaptures = 0;
+// 	NumSphereReflectionCaptures = 0;
+// 	FurthestReflectionCaptureDistance = 0;
+// 
+// 	// Disable HDR encoding for editor elements.
+// 	EditorSimpleElementCollector.BatchedElements.EnableMobileHDREncoding(false);
+// 
+// 	TemporalJitterPixels = FVector2D::ZeroVector;
+
+// 	PreExposure = 1.0f;
+// 	MaterialTextureMipBias = 0.0f;
+
+	// Cache TEXTUREGROUP_World's for the render thread to create the material textures' shared sampler.
+// 	if (IsInGameThread())
+// 	{
+// 		WorldTextureGroupSamplerFilter = (ESamplerFilter)UDeviceProfileManager::Get().GetActiveProfile()->GetTextureLODSettings()->GetSamplerFilter(TEXTUREGROUP_World);
+// 		bIsValidWorldTextureGroupSamplerFilter = true;
+// 	}
+// 	else
+// 	{
+// 		bIsValidWorldTextureGroupSamplerFilter = false;
+// 	}
 }
 
 void FViewInfo::SetupSkyIrradianceEnvironmentMapConstants(Vector4* OutSkyIrradianceEnvironmentMap) const

@@ -38,7 +38,7 @@ public:
 	void Init(bool InAOSetupAsInput=true);
 	void Process(FViewInfo& View);
 private:
-	void ProcessPS(ID3D11RenderTargetView* DestRenderTarget, FViewInfo& View, const IntRect& ViewRect, const FIntPoint& TexSize, int32 ShaderQuality, bool bDoUpsample);
+	void ProcessPS(ID3D11RenderTargetView* DestRenderTarget, FViewInfo& View, const FIntRect& ViewRect, const FIntPoint& TexSize, int32 ShaderQuality, bool bDoUpsample);
 public:
 	ID3DBlob * PSBytecode;
 	ID3D11PixelShader* PS;
