@@ -145,31 +145,48 @@ FShader::FShader(const CompiledShaderInitializerType& Initializer) :
 
 	for (auto It = GetUniformBufferInfoList().begin(); It != GetUniformBufferInfoList().end(); ++It)
 	{
+		std::shared_ptr<FShaderUniformBufferParameter> Parameter;
 		if (Initializer.ParameterMap.ContainsParameterAllocation(It->ConstantBufferName.c_str()))
 		{
-			std::shared_ptr<FShaderUniformBufferParameter> Parameter = std::make_shared<FShaderUniformBufferParameter>();
+			Parameter = std::make_shared<FShaderUniformBufferParameter>();
 			UniformBufferParameters.insert(std::make_pair(It->ConstantBufferName, Parameter));
 			Parameter->Bind(Initializer.ParameterMap, It->ConstantBufferName.c_str(), SPF_Mandatory);
-			for(auto& NameIt : It->SRVNames)
+		}
+
+		for (auto& NameIt : It->SRVNames)
+		{
+			if (Initializer.ParameterMap.ContainsParameterAllocation(NameIt.c_str()))
 			{
-				if (Initializer.ParameterMap.ContainsParameterAllocation(NameIt.c_str()))
+				if (!Parameter)
 				{
-					Parameter->BindSRV(Initializer.ParameterMap, NameIt.c_str(), SPF_Optional);
+					Parameter = std::make_shared<FShaderUniformBufferParameter>();
+					UniformBufferParameters.insert(std::make_pair(It->ConstantBufferName, Parameter));
 				}
+				Parameter->BindSRV(Initializer.ParameterMap, NameIt.c_str(), SPF_Mandatory);
 			}
-			for (auto& NameIt : It->SamplerNames)
+		}
+		for (auto& NameIt : It->SamplerNames)
+		{
+			if (Initializer.ParameterMap.ContainsParameterAllocation(NameIt.c_str()))
 			{
-				if (Initializer.ParameterMap.ContainsParameterAllocation(NameIt.c_str()))
+				if (!Parameter)
 				{
-					Parameter->BindSRV(Initializer.ParameterMap, NameIt.c_str(), SPF_Optional);
+					Parameter = std::make_shared<FShaderUniformBufferParameter>();
+					UniformBufferParameters.insert(std::make_pair(It->ConstantBufferName, Parameter));
 				}
+				Parameter->BindSampler(Initializer.ParameterMap, NameIt.c_str(), SPF_Mandatory);
 			}
-			for (auto& NameIt : It->UAVNames)
+		}
+		for (auto& NameIt : It->UAVNames)
+		{
+			if (Initializer.ParameterMap.ContainsParameterAllocation(NameIt.c_str()))
 			{
-				if (Initializer.ParameterMap.ContainsParameterAllocation(NameIt.c_str()))
+				if (!Parameter)
 				{
-					Parameter->BindSRV(Initializer.ParameterMap, NameIt.c_str(), SPF_Optional);
+					Parameter = std::make_shared<FShaderUniformBufferParameter>();
+					UniformBufferParameters.insert(std::make_pair(It->ConstantBufferName, Parameter));
 				}
+				Parameter->BindUAV(Initializer.ParameterMap, NameIt.c_str(), SPF_Mandatory);
 			}
 		}
 	}

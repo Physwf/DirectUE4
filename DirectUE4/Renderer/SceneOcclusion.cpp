@@ -4,6 +4,7 @@
 #include "DeferredShading.h"
 #include "GPUProfiler.h"
 #include "GlobalShader.h"
+#include "PostProcessing.h"
 
 #define MAXNumMips 10
 ID3D11Texture2D* HZBRTVTexture;
@@ -72,7 +73,7 @@ public:
 	{
 		ID3D11PixelShader* const ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters<FViewUniformShaderParameters>(ShaderRHI, View.ViewUniformBuffer);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(ShaderRHI, View.ViewUniformBuffer.get());
 		RenderTargets& SceneContext = RenderTargets::Get();
 
 		const FIntPoint GBufferSize = SceneContext.GetBufferSizeXY();
@@ -98,7 +99,7 @@ public:
 	{
 		ID3D11PixelShader* const ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters<FViewUniformShaderParameters>(ShaderRHI, View.ViewUniformBuffer);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(ShaderRHI, View.ViewUniformBuffer.get());
 
 		const Vector2 InvSize(1.0f / Size.X, 1.0f / Size.Y);
 		SetShaderValue(ShaderRHI, InvSizeParameter, InvSize);
@@ -162,17 +163,87 @@ void BuildHZB(FViewInfo& View)
 	//Desc.Flags |= GFastVRamConfig.HZB;
 	GRenderTargetPool.FindFreeElement(Desc, View.HZB, TEXT("HZB"));
 
+	PooledRenderTarget& HZBRenderTarget = *View.HZB.Get();
+
 	D3D11DeviceContext->OMSetBlendState(TStaticBlendState<>::GetRHI(), NULL, 0xffffffff);
 	D3D11DeviceContext->RSSetState(TStaticRasterizerState<>::GetRHI());
 	D3D11DeviceContext->OMSetDepthStencilState(TStaticDepthStencilState<TRUE,D3D11_COMPARISON_ALWAYS>::GetRHI(),0);
 
-
-	FD3D11Texture2D* HZBRenderTarget = View.HZB->TargetableTexture.get();
-
+	FD3D11Texture2D* HZBRenderTargetRef = HZBRenderTarget.TargetableTexture.get();
+	//mip0
 	{
 		SCOPED_DRAW_EVENT_FORMAT(BuildHZB, TEXT("HZB SetupMip 0 %dx%d"), HZBSize.X, HZBSize.Y);
+
+		ID3D11RenderTargetView* RTV = HZBRenderTargetRef->GetRenderTargetView(0, 0);
+		D3D11DeviceContext->OMSetRenderTargets(1,&RTV,NULL);
+
+		TShaderMapRef<FPostProcessVS> VertexShader(View.ShaderMap);
+		TShaderMapRef<THZBBuildPS<0>> PixelShader(View.ShaderMap);
+
+		D3D11DeviceContext->IASetInputLayout(GFilterInputLayout);
+		D3D11DeviceContext->VSSetShader(VertexShader->GetVertexShader(), 0, 0);
+		D3D11DeviceContext->PSSetShader(PixelShader->GetPixelShader(), 0, 0);
 		D3D11DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
+		PixelShader->SetParameters(View);
+
+		D3D11_VIEWPORT VP = { 0, 0, (float)HZBSize.X, (float)HZBSize.Y, 0, 1.f };
+		D3D11DeviceContext->RSSetViewports(1, &VP);
+
+		DrawRectangle(
+			0, 0, 
+			HZBSize.X, HZBSize.Y, 
+			View.ViewRect.Min.X, View.ViewRect.Min.Y, 
+			View.ViewRect.Width(), View.ViewRect.Height(), 
+			HZBSize, RenderTargets::Get().GetBufferSizeXY(),
+			*VertexShader,1
+			);
+
+		CopyToResolveTarget(View.HZB->TargetableTexture.get(), View.HZB->ShaderResourceTexture.get(),FResolveParams());
+	}
+
+	FIntPoint SrcSize = HZBSize;
+	FIntPoint DstSize = SrcSize / 2;
+
+	SCOPED_DRAW_EVENT_FORMAT(BuildHZB, TEXT("HZB SetupMips Mips:1..%d %dx%d"), NumMips - 1, DstSize.X, DstSize.Y);
+
+	TShaderMapRef< FPostProcessVS >	VertexShader(View.ShaderMap);
+	TShaderMapRef< THZBBuildPS<1> >	PixelShader(View.ShaderMap);
+
+	// Downsampling...
+	for (uint8 MipIndex = 1; MipIndex < NumMips; MipIndex++)
+	{
+		DstSize.X = FMath::Max(DstSize.X, 1);
+		DstSize.Y = FMath::Max(DstSize.Y, 1);
+
+		ID3D11RenderTargetView* RTV = View.HZB->TargetableTexture->GetRenderTargetView(MipIndex, 0);
+		D3D11DeviceContext->OMSetRenderTargets(1, &RTV, NULL);
+
+		D3D11DeviceContext->IASetInputLayout(GFilterInputLayout);
+		D3D11DeviceContext->VSSetShader(VertexShader->GetVertexShader(), 0, 0);
+		D3D11DeviceContext->PSSetShader(PixelShader->GetPixelShader(), 0, 0);
+		D3D11DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+
+		PixelShader->SetParameters(View, SrcSize, HZBRenderTarget.MipSRVs[MipIndex - 1].Get());
+
+		D3D11_VIEWPORT VP = { 0, 0, (float)DstSize.X, (float)DstSize.Y, 0, 1.f };
+		D3D11DeviceContext->RSSetViewports(1, &VP);
+
+		DrawRectangle(
+			0, 0,
+			DstSize.X, DstSize.Y,
+			0, 0,
+			SrcSize.X, SrcSize.Y,
+			DstSize,
+			SrcSize,
+			*VertexShader,
+			1);
+
+		SrcSize /= 2;
+		DstSize /= 2;
+
+		CopyToResolveTarget(View.HZB->TargetableTexture.get(), View.HZB->ShaderResourceTexture.get(),FResolveParams());
 	}
 	/*
 	D3D11DeviceContext->OMSetRenderTargets(1, &HZBRTVs[0], NULL);

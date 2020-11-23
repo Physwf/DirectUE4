@@ -1180,6 +1180,13 @@ inline void ConstructUniformBufferInfo(const UniformParameters& Param)
 
 struct FUniformBuffer
 {
+	~FUniformBuffer()
+	{
+		if (ConstantBuffer)
+		{
+			ConstantBuffer->Release();
+		}
+	}
 	std::string ConstantBufferName;
 	ID3D11Buffer* ConstantBuffer = NULL;
 	std::map<std::string, ID3D11ShaderResourceView*> SRVs;
@@ -1297,7 +1304,17 @@ private:
 
 void SetRenderTarget(FD3D11Texture2D* NewRenderTarget, FD3D11Texture2D* NewDepthStencilTarget);
 void SetRenderTarget(FD3D11Texture2D* NewRenderTarget, FD3D11Texture2D* NewDepthStencilTarget,bool bClearColor=false, bool bClearDepth = false,bool bClearStencil = false);
-void CopyToResolveTarget(FD3D11Texture2D* SourceTextureRHI, FD3D11Texture2D* DestTextureRHI/*, const FResolveParams& ResolveParams*/);
+enum ECubeFace
+{
+	CubeFace_PosX = 0,
+	CubeFace_NegX,
+	CubeFace_PosY,
+	CubeFace_NegY,
+	CubeFace_PosZ,
+	CubeFace_NegZ,
+	CubeFace_MAX
+};
+
 class FD3D11ConstantBuffer
 {
 public:
@@ -1376,29 +1393,36 @@ void SetShaderValue(
 	const uint32 BoolValue = Value;
 	SetShaderValue(Shader, Parameter, BoolValue, ElementIndex);
 }
+extern ComPtr<ID3D11Buffer> BoundUniformBuffers[6][14];
 
 inline void SetShaderUniformBuffer(ID3D11VertexShader*, uint32 BaseIndex, ID3D11Buffer* ConstantBuffer)
 {
+	BoundUniformBuffers[0][BaseIndex] = ConstantBuffer;
 	D3D11DeviceContext->VSSetConstantBuffers(BaseIndex, 1,&ConstantBuffer);
-}
-inline void SetShaderUniformBuffer(ID3D11PixelShader*, uint32 BaseIndex, ID3D11Buffer* ConstantBuffer)
-{
-	D3D11DeviceContext->PSSetConstantBuffers(BaseIndex, 1, &ConstantBuffer);
 }
 inline void SetShaderUniformBuffer(ID3D11HullShader*, uint32 BaseIndex, ID3D11Buffer* ConstantBuffer)
 {
+	BoundUniformBuffers[1][BaseIndex] = ConstantBuffer;
 	D3D11DeviceContext->HSSetConstantBuffers(BaseIndex, 1, &ConstantBuffer);
 }
 inline void SetShaderUniformBuffer(ID3D11DomainShader*, uint32 BaseIndex, ID3D11Buffer* ConstantBuffer)
 {
+	BoundUniformBuffers[2][BaseIndex] = ConstantBuffer;
 	D3D11DeviceContext->DSSetConstantBuffers(BaseIndex, 1, &ConstantBuffer);
+}
+inline void SetShaderUniformBuffer(ID3D11PixelShader*, uint32 BaseIndex, ID3D11Buffer* ConstantBuffer)
+{
+	BoundUniformBuffers[3][BaseIndex] = ConstantBuffer;
+	D3D11DeviceContext->PSSetConstantBuffers(BaseIndex, 1, &ConstantBuffer);
 }
 inline void SetShaderUniformBuffer(ID3D11GeometryShader*, uint32 BaseIndex, ID3D11Buffer* ConstantBuffer)
 {
+	BoundUniformBuffers[4][BaseIndex] = ConstantBuffer;
 	D3D11DeviceContext->GSSetConstantBuffers(BaseIndex, 1, &ConstantBuffer);
 }
 inline void SetShaderUniformBuffer(ID3D11ComputeShader*, uint32 BaseIndex, ID3D11Buffer* ConstantBuffer)
 {
+	BoundUniformBuffers[5][BaseIndex] = ConstantBuffer;
 	D3D11DeviceContext->CSSetConstantBuffers(BaseIndex, 1, &ConstantBuffer);
 }
 //srv
@@ -1491,18 +1515,18 @@ inline void SetUniformBufferParameter(
 	if (Parameter.IsBound())
 	{
 		SetShaderUniformBuffer(Shader, Parameter.GetBaseIndex(), UniformBufferRHI->ConstantBuffer);
-		for (auto& Pair : Parameter.GetSRVs())
-		{
-			SetShaderSRV(Shader, Pair.second, UniformBufferRHI->SRVs[Pair.first]);
-		}
-		for (auto& Pair : Parameter.GetSamplers())
-		{
-			SetShaderSampler(Shader, Pair.second, UniformBufferRHI->Samplers[Pair.first]);
-		}
-		for (auto& Pair : Parameter.GetUAVs())
-		{
-			SetShaderUAV(Shader, Pair.second, UniformBufferRHI->UAVs[Pair.first]);
-		}
+	}
+	for (auto& Pair : Parameter.GetSRVs())
+	{
+		SetShaderSRV(Shader, Pair.second, UniformBufferRHI->SRVs[Pair.first]);
+	}
+	for (auto& Pair : Parameter.GetSamplers())
+	{
+		SetShaderSampler(Shader, Pair.second, UniformBufferRHI->Samplers[Pair.first]);
+	}
+	for (auto& Pair : Parameter.GetUAVs())
+	{
+		SetShaderUAV(Shader, Pair.second, UniformBufferRHI->UAVs[Pair.first]);
 	}
 }
 
@@ -1521,18 +1545,18 @@ inline void SetUniformBufferParameter(
 	if (Parameter.IsBound())
 	{
 		SetShaderUniformBuffer(Shader, Parameter.GetBaseIndex(), UniformBufferRef->ConstantBuffer);
-		for (auto& Pair : Parameter.GetSRVs())
-		{
-			SetShaderSRV(Shader, Pair.second, UniformBufferRef->SRVs[Pair.first]);
-		}
-		for (auto& Pair : Parameter.GetSamplers())
-		{
-			SetShaderSampler(Shader, Pair.second, UniformBufferRef->Samplers[Pair.first]);
-		}
-		for (auto& Pair : Parameter.GetUAVs())
-		{
-			SetShaderUAV(Shader, Pair.second, UniformBufferRef->UAVs[Pair.first]);
-		}
+	}
+	for (auto& Pair : Parameter.GetSRVs())
+	{
+		SetShaderSRV(Shader, Pair.second, UniformBufferRef->SRVs[Pair.first]);
+	}
+	for (auto& Pair : Parameter.GetSamplers())
+	{
+		SetShaderSampler(Shader, Pair.second, UniformBufferRef->Samplers[Pair.first]);
+	}
+	for (auto& Pair : Parameter.GetUAVs())
+	{
+		SetShaderUAV(Shader, Pair.second, UniformBufferRef->UAVs[Pair.first]);
 	}
 }
 
@@ -1552,18 +1576,37 @@ inline void SetUniformBufferParameter(
 	if (Parameter.IsBound())
 	{
 		SetShaderUniformBuffer(Shader, Parameter.GetBaseIndex(), UniformBuffer.GetUniformBufferRHI()->ConstantBuffer);
-		for (auto& Pair : Parameter.GetSRVs())
-		{
-			SetShaderSRV(Shader, Pair.second, UniformBuffer.GetUniformBufferRHI()->SRVs[Pair.first]);
-		}
-		for (auto& Pair : Parameter.GetSamplers())
-		{
-			SetShaderSampler(Shader, Pair.second, UniformBuffer.GetUniformBufferRHI()->Samplers[Pair.first]);
-		}
-		for (auto& Pair : Parameter.GetUAVs())
-		{
-			SetShaderUAV(Shader, Pair.second, UniformBuffer.GetUniformBufferRHI()->UAVs[Pair.first]);
-		}
+	}
+	for (auto& Pair : Parameter.GetSRVs())
+	{
+		SetShaderSRV(Shader, Pair.second, UniformBuffer.GetUniformBufferRHI()->SRVs[Pair.first]);
+	}
+	for (auto& Pair : Parameter.GetSamplers())
+	{
+		SetShaderSampler(Shader, Pair.second, UniformBuffer.GetUniformBufferRHI()->Samplers[Pair.first]);
+	}
+	for (auto& Pair : Parameter.GetUAVs())
+	{
+		SetShaderUAV(Shader, Pair.second, UniformBuffer.GetUniformBufferRHI()->UAVs[Pair.first]);
+	}
+}
+/** Sets the value of a shader uniform buffer parameter to a value of the struct. */
+template<typename TShaderRHIRef, typename TBufferStruct>
+inline void SetUniformBufferParameterImmediate(
+	TShaderRHIRef Shader,
+	const TShaderUniformBufferParameter<TBufferStruct>& Parameter,
+	const TBufferStruct& UniformBufferValue
+)
+{
+	// This will trigger if the parameter was not serialized
+	assert(Parameter.IsInitialized());
+	if (Parameter.IsBound())
+	{
+		SetShaderUniformBuffer(
+			Shader,
+			Parameter.GetBaseIndex(),
+			CreateConstantBuffer(false, sizeof(TBufferStruct::Constants), &UniformBufferValue)
+		);
 	}
 }
 /**
@@ -1641,3 +1684,20 @@ struct FBoundShaderStateInput
 	{
 	}
 };
+
+extern std::map<std::vector<D3D11_INPUT_ELEMENT_DESC>*, ComPtr<ID3D11InputLayout>> InputLayoutCache;
+
+void DrawRectangle(
+	float X,
+	float Y,
+	float SizeX,
+	float SizeY,
+	float U,
+	float V,
+	float SizeU,
+	float SizeV,
+	FIntPoint TargetSize,
+	FIntPoint TextureSize,
+	class FShader* VertexShader,
+	uint32 InstanceCount
+);

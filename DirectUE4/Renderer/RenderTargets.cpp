@@ -345,6 +345,17 @@ void RenderTargets::AllocGBufferTargets()
 	//GBufferRefCount = 1;
 }
 
+const std::shared_ptr<FD3D11Texture2D>& RenderTargets::GetSceneColorTexture() const
+{
+	if (!GetSceneColorForCurrentShadingPath())
+	{
+		static std::shared_ptr<FD3D11Texture2D> NULLTexture;
+		return NULLTexture;
+		//return GBlackTexture->TextureRHI;
+	}
+	return SceneColor->ShaderResourceTexture;
+}
+
 const std::shared_ptr<FD3D11Texture2D>* RenderTargets::GetActualDepthTexture() const
 {
 	const std::shared_ptr<FD3D11Texture2D>* DepthTexture = NULL;
@@ -412,7 +423,9 @@ void SetupSceneTextureUniformParameters(RenderTargets& SceneContext, ESceneTextu
 	// Scene Color / Depth
 	{
 		const bool bSetupDepth = (SetupMode & ESceneTextureSetupMode::SceneDepth) != ESceneTextureSetupMode::None;
-		SceneTextureParameters.SceneColorTexture = bSetupDepth ? SceneContext.GetSceneColorTexture()->GetShaderResourceView() : BlackDefault2D->GetShaderResourceView();
+		ID3D11ShaderResourceView* SceneColorSRV = SceneContext.GetSceneColorTexture() ? SceneContext.GetSceneColorTexture()->GetShaderResourceView() : NULL;
+		ID3D11ShaderResourceView* BlackDefault2DSRV = BlackDefault2D->GetShaderResourceView();
+		SceneTextureParameters.SceneColorTexture = bSetupDepth ? SceneColorSRV : BlackDefault2DSRV;
 		SceneTextureParameters.SceneColorTextureSampler = TStaticSamplerState<D3D11_FILTER_MIN_MAG_MIP_POINT, D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_CLAMP>::GetRHI();
 		const std::shared_ptr<FD3D11Texture2D>* ActualDepthTexture = SceneContext.GetActualDepthTexture();
 		SceneTextureParameters.SceneDepthTexture = bSetupDepth && ActualDepthTexture ? (*ActualDepthTexture)->GetShaderResourceView() : DepthDefault->GetShaderResourceView();
@@ -428,7 +441,7 @@ void SetupSceneTextureUniformParameters(RenderTargets& SceneContext, ESceneTextu
 // 				SceneTextureParameters.SceneDepthTexture = SceneContext.GetDownsampledTranslucencyDepthSurface();
 // 			}
 // 		}
-// 
+
 // 		if (bSetupDepth)
 // 		{
 // 			SceneTextureParameters.SceneDepthTextureNonMS = GSupportsDepthFetchDuringDepthTest ? SceneContext.GetSceneDepthTexture() : SceneContext.GetAuxiliarySceneDepthSurface();
@@ -437,9 +450,9 @@ void SetupSceneTextureUniformParameters(RenderTargets& SceneContext, ESceneTextu
 // 		{
 // 			SceneTextureParameters.SceneDepthTextureNonMS = DepthDefault;
 // 		}
-// 
-// 		SceneTextureParameters.SceneDepthTextureSampler = TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();
-// 		SceneTextureParameters.SceneStencilTexture = bSetupDepth && SceneContext.SceneStencilSRV ? SceneContext.SceneStencilSRV : GNullColorVertexBuffer.VertexBufferSRV;
+
+		SceneTextureParameters.SceneDepthTextureSampler = TStaticSamplerState<D3D11_FILTER_MIN_MAG_MIP_POINT, D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_CLAMP>::GetRHI();
+		//SceneTextureParameters.SceneStencilTexture = bSetupDepth && SceneContext.SceneStencilSRV ? SceneContext.SceneStencilSRV : GNullColorVertexBuffer.VertexBufferSRV;
  	}
 
 	// GBuffer
@@ -535,6 +548,14 @@ void BindSceneTextureUniformBufferDependentOnShadingPath(const FShader::Compiled
 	//if (FSceneInterface::GetShadingPath(FeatureLevel) == EShadingPath::Deferred)
 	{
 		SceneTexturesUniformBuffer.Bind(Initializer.ParameterMap, FSceneTexturesUniformParameters::GetConstantBufferName().c_str());
+		for (auto& Pair : FSceneTexturesUniformParameters::GetSRVs(FSceneTexturesUniformParameters()))
+		{
+			SceneTexturesUniformBuffer.BindSRV(Initializer.ParameterMap, Pair.first.c_str());
+		}
+		for (auto& Pair : FSceneTexturesUniformParameters::GetSamplers(FSceneTexturesUniformParameters()))
+		{
+			SceneTexturesUniformBuffer.BindSampler(Initializer.ParameterMap, Pair.first.c_str());
+		}
 		//assert(!Initializer.ParameterMap.ContainsParameterAllocation(FMobileSceneTextureUniformParameters::StaticStruct.GetShaderVariableName()), TEXT("Shader for Deferred shading path tried to bind FMobileSceneTextureUniformParameters which is only available in the mobile shading path: %s"), Initializer.Type->GetName());
 	}
 
@@ -544,5 +565,93 @@ void BindSceneTextureUniformBufferDependentOnShadingPath(const FShader::Compiled
 // 		checkfSlow(!Initializer.ParameterMap.ContainsParameterAllocation(FSceneTexturesUniformParameters::StaticStruct.GetShaderVariableName()), TEXT("Shader for Mobile shading path tried to bind FSceneTexturesUniformParameters which is only available in the deferred shading path: %s"), Initializer.Type->GetName());
 // 	}
 }
+static inline DXGI_FORMAT ConvertTypelessToUnorm(DXGI_FORMAT Format)
+{
+	// required to prevent 
+	// D3D11: ERROR: ID3D11DeviceContext::ResolveSubresource: The Format (0x1b, R8G8B8A8_TYPELESS) is never able to resolve multisampled resources. [ RESOURCE_MANIPULATION ERROR #294: DEVICE_RESOLVESUBRESOURCE_FORMAT_INVALID ]
+	// D3D11: **BREAK** enabled for the previous D3D11 message, which was: [ RESOURCE_MANIPULATION ERROR #294: DEVICE_RESOLVESUBRESOURCE_FORMAT_INVALID ]
+	switch (Format)
+	{
+	case DXGI_FORMAT_R8G8B8A8_TYPELESS:
+		return DXGI_FORMAT_R8G8B8A8_UNORM;
+
+	case DXGI_FORMAT_B8G8R8A8_TYPELESS:
+		return DXGI_FORMAT_B8G8R8A8_UNORM;
+
+	default:
+		return Format;
+	}
+}
+void CopyToResolveTarget(FD3D11Texture2D* SourceTextureRHI, FD3D11Texture2D* DestTextureRHI, const FResolveParams& ResolveParams)
+{
+	if (!SourceTextureRHI || !DestTextureRHI)
+	{
+		// no need to do anything (sliently ignored)
+		return;
+	}
+
+
+	FD3D11Texture2D* SourceTexture2D = SourceTextureRHI;
+	FD3D11Texture2D* DestTexture2D = DestTextureRHI;
+
+	// 	FD3D11TextureCube* SourceTextureCube = static_cast<FD3D11TextureCube*>(SourceTextureRHI->GetTextureCube());
+	// 	FD3D11TextureCube* DestTextureCube = static_cast<FD3D11TextureCube*>(DestTextureRHI->GetTextureCube());
+	// 
+	// 	FD3D11Texture3D* SourceTexture3D = static_cast<FD3D11Texture3D*>(SourceTextureRHI->GetTexture3D());
+	// 	FD3D11Texture3D* DestTexture3D = static_cast<FD3D11Texture3D*>(DestTextureRHI->GetTexture3D());
+
+	if (SourceTexture2D && DestTexture2D)
+	{
+		//assert(!SourceTextureCube && !DestTextureCube);
+		if (SourceTexture2D != DestTexture2D)
+		{
+			if (DestTexture2D->GetDepthStencilView(FExclusiveDepthStencil::DepthWrite_StencilWrite)
+				&& SourceTextureRHI->IsMultisampled()
+				&& !DestTextureRHI->IsMultisampled())
+			{
+			}
+			else 
+			{
+				DXGI_FORMAT SrcFmt = (DXGI_FORMAT)GPixelFormats[SourceTextureRHI->GetFormat()].PlatformFormat;
+				DXGI_FORMAT DstFmt = (DXGI_FORMAT)GPixelFormats[DestTexture2D->GetFormat()].PlatformFormat;
+
+				DXGI_FORMAT Fmt = ConvertTypelessToUnorm((DXGI_FORMAT)GPixelFormats[DestTexture2D->GetFormat()].PlatformFormat);
+
+				// Determine whether a MSAA resolve is needed, or just a copy.
+				if (SourceTextureRHI->IsMultisampled() && !DestTexture2D->IsMultisampled())
+				{
+					D3D11DeviceContext->ResolveSubresource(
+						DestTexture2D->GetResource(),
+						ResolveParams.DestArrayIndex,
+						SourceTexture2D->GetResource(),
+						ResolveParams.SourceArrayIndex,
+						Fmt
+					);
+				}
+				else
+				{
+					if (ResolveParams.Rect.IsValid())
+					{
+						D3D11_BOX SrcBox;
+
+						SrcBox.left = ResolveParams.Rect.X1;
+						SrcBox.top = ResolveParams.Rect.Y1;
+						SrcBox.front = 0;
+						SrcBox.right = ResolveParams.Rect.X2;
+						SrcBox.bottom = ResolveParams.Rect.Y2;
+						SrcBox.back = 1;
+
+						D3D11DeviceContext->CopySubresourceRegion(DestTexture2D->GetResource(), ResolveParams.DestArrayIndex, ResolveParams.DestRect.X1, ResolveParams.DestRect.Y1, 0, SourceTexture2D->GetResource(), ResolveParams.SourceArrayIndex, &SrcBox);
+					}
+					else
+					{
+						D3D11DeviceContext->CopyResource(DestTexture2D->GetResource(), SourceTexture2D->GetResource());
+					}
+				}
+			}
+		}
+	}
+}
+
 
 FSceneTexturesUniformParameters SceneTexturesUniformParameters;

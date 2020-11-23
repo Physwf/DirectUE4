@@ -315,7 +315,7 @@ struct TShaderPermutationDomain<TDimension, Ts...>
 	template<class DimensionToSet>
 	void Set(typename DimensionToSet::Type Value)
 	{
-		return TShaderPermutationDomainSpetialization<std::is_same<TDimension, DimensionToSet>::Value>::template SetDimension<Type, DimensionToSet>(*this, Value);
+		return TShaderPermutationDomainSpetialization<std::is_same<TDimension, DimensionToSet>::value>::template SetDimension<Type, DimensionToSet>(*this, Value);
 	}
 
 
@@ -323,7 +323,7 @@ struct TShaderPermutationDomain<TDimension, Ts...>
 	template<class DimensionToGet>
 	const typename DimensionToGet::Type& Get() const
 	{
-		return TShaderPermutationDomainSpetialization<std::is_same<TDimension, DimensionToGet>::Value>::template GetDimension<Type, DimensionToGet>(*this);
+		return TShaderPermutationDomainSpetialization<std::is_same<TDimension, DimensionToGet>::value>::template GetDimension<Type, DimensionToGet>(*this);
 	}
 
 

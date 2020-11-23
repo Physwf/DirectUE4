@@ -154,7 +154,6 @@ private:
 	float							DitheredLODTransitionAlpha;
 };
 
-extern std::map<std::vector<D3D11_INPUT_ELEMENT_DESC>*, ComPtr<ID3D11InputLayout>> InputLayoutCache;
 /**
 * Creates and sets the base PSO so that resources can be set. Generally best to call during SetSharedState.
 */

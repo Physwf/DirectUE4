@@ -733,7 +733,7 @@ public:
 		auto it = Shaders.find(FShaderPrimaryKey(&ShaderType::StaticType, PermutationId));
 		assert(it != Shaders.end());
 		const std::shared_ptr<FShader> ShaderRef = it->second;
-		return (ShaderType*)((*ShaderRef)->GetShaderChecked());
+		return (ShaderType*)((*ShaderRef).GetShaderChecked());
 	}
 
 	/** Finds the shader with the given type.  May return NULL. */
@@ -1235,7 +1235,7 @@ public:
 		: Shader(ShaderIndex->template GetShader<ShaderType>(/* PermutationId = */ 0)) // gcc3 needs the template quantifier so it knows the < is not a less-than
 	{
 		static_assert(
-			std::is_same<typename ShaderType::FPermutationDomain, FShaderPermutationNone>::Value,
+			std::is_same<typename ShaderType::FPermutationDomain, FShaderPermutationNone>::value,
 			"Missing permutation vector argument for shader that have a permutation domain.");
 	}
 

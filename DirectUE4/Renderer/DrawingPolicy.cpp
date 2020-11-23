@@ -42,4 +42,3 @@ void FMeshDrawingPolicy::SetInstanceParameters(const FSceneView& View, uint32 In
 	BaseVertexShader->SetInstanceParameters(InVertexOffset, InInstanceOffset, InInstanceCount);
 }
 
-std::map<std::vector<D3D11_INPUT_ELEMENT_DESC>*, ComPtr<ID3D11InputLayout>> InputLayoutCache;

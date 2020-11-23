@@ -29,7 +29,6 @@ void InitShading()
 	SceneContex.Allocate();
 	SceneContex.SetBufferSize(int32(WindowWidth), int32(WindowHeight));
 
-	InitScreenRectangleResources();
 
 	InitPrePass();
 	InitHZB();
@@ -44,6 +43,8 @@ void InitShading()
 	InitializeShaderTypes();
 	InitConstantBuffers();
 	CompileGlobalShaderMap(false);
+
+	InitScreenRectangleResources();
 }
 
 SceneRenderer::SceneRenderer(SceneViewFamily& InViewFamily)

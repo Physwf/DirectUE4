@@ -10,6 +10,8 @@
 #include <vector>
 #include <iterator>
 #include "ShaderCore.h"
+#include "SceneFilterRendering.h"
+#include "Shader.h"
 
 // #define STB_IMAGE_IMPLEMENTATION
 // #include "stb_image.h"
@@ -910,33 +912,6 @@ void SetRenderTarget(FD3D11Texture2D* NewRenderTarget, FD3D11Texture2D* NewDepth
 	}
 }
 
-void CopyToResolveTarget(FD3D11Texture2D* SourceTextureRHI, FD3D11Texture2D* DestTextureRHI/*, const FResolveParams& ResolveParams*/)
-{
-	if (!SourceTextureRHI || !DestTextureRHI)
-	{
-		// no need to do anything (sliently ignored)
-		return;
-	}
-
-
-	ID3D11Texture2D* SourceTexture2D = SourceTextureRHI->GetResource();
-	ID3D11Texture2D* DestTexture2D = DestTextureRHI->GetResource();
-
-// 	FD3D11TextureCube* SourceTextureCube = static_cast<FD3D11TextureCube*>(SourceTextureRHI->GetTextureCube());
-// 	FD3D11TextureCube* DestTextureCube = static_cast<FD3D11TextureCube*>(DestTextureRHI->GetTextureCube());
-// 
-// 	FD3D11Texture3D* SourceTexture3D = static_cast<FD3D11Texture3D*>(SourceTextureRHI->GetTexture3D());
-// 	FD3D11Texture3D* DestTexture3D = static_cast<FD3D11Texture3D*>(DestTextureRHI->GetTexture3D());
-
-	if (SourceTexture2D && DestTexture2D)
-	{
-		//assert(!SourceTextureCube && !DestTextureCube);
-		if (SourceTexture2D != DestTexture2D)
-		{
-			assert(false);
-		}
-	}
-}
 
 ID3D11Buffer* RHICreateVertexBuffer(UINT Size, D3D11_USAGE InUsage, UINT BindFlags, UINT MiscFlags, const void* Data /*= NULL*/)
 {
@@ -1599,6 +1574,9 @@ void RHISetShaderParameter(ID3D11PixelShader* Shader, uint32 BufferIndex, uint32
 	assert(0 == BufferIndex);
 	PSConstantBuffer->UpdateConstant((uint8*)NewValue, BaseIndex, NumBytes);
 }
+
+ComPtr<ID3D11Buffer> BoundUniformBuffers[6][14];
+
 void InitConstantBuffers()
 {
 	VSConstantBuffer = std::make_shared<FD3D11ConstantBuffer>(4096);
@@ -1619,4 +1597,28 @@ void CommitNonComputeShaderConstants()
 		ID3D11Buffer* ConstantBuffer = PSConstantBuffer->GetConstantBuffer();
 		D3D11DeviceContext->PSSetConstantBuffers(0, 1, &ConstantBuffer);
 	}
+}
+
+std::map<std::vector<D3D11_INPUT_ELEMENT_DESC>*, ComPtr<ID3D11InputLayout>> InputLayoutCache;
+
+void DrawRectangle(float X, float Y, float SizeX, float SizeY, float U, float V, float SizeU, float SizeV, FIntPoint TargetSize, FIntPoint TextureSize, FShader* VertexShader, uint32 InstanceCount)
+{
+	CommitNonComputeShaderConstants();
+
+	FDrawRectangleParameters Parameters;
+	Parameters.Constants.PosScaleBias = Vector4(SizeX, SizeY, X, Y);
+	Parameters.Constants.UVScaleBias = Vector4(SizeU, SizeV, U, V);
+
+	Parameters.Constants.InvTargetSizeAndTextureSize = Vector4(
+		1.0f / TargetSize.X, 1.0f / TargetSize.Y,
+		1.0f / TextureSize.X, 1.0f / TextureSize.Y);
+
+	SetUniformBufferParameterImmediate(VertexShader->GetVertexShader(), VertexShader->GetUniformBufferParameter<FDrawRectangleParameters>(), Parameters);
+
+	UINT Stride = sizeof(FilterVertex);
+	UINT Offset = 0;
+	D3D11DeviceContext->IASetVertexBuffers(0, 1, &GScreenRectangleVertexBuffer, &Stride, &Offset);
+	D3D11DeviceContext->IASetIndexBuffer(GScreenRectangleIndexBuffer,DXGI_FORMAT_R16_UINT,0);
+
+	D3D11DeviceContext->DrawIndexed(6, 0, 0);
 }

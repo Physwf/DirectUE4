@@ -95,6 +95,7 @@ struct FSceneTexturesUniformParameters
 	{
 		std::map<std::string, ID3D11SamplerState*> List;
 		ADD_RES(SceneTexturesStruct, SceneColorTextureSampler);
+		ADD_RES(SceneTexturesStruct, SceneDepthTextureSampler);
 		ADD_RES(SceneTexturesStruct, SceneDepthTextureNonMS);
 		ADD_RES(SceneTexturesStruct, GBufferATextureSampler);
 		ADD_RES(SceneTexturesStruct, GBufferBTextureSampler);
@@ -161,7 +162,7 @@ public:
 		BindSceneTextureUniformBufferDependentOnShadingPath(Initializer, SceneTexturesUniformBuffer/*, MobileSceneTexturesUniformBuffer*/);
 	}
 
-	template< typename ShaderRHIParamRef, typename TRHICmdList >
+	template< typename ShaderRHIParamRef>
 	void Set(const ShaderRHIParamRef& ShaderRHI, ESceneTextureSetupMode SetupMode) const
 	{
 		//if (FSceneInterface::GetShadingPath(FeatureLevel) == EShadingPath::Deferred && SceneTexturesUniformBuffer.IsBound())
