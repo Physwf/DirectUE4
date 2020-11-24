@@ -443,7 +443,7 @@ struct FBXUVs
 };
 
 
-StaticMesh* FBXImporter::ImportStaticMesh(const char* pFileName)
+StaticMesh* FBXImporter::ImportStaticMesh(class Actor* InOwner, const char* pFileName)
 {
 	FbxManager* lFbxManager = FbxManager::Create();
 
@@ -458,7 +458,7 @@ StaticMesh* FBXImporter::ImportStaticMesh(const char* pFileName)
 		return NULL;
 	}
 
-	StaticMesh* Mesh = new StaticMesh();
+	StaticMesh* Mesh = new StaticMesh(InOwner);
 	MeshDescription& MD = Mesh->GetMeshDescription();
 
 	FbxScene* lScene = FbxScene::Create(lFbxManager, "Mesh");
@@ -826,7 +826,7 @@ StaticMesh* FBXImporter::ImportStaticMesh(const char* pFileName)
 	return Mesh;
 }
 
-SkeletalMesh* FBXImporter::ImportSkeletalMesh(const char* pFileName)
+SkeletalMesh* FBXImporter::ImportSkeletalMesh(class Actor* InOwner, const char* pFileName)
 {
 	ImportOptions = new FBXImportOptions();
 	ImportOptions->bImportScene = false;
@@ -896,7 +896,7 @@ SkeletalMesh* FBXImporter::ImportSkeletalMesh(const char* pFileName)
 		return NULL;
 	}
 
-	SkeletalMesh* NewSekeletalMesh = new SkeletalMesh();
+	SkeletalMesh* NewSekeletalMesh = new SkeletalMesh(InOwner);
 
 	// process materials from import data
 	//ProcessImportMeshMaterials(SkeletalMesh->Materials, *SkelMeshImportDataPtr);

@@ -455,8 +455,8 @@ class MeshDescription;
 class FBXImporter
 {
 public:
-	StaticMesh* ImportStaticMesh(const char* filename);
-	SkeletalMesh* ImportSkeletalMesh(const char* filename);
+	StaticMesh* ImportStaticMesh(class Actor* InOwner, const char* filename);
+	SkeletalMesh* ImportSkeletalMesh(class Actor* InOwner, const char* filename);
 
 	bool FillSkeletalMeshImportData(std::vector<FbxNode*>& NodeArray, std::vector<FbxShape*> *FbxShapeArray, FSkeletalMeshImportData* OutData);
 	bool ImportBone(std::vector<FbxNode*>& NodeArray, FSkeletalMeshImportData &ImportData, std::vector<FbxNode*> &OutSortedLinks, bool& bUseTime0AsRefPose, FbxNode *SkeletalMeshNode);

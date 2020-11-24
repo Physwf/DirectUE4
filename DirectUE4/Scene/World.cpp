@@ -3,7 +3,7 @@
 #include "StaticMeshActor.h"
 #include "SkeletalMeshActor.h"
 
-void World::InitWorld()
+void UWorld::InitWorld()
 {
 	Scene = new FScene();
 
@@ -14,14 +14,6 @@ void World::InitWorld()
 	//m1->SetPosition(20.0f, -100.0f, 480.0f);
 	//m1->SetRotation(-3.14f / 2.0f, 0, 0);
 
-	mDirLight = SpawnActor<DirectionalLight>();
-	mDirLight->Color = FVector(1.0f, 1.0f, 1.0f);
-	mDirLight->Direction = FVector(1.0f, 1.0f, 1.0f);
-	mDirLight->Intencity = 1000.f;
-	mDirLight->LightSourceAngle = 0.5357f;
-	mDirLight->LightSourceSoftAngle = 0.0f;
-	mDirLight->Direction.Normalize();
-
 	Camera* C = SpawnActor<Camera>();
 	C->SetPosition(FVector(-400, 0,  0));
 	C->LookAt(FVector(0, 0, 0));
@@ -29,7 +21,7 @@ void World::InitWorld()
 	mCameras.push_back(C);
 }
 
-void World::Tick(float fDeltaSeconds)
+void UWorld::Tick(float fDeltaSeconds)
 {
 	for (Actor* actor : mAllActors)
 	{
@@ -37,7 +29,7 @@ void World::Tick(float fDeltaSeconds)
 	}
 }
 
-void World::DestroyActor(Actor* InActor)
+void UWorld::DestroyActor(Actor* InActor)
 {
 	auto it = std::find(mAllActors.begin(), mAllActors.end(), InActor);
 	if (it != mAllActors.end())
@@ -46,7 +38,7 @@ void World::DestroyActor(Actor* InActor)
 	}
 }
 
-void World::SendAllEndOfFrameUpdates()
+void UWorld::SendAllEndOfFrameUpdates()
 {
 	for (Actor* actor : mAllActors)
 	{
@@ -54,4 +46,4 @@ void World::SendAllEndOfFrameUpdates()
 	}
 }
 
-World GWorld;
+UWorld GWorld;

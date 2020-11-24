@@ -6,7 +6,7 @@
 #include "UnrealMath.h"
 #include "MeshDescription.h"
 #include "FBXImporter.h"
-#include "Mesh.h"
+#include "PrimitiveComponent.h"
 #include "StaticMeshResources.h"
 #include <unordered_map>
 
@@ -36,10 +36,10 @@ struct MeshMaterial
 
 struct FMeshBatch;
 
-class StaticMesh : public MeshPrimitive
+class StaticMesh : public UPrimitiveComponent
 {
 public:
-	StaticMesh();
+	StaticMesh(class Actor* InOwner);
 	virtual ~StaticMesh() {}
 
 	MeshDescription& GetMeshDescription() { return MD; }

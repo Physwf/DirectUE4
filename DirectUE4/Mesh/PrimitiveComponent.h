@@ -2,6 +2,8 @@
 
 #include "UnrealMath.h"
 #include "PrimitiveUniformBufferParameters.h"
+#include "SceneComponent.h"
+
 #include <vector>
 
 struct FPrimitiveViewRelevance
@@ -14,17 +16,18 @@ class FSceneView;
 class FStaticMesh;
 class SceneViewFamily;
 class FScene;
+class Actor;
 
-class MeshPrimitive
+class UPrimitiveComponent : public USceneComponent
 {
 	friend class FScene;
 
 public:
-	MeshPrimitive();
-	virtual ~MeshPrimitive() {}
+	UPrimitiveComponent(Actor* InOwner);
+	virtual ~UPrimitiveComponent() {}
 
-	virtual void Register(FScene* Scene);
-	virtual void UnRegister(FScene* Scene);
+	virtual void Register() override;
+	virtual void Unregister() override;
 
 	virtual void InitResources();
 	virtual void ReleaseResources();
@@ -59,16 +62,14 @@ public:
 	std::vector<FStaticMesh*> StaticMeshes;
 
 private:
+	//proxy
 	void SetTransform(const FMatrix& InLocalToWorld, const FBoxSphereBounds& InBounds, const FBoxSphereBounds& InLocalBounds, FVector InActorPosition);
 
 	FMatrix LocalToWorld;
-
 	/** The primitive's bounds. */
 	FBoxSphereBounds Bounds;
-
 	/** The primitive's local space bounds. */
 	FBoxSphereBounds LocalBounds;
-
 	/** The component's actor's position. */
 	FVector ActorPosition;
 

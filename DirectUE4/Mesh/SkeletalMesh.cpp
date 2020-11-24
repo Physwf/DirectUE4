@@ -1,8 +1,8 @@
 #include "SkeletalMesh.h"
 #include "log.h"
 
-SkeletalMesh::SkeletalMesh()
-	: Skeleton(NULL)
+SkeletalMesh::SkeletalMesh(class Actor* InOwner)
+	: UPrimitiveComponent(InOwner), Skeleton(NULL)
 {
 	ImportedModel = std::make_unique<SkeletalMeshModel>();
 }

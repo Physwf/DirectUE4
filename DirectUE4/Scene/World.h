@@ -1,13 +1,12 @@
 #pragma once
 
 #include <vector>
-#include "Light.h"
 
 class Actor;
 class Camera;
 class FScene;
 
-class World
+class UWorld
 {
 public:
 	void InitWorld();
@@ -16,9 +15,8 @@ public:
 	template<typename T, typename... ArgTypes>
 	T* SpawnActor(ArgTypes... Args)
 	{
-		T* NewActor = new T(std::forward<ArgTypes>(Args)...);
+		T* NewActor = new T(this, std::forward<ArgTypes>(Args)...);
 		mAllActors.push_back(NewActor);
-		NewActor->WorldPrivite = this;
 		NewActor->PostLoad();
 		return NewActor;
 	}
@@ -29,10 +27,9 @@ public:
 
 private:
 	std::vector<Camera*> mCameras;
-	DirectionalLight* mDirLight;
 	std::vector<Actor*> mAllActors;
 public:
 	FScene* Scene;
 };
 
-extern World GWorld;
+extern UWorld GWorld;

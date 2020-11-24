@@ -17,8 +17,6 @@
 ID3D11Buffer* GlobalConstantBuffer;
 char GlobalConstantBufferData[4096];
 
-FScene* GScene;
-
 void InitShading()
 {
 	/*
@@ -58,6 +56,13 @@ SceneRenderer::SceneRenderer(SceneViewFamily& InViewFamily)
 	}
 }
 
+void SceneRenderer::InitViewsPossiblyAfterPrepass()
+{
+	InitDynamicShadows();
+}
+
+
+
 void SceneRenderer::PrepareViewRectsForRendering()
 {
 	for (FViewInfo& View : Views)
@@ -75,11 +80,17 @@ void SceneRenderer::InitViews()
 		View.InitRHIResources();
 	}
 
-	for (MeshPrimitive* Primitive : Scene->Primitives)
+	for (UPrimitiveComponent* Primitive : Scene->Primitives)
 	{
 		Primitive->ConditionalUpdateUniformBuffer();
 	}
 }
+
+void SceneRenderer::RenderShadowDepthMapAtlases()
+{
+
+}
+
 void SceneRenderer::Render()
 {
 	PrepareViewRectsForRendering();

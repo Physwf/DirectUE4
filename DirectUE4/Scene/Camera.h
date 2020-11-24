@@ -8,7 +8,7 @@ class Viewport;
 class Camera : public Actor
 {
 public:
-	Camera();
+	Camera(class UWorld* InOwner);
 	~Camera() {};
 
 	void SetFOV(float InFOV) { FOV = InFOV; }

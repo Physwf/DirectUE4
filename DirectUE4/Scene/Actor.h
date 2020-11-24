@@ -2,10 +2,12 @@
 
 #include "UnrealMath.h"
 
+class UWorld;
+
 class Actor
 {
 public:
-	Actor();
+	Actor(UWorld* InOwner);
 	virtual ~Actor();
 
 	virtual void Tick(float fDeltaSeconds) = 0;
@@ -16,13 +18,13 @@ public:
 	void SetRotation(FRotator InRotation);
 	FRotator GetRotation() { return Rotation; }
 
-	class World* GetWorld() { return WorldPrivite; }
+	class UWorld* GetWorld() { return WorldPrivite; }
 
 	void DoDeferredRenderUpdates_Concurrent();
 
 	virtual void SendRenderTransform_Concurrent();
 	
-	class MeshPrimitive* Proxy;
+	class UPrimitiveComponent* Proxy;
 
 	FMatrix GetWorldMatrix();
 
@@ -32,7 +34,7 @@ protected:
 	FRotator Rotation;
 	bool bTransformDirty = false;
 
-	class World* WorldPrivite;
+	UWorld* WorldPrivite;
 
-	friend class World;
+	friend class UWorld;
 };

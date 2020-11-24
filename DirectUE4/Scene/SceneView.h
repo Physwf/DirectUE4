@@ -750,10 +750,13 @@ struct alignas(16) FInstancedViewUniformShaderParameters
 		return List;
 	}
 };
+class SceneViewFamily;
 
 class FSceneView
 {
 public:
+	const SceneViewFamily* Family;
+
 	TUniformBufferPtr<FViewUniformShaderParameters> ViewUniformBuffer;
 	ViewMatrices mViewMatrices;
 private:

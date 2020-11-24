@@ -3,16 +3,16 @@
 #include "SkeletalMeshModel.h"
 #include "SkeletalMeshRenderData.h"
 #include "ReferenceSkeleton.h"
-#include "Mesh.h"
+#include "PrimitiveComponent.h"
 
 #include <memory>
 
 class Skeleton;
 
-class SkeletalMesh : public MeshPrimitive
+class SkeletalMesh : public UPrimitiveComponent
 {
 public:
-	SkeletalMesh();
+	SkeletalMesh(class Actor* InOwner);
 
 	SkeletalMeshModel* GetImportedModel() const { return ImportedModel.get(); }
 

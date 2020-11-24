@@ -13,12 +13,31 @@ class SceneRenderer
 public:
 	SceneRenderer(SceneViewFamily& InViewFamily);
 
+	void InitViewsPossiblyAfterPrepass();
+
+	void InitDynamicShadows();
+
+	void AllocateShadowDepthTargets();
+
+// 	void AllocatePerObjectShadowDepthTargets(TArray<FProjectedShadowInfo*>& Shadows);
+// 
+// 	void AllocateCachedSpotlightShadowDepthTargets(TArray<FProjectedShadowInfo*>& CachedShadows);
+// 
+// 	void AllocateCSMDepthTargets(const TArray<FProjectedShadowInfo*>& WholeSceneDirectionalShadows);
+// 
+// 	void AllocateRSMDepthTargets(const TArray<FProjectedShadowInfo*>& RSMShadows);
+// 
+// 	void AllocateOnePassPointLightDepthTargets(const TArray<FProjectedShadowInfo*>& WholeScenePointShadows);
+// 
+// 	void AllocateTranslucentShadowDepthTargets(TArray<FProjectedShadowInfo*>& TranslucentShadows);
+
 	void PrepareViewRectsForRendering();
 	void InitViews();
 	void RenderPrePassView(FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState);
 	void RenderPrePass();
 	void RenderHzb();
 	void RenderShadowDepthMaps();
+	void RenderShadowDepthMapAtlases();
 	void RenderBasePass();
 	void RenderLights();
 	void RenderLight();

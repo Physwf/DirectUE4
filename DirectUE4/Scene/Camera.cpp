@@ -4,7 +4,8 @@
 
 float					GNearClippingPlane = 10.0f;				/* Near clipping plane */
 
-Camera::Camera():Near(1.0f), Far(1000.0f)
+Camera::Camera(class UWorld* InOwner)
+	: Actor(InOwner), Near(1.0f), Far(1000.0f)
 {
 	Position = { 0,0,0 };
 	Up = { 0, 0, 1 };

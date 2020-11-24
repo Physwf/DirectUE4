@@ -4,16 +4,17 @@
 #include "World.h"
 #include "Scene.h"
 
-StaticMeshActor::StaticMeshActor(const char* ResourcePath)
+StaticMeshActor::StaticMeshActor(class UWorld* InOwner, const char* ResourcePath)
+	:Actor(InOwner)
 {
 	FBXImporter Importer;
-	Mesh = Importer.ImportStaticMesh(ResourcePath);
+	Mesh = Importer.ImportStaticMesh(this, ResourcePath);
 	Proxy = Mesh;
 }
 
 void StaticMeshActor::PostLoad()
 {
-	Mesh->Register(GetWorld()->Scene);
+	Mesh->Register();
 }
 
 void StaticMeshActor::Tick(float fDeltaTime)

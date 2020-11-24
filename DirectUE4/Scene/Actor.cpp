@@ -1,6 +1,7 @@
 #include "Actor.h"
 
-Actor::Actor() : Position { 0, 0, 0 }, Rotation{ 0, 0, 0 }
+Actor::Actor(UWorld* InOwner)
+	: WorldPrivite(InOwner), Position{ 0, 0, 0 }, Rotation{ 0, 0, 0 }
 {
 }
 

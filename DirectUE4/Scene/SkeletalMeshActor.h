@@ -7,7 +7,7 @@ class SkeletalMesh;
 class SkeletalMeshActor : public Actor
 {
 public:
-	SkeletalMeshActor(const char* ResourcePath);
+	SkeletalMeshActor(class UWorld* InOwner, const char* ResourcePath);
 	virtual ~SkeletalMeshActor();
 
 	virtual void PostLoad() override;

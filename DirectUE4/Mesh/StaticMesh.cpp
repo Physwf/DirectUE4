@@ -86,7 +86,8 @@ void FStaticMeshRenderData::Cache(StaticMesh* Owner/*, const FStaticMeshLODSetti
 	Importer.BuildStaticMesh(*this, Owner);
 }
 
-StaticMesh::StaticMesh()
+StaticMesh::StaticMesh(class Actor* InOwner)
+	: UPrimitiveComponent(InOwner)
 {
 	RegisterMeshAttributes(MD);
 
@@ -96,14 +97,14 @@ StaticMesh::StaticMesh()
 
 void StaticMesh::InitResources()
 {
-	MeshPrimitive::InitResources();
+	UPrimitiveComponent::InitResources();
 	RenderData->InitResources(this);
 }
 
 void StaticMesh::ReleaseResources()
 {
 	RenderData->ReleaseResources();
-	MeshPrimitive::ReleaseResources();
+	UPrimitiveComponent::ReleaseResources();
 }
 
 bool StaticMesh::GetMeshElement(int BatchIndex, int SectionIndex, FMeshBatch& OutMeshBatch)

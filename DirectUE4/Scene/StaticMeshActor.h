@@ -5,7 +5,7 @@ class StaticMesh;
 class StaticMeshActor : public Actor
 {
 public:
-	StaticMeshActor(const char* ResourcePath);
+	StaticMeshActor(class UWorld* InOwner, const char* ResourcePath);
 
 	virtual void PostLoad() override;
 

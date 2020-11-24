@@ -1,7 +1,6 @@
 #pragma once
 
 #include "StaticMesh.h"
-#include "Light.h"
 #include "Camera.h"
 #include "SceneView.h"
 #include "MeshBach.h"
@@ -12,7 +11,9 @@
 Vector4 CreateInvDeviceZToWorldZTransform(const FMatrix& ProjMatrix);
 
 class RenderTargets;
-class MeshPrimitive;
+class UPrimitiveComponent;
+class FLightSceneInfo;
+class FLightSceneInfoCompact;
 
 class FViewInfo : public FSceneView
 {
@@ -354,9 +355,6 @@ private:
 	void SetupSkyIrradianceEnvironmentMapConstants(Vector4* OutSkyIrradianceEnvironmentMap) const;
 };
 
-void UpdateView();
-
-
 /**
 * A mesh which is defined by a primitive at scene segment construction time and never changed.
 * Lights are attached and detached as the segment containing the mesh is added or removed from a scene.
@@ -380,7 +378,7 @@ public:
 	//float ScreenSize;
 
 	/** The render info for the primitive which created this mesh. */
-	MeshPrimitive* PrimitiveSceneInfo;
+	UPrimitiveComponent* PrimitiveSceneInfo;
 
 	/** The index of the mesh in the scene's static meshes array. */
 	int32 Id;
@@ -390,7 +388,7 @@ public:
 
 	// Constructor/destructor.
 	FStaticMesh(
-		MeshPrimitive* InPrimitiveSceneInfo,
+		UPrimitiveComponent* InPrimitiveSceneInfo,
 		const FMeshBatch& InMesh//,
 		//float InScreenSize,
 		//FHitProxyId InHitProxyId
@@ -438,10 +436,15 @@ private:
 class FScene
 {
 public:
-	void InitScene();
-	void AddPrimitive(MeshPrimitive* Primitive);
-	void RemovePrimitive(MeshPrimitive* Primitive);
-	void UpdatePrimitiveTransform(Actor* Coomponet);
+	void AddPrimitive(UPrimitiveComponent* Primitive);
+	void RemovePrimitive(UPrimitiveComponent* Primitive);
+	void UpdatePrimitiveTransform(Actor* Component);
+	void AddLight(class ULightComponent* Light);
+	void RemoveLight(class ULightComponent* Light);
+
+
+	void AddLightSceneInfo(FLightSceneInfo* LightSceneInfo);
+
 public:
 
 
@@ -473,10 +476,10 @@ public:
 
 
 	//std::vector<MeshBatch> AllBatches;
-	std::vector<MeshPrimitive*> Primitives;
+	std::vector<UPrimitiveComponent*> Primitives;
+	std::vector<FLightSceneInfoCompact*> Lights;
 
 	class AtmosphericFogSceneInfo* AtmosphericFog;
 
+	FLightSceneInfo* SimpleDirectionalLight;
 };
-
-extern FScene* GScene;

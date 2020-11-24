@@ -1,35 +1,36 @@
-#include "Mesh.h"
+#include "PrimitiveComponent.h"
 #include "World.h"
 #include "Scene.h"
 
-extern World GWorld;
+extern UWorld GWorld;
 
-MeshPrimitive::MeshPrimitive()
+UPrimitiveComponent::UPrimitiveComponent(Actor* InOwner)
+	: USceneComponent(InOwner)
 {
 
 }
 
-void MeshPrimitive::Register(FScene* Scene)
+void UPrimitiveComponent::Register()
 {
-	Scene->AddPrimitive(this);
+	GetWorld()->Scene->AddPrimitive(this);
 }
 
-void MeshPrimitive::UnRegister(FScene* Scene)
+void UPrimitiveComponent::Unregister()
 {
-	Scene->RemovePrimitive(this);
+	GetWorld()->Scene->RemovePrimitive(this);
 }
 
-void MeshPrimitive::InitResources()
+void UPrimitiveComponent::InitResources()
 {
 	UniformBuffer.InitDynamicRHI();
 }
 
-void MeshPrimitive::ReleaseResources()
+void UPrimitiveComponent::ReleaseResources()
 {
 	UniformBuffer.ReleaseDynamicRHI();
 }
 
-void MeshPrimitive::ConditionalUpdateUniformBuffer()
+void UPrimitiveComponent::ConditionalUpdateUniformBuffer()
 {
 	if (bNeedsUniformBufferUpdate)
 	{
@@ -37,7 +38,7 @@ void MeshPrimitive::ConditionalUpdateUniformBuffer()
 	}
 }
 
-void MeshPrimitive::UpdateUniformBuffer()
+void UPrimitiveComponent::UpdateUniformBuffer()
 {
 	const FPrimitiveUniformShaderParameters PrimitiveUniformShaderParameters =
 		GetPrimitiveUniformShaderParameters(
@@ -56,17 +57,17 @@ void MeshPrimitive::UpdateUniformBuffer()
 	UniformBuffer.SetContents(PrimitiveUniformShaderParameters);
 }
 
-void MeshPrimitive::AddToScene(FScene* Scene/*FRHICommandListImmediate& RHICmdList, bool bUpdateStaticDrawLists, bool bAddToStaticDrawLists = true*/)
+void UPrimitiveComponent::AddToScene(FScene* Scene/*FRHICommandListImmediate& RHICmdList, bool bUpdateStaticDrawLists, bool bAddToStaticDrawLists = true*/)
 {
 	AddStaticMeshes(Scene);
 }
 
-void MeshPrimitive::RemoveFromScene(FScene* Scene/*bool bUpdateStaticDrawLists*/)
+void UPrimitiveComponent::RemoveFromScene(FScene* Scene/*bool bUpdateStaticDrawLists*/)
 {
 	RemoveStaticMeshes(Scene);
 }
 
-void MeshPrimitive::AddStaticMeshes(FScene* Scene/*FRHICommandListImmediate& RHICmdList, bool bUpdateStaticDrawLists = true*/)
+void UPrimitiveComponent::AddStaticMeshes(FScene* Scene/*FRHICommandListImmediate& RHICmdList, bool bUpdateStaticDrawLists = true*/)
 {
 	DrawStaticElements();
 	for (uint32 MeshIndex = 0; MeshIndex < StaticMeshes.size(); MeshIndex++)
@@ -77,12 +78,12 @@ void MeshPrimitive::AddStaticMeshes(FScene* Scene/*FRHICommandListImmediate& RHI
 	}
 }
 
-void MeshPrimitive::RemoveStaticMeshes(FScene* Scene)
+void UPrimitiveComponent::RemoveStaticMeshes(FScene* Scene)
 {
 
 }
 
-void MeshPrimitive::SetTransform(const FMatrix& InLocalToWorld, const FBoxSphereBounds& InBounds, const FBoxSphereBounds& InLocalBounds, FVector InActorPosition)
+void UPrimitiveComponent::SetTransform(const FMatrix& InLocalToWorld, const FBoxSphereBounds& InBounds, const FBoxSphereBounds& InLocalBounds, FVector InActorPosition)
 {
 	LocalToWorld = InLocalToWorld;
 	bIsLocalToWorldDeterminantNegative = LocalToWorld.Determinant() < 0.0f;
