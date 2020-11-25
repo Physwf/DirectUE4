@@ -16,12 +16,12 @@ public:
 class FLightSceneInfo
 {
 public:
-	class ULightComponent* Proxy;
+	class FLightSceneProxy* Proxy;
 
 	class FScene* Scene;
 
 
-	FLightSceneInfo(ULightComponent* InComponent);
+	FLightSceneInfo(FLightSceneProxy* InProxy);
 	virtual ~FLightSceneInfo();
 
 	void AddToScene();

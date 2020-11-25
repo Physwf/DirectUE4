@@ -1,7 +1,7 @@
 #include "LightSceneInfo.h"
 
-FLightSceneInfo::FLightSceneInfo(ULightComponent* InComponent)
-	:Proxy(InComponent)
+FLightSceneInfo::FLightSceneInfo(FLightSceneProxy* InProxy)
+	:Proxy(InProxy)
 {
 
 }

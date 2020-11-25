@@ -1,6 +1,7 @@
 #pragma once
 
 #include "SceneComponent.h"
+#include "SceneManagement.h"
 
 enum ELightComponentType
 {
@@ -12,21 +13,21 @@ enum ELightComponentType
 	LightType_NumBits = 2
 };
 
-#define WORLD_MAX					2097152.0				/* Maximum size of the world */
-#define HALF_WORLD_MAX				(WORLD_MAX * 0.5)		/* Half the maximum size of the world */
-#define HALF_WORLD_MAX1				(HALF_WORLD_MAX - 1.0)	/* Half the maximum size of the world minus one */
+
 
 class Actor;
 class UPrimitiveComponent;
+
+
 
 class ULightComponent : public USceneComponent
 {
 public:
 	ULightComponent(Actor* InOwner);
 	~ULightComponent();
-/************************************************************************/
-/* Component                                                            */
-/************************************************************************/
+
+	float MaxDrawDistance;
+	float MaxDistanceFadeRange;
 	/**
 	* Total energy that the light emits.
 	*/
@@ -50,11 +51,8 @@ public:
 	uint32 CastDynamicShadows : 1;
 	/** Whether the light affects translucency or not.  Disabling this can save GPU time when there are many small lights. */
 	uint32 bAffectTranslucentLighting : 1;
-	/**
-	* Multiplier on specular highlights. Use only with great care! Any value besides 1 is not physical!
-	* Can be used to artistically remove highlights mimicking polarizing filters or photo touch up.
-	*/
-	float SpecularScale;
+
+	uint32 bMoveable : 1;
 	/**
 	* Controls how accurate self shadowing of whole scene shadows from this light are.
 	* At 0, shadows will start at the their caster surface, but there will be many self shadowing artifacts.
@@ -86,66 +84,25 @@ public:
 	*/
 	virtual ELightComponentType GetLightType() const = 0;
 	FVector GetDirection() const;
+	/**
+	* Return True if a light's parameters as well as its position is static during gameplay, and can thus use static lighting.
+	* A light with HasStaticLighting() == true will always have HasStaticShadowing() == true as well.
+	*/
+	bool HasStaticLighting() const;
+	/**
+	* Whether the light has static direct shadowing.
+	* The light may still have dynamic brightness and color.
+	* The light may or may not also have static lighting.
+	*/
+	bool HasStaticShadowing() const;
+
+	virtual class FLightSceneProxy* CreateSceneProxy() const
+	{
+		return NULL;
+	}
 
 	virtual void Register() override;
 	virtual void Unregister() override;
-/************************************************************************/
-/* Proxy                                                                */
-/************************************************************************/
-protected:
-	friend class FScene;
-	class FLightSceneInfo* LightSceneInfo;
-	/** A transform from world space into light space. */
-	FMatrix WorldToLight;
-	/** A transform from light space into world space. */
-	FMatrix LightToWorld;
-	/** The homogenous position of the light. */
-	Vector4 Position;
-	/** The light color. */
-	FLinearColor Color;
-	/** User setting from light component, 0:no bias, 0.5:reasonable, larger object might appear to float */
-	//float ShadowBias;
-	/** Sharpen shadow filtering */
-	//float ShadowSharpen;
-
-// 	const uint32 bMovable : 1;
-// 	/**
-// 	* Return True if a light's parameters as well as its position is static during gameplay, and can thus use static lighting.
-// 	* A light with HasStaticLighting() == true will always have HasStaticShadowing() == true as well.
-// 	*/
-// 	const uint32 bStaticLighting : 1;
-// 	/**
-// 	* Whether the light has static direct shadowing.
-// 	* The light may still have dynamic brightness and color.
-// 	* The light may or may not also have static lighting.
-// 	*/
-// 	const uint32 bStaticShadowing : 1;
-// 	/** True if the light casts dynamic shadows. */
-// 	const uint32 bCastDynamicShadow : 1;
-// 	/** True if the light casts static shadows. */
-// 	const uint32 bCastStaticShadow : 1;
-// 	/** Whether the light is allowed to cast dynamic shadows from translucency. */
-// 	const uint32 bCastTranslucentShadows : 1;
-
-	//const uint8 LightType;
-
-	void SetTransform(const FMatrix& InLightToWorld, const Vector4& InPosition);
-public:
-// 	inline FLightSceneInfo* GetLightSceneInfo() const { return LightSceneInfo; }
-// 	inline const FMatrix& GetWorldToLight() const { return WorldToLight; }
-// 	inline const FMatrix& GetLightToWorld() const { return LightToWorld; }
-// 	//inline FVector GetDirection() const { return FVector(WorldToLight.M[0][0], WorldToLight.M[1][0], WorldToLight.M[2][0]); }
-// 	inline FVector GetOrigin() const { return LightToWorld.GetOrigin(); }
-// 	inline Vector4 GetPosition() const { return Position; }
-// 	inline const FLinearColor& GetColor() const { return Color; }
-// 
-// 	inline bool HasStaticLighting() const { return bStaticLighting; }
-// 	inline bool HasStaticShadowing() const { return bStaticShadowing; }
-// 	inline bool CastsDynamicShadow() const { return bCastDynamicShadow; }
-// 	inline bool CastsStaticShadow() const { return bCastStaticShadow; }
-// 	inline bool CastsTranslucentShadows() const { return bCastTranslucentShadows; }
-
-	//inline uint8 GetLightType() const { return LightType; }
 };
 
 class UDirectionalLightComponent : public ULightComponent
@@ -180,6 +137,8 @@ public:
 public:
 	virtual Vector4 GetLightPosition() const override;
 	virtual ELightComponentType GetLightType() const override;
+
+	virtual FLightSceneProxy* CreateSceneProxy() const override;
 };
 
 class ULocalLightComponent : public ULightComponent
@@ -193,6 +152,7 @@ public:
 	virtual Vector4 GetLightPosition() const override;
 	virtual FBox GetBoundingBox() const override;
 	virtual FSphere GetBoundingSphere() const override;
+
 };
 
 class UPointLightComponent : public ULocalLightComponent
@@ -230,4 +190,7 @@ public:
 	float SourceLength;
 public:
 	virtual ELightComponentType GetLightType() const override;
+
+	virtual FLightSceneProxy* CreateSceneProxy() const override;
+
 };

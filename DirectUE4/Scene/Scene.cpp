@@ -6,6 +6,7 @@
 #include "GlobalShader.h"
 #include "LightSceneInfo.h"
 #include "LightComponent.h"
+#include "SceneManagement.h"
 
 FViewInfo::FViewInfo(const ViewInitOptions& InitOptions)
 	: FSceneView(InitOptions),
@@ -546,8 +547,15 @@ void FScene::UpdatePrimitiveTransform(Actor* Component)
 
 void FScene::AddLight(class ULightComponent* Light)
 {
-	FLightSceneInfo* LightSceneInfo = new FLightSceneInfo(Light);
-	AddLightSceneInfo(LightSceneInfo);
+	FLightSceneProxy* Proxy = Light->CreateSceneProxy();
+	if (Proxy)
+	{
+		Proxy->SetTransform(Light->GetComponentTransform().ToMatrixNoScale(), Light->GetLightPosition());
+		Proxy->LightSceneInfo = new FLightSceneInfo(Proxy);
+
+		AddLightSceneInfo(Proxy->LightSceneInfo);
+	}
+
 }
 
 void FScene::RemoveLight(class ULightComponent* Light)
@@ -557,8 +565,7 @@ void FScene::RemoveLight(class ULightComponent* Light)
 
 void FScene::AddLightSceneInfo(FLightSceneInfo* LightSceneInfo)
 {
-	/*
-	if (LightSceneInfo->Component->GetLightType() == LightType_Directional && !LightSceneInfo->Component->HasStaticLighting())//非静态方向光
+	if (LightSceneInfo->Proxy->GetLightType() == LightType_Directional && !LightSceneInfo->Proxy->HasStaticLighting())//非静态方向光
 	{
 		if (!SimpleDirectionalLight)
 		{
@@ -567,5 +574,5 @@ void FScene::AddLightSceneInfo(FLightSceneInfo* LightSceneInfo)
 	}
 
 	LightSceneInfo->AddToScene();
-	*/
+	
 }
