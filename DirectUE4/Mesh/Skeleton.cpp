@@ -37,7 +37,7 @@ void FAnimationRuntime::ExcludeBonesWithNoParents(const std::vector<int32>& Bone
 	}
 }
 
-bool USkeleton::DoesParentChainMatch(int32 StartBoneIndex, const SkeletalMesh* InSkelMesh) const
+bool USkeleton::DoesParentChainMatch(int32 StartBoneIndex, const USkeletalMesh* InSkelMesh) const
 {
 	const FReferenceSkeleton& SkeletonRefSkel = ReferenceSkeleton;
 	const FReferenceSkeleton& MeshRefSkel = InSkelMesh->RefSkeleton;
@@ -82,7 +82,7 @@ bool USkeleton::DoesParentChainMatch(int32 StartBoneIndex, const SkeletalMesh* I
 	return true;
 }
 
-bool USkeleton::IsCompatibleMesh(const SkeletalMesh* InSkelMesh) const
+bool USkeleton::IsCompatibleMesh(const USkeletalMesh* InSkelMesh) const
 {
 	// at least % of bone should match 
 	int32 NumOfBoneMatches = 0;
@@ -158,7 +158,7 @@ bool USkeleton::IsCompatibleMesh(const SkeletalMesh* InSkelMesh) const
 	return (NumOfBoneMatches > 0);
 }
 
-bool USkeleton::CreateReferenceSkeletonFromMesh(const SkeletalMesh* InSkeletalMesh, const std::vector<int32>& RequiredRefBones)
+bool USkeleton::CreateReferenceSkeletonFromMesh(const USkeletalMesh* InSkeletalMesh, const std::vector<int32>& RequiredRefBones)
 {
 	// Filter list, we only want bones that have their parents present in this array.
 	std::vector<int32> FilteredRequiredBones;
@@ -199,7 +199,7 @@ bool USkeleton::CreateReferenceSkeletonFromMesh(const SkeletalMesh* InSkeletalMe
 	return false;
 }
 
-bool USkeleton::MergeBonesToBoneTree(const SkeletalMesh* InSkeletalMesh, const std::vector<int32> &RequiredRefBones)
+bool USkeleton::MergeBonesToBoneTree(const USkeletalMesh* InSkeletalMesh, const std::vector<int32> &RequiredRefBones)
 {
 	// see if it needs all animation data to remap - only happens when bone structure CHANGED - added
 	bool bSuccess = false;
@@ -265,7 +265,7 @@ bool USkeleton::MergeBonesToBoneTree(const SkeletalMesh* InSkeletalMesh, const s
 	return bSuccess;
 }
 
-bool USkeleton::MergeAllBonesToBoneTree(const SkeletalMesh* InSkelMesh)
+bool USkeleton::MergeAllBonesToBoneTree(const USkeletalMesh* InSkelMesh)
 {
 	if (InSkelMesh)
 	{
@@ -289,7 +289,7 @@ bool USkeleton::MergeAllBonesToBoneTree(const SkeletalMesh* InSkelMesh)
 	return false;
 }
 
-bool USkeleton::RecreateBoneTree(SkeletalMesh* InSkelMesh)
+bool USkeleton::RecreateBoneTree(USkeletalMesh* InSkelMesh)
 {
 	if (InSkelMesh)
 	{

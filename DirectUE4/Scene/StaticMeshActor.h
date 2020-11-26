@@ -1,8 +1,8 @@
 #include "Actor.h"
 
-class StaticMesh;
+class UStaticMeshComponent;
 
-class StaticMeshActor : public Actor
+class StaticMeshActor : public AActor
 {
 public:
 	StaticMeshActor(class UWorld* InOwner, const char* ResourcePath);
@@ -11,8 +11,6 @@ public:
 
 	virtual void Tick(float fDeltaTime) override;
 
-	virtual void SendRenderTransform_Concurrent() override;
-
 private:
-	StaticMesh * Mesh;
+	UStaticMeshComponent* MeshComponent;
 };

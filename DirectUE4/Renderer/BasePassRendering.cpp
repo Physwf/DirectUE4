@@ -263,7 +263,7 @@ void RenderBasePassView(FViewInfo& View)
 	*/
 }
 
-void SceneRenderer::RenderBasePass()
+void FSceneRenderer::RenderBasePass()
 {
 	/*
 	SCOPED_DRAW_EVENT_FORMAT(RenderBasePass, TEXT("BasePass"));

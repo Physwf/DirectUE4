@@ -3,7 +3,7 @@
 #include "PointLightActor.h"
 
 PointLightActor::PointLightActor(class UWorld* InWorld)
-	: Actor(InWorld)
+	: AActor(InWorld)
 {
 	Componet = new UPointLightComponent(this);
 }

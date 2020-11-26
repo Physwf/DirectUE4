@@ -3,7 +3,7 @@
 #include "Scene.h"
 #include "SceneManagement.h"
 
-ULightComponent::ULightComponent(class Actor* InOwner)
+ULightComponent::ULightComponent(class AActor* InOwner)
 	: USceneComponent(InOwner)
 {
 
@@ -49,19 +49,32 @@ void ULightComponent::Unregister()
 {
 	GetWorld()->Scene->RemoveLight(this);
 }
-
+static float GMaxCSMRadiusToAllowPerObjectShadows = 8000;
 class FDirectionalLightSceneProxy : public FLightSceneProxy
 {
 public:
+	/**
+	* Radius of the whole scene dynamic shadow centered on the viewer, which replaces the precomputed shadows based on distance from the camera.
+	* A Radius of 0 disables the dynamic shadow.
+	*/
+	float WholeSceneDynamicShadowRadius;
+	/**
+	* Number of cascades to split the view frustum into for the whole scene dynamic shadow.
+	* More cascades result in better shadow resolution and allow WholeSceneDynamicShadowRadius to be further, but add rendering cost.
+	*/
+	uint32 DynamicShadowCascades;
+
+	bool bUseInsetShadowsForMovableObjects;
 
 	FDirectionalLightSceneProxy(const UDirectionalLightComponent* Component) :
 		FLightSceneProxy(Component)
 	{
 
 	}
+
 };
 
-UDirectionalLightComponent::UDirectionalLightComponent(Actor* InOwner)
+UDirectionalLightComponent::UDirectionalLightComponent(AActor* InOwner)
 	: ULightComponent(InOwner)
 {
 
@@ -86,73 +99,8 @@ FLightSceneProxy* UDirectionalLightComponent::CreateSceneProxy() const
 {
 	return new FDirectionalLightSceneProxy(this);
 }
-/** The parts of the point light scene info that aren't dependent on the light policy type. */
-class FLocalLightSceneProxy : public FLightSceneProxy
-{
-public:
-	/** The light radius. */
-	float Radius;
-	/** One over the light's radius. */
-	float InvRadius;
 
-	/** Initialization constructor. */
-	FLocalLightSceneProxy(const ULocalLightComponent* Component)
-		: FLightSceneProxy(Component)
-		, MaxDrawDistance(Component->MaxDrawDistance)
-		, FadeRange(Component->MaxDistanceFadeRange)
-	{
-		UpdateRadius(Component->AttenuationRadius);
-	}
-	// FLightSceneInfo interface.
-	virtual float GetMaxDrawDistance() const final override
-	{
-		return MaxDrawDistance;
-	}
-	virtual float GetFadeRange() const final override
-	{
-		return FadeRange;
-	}
-	/** @return radius of the light or 0 if no radius */
-	virtual float GetRadius() const override
-	{
-		return Radius;
-	}
-	virtual bool AffectsBounds(const FBoxSphereBounds& Bounds) const override
-	{
-		if ((Bounds.Origin - GetLightToWorld().GetOrigin()).SizeSquared() > FMath::Square(Radius + Bounds.SphereRadius))
-		{
-			return false;
-		}
-
-		if (!FLightSceneProxy::AffectsBounds(Bounds))
-		{
-			return false;
-		}
-
-		return true;
-	}
-	virtual FSphere GetBoundingSphere() const
-	{
-		return FSphere(GetPosition(), GetRadius());
-	}
-	virtual FVector GetPerObjectProjectedShadowProjectionPoint(const FBoxSphereBounds& SubjectBounds) const
-	{
-		return GetOrigin();
-	}
-protected:
-	/** Updates the light scene info's radius from the component. */
-	void UpdateRadius(float ComponentRadius)
-	{
-		Radius = ComponentRadius;
-
-		// Min to avoid div by 0 (NaN in InvRadius)
-		InvRadius = 1.0f / FMath::Max(0.00001f, ComponentRadius);
-	}
-	float MaxDrawDistance;
-	float FadeRange;
-};
-
-ULocalLightComponent::ULocalLightComponent(Actor* InOwner)
+ULocalLightComponent::ULocalLightComponent(AActor* InOwner)
 	: ULightComponent(InOwner)
 {
 
@@ -193,48 +141,7 @@ FSphere ULocalLightComponent::GetBoundingSphere() const
 	return FSphere(GetComponentTransform().GetLocation(), AttenuationRadius);
 }
 
-class FPointLightSceneProxy : public FLocalLightSceneProxy
-{
-public:
-	/** The light falloff exponent. */
-	float FalloffExponent;
-
-	/** Radius of light source shape */
-	float SourceRadius;
-
-	/** Soft radius of light source shape */
-	float SoftSourceRadius;
-
-	/** Length of light source shape */
-	float SourceLength;
-
-	/** Whether light uses inverse squared falloff. */
-	const uint32 bInverseSquared : 1;
-
-	/** Initialization constructor. */
-	FPointLightSceneProxy(const UPointLightComponent* Component)
-		: FLocalLightSceneProxy(Component)
-		, FalloffExponent(Component->LightFalloffExponent)
-		, SourceRadius(Component->SourceRadius)
-		, SoftSourceRadius(Component->SoftSourceRadius)
-		, SourceLength(Component->SourceLength)
-		, bInverseSquared(Component->bUseInverseSquaredFalloff)
-	{
-		UpdateRadius(Component->AttenuationRadius);
-	}
-
-	virtual float GetSourceRadius() const override
-	{
-		return SourceRadius;
-	}
-
-	virtual bool IsInverseSquared() const override
-	{
-		return bInverseSquared;
-	}
-};
-
-UPointLightComponent::UPointLightComponent(Actor* InOwner)
+UPointLightComponent::UPointLightComponent(AActor* InOwner)
 	: ULocalLightComponent(InOwner)
 {
 
@@ -255,3 +162,19 @@ FLightSceneProxy* UPointLightComponent::CreateSceneProxy() const
 	return new FPointLightSceneProxy(this);
 }
 
+bool FPointLightSceneProxy::GetWholeSceneProjectedShadowInitializer(const FSceneViewFamily& ViewFamily, std::vector<FWholeSceneProjectedShadowInitializer>& OutInitializers) const
+{
+	OutInitializers.push_back(FWholeSceneProjectedShadowInitializer());
+	FWholeSceneProjectedShadowInitializer& OutInitializer = OutInitializers.back();
+	OutInitializer.PreShadowTranslation = -GetLightToWorld().GetOrigin();
+	OutInitializer.WorldToLight = GetWorldToLight().RemoveTranslation();
+	OutInitializer.Scales = FVector(1, 1, 1);
+	OutInitializer.FaceDirection = FVector(0, 0, 1);
+	OutInitializer.SubjectBounds = FBoxSphereBounds(FVector(0, 0, 0), FVector(Radius, Radius, Radius), Radius);
+	OutInitializer.WAxis = Vector4(0, 0, 1, 0);
+	OutInitializer.MinLightW = 0.1f;
+	OutInitializer.MaxDistanceToCastInLightW = Radius;
+	OutInitializer.bOnePassPointLightShadow = true;
+	//OutInitializer.bRayTracedDistanceField = UseRayTracedDistanceFieldShadows() && DoesPlatformSupportDistanceFieldShadowing(ViewFamily.GetShaderPlatform());
+	return true;
+}

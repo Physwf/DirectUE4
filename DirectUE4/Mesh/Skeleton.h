@@ -5,7 +5,7 @@
 #include <vector>
 #include <string>
 
-class SkeletalMesh;
+class USkeletalMesh;
 
 struct FBoneNode
 {
@@ -17,7 +17,7 @@ struct FReferencePose
 
 	std::vector<FTransform>	ReferencePose;
 
-	SkeletalMesh* SourceReferenceMesh;
+	USkeletalMesh* SourceReferenceMesh;
 };
 
 struct FNameMapping
@@ -68,10 +68,10 @@ class USkeleton
 public:
 	const std::vector<FVirtualBone>& GetVirtualBones() const { return VirtualBones; }
 
-	bool DoesParentChainMatch(int32 StartBoneTreeIndex, const SkeletalMesh* InSkelMesh) const;
-	bool IsCompatibleMesh(const SkeletalMesh* InSkelMesh) const;
-	bool CreateReferenceSkeletonFromMesh(const SkeletalMesh* InSkeletalMesh, const std::vector<int32>& RequiredRefBones);
-	bool MergeBonesToBoneTree(const SkeletalMesh* InSkeletalMesh, const std::vector<int32>& RequiredRefBones);
-	bool MergeAllBonesToBoneTree(const SkeletalMesh* InSkelMesh);
-	bool RecreateBoneTree(SkeletalMesh* InSkelMesh);
+	bool DoesParentChainMatch(int32 StartBoneTreeIndex, const USkeletalMesh* InSkelMesh) const;
+	bool IsCompatibleMesh(const USkeletalMesh* InSkelMesh) const;
+	bool CreateReferenceSkeletonFromMesh(const USkeletalMesh* InSkeletalMesh, const std::vector<int32>& RequiredRefBones);
+	bool MergeBonesToBoneTree(const USkeletalMesh* InSkeletalMesh, const std::vector<int32>& RequiredRefBones);
+	bool MergeAllBonesToBoneTree(const USkeletalMesh* InSkelMesh);
+	bool RecreateBoneTree(USkeletalMesh* InSkelMesh);
 };

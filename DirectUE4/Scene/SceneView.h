@@ -12,7 +12,7 @@ struct ViewInitOptions
 	/** UE4 projection matrix projects such that clip space Z=1 is the near plane, and Z=0 is the infinite far plane. */
 	FMatrix ProjectionMatrix;
 
-	const class Actor* ViewActor;
+	const class AActor* ViewActor;
 
 	/** Actual field of view and that desired by the camera originally */
 	float FOV;
@@ -32,9 +32,9 @@ struct ViewInitOptions
 	const FIntRect& GetConstrainedViewRect() const { return ConstrainedViewRect; }
 };
 
-struct ViewMatrices
+struct FViewMatrices
 {
-	ViewMatrices()
+	FViewMatrices()
 	{
 		ProjectionMatrix.SetIndentity();
 		ViewMatrix.SetIndentity();
@@ -44,7 +44,7 @@ struct ViewMatrices
 		PreViewTranslation = FVector(0.0f, 0.0f, 0.0f);
 		ViewOrigin = FVector(0.0f, 0.0f, 0.0f);
 	}
-	ViewMatrices(const ViewInitOptions& InitOptions);
+	FViewMatrices(const ViewInitOptions& InitOptions);
 private:
 	FMatrix ProjectionMatrix;//ViewToClip
 	FMatrix InvProjectionMatrix;//ClipToView
@@ -157,10 +157,10 @@ public:
 			float t = M.M[2][1];
 
 			return FMatrix(
-				Plane(1.0f / a, 0.0f, 0.0f, 0.0f),
-				Plane(0.0f, 1.0f / b, 0.0f, 0.0f),
-				Plane(0.0f, 0.0f, 0.0f, 1.0f / d),
-				Plane(-s / a, -t / b, 1.0f, -c / d)
+				FPlane(1.0f / a, 0.0f, 0.0f, 0.0f),
+				FPlane(0.0f, 1.0f / b, 0.0f, 0.0f),
+				FPlane(0.0f, 0.0f, 0.0f, 1.0f / d),
+				FPlane(-s / a, -t / b, 1.0f, -c / d)
 			);
 		}
 		else
@@ -750,15 +750,15 @@ struct alignas(16) FInstancedViewUniformShaderParameters
 		return List;
 	}
 };
-class SceneViewFamily;
+class FSceneViewFamily;
 
 class FSceneView
 {
 public:
-	const SceneViewFamily* Family;
+	const FSceneViewFamily* Family;
 
 	TUniformBufferPtr<FViewUniformShaderParameters> ViewUniformBuffer;
-	ViewMatrices mViewMatrices;
+	FViewMatrices mViewMatrices;
 private:
 	/** During GetDynamicMeshElements this will be the correct cull volume for shadow stuff */
 	//const FConvexVolume* DynamicMeshElementsShadowCullFrustum;
@@ -770,7 +770,7 @@ public:
 	FSceneView(const ViewInitOptions& InitOptions);
 
 	/** The actor which is being viewed from. */
-	const class Actor* ViewActor;
+	const class AActor* ViewActor;
 	/* Final position of the view in the final render target (in pixels), potentially constrained by an aspect ratio requirement (black bars) */
 	const FIntRect UnscaledViewRect;
 	/* Raw view size (in pixels), used for screen space calculations */
@@ -779,7 +779,7 @@ public:
 	FVector	ViewLocation;
 	FRotator	ViewRotation;
 
-	ViewMatrices ShadowViewMatrices;
+	FViewMatrices ShadowViewMatrices;
 
 	FMatrix ProjectionMatrixUnadjustedForRHI;
 
@@ -816,14 +816,14 @@ public:
 	//FTextureRHIRef AtmosphereTransmittanceTexture;
 	//FTextureRHIRef AtmosphereIrradianceTexture;
 	//FTextureRHIRef AtmosphereInscatterTexture;
-
+	bool bStaticSceneOnly;
 
 	/** Sets up the view rect parameters in the view's uniform shader parameters */
 	void SetupViewRectUniformBufferParameters(FViewUniformShaderParameters& ViewUniformParameters,
 		const FIntPoint& InBufferSize,
 		const FIntRect& InEffectiveViewRect,
-		const ViewMatrices& InViewMatrices,
-		const ViewMatrices& InPrevViewMatrice) const;
+		const FViewMatrices& InViewMatrices,
+		const FViewMatrices& InPrevViewMatrice) const;
 
 	/**
 	* Populates the uniform buffer prameters common to all scene view use cases
@@ -834,11 +834,11 @@ public:
 		const FIntPoint& InBufferSize,
 		int32 NumMSAASamples,
 		const FIntRect& InEffectiveViewRect,
-		const ViewMatrices& InViewMatrices,
-		const ViewMatrices& InPrevViewMatrices) const;
+		const FViewMatrices& InViewMatrices,
+		const FViewMatrices& InPrevViewMatrices) const;
 };
 
-class SceneViewFamily
+class FSceneViewFamily
 {
 public:
 	class FScene* Scene;

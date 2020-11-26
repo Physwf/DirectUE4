@@ -1,41 +1,31 @@
 #include "Actor.h"
 
-Actor::Actor(UWorld* InOwner)
+AActor::AActor(UWorld* InOwner)
 	: WorldPrivite(InOwner), Position{ 0, 0, 0 }, Rotation{ 0, 0, 0 }
 {
 }
 
-Actor::~Actor()
+AActor::~AActor()
 {
 }
 
-void Actor::SetPosition(FVector InPosition)
+void AActor::SetActorLocation(FVector InPosition)
 {
 	Position = InPosition;
 }
 
-void Actor::SetRotation(FRotator InRotation)
+void AActor::SetActorRotation(FRotator InRotation)
 {
 	Rotation = InRotation;
 }
 
-void Actor::DoDeferredRenderUpdates_Concurrent()
-{
-	SendRenderTransform_Concurrent();
-}
-
-void Actor::SendRenderTransform_Concurrent()
-{
-
-}
-
-FMatrix Actor::GetWorldMatrix()
+FMatrix AActor::GetWorldMatrix()
 {
 	FMatrix R = FMatrix(
-		Plane(0, 0, 1, 0),
-		Plane(1, 0, 0, 0),
-		Plane(0, 1, 0, 0),
-		Plane(0, 0, 0, 1)) *FMatrix::DXFormRotation(Rotation);
+		FPlane(0, 0, 1, 0),
+		FPlane(1, 0, 0, 0),
+		FPlane(0, 1, 0, 0),
+		FPlane(0, 0, 0, 1)) *FMatrix::DXFormRotation(Rotation);
 	FMatrix T = FMatrix::DXFromTranslation(Position);
 	R.Transpose();
 	T.Transpose();

@@ -473,6 +473,26 @@ public:
 	static bool PointBoxIntersection(const FVector& Point, const FBox& Box);
 	static bool LineBoxIntersection(const FBox& Box, const FVector& Start, const FVector& End, const FVector& Direction);
 	static bool LineBoxIntersection(const FBox& Box, const FVector& Start, const FVector& End, const FVector& Direction, const FVector& OneOverDirection);
+	static inline uint32 FloorLog2(uint32 Value)
+	{
+		uint32 pos = 0;
+		if (Value >= 1 << 16) { Value >>= 16; pos += 16; }
+		if (Value >= 1 << 8) { Value >>= 8; pos += 8; }
+		if (Value >= 1 << 4) { Value >>= 4; pos += 4; }
+		if (Value >= 1 << 2) { Value >>= 2; pos += 2; }
+		if (Value >= 1 << 1) { pos += 1; }
+		return (Value == 0) ? 0 : pos;
+	}
+	static inline uint32 CountLeadingZeros(uint32 Value)
+	{
+		if (Value == 0) return 32;
+		return 31 - FloorLog2(Value);
+	}
+	static inline uint32 CeilLogTwo(uint32 Arg)
+	{
+		int32 Bitmask = ((int32)(CountLeadingZeros(Arg) << 26)) >> 31;
+		return (32 - CountLeadingZeros(Arg - 1)) & (~Bitmask);
+	}
 };
 
 
@@ -1399,15 +1419,17 @@ struct FColor
 
 };
 
-struct alignas(16) Plane : public FVector
+struct alignas(16) FPlane : public FVector
 {
 public:
 	float W;
 
-	inline Plane(float InX, float InY, float InZ, float InW) : FVector(InX, InY, InZ)
+	FPlane() {};
+
+	inline FPlane(float InX, float InY, float InZ, float InW) : FVector(InX, InY, InZ)
 		, W(InW)
 	{}
-	inline Plane(FVector InNormal, float InW) : FVector(InNormal), W(InW)
+	inline FPlane(FVector InNormal, float InW) : FVector(InNormal), W(InW)
 	{}
 };
 
@@ -1422,7 +1444,7 @@ struct FMatrix
 	};
 	static alignas(16) const FMatrix Identity;
 	FMatrix() {}
-	FMatrix(const Plane& InX, const Plane& InY, const Plane& InZ, const Plane& InW);
+	FMatrix(const FPlane& InX, const FPlane& InY, const FPlane& InZ, const FPlane& InW);
 	FMatrix(const FVector& InX, const FVector& InY, const FVector& InZ, const FVector& InW);
 	void SetIndentity();
 	void Transpose();
@@ -1472,6 +1494,15 @@ struct FMatrix
 	void			RemoveScaling(float Tolerance = SMALL_NUMBER);
 	inline FVector	ExtractScaling(float Tolerance = SMALL_NUMBER);
 	void			SetAxis(int32 i, const FVector& Axis);
+
+	bool GetFrustumNearPlane(FPlane& OutPlane) const;
+	bool GetFrustumFarPlane(FPlane& OutPlane) const;
+	bool GetFrustumLeftPlane(FPlane& OutPlane) const;
+	bool GetFrustumRightPlane(FPlane& OutPlane) const;
+	bool GetFrustumTopPlane(FPlane& OutPlane) const;
+	bool GetFrustumBottomPlane(FPlane& OutPlane) const;
+
+
 	static FMatrix	FromScale(float Scale);
 	static FMatrix	DXFromPitch(float fPitch);
 	static FMatrix	DXFromYaw(float fYaw);
@@ -1493,6 +1524,64 @@ class FTranslationMatrix : public FMatrix
 public:
 	FTranslationMatrix(const FVector& Delta);
 };
+class FPerspectiveMatrix : public FMatrix
+{
+public:
+	// Note: the value of this must match the mirror in Common.usf!
+#define Z_PRECISION	0.0f
+	/**
+	* Constructor
+	*
+	* @param HalfFOVX Half FOV in the X axis
+	* @param HalfFOVY Half FOV in the Y axis
+	* @param MultFOVX multiplier on the X axis
+	* @param MultFOVY multiplier on the y axis
+	* @param MinZ distance to the near Z plane
+	* @param MaxZ distance to the far Z plane
+	*/
+	FPerspectiveMatrix(float HalfFOVX, float HalfFOVY, float MultFOVX, float MultFOVY, float MinZ, float MaxZ);
+
+	/**
+	* Constructor
+	*
+	* @param HalfFOV half Field of View in the Y direction
+	* @param Width view space width
+	* @param Height view space height
+	* @param MinZ distance to the near Z plane
+	* @param MaxZ distance to the far Z plane
+	* @note that the FOV you pass in is actually half the FOV, unlike most perspective matrix functions (D3DXMatrixPerspectiveFovLH).
+	*/
+	FPerspectiveMatrix(float HalfFOV, float Width, float Height, float MinZ, float MaxZ);
+
+	/**
+	* Constructor
+	*
+	* @param HalfFOV half Field of View in the Y direction
+	* @param Width view space width
+	* @param Height view space height
+	* @param MinZ distance to the near Z plane
+	* @note that the FOV you pass in is actually half the FOV, unlike most perspective matrix functions (D3DXMatrixPerspectiveFovLH).
+	*/
+	FPerspectiveMatrix(float HalfFOV, float Width, float Height, float MinZ);
+};
+
+class FReversedZPerspectiveMatrix : public FMatrix
+{
+public:
+	FReversedZPerspectiveMatrix(float HalfFOVX, float HalfFOVY, float MultFOVX, float MultFOVY, float MinZ, float MaxZ);
+	FReversedZPerspectiveMatrix(float HalfFOV, float Width, float Height, float MinZ, float MaxZ);
+	FReversedZPerspectiveMatrix(float HalfFOV, float Width, float Height, float MinZ);
+};
+
+struct FLookAtMatrix : FMatrix
+{
+	/**
+	* Creates a view matrix given an eye position, a position to look at, and an up vector.
+	* This does the same thing as D3DXMatrixLookAtLH.
+	*/
+	FLookAtMatrix(const FVector& EyePosition, const FVector& LookAtPosition, const FVector& UpVector);
+};
+
 
 class FScaleMatrix : public FMatrix
 {
@@ -1510,19 +1599,19 @@ public:
 };
 inline FScaleMatrix::FScaleMatrix(float Scale)
 	: FMatrix(
-		Plane(Scale, 0.0f, 0.0f, 0.0f),
-		Plane(0.0f, Scale, 0.0f, 0.0f),
-		Plane(0.0f, 0.0f, Scale, 0.0f),
-		Plane(0.0f, 0.0f, 0.0f, 1.0f)
+		FPlane(Scale, 0.0f, 0.0f, 0.0f),
+		FPlane(0.0f, Scale, 0.0f, 0.0f),
+		FPlane(0.0f, 0.0f, Scale, 0.0f),
+		FPlane(0.0f, 0.0f, 0.0f, 1.0f)
 	)
 { }
 
 inline FScaleMatrix::FScaleMatrix(const FVector& Scale)
 	: FMatrix(
-		Plane(Scale.X, 0.0f, 0.0f, 0.0f),
-		Plane(0.0f, Scale.Y, 0.0f, 0.0f),
-		Plane(0.0f, 0.0f, Scale.Z, 0.0f),
-		Plane(0.0f, 0.0f, 0.0f, 1.0f)
+		FPlane(Scale.X, 0.0f, 0.0f, 0.0f),
+		FPlane(0.0f, Scale.Y, 0.0f, 0.0f),
+		FPlane(0.0f, 0.0f, Scale.Z, 0.0f),
+		FPlane(0.0f, 0.0f, 0.0f, 1.0f)
 	)
 { }
 class FRotationTranslationMatrix
@@ -1570,49 +1659,12 @@ public:
 	static FMatrix MakeFromZY(FVector const& ZAxis, FVector const& YAxis);
 };
 
-class ReversedZPerspectiveMatrix : public FMatrix
-{
-public:
-	ReversedZPerspectiveMatrix(float HalfFOVX, float HalfFOVY, float MultFOVX, float MultFOVY, float MinZ, float MaxZ);
-	ReversedZPerspectiveMatrix(float HalfFOV, float Width, float Height, float MinZ, float MaxZ);
-	ReversedZPerspectiveMatrix(float HalfFOV, float Width, float Height, float MinZ);
-};
-
-inline ReversedZPerspectiveMatrix::ReversedZPerspectiveMatrix(float HalfFOVX, float HalfFOVY, float MultFOVX, float MultFOVY, float MinZ, float MaxZ)
-	: FMatrix(
-		Plane(MultFOVX / std::tan(HalfFOVX), 0.0f, 0.0f, 0.0f),
-		Plane(0.0f, MultFOVY / std::tan(HalfFOVY), 0.0f, 0.0f),
-		Plane(0.0f, 0.0f, ((MinZ == MaxZ) ? 0.0f : MinZ / (MinZ - MaxZ)), 1.0f),
-		Plane(0.0f, 0.0f, ((MinZ == MaxZ) ? MinZ : -MaxZ * MinZ / (MinZ - MaxZ)), 0.0f)
-	)
-{ }
-
-
-inline ReversedZPerspectiveMatrix::ReversedZPerspectiveMatrix(float HalfFOV, float Width, float Height, float MinZ, float MaxZ)
-	: FMatrix(
-		Plane(1.0f / std::tan(HalfFOV), 0.0f, 0.0f, 0.0f),
-		Plane(0.0f, Width / std::tan(HalfFOV) / Height, 0.0f, 0.0f),
-		Plane(0.0f, 0.0f, ((MinZ == MaxZ) ? 0.0f : MinZ / (MinZ - MaxZ)), 1.0f),
-		Plane(0.0f, 0.0f, ((MinZ == MaxZ) ? MinZ : -MaxZ * MinZ / (MinZ - MaxZ)), 0.0f)
-	)
-{ }
-
-
-inline ReversedZPerspectiveMatrix::ReversedZPerspectiveMatrix(float HalfFOV, float Width, float Height, float MinZ)
-	: FMatrix(
-		Plane(1.0f / std::tan(HalfFOV), 0.0f, 0.0f, 0.0f),
-		Plane(0.0f, Width / std::tan(HalfFOV) / Height, 0.0f, 0.0f),
-		Plane(0.0f, 0.0f, 0.0f, 1.0f),
-		Plane(0.0f, 0.0f, MinZ, 0.0f)
-	)
-{ }
-
 inline FTranslationMatrix::FTranslationMatrix(const FVector& Delta):
 	FMatrix(
-		Plane(1.0f, 0.0f, 0.0f, 0.0f),
-		Plane(0.0f, 1.0f, 0.0f, 0.0f),
-		Plane(0.0f, 0.0f, 1.0f, 0.0f),
-		Plane(Delta.X, Delta.Y, Delta.Z, 1.0f)
+		FPlane(1.0f, 0.0f, 0.0f, 0.0f),
+		FPlane(0.0f, 1.0f, 0.0f, 0.0f),
+		FPlane(0.0f, 0.0f, 1.0f, 0.0f),
+		FPlane(Delta.X, Delta.Y, Delta.Z, 1.0f)
 	)
 { }
 
@@ -2444,10 +2496,10 @@ inline bool FMath::LineBoxIntersection
 inline float GetBasisDeterminantSign(const FVector& XAxis, const FVector& YAxis, const FVector& ZAxis)
 {
 	FMatrix Basis(
-		Plane(XAxis, 0),
-		Plane(YAxis, 0),
-		Plane(ZAxis, 0),
-		Plane(0, 0, 0, 1)
+		FPlane(XAxis, 0),
+		FPlane(YAxis, 0),
+		FPlane(ZAxis, 0),
+		FPlane(0, 0, 0, 1)
 	);
 	return (Basis.Determinant() < 0) ? -1.0f : +1.0f;
 }
@@ -3042,7 +3094,7 @@ inline bool FIntRect::IsEmpty() const
 }
 
 /** Inverse Rotation matrix */
-class InverseRotationMatrix : public FMatrix
+class FInverseRotationMatrix : public FMatrix
 {
 public:
 	/**
@@ -3050,27 +3102,27 @@ public:
 	*
 	* @param Rot rotation
 	*/
-	InverseRotationMatrix(const FRotator& Rot);
+	FInverseRotationMatrix(const FRotator& Rot);
 };
 
 
-inline InverseRotationMatrix::InverseRotationMatrix(const FRotator& Rot)
+inline FInverseRotationMatrix::FInverseRotationMatrix(const FRotator& Rot)
 	: FMatrix(
 		FMatrix( // Yaw
-			Plane(+FMath::Cos(Rot.Yaw * PI / 180.f), -FMath::Sin(Rot.Yaw * PI / 180.f), 0.0f, 0.0f),
-			Plane(+FMath::Sin(Rot.Yaw * PI / 180.f), +FMath::Cos(Rot.Yaw * PI / 180.f), 0.0f, 0.0f),
-			Plane(0.0f, 0.0f, 1.0f, 0.0f),
-			Plane(0.0f, 0.0f, 0.0f, 1.0f)) *
+			FPlane(+FMath::Cos(Rot.Yaw * PI / 180.f), -FMath::Sin(Rot.Yaw * PI / 180.f), 0.0f, 0.0f),
+			FPlane(+FMath::Sin(Rot.Yaw * PI / 180.f), +FMath::Cos(Rot.Yaw * PI / 180.f), 0.0f, 0.0f),
+			FPlane(0.0f, 0.0f, 1.0f, 0.0f),
+			FPlane(0.0f, 0.0f, 0.0f, 1.0f)) *
 		FMatrix( // Pitch
-			Plane(+FMath::Cos(Rot.Pitch * PI / 180.f), 0.0f, -FMath::Sin(Rot.Pitch * PI / 180.f), 0.0f),
-			Plane(0.0f, 1.0f, 0.0f, 0.0f),
-			Plane(+FMath::Sin(Rot.Pitch * PI / 180.f), 0.0f, +FMath::Cos(Rot.Pitch * PI / 180.f), 0.0f),
-			Plane(0.0f, 0.0f, 0.0f, 1.0f)) *
+			FPlane(+FMath::Cos(Rot.Pitch * PI / 180.f), 0.0f, -FMath::Sin(Rot.Pitch * PI / 180.f), 0.0f),
+			FPlane(0.0f, 1.0f, 0.0f, 0.0f),
+			FPlane(+FMath::Sin(Rot.Pitch * PI / 180.f), 0.0f, +FMath::Cos(Rot.Pitch * PI / 180.f), 0.0f),
+			FPlane(0.0f, 0.0f, 0.0f, 1.0f)) *
 		FMatrix( // Roll
-			Plane(1.0f, 0.0f, 0.0f, 0.0f),
-			Plane(0.0f, +FMath::Cos(Rot.Roll * PI / 180.f), +FMath::Sin(Rot.Roll * PI / 180.f), 0.0f),
-			Plane(0.0f, -FMath::Sin(Rot.Roll * PI / 180.f), +FMath::Cos(Rot.Roll * PI / 180.f), 0.0f),
-			Plane(0.0f, 0.0f, 0.0f, 1.0f))
+			FPlane(1.0f, 0.0f, 0.0f, 0.0f),
+			FPlane(0.0f, +FMath::Cos(Rot.Roll * PI / 180.f), +FMath::Sin(Rot.Roll * PI / 180.f), 0.0f),
+			FPlane(0.0f, -FMath::Sin(Rot.Roll * PI / 180.f), +FMath::Cos(Rot.Roll * PI / 180.f), 0.0f),
+			FPlane(0.0f, 0.0f, 0.0f, 1.0f))
 	)
 { }
 

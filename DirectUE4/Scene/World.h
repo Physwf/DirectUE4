@@ -2,9 +2,10 @@
 
 #include <vector>
 
-class Actor;
+class AActor;
 class Camera;
 class FScene;
+class UActorComponent;
 
 class UWorld
 {
@@ -20,14 +21,15 @@ public:
 		NewActor->PostLoad();
 		return NewActor;
 	}
-	void DestroyActor(Actor* InActor);
+	void DestroyActor(AActor* InActor);
 	const std::vector<Camera*> GetCameras() const { return mCameras; }
 
 	void SendAllEndOfFrameUpdates();
 
 private:
 	std::vector<Camera*> mCameras;
-	std::vector<Actor*> mAllActors;
+	std::vector<AActor*> mAllActors;
+	std::vector<UActorComponent*> ActorComponents;
 public:
 	FScene* Scene;
 };

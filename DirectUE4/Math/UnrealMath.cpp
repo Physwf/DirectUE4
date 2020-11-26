@@ -1,8 +1,8 @@
 #include "UnrealMath.h"
 
-alignas(16) const FMatrix FMatrix::Identity(Plane(1, 0, 0, 0), Plane(0, 1, 0, 0), Plane(0, 0, 1, 0), Plane(0, 0, 0, 1));
+alignas(16) const FMatrix FMatrix::Identity(FPlane(1, 0, 0, 0), FPlane(0, 1, 0, 0), FPlane(0, 0, 1, 0), FPlane(0, 0, 0, 1));
 
-FMatrix::FMatrix(const Plane& InX, const Plane& InY, const Plane& InZ, const Plane& InW)
+FMatrix::FMatrix(const FPlane& InX, const FPlane& InY, const FPlane& InZ, const FPlane& InW)
 {
 	M[0][0] = InX.X; M[0][1] = InX.Y;  M[0][2] = InX.Z;  M[0][3] = InX.W;
 	M[1][0] = InY.X; M[1][1] = InY.Y;  M[1][2] = InY.Z;  M[1][3] = InY.W;
@@ -205,10 +205,10 @@ FMatrix FMatrix::DXLookToLH(const FVector& To)
 	//Vector::CreateOrthonormalBasis(XDir, YDir, ZDir);
 	return FMatrix
 	(
-		Plane(YDir, 0.0f),
-		Plane(ZDir, 0.0f),
-		Plane(XDir, 0.0f),
-		Plane(0.0f, 0.0f, 0.0f, 1.0f)
+		FPlane(YDir, 0.0f),
+		FPlane(ZDir, 0.0f),
+		FPlane(XDir, 0.0f),
+		FPlane(0.0f, 0.0f, 0.0f, 1.0f)
 	);
 }
 
@@ -253,6 +253,85 @@ FMatrix FMatrix::DXFromOrthognalLH(float r, float l, float t, float b, float zf,
 	Result.M[2][0] = 0.0f;					Result.M[2][1] = 0.0f;					Result.M[2][2] = 1.0f / (zf - zn);				Result.M[2][3] = 0.0f;
 	Result.M[3][0] = -(r + l) / (r - l);	Result.M[3][1] = (t + b) / (t - b);		Result.M[3][2] = -zn / (zf - zn);				Result.M[3][3] = 1.0f;
 	return Result;
+}
+bool MakeFrustumPlane(float A, float B, float C, float D, FPlane& OutPlane)
+{
+	const float	LengthSquared = A * A + B * B + C * C;
+	if (LengthSquared > DELTA*DELTA)
+	{
+		const float	InvLength = FMath::InvSqrt(LengthSquared);
+		OutPlane = FPlane(-A * InvLength, -B * InvLength, -C * InvLength, D * InvLength);
+		return 1;
+	}
+	else
+		return 0;
+}
+
+// Frustum plane extraction.
+bool FMatrix::GetFrustumNearPlane(FPlane& OutPlane) const
+{
+	return MakeFrustumPlane(
+		M[0][2],
+		M[1][2],
+		M[2][2],
+		M[3][2],
+		OutPlane
+	);
+}
+
+bool FMatrix::GetFrustumFarPlane(FPlane& OutPlane) const
+{
+	return MakeFrustumPlane(
+		M[0][3] - M[0][2],
+		M[1][3] - M[1][2],
+		M[2][3] - M[2][2],
+		M[3][3] - M[3][2],
+		OutPlane
+	);
+}
+
+bool FMatrix::GetFrustumLeftPlane(FPlane& OutPlane) const
+{
+	return MakeFrustumPlane(
+		M[0][3] + M[0][0],
+		M[1][3] + M[1][0],
+		M[2][3] + M[2][0],
+		M[3][3] + M[3][0],
+		OutPlane
+	);
+}
+
+bool FMatrix::GetFrustumRightPlane(FPlane& OutPlane) const
+{
+	return MakeFrustumPlane(
+		M[0][3] - M[0][0],
+		M[1][3] - M[1][0],
+		M[2][3] - M[2][0],
+		M[3][3] - M[3][0],
+		OutPlane
+	);
+}
+
+bool FMatrix::GetFrustumTopPlane(FPlane& OutPlane) const
+{
+	return MakeFrustumPlane(
+		M[0][3] - M[0][1],
+		M[1][3] - M[1][1],
+		M[2][3] - M[2][1],
+		M[3][3] - M[3][1],
+		OutPlane
+	);
+}
+
+bool FMatrix::GetFrustumBottomPlane(FPlane& OutPlane) const
+{
+	return MakeFrustumPlane(
+		M[0][3] + M[0][1],
+		M[1][3] + M[1][1],
+		M[2][3] + M[2][1],
+		M[3][3] + M[3][1],
+		OutPlane
+	);
 }
 
 float FVector::SizeSquared() const
@@ -741,3 +820,94 @@ FRotationTranslationMatrix::FRotationTranslationMatrix(const FRotator& Rot, cons
 	M[3][2] = Origin.Z;
 	M[3][3] = 1.f;
 }
+
+
+#ifdef _MSC_VER
+#pragma warning (push)
+// Disable possible division by 0 warning
+#pragma warning (disable : 4723)
+#endif
+
+
+FPerspectiveMatrix::FPerspectiveMatrix(float HalfFOVX, float HalfFOVY, float MultFOVX, float MultFOVY, float MinZ, float MaxZ)
+	: FMatrix(
+		FPlane(MultFOVX / FMath::Tan(HalfFOVX), 0.0f, 0.0f, 0.0f),
+		FPlane(0.0f, MultFOVY / FMath::Tan(HalfFOVY), 0.0f, 0.0f),
+		FPlane(0.0f, 0.0f, ((MinZ == MaxZ) ? (1.0f - Z_PRECISION) : MaxZ / (MaxZ - MinZ)), 1.0f),
+		FPlane(0.0f, 0.0f, -MinZ * ((MinZ == MaxZ) ? (1.0f - Z_PRECISION) : MaxZ / (MaxZ - MinZ)), 0.0f)
+	)
+{ }
+
+
+FPerspectiveMatrix::FPerspectiveMatrix(float HalfFOV, float Width, float Height, float MinZ, float MaxZ)
+	: FMatrix(
+		FPlane(1.0f / FMath::Tan(HalfFOV), 0.0f, 0.0f, 0.0f),
+		FPlane(0.0f, Width / FMath::Tan(HalfFOV) / Height, 0.0f, 0.0f),
+		FPlane(0.0f, 0.0f, ((MinZ == MaxZ) ? (1.0f - Z_PRECISION) : MaxZ / (MaxZ - MinZ)), 1.0f),
+		FPlane(0.0f, 0.0f, -MinZ * ((MinZ == MaxZ) ? (1.0f - Z_PRECISION) : MaxZ / (MaxZ - MinZ)), 0.0f)
+	)
+{ }
+
+
+FPerspectiveMatrix::FPerspectiveMatrix(float HalfFOV, float Width, float Height, float MinZ)
+	: FMatrix(
+		FPlane(1.0f / FMath::Tan(HalfFOV), 0.0f, 0.0f, 0.0f),
+		FPlane(0.0f, Width / FMath::Tan(HalfFOV) / Height, 0.0f, 0.0f),
+		FPlane(0.0f, 0.0f, (1.0f - Z_PRECISION), 1.0f),
+		FPlane(0.0f, 0.0f, -MinZ * (1.0f - Z_PRECISION), 0.0f)
+	)
+{ }
+
+
+FReversedZPerspectiveMatrix::FReversedZPerspectiveMatrix(float HalfFOVX, float HalfFOVY, float MultFOVX, float MultFOVY, float MinZ, float MaxZ)
+	: FMatrix(
+		FPlane(MultFOVX / FMath::Tan(HalfFOVX), 0.0f, 0.0f, 0.0f),
+		FPlane(0.0f, MultFOVY / FMath::Tan(HalfFOVY), 0.0f, 0.0f),
+		FPlane(0.0f, 0.0f, ((MinZ == MaxZ) ? 0.0f : MinZ / (MinZ - MaxZ)), 1.0f),
+		FPlane(0.0f, 0.0f, ((MinZ == MaxZ) ? MinZ : -MaxZ * MinZ / (MinZ - MaxZ)), 0.0f)
+	)
+{ }
+
+
+FReversedZPerspectiveMatrix::FReversedZPerspectiveMatrix(float HalfFOV, float Width, float Height, float MinZ, float MaxZ)
+	: FMatrix(
+		FPlane(1.0f / FMath::Tan(HalfFOV), 0.0f, 0.0f, 0.0f),
+		FPlane(0.0f, Width / FMath::Tan(HalfFOV) / Height, 0.0f, 0.0f),
+		FPlane(0.0f, 0.0f, ((MinZ == MaxZ) ? 0.0f : MinZ / (MinZ - MaxZ)), 1.0f),
+		FPlane(0.0f, 0.0f, ((MinZ == MaxZ) ? MinZ : -MaxZ * MinZ / (MinZ - MaxZ)), 0.0f)
+	)
+{ }
+
+
+FReversedZPerspectiveMatrix::FReversedZPerspectiveMatrix(float HalfFOV, float Width, float Height, float MinZ)
+	: FMatrix(
+		FPlane(1.0f / FMath::Tan(HalfFOV), 0.0f, 0.0f, 0.0f),
+		FPlane(0.0f, Width / FMath::Tan(HalfFOV) / Height, 0.0f, 0.0f),
+		FPlane(0.0f, 0.0f, 0.0f, 1.0f),
+		FPlane(0.0f, 0.0f, MinZ, 0.0f)
+	)
+{ }
+
+#ifdef _MSC_VER
+#pragma warning (pop)
+#endif
+
+FLookAtMatrix::FLookAtMatrix(const FVector& EyePosition, const FVector& LookAtPosition, const FVector& UpVector)
+{
+	const FVector ZAxis = (LookAtPosition - EyePosition).GetSafeNormal();
+	const FVector XAxis = (UpVector ^ ZAxis).GetSafeNormal();
+	const FVector YAxis = ZAxis ^ XAxis;
+
+	for (uint32 RowIndex = 0; RowIndex < 3; RowIndex++)
+	{
+		M[RowIndex][0] = (&XAxis.X)[RowIndex];
+		M[RowIndex][1] = (&YAxis.X)[RowIndex];
+		M[RowIndex][2] = (&ZAxis.X)[RowIndex];
+		M[RowIndex][3] = 0.0f;
+	}
+	M[3][0] = -EyePosition | XAxis;
+	M[3][1] = -EyePosition | YAxis;
+	M[3][2] = -EyePosition | ZAxis;
+	M[3][3] = 1.0f;
+}
+

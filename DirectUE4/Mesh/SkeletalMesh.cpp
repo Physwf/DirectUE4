@@ -1,13 +1,12 @@
 #include "SkeletalMesh.h"
 #include "log.h"
 
-SkeletalMesh::SkeletalMesh(class Actor* InOwner)
-	: UPrimitiveComponent(InOwner), Skeleton(NULL)
+USkeletalMesh::USkeletalMesh(class AActor* InOwner)
 {
 	ImportedModel = std::make_unique<SkeletalMeshModel>();
 }
 
-void SkeletalMesh::CalculateRequiredBones(SkeletalMeshLODModel& LODModel, const struct FReferenceSkeleton& RefSkeleton, const std::map<FBoneIndexType, FBoneIndexType>* BonesToRemove)
+void USkeletalMesh::CalculateRequiredBones(SkeletalMeshLODModel& LODModel, const struct FReferenceSkeleton& RefSkeleton, const std::map<FBoneIndexType, FBoneIndexType>* BonesToRemove)
 {
 	// RequiredBones for base model includes all raw bones.
 	int32 RequiredBoneCount = RefSkeleton.GetRawBoneNum();
@@ -25,13 +24,13 @@ void SkeletalMesh::CalculateRequiredBones(SkeletalMeshLODModel& LODModel, const 
 	//LODModel.RequiredBones.Shrink();
 }
 
-void SkeletalMesh::PostLoad()
+void USkeletalMesh::PostLoad()
 {
 	CacheDerivedData();
 	InitResources();
 }
 
-void SkeletalMesh::InitResources()
+void USkeletalMesh::InitResources()
 {
 	//UpdateUVChannelData(false);
 
@@ -43,18 +42,18 @@ void SkeletalMesh::InitResources()
 	}
 }
 
-void SkeletalMesh::ReleaseResources()
+void USkeletalMesh::ReleaseResources()
 {
 
 }
 
-void SkeletalMesh::AllocateResourceForRendering()
+void USkeletalMesh::AllocateResourceForRendering()
 {
 	RenderdData = std::make_unique<SkeletalMeshRenderData>();
 }
 
 
-void SkeletalMesh::CacheDerivedData()
+void USkeletalMesh::CacheDerivedData()
 {
 	AllocateResourceForRendering();
 	RenderdData->Cache(this);

@@ -3,7 +3,7 @@
 #include "D3D11RHI.h"
 #include "Shader.h"
 
-class RenderTargets;
+class FSceneRenderTargets;
 
 struct FSceneTexturesUniformParameters
 {
@@ -142,7 +142,7 @@ inline ESceneTextureSetupMode operator &(ESceneTextureSetupMode lhs, ESceneTextu
 }
 
 extern void SetupSceneTextureUniformParameters(
-	RenderTargets& SceneContext,
+	FSceneRenderTargets& SceneContext,
 	ESceneTextureSetupMode SetupMode,
 	FSceneTexturesUniformParameters& OutParameters);
 

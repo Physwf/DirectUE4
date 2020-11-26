@@ -103,7 +103,7 @@ void InitAtomosphereFog()
 	*/
 }
 
-void SceneRenderer::RenderAtmosphereFog()
+void FSceneRenderer::RenderAtmosphereFog()
 {
 	/*
 	SCOPED_DRAW_EVENT_FORMAT(RenderAtmosphereFog, TEXT("AtmosphereFog"));

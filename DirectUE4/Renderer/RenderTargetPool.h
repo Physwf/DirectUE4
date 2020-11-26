@@ -64,6 +64,44 @@ struct PooledRenderTargetDesc
 		return NewDesc;
 	}
 
+	/**
+	* Factory function to create cube map texture description
+	* @param InFlags bit mask combined from elements of ETextureCreateFlags e.g. TexCreate_UAV
+	*/
+	static PooledRenderTargetDesc CreateCubemapDesc(
+		uint32 InExtent,
+		EPixelFormat InFormat,
+		const FClearValueBinding& InClearValue,
+		uint32 InFlags,
+		uint32 InTargetableFlags,
+		bool bInForceSeparateTargetAndShaderResource,
+		uint32 InArraySize = 1,
+		uint16 InNumMips = 1,
+		bool InAutowritable = true)
+	{
+		assert(InExtent);
+
+		PooledRenderTargetDesc NewDesc;
+		NewDesc.ClearValue = InClearValue;
+		NewDesc.Extent = FIntPoint(InExtent, InExtent);
+		NewDesc.Depth = 0;
+		NewDesc.ArraySize = InArraySize;
+		// Note: this doesn't allow an array of size 1
+		NewDesc.bIsArray = InArraySize > 1;
+		NewDesc.bIsCubemap = true;
+		NewDesc.NumMips = InNumMips;
+		NewDesc.NumSamples = 1;
+		NewDesc.Format = InFormat;
+		NewDesc.Flags = InFlags;
+		NewDesc.TargetableFlags = InTargetableFlags;
+		NewDesc.bForceSeparateTargetAndShaderResource = bInForceSeparateTargetAndShaderResource;
+		//NewDesc.DebugName = TEXT("UnknownTextureCube");
+		NewDesc.AutoWritable = InAutowritable;
+		assert(NewDesc.IsCubemap());
+
+		return NewDesc;
+	}
+
 	/** Comparison operator to test if a render target can be reused */
 	bool Compare(const PooledRenderTargetDesc& rhs, bool bExact) const
 	{

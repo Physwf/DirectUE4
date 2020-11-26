@@ -77,17 +77,17 @@ void MeshDescriptionOperations::CreatePolygonNTB(MeshDescription& MD, float Comp
 			if (!Normal.IsNearlyZero(ComparisonThreshold))
 			{
 				FMatrix ParameterToLocal(
-					Plane(P[1].X - P[0].X, P[1].Y - P[0].Y, P[1].Z - P[0].Z, 0),
-					Plane(P[2].X - P[0].X, P[2].Y - P[0].Y, P[2].Z - P[0].Z, 0),
-					Plane(P[0].X, P[0].Y, P[0].Z, 0),
-					Plane(0, 0, 0, 1)
+					FPlane(P[1].X - P[0].X, P[1].Y - P[0].Y, P[1].Z - P[0].Z, 0),
+					FPlane(P[2].X - P[0].X, P[2].Y - P[0].Y, P[2].Z - P[0].Z, 0),
+					FPlane(P[0].X, P[0].Y, P[0].Z, 0),
+					FPlane(0, 0, 0, 1)
 				);
 
 				FMatrix ParameterToTexture(
-					Plane(UVs[1].X - UVs[0].X, UVs[1].Y - UVs[0].Y, 0, 0),
-					Plane(UVs[2].X - UVs[0].X, UVs[2].Y - UVs[0].Y, 0, 0),
-					Plane(UVs[0].X, UVs[0].Y, 1, 0),
-					Plane(0, 0, 0, 1)
+					FPlane(UVs[1].X - UVs[0].X, UVs[1].Y - UVs[0].Y, 0, 0),
+					FPlane(UVs[2].X - UVs[0].X, UVs[2].Y - UVs[0].Y, 0, 0),
+					FPlane(UVs[0].X, UVs[0].Y, 1, 0),
+					FPlane(0, 0, 0, 1)
 				);
 
 				// Use InverseSlow to catch singular matrices.  Inverse can miss this sometimes.

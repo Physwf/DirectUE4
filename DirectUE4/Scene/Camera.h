@@ -5,7 +5,7 @@
 
 class Viewport;
 
-class Camera : public Actor
+class Camera : public AActor
 {
 public:
 	Camera(class UWorld* InOwner);
@@ -15,7 +15,7 @@ public:
 	void LookAt(FVector Target);
 	void SetLen(float fNear, float fFar);
 
-	FSceneView* CalcSceneView(SceneViewFamily& ViewFamily, Viewport& VP);
+	FSceneView* CalcSceneView(FSceneViewFamily& ViewFamily, Viewport& VP);
 
 	virtual void PostLoad() override {}
 	virtual void Tick(float fDeltaSeconds) override;

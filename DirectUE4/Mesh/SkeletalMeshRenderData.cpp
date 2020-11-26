@@ -131,7 +131,7 @@ void SkeletalMeshRenderData::InitResources(/*bool bNeedsVertexColors, TArray<UMo
 	}
 }
 
-void SkeletalMeshRenderData::Cache(SkeletalMesh* Owner)
+void SkeletalMeshRenderData::Cache(USkeletalMesh* Owner)
 {
 	SkeletalMeshModel* SkelMeshModel = Owner->GetImportedModel();
 

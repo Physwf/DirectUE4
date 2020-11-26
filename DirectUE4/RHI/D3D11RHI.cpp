@@ -913,6 +913,11 @@ void SetRenderTarget(FD3D11Texture2D* NewRenderTarget, FD3D11Texture2D* NewDepth
 }
 
 
+void SetRenderTargetAndClear(FD3D11Texture2D* NewRenderTarget, FD3D11Texture2D* NewDepthStencilTarget)
+{
+
+}
+
 ID3D11Buffer* RHICreateVertexBuffer(UINT Size, D3D11_USAGE InUsage, UINT BindFlags, UINT MiscFlags, const void* Data /*= NULL*/)
 {
 	D3D11_BUFFER_DESC Desc;
@@ -1622,3 +1627,6 @@ void DrawRectangle(float X, float Y, float SizeX, float SizeY, float U, float V,
 
 	D3D11DeviceContext->DrawIndexed(6, 0, 0);
 }
+
+int32 GMaxShadowDepthBufferSizeX = 2048;
+int32 GMaxShadowDepthBufferSizeY = 2048;

@@ -3,19 +3,19 @@
 #include "SystemTextures.h"
 #include "SceneRenderTargetParameters.h"
 
-RenderTargets& RenderTargets::Get()
+FSceneRenderTargets& FSceneRenderTargets::Get()
 {
-	static RenderTargets Instance;
+	static FSceneRenderTargets Instance;
 	return Instance;
 }
 
-void RenderTargets::BeginRenderingSceneColor()
+void FSceneRenderTargets::BeginRenderingSceneColor()
 {
 	AllocSceneColor();
 	//D3D11DeviceContext->OMSetRenderTargets(1, &SceneColorRTV, NULL);
 }
 
-void RenderTargets::BeginRenderingPrePass(bool bClear)
+void FSceneRenderTargets::BeginRenderingPrePass(bool bClear)
 {
 	ID3D11DepthStencilView* DVS = GetSceneDepthSurface()->GetDepthStencilView(FExclusiveDepthStencil::DepthWrite);
 	if (bClear)
@@ -32,12 +32,12 @@ void RenderTargets::BeginRenderingPrePass(bool bClear)
 	}
 }
 
-void RenderTargets::FinishRenderingPrePass()
+void FSceneRenderTargets::FinishRenderingPrePass()
 {
 
 }
 
-void RenderTargets::BeginRenderingGBuffer(bool bClearColor, const FLinearColor& ClearColor /*= (0, 0, 0, 1)*/)
+void FSceneRenderTargets::BeginRenderingGBuffer(bool bClearColor, const FLinearColor& ClearColor /*= (0, 0, 0, 1)*/)
 {
 	AllocSceneColor();
 
@@ -58,17 +58,17 @@ void RenderTargets::BeginRenderingGBuffer(bool bClearColor, const FLinearColor& 
 // 	}
 }
 
-void RenderTargets::FinishRenderingGBuffer()
+void FSceneRenderTargets::FinishRenderingGBuffer()
 {
 
 }
 
-void RenderTargets::FinishRendering()
+void FSceneRenderTargets::FinishRendering()
 {
 	//D3D11DeviceContext->CopyResource(BackBuffer, SceneColorRT);
 }
 
-EPixelFormat RenderTargets::GetSceneColorFormat() const
+EPixelFormat FSceneRenderTargets::GetSceneColorFormat() const
 {
 	EPixelFormat SceneColorBufferFormat = PF_FloatRGBA;
 
@@ -110,12 +110,12 @@ EPixelFormat RenderTargets::GetSceneColorFormat() const
 	return SceneColorBufferFormat;
 }
 
-void RenderTargets::SetBufferSize(int32 InBufferSizeX, int32 InBufferSizeY)
+void FSceneRenderTargets::SetBufferSize(int32 InBufferSizeX, int32 InBufferSizeY)
 {
 	QuantizeSceneBufferSize(FIntPoint(InBufferSizeX, InBufferSizeY), BufferSize);
 }
 
-void RenderTargets::Allocate(const SceneRenderer* Renderer)
+void FSceneRenderTargets::Allocate(const FSceneRenderer* Renderer)
 {
 	FIntPoint DesiredBufferSize = ComputeDesiredSize(Renderer->ViewFamily);
 
@@ -143,11 +143,13 @@ void RenderTargets::Allocate(const SceneRenderer* Renderer)
 
 	int32 MSAACount = 1;// GetNumSceneColorMSAASamples(NewFeatureLevel);
 
+	int32 MaxShadowResolution = 2048;// GetCachedScalabilityCVars().MaxShadowResolution;
+
 	CurrentGBufferFormat = GBufferFormat;
 	CurrentSceneColorFormat = SceneColorFormat;
 	bAllowStaticLighting = bNewAllowStaticLighting;
 	//bUseDownsizedOcclusionQueries = bDownsampledOcclusionQueries;
-	//CurrentMaxShadowResolution = MaxShadowResolution;
+	CurrentMaxShadowResolution = MaxShadowResolution;
 	//CurrentRSMResolution = RSMResolution;
 	//CurrentTranslucencyLightingVolumeDim = TranslucencyLightingVolumeDim;
 	CurrentMSAACount = MSAACount;
@@ -159,12 +161,12 @@ void RenderTargets::Allocate(const SceneRenderer* Renderer)
 	AllocRenderTargets();
 }
 
-void RenderTargets::AllocRenderTargets()
+void FSceneRenderTargets::AllocRenderTargets()
 {
 	AllocateDeferredShadingPathRenderTargets();
 }
 
-void RenderTargets::AllocateDeferredShadingPathRenderTargets()
+void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets()
 {
 	AllocateCommonDepthTargets();
 
@@ -201,7 +203,7 @@ void RenderTargets::AllocateDeferredShadingPathRenderTargets()
 
 }
 
-void RenderTargets::AllocSceneColor()
+void FSceneRenderTargets::AllocSceneColor()
 {
 	ComPtr<PooledRenderTarget>& SceneColorTarget = GetSceneColorForCurrentShadingPath();
 	if (SceneColorTarget &&
@@ -238,7 +240,7 @@ void RenderTargets::AllocSceneColor()
 	//check(GetSceneColorForCurrentShadingPath());
 }
 
-void RenderTargets::AllocateCommonDepthTargets()
+void FSceneRenderTargets::AllocateCommonDepthTargets()
 {
 	// Create a texture to store the resolved scene depth, and a render-targetable surface to hold the unresolved scene depth.
 	PooledRenderTargetDesc Desc(PooledRenderTargetDesc::Create2DDesc(BufferSize, PF_DepthStencil, DefaultDepthClear, TexCreate_None, TexCreate_DepthStencilTargetable, false));
@@ -247,7 +249,7 @@ void RenderTargets::AllocateCommonDepthTargets()
 	GRenderTargetPool.FindFreeElement(Desc, SceneDepthZ, TEXT("SceneDepthZ"));
 }
 
-void RenderTargets::GetGBufferADesc(PooledRenderTargetDesc& Desc) const
+void FSceneRenderTargets::GetGBufferADesc(PooledRenderTargetDesc& Desc) const
 {
 	// good to see the quality loss due to precision in the gbuffer
 	const bool bHighPrecisionGBuffers = (CurrentGBufferFormat >= EGBufferFormat::Force16BitsPerChannel);
@@ -272,7 +274,7 @@ void RenderTargets::GetGBufferADesc(PooledRenderTargetDesc& Desc) const
 	}
 }
 
-void RenderTargets::AllocGBufferTargets()
+void FSceneRenderTargets::AllocGBufferTargets()
 {
 	//ensure(GBufferRefCount == 0);
 
@@ -345,7 +347,67 @@ void RenderTargets::AllocGBufferTargets()
 	//GBufferRefCount = 1;
 }
 
-const std::shared_ptr<FD3D11Texture2D>& RenderTargets::GetSceneColorTexture() const
+FIntPoint FSceneRenderTargets::GetShadowDepthTextureResolution() const
+{
+	int32 MaxShadowRes = CurrentMaxShadowResolution;
+	const FIntPoint ShadowBufferResolution(
+		FMath::Clamp(MaxShadowRes, 1, (int32)GMaxShadowDepthBufferSizeX),
+		FMath::Clamp(MaxShadowRes, 1, (int32)GMaxShadowDepthBufferSizeY));
+
+	return ShadowBufferResolution;
+}
+
+int32 FSceneRenderTargets::GetCubeShadowDepthZIndex(int32 ShadowResolution) const
+{
+	static auto CVarMinShadowResolution = 32;// IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Shadow.MinResolution"));
+	FIntPoint ObjectShadowBufferResolution = GetShadowDepthTextureResolution();
+
+	// Use a lower resolution because cubemaps use a lot of memory
+	ObjectShadowBufferResolution.X /= 2;
+	ObjectShadowBufferResolution.Y /= 2;
+	const int32 SurfaceSizes[NumCubeShadowDepthSurfaces] =
+	{
+		ObjectShadowBufferResolution.X,
+		ObjectShadowBufferResolution.X / 2,
+		ObjectShadowBufferResolution.X / 4,
+		ObjectShadowBufferResolution.X / 8,
+		CVarMinShadowResolution
+	};
+
+	for (int32 SearchIndex = 0; SearchIndex < NumCubeShadowDepthSurfaces; SearchIndex++)
+	{
+		if (ShadowResolution >= SurfaceSizes[SearchIndex])
+		{
+			return SearchIndex;
+		}
+	}
+
+	assert(0);
+	return 0;
+}
+
+int32 FSceneRenderTargets::GetCubeShadowDepthZResolution(int32 ShadowIndex) const
+{
+	assert(ShadowIndex >= 0 && ShadowIndex < NumCubeShadowDepthSurfaces);
+
+	static auto CVarMinShadowResolution = 32;// IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Shadow.MinResolution"));
+	FIntPoint ObjectShadowBufferResolution = GetShadowDepthTextureResolution();
+
+	// Use a lower resolution because cubemaps use a lot of memory
+	ObjectShadowBufferResolution.X = FMath::Max(ObjectShadowBufferResolution.X / 2, 1);
+	ObjectShadowBufferResolution.Y = FMath::Max(ObjectShadowBufferResolution.Y / 2, 1);
+	const int32 SurfaceSizes[NumCubeShadowDepthSurfaces] =
+	{
+		ObjectShadowBufferResolution.X,
+		FMath::Max(ObjectShadowBufferResolution.X / 2, 1),
+		FMath::Max(ObjectShadowBufferResolution.X / 4, 1),
+		FMath::Max(ObjectShadowBufferResolution.X / 8, 1),
+		CVarMinShadowResolution
+	};
+	return SurfaceSizes[ShadowIndex];
+}
+
+const std::shared_ptr<FD3D11Texture2D>& FSceneRenderTargets::GetSceneColorTexture() const
 {
 	if (!GetSceneColorForCurrentShadingPath())
 	{
@@ -356,7 +418,7 @@ const std::shared_ptr<FD3D11Texture2D>& RenderTargets::GetSceneColorTexture() co
 	return SceneColor->ShaderResourceTexture;
 }
 
-const std::shared_ptr<FD3D11Texture2D>* RenderTargets::GetActualDepthTexture() const
+const std::shared_ptr<FD3D11Texture2D>* FSceneRenderTargets::GetActualDepthTexture() const
 {
 	const std::shared_ptr<FD3D11Texture2D>* DepthTexture = NULL;
 	//if ((CurrentFeatureLevel >= ERHIFeatureLevel::SM4) || IsPCPlatform(GShaderPlatformForFeatureLevel[CurrentFeatureLevel]))
@@ -392,18 +454,18 @@ const std::shared_ptr<FD3D11Texture2D>* RenderTargets::GetActualDepthTexture() c
 	return DepthTexture;
 }
 
-void RenderTargets::AllocLightAttenuation()
+void FSceneRenderTargets::AllocLightAttenuation()
 {
 
 }
 
-FIntPoint RenderTargets::ComputeDesiredSize(const SceneViewFamily& ViewFamily)
+FIntPoint FSceneRenderTargets::ComputeDesiredSize(const FSceneViewFamily& ViewFamily)
 {
-	FIntPoint DesiredFamilyBufferSize = SceneRenderer::GetDesiredInternalBufferSize(ViewFamily);
+	FIntPoint DesiredFamilyBufferSize = FSceneRenderer::GetDesiredInternalBufferSize(ViewFamily);
 	return DesiredFamilyBufferSize;
 }
 
-int RenderTargets::GetGBufferRenderTargets(ERenderTargetLoadAction ColorLoadAction, FD3D11Texture2D* OutRenderTargets[8], int32& OutVelocityRTIndex)
+int FSceneRenderTargets::GetGBufferRenderTargets(ERenderTargetLoadAction ColorLoadAction, FD3D11Texture2D* OutRenderTargets[8], int32& OutVelocityRTIndex)
 {
 	int32 MRTCount = 0;
 	OutRenderTargets[MRTCount++] = (FD3D11Texture2D*)GetSceneColorSurface().get();
@@ -414,7 +476,7 @@ int RenderTargets::GetGBufferRenderTargets(ERenderTargetLoadAction ColorLoadActi
 	return MRTCount;
 }
 
-void SetupSceneTextureUniformParameters(RenderTargets& SceneContext, ESceneTextureSetupMode SetupMode, FSceneTexturesUniformParameters& SceneTextureParameters)
+void SetupSceneTextureUniformParameters(FSceneRenderTargets& SceneContext, ESceneTextureSetupMode SetupMode, FSceneTexturesUniformParameters& SceneTextureParameters)
 {
 	std::shared_ptr<FD3D11Texture2D> WhiteDefault2D = GSystemTextures.WhiteDummy->ShaderResourceTexture;
 	std::shared_ptr<FD3D11Texture2D> BlackDefault2D = GSystemTextures.BlackDummy->ShaderResourceTexture;
@@ -537,7 +599,7 @@ void SetupSceneTextureUniformParameters(RenderTargets& SceneContext, ESceneTextu
 TUniformBufferPtr<FSceneTexturesUniformParameters> CreateSceneTextureUniformBufferSingleDraw(ESceneTextureSetupMode SceneTextureSetupMode)
 {
 	FSceneTexturesUniformParameters SceneTextureParameters;
-	RenderTargets& SceneContext = RenderTargets::Get();
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get();
 	SetupSceneTextureUniformParameters(SceneContext, SceneTextureSetupMode, SceneTextureParameters);
 	return TUniformBufferPtr<FSceneTexturesUniformParameters>::CreateUniformBufferImmediate(SceneTextureParameters);
 }

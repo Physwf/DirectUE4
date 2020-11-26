@@ -1,6 +1,7 @@
 #pragma once
 
 #include "UnrealMath.h"
+#include "ConvexVolume.h"
 
 #define WORLD_MAX					2097152.0				/* Maximum size of the world */
 #define HALF_WORLD_MAX				(WORLD_MAX * 0.5)		/* Half the maximum size of the world */
@@ -8,6 +9,129 @@
 
 class ULightComponent;
 class FLightSceneInfo;
+struct FViewMatrices;
+class FSceneView;
+class FSceneViewFamily;
+
+// Information about a single shadow cascade.
+class FShadowCascadeSettings
+{
+public:
+	// The following 3 floats represent the view space depth of the split planes for this cascade.
+	// SplitNear <= FadePlane <= SplitFar
+
+	// The distance from the camera to the near split plane, in world units (linear).
+	float SplitNear;
+
+	// The distance from the camera to the far split plane, in world units (linear).
+	float SplitFar;
+
+	// in world units (linear).
+	float SplitNearFadeRegion;
+
+	// in world units (linear).
+	float SplitFarFadeRegion;
+
+	// ??
+	// The distance from the camera to the start of the fade region, in world units (linear).
+	// The area between the fade plane and the far split plane is blended to smooth between cascades.
+	float FadePlaneOffset;
+
+	// The length of the fade region (SplitFar - FadePlaneOffset), in world units (linear).
+	float FadePlaneLength;
+
+	// The accurate bounds of the cascade used for primitive culling.
+	FConvexVolume ShadowBoundsAccurate;
+
+	FPlane NearFrustumPlane;
+	FPlane FarFrustumPlane;
+
+	/** When enabled, the cascade only renders objects marked with bCastFarShadows enabled (e.g. Landscape). */
+	bool bFarShadowCascade;
+
+	/**
+	* Index of the split if this is a whole scene shadow from a directional light,
+	* Or index of the direction if this is a whole scene shadow from a point light, otherwise INDEX_NONE.
+	*/
+	int32 ShadowSplitIndex;
+
+	FShadowCascadeSettings()
+		: SplitNear(0.0f)
+		, SplitFar(WORLD_MAX)
+		, SplitNearFadeRegion(0.0f)
+		, SplitFarFadeRegion(0.0f)
+		, FadePlaneOffset(SplitFar)
+		, FadePlaneLength(SplitFar - FadePlaneOffset)
+		, bFarShadowCascade(false)
+		, ShadowSplitIndex(-1)
+	{
+	}
+};
+
+/** A projected shadow transform. */
+class FProjectedShadowInitializer
+{
+public:
+
+	/** A translation that is applied to world-space before transforming by one of the shadow matrices. */
+	FVector PreShadowTranslation;
+
+	FMatrix WorldToLight;
+	/** Non-uniform scale to be applied after WorldToLight. */
+	FVector Scales;
+
+	FVector FaceDirection;
+	FBoxSphereBounds SubjectBounds;
+	Vector4 WAxis;
+	float MinLightW;
+	float MaxDistanceToCastInLightW;
+
+	/** Default constructor. */
+	FProjectedShadowInitializer()
+	{}
+
+	bool IsCachedShadowValid(const FProjectedShadowInitializer& CachedShadow) const
+	{
+		return PreShadowTranslation == CachedShadow.PreShadowTranslation
+			&& WorldToLight == CachedShadow.WorldToLight
+			&& Scales == CachedShadow.Scales
+			&& FaceDirection == CachedShadow.FaceDirection
+			&& SubjectBounds.Origin == CachedShadow.SubjectBounds.Origin
+			&& SubjectBounds.BoxExtent == CachedShadow.SubjectBounds.BoxExtent
+			&& SubjectBounds.SphereRadius == CachedShadow.SubjectBounds.SphereRadius
+			&& WAxis == CachedShadow.WAxis
+			&& MinLightW == CachedShadow.MinLightW
+			&& MaxDistanceToCastInLightW == CachedShadow.MaxDistanceToCastInLightW;
+	}
+};
+
+/** Information needed to create a per-object projected shadow. */
+class FPerObjectProjectedShadowInitializer : public FProjectedShadowInitializer
+{
+public:
+
+};
+
+/** Information needed to create a whole scene projected shadow. */
+class FWholeSceneProjectedShadowInitializer : public FProjectedShadowInitializer
+{
+public:
+	FShadowCascadeSettings CascadeSettings;
+	bool bOnePassPointLightShadow;
+	bool bRayTracedDistanceField;
+
+	FWholeSceneProjectedShadowInitializer() :
+		bOnePassPointLightShadow(false),
+		bRayTracedDistanceField(false)
+	{}
+
+	bool IsCachedShadowValid(const FWholeSceneProjectedShadowInitializer& CachedShadow) const
+	{
+		return FProjectedShadowInitializer::IsCachedShadowValid((const FProjectedShadowInitializer&)CachedShadow)
+			&& bOnePassPointLightShadow == CachedShadow.bOnePassPointLightShadow
+			&& bRayTracedDistanceField == CachedShadow.bRayTracedDistanceField;
+	}
+};
 
 class FLightSceneProxy
 {
@@ -36,7 +160,41 @@ public:
 	virtual bool IsInverseSquared() const { return true; }
 	virtual bool IsRectLight() const { return false; }
 	virtual float GetLightSourceAngle() const { return 0.0f; }
+	virtual float GetEffectiveScreenRadius(const FViewMatrices& ShadowViewMatrices) const { return 0.0f; }
+	/** Whether this light should create per object shadows for dynamic objects. */
+	virtual bool ShouldCreatePerObjectShadowsForDynamicObjects() const;
 
+	/** Whether this light should create CSM for dynamic objects only (forward renderer) */
+	virtual bool UseCSMForDynamicObjects() const;
+
+	/** Returns the number of view dependent shadows this light will create, not counting distance field shadow cascades. */
+	virtual uint32 GetNumViewDependentWholeSceneShadows(const FSceneView& View, bool bPrecomputedLightingIsValid) const { return 0; }
+	/**
+	* Sets up a projected shadow initializer for shadows from the entire scene.
+	* @return True if the whole-scene projected shadow should be used.
+	*/
+	virtual bool GetWholeSceneProjectedShadowInitializer(const FSceneViewFamily& ViewFamily, std::vector<class FWholeSceneProjectedShadowInitializer>& OutInitializers) const
+	{
+		return false;
+	}
+	virtual bool GetViewDependentWholeSceneProjectedShadowInitializer(
+		const class FSceneView& View,
+		int32 InCascadeIndex,
+		bool bPrecomputedLightingIsValid,
+		class FWholeSceneProjectedShadowInitializer& OutInitializer) const
+	{
+		return false;
+	}
+	/**
+	* Sets up a projected shadow initializer for the given subject.
+	* @param SubjectBounds - The bounding volume of the subject.
+	* @param OutInitializer - Upon successful return, contains the initialization parameters for the shadow.
+	* @return True if a projected shadow should be cast by this subject-light pair.
+	*/
+	virtual bool GetPerObjectProjectedShadowInitializer(const FBoxSphereBounds& SubjectBounds, class FPerObjectProjectedShadowInitializer& OutInitializer) const
+	{
+		return false;
+	}
 	inline const ULightComponent* GetLightComponent() const { return LightComponent; }
 	inline FLightSceneInfo* GetLightSceneInfo() const { return LightSceneInfo; }
 	inline const FMatrix& GetWorldToLight() const { return WorldToLight; }

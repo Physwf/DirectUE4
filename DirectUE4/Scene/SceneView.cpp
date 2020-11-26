@@ -17,7 +17,7 @@ inline FMatrix AdjustProjectionMatrixForRHI(const FMatrix& InProjectionMatrix)
 	return InProjectionMatrix * ClipSpaceFixScale * ClipSpaceFixTranslate;
 }
 
-ViewMatrices::ViewMatrices(const ViewInitOptions& InitOptions)
+FViewMatrices::FViewMatrices(const ViewInitOptions& InitOptions)
 {
 	FVector LocalViewOrigin = InitOptions.ViewOrigin;
 	FMatrix ViewRotationMatrix = InitOptions.ViewRotationMatrix;
@@ -157,8 +157,8 @@ void FSceneView::SetupViewRectUniformBufferParameters(
 	FViewUniformShaderParameters& ViewUniformParameters,
 	const FIntPoint& BufferSize,
 	const FIntRect& EffectiveViewRect,
-	const ViewMatrices& InViewMatrices,
-	const ViewMatrices& InPrevViewMatrices) const
+	const FViewMatrices& InViewMatrices,
+	const FViewMatrices& InPrevViewMatrices) const
 {
 	//checkfSlow(EffectiveViewRect.Area() > 0, TEXT("Invalid-size EffectiveViewRect passed to CreateUniformBufferParameters [%d * %d]."), EffectiveViewRect.Width(), EffectiveViewRect.Height());
 
@@ -201,10 +201,10 @@ void FSceneView::SetupViewRectUniformBufferParameters(
 		// http://stackoverflow.com/questions/9010546/java-transformation-matrix-operations
 
 		ViewUniformParameters.Constants.SVPositionToTranslatedWorld =
-			FMatrix(Plane(Mx, 0, 0, 0),
-				Plane(0, My, 0, 0),
-				Plane(0, 0, 1, 0),
-				Plane(Ax, Ay, 0, 1)) * InViewMatrices.GetInvTranslatedViewProjectionMatrix();
+			FMatrix(FPlane(Mx, 0, 0, 0),
+				FPlane(0, My, 0, 0),
+				FPlane(0, 0, 1, 0),
+				FPlane(Ax, Ay, 0, 1)) * InViewMatrices.GetInvTranslatedViewProjectionMatrix();
 	}
 
 	// is getting clamped in the shader to a value larger than 0 (we don't want the triangles to disappear)
@@ -225,8 +225,8 @@ void FSceneView::SetupCommonViewUniformBufferParameters(
 	const FIntPoint& BufferSize, 
 	int32 NumMSAASamples, 
 	const FIntRect& EffectiveViewRect, 
-	const ViewMatrices& InViewMatrices, 
-	const ViewMatrices& InPrevViewMatrices) const
+	const FViewMatrices& InViewMatrices, 
+	const FViewMatrices& InPrevViewMatrices) const
 {
 	//ViewUniformParameters.NumSceneColorMSAASamples = NumMSAASamples;
 	ViewUniformParameters.Constants.ViewToTranslatedWorld = InViewMatrices.GetOverriddenInvTranslatedViewMatrix();
@@ -289,17 +289,17 @@ void FSceneView::SetupCommonViewUniformBufferParameters(
 // 	ViewUniformParameters.bCheckerboardSubsurfaceProfileRendering = 0;
 
 	ViewUniformParameters.Constants.ScreenToWorld = FMatrix(
-		Plane(1, 0, 0, 0),
-		Plane(0, 1, 0, 0),
-		Plane(0, 0, ProjectionMatrixUnadjustedForRHI.M[2][2], 1),
-		Plane(0, 0, ProjectionMatrixUnadjustedForRHI.M[3][2], 0))
+		FPlane(1, 0, 0, 0),
+		FPlane(0, 1, 0, 0),
+		FPlane(0, 0, ProjectionMatrixUnadjustedForRHI.M[2][2], 1),
+		FPlane(0, 0, ProjectionMatrixUnadjustedForRHI.M[3][2], 0))
 		* InViewMatrices.GetInvViewProjectionMatrix();
 
 	ViewUniformParameters.Constants.ScreenToTranslatedWorld = FMatrix(
-		Plane(1, 0, 0, 0),
-		Plane(0, 1, 0, 0),
-		Plane(0, 0, ProjectionMatrixUnadjustedForRHI.M[2][2], 1),
-		Plane(0, 0, ProjectionMatrixUnadjustedForRHI.M[3][2], 0))
+		FPlane(1, 0, 0, 0),
+		FPlane(0, 1, 0, 0),
+		FPlane(0, 0, ProjectionMatrixUnadjustedForRHI.M[2][2], 1),
+		FPlane(0, 0, ProjectionMatrixUnadjustedForRHI.M[3][2], 0))
 		* InViewMatrices.GetInvTranslatedViewProjectionMatrix();
 
 // 	ViewUniformParameters.PrevScreenToTranslatedWorld = Matrix(

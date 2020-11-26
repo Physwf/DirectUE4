@@ -16,13 +16,15 @@ namespace EGBufferFormat
 	};
 }
 
-class SceneRenderer;
-class SceneViewFamily;
+static const int32 NumCubeShadowDepthSurfaces = 5;
 
-class RenderTargets
+class FSceneRenderer;
+class FSceneViewFamily;
+
+class FSceneRenderTargets
 {
 public:
-	static RenderTargets& Get();
+	static FSceneRenderTargets& Get();
 
 	void BeginRenderingSceneColor();
 
@@ -81,6 +83,12 @@ public:
 	//void AllocateDebugViewModeTargets(FRHICommandList& RHICmdList);
 
 	//void AllocateScreenShadowMask(FRHICommandList& RHICmdList, TRefCountPtr<IPooledRenderTarget>& ScreenShadowMaskTexture);
+
+
+	FIntPoint GetShadowDepthTextureResolution() const;
+	int32 GetCubeShadowDepthZIndex(int32 ShadowResolution) const;
+	/** Returns the appropriate resolution for a given cube shadow index. */
+	int32 GetCubeShadowDepthZResolution(int32 ShadowIndex) const;
 public:
 	const std::shared_ptr<FD3D11Texture2D>& GetSceneColorTexture() const;
 	const std::shared_ptr<FD3D11Texture2D>& GetSceneDepthTexture() const { return SceneDepthZ->ShaderResourceTexture; }
@@ -104,7 +112,7 @@ public:
 
 	const std::shared_ptr<FD3D11Texture2D>& GetScreenSpaceAO() { return ScreenSpaceAO->ShaderResourceTexture; }
 
-	void Allocate(const SceneRenderer* Renderer);
+	void Allocate(const FSceneRenderer* Renderer);
 private:
 	void AllocRenderTargets();
 	void AllocateDeferredShadingPathRenderTargets();
@@ -115,9 +123,11 @@ private:
 	const ComPtr<PooledRenderTarget>& GetSceneColorForCurrentShadingPath() const {  return SceneColor; }
 	ComPtr<PooledRenderTarget>& GetSceneColorForCurrentShadingPath() { return SceneColor; }
 
-	FIntPoint ComputeDesiredSize(const SceneViewFamily& ViewFamily);
+	FIntPoint ComputeDesiredSize(const FSceneViewFamily& ViewFamily);
 
 	int32 GetGBufferRenderTargets(ERenderTargetLoadAction ColorLoadAction, FD3D11Texture2D* OutRenderTargets[8], int32& OutVelocityRTIndex);
+
+	int32 CurrentMaxShadowResolution;
 
 	int32 CurrentGBufferFormat;
 	int32 CurrentSceneColorFormat;

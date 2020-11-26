@@ -14,6 +14,16 @@ FLightSceneProxy::FLightSceneProxy(const ULightComponent* InLightComponent)
 
 }
 
+bool FLightSceneProxy::ShouldCreatePerObjectShadowsForDynamicObjects() const
+{
+	return HasStaticShadowing() && !HasStaticLighting();
+}
+
+bool FLightSceneProxy::UseCSMForDynamicObjects() const
+{
+	return false;
+}
+
 void FLightSceneProxy::SetTransform(const FMatrix& InLightToWorld, const Vector4& InPosition)
 {
 	LightToWorld = InLightToWorld;

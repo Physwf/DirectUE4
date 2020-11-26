@@ -29,8 +29,8 @@ float ConvertDist(FbxDouble Distance);
 FQuat ConvertRotToQuat(FbxQuaternion Quaternion);
 FVector ConvertScale(FbxDouble3 V);
 
-class StaticMesh;
-class SkeletalMesh;
+class UStaticMesh;
+class USkeletalMesh;
 
 struct FMeshWedge
 {
@@ -455,8 +455,8 @@ class MeshDescription;
 class FBXImporter
 {
 public:
-	StaticMesh* ImportStaticMesh(class Actor* InOwner, const char* filename);
-	SkeletalMesh* ImportSkeletalMesh(class Actor* InOwner, const char* filename);
+	UStaticMesh* ImportStaticMesh(class AActor* InOwner, const char* filename);
+	USkeletalMesh* ImportSkeletalMesh(class AActor* InOwner, const char* filename);
 
 	bool FillSkeletalMeshImportData(std::vector<FbxNode*>& NodeArray, std::vector<FbxShape*> *FbxShapeArray, FSkeletalMeshImportData* OutData);
 	bool ImportBone(std::vector<FbxNode*>& NodeArray, FSkeletalMeshImportData &ImportData, std::vector<FbxNode*> &OutSortedLinks, bool& bUseTime0AsRefPose, FbxNode *SkeletalMeshNode);
@@ -474,7 +474,7 @@ public:
 	bool BuildSkeletalMesh(SkeletalMeshLODModel& LODModel, const FReferenceSkeleton& RefSkeleton, const std::vector<FVertInfluence>& Influences, const std::vector<FMeshWedge>& Wedges, const std::vector<FMeshFace>& Faces, const std::vector<FVector>& Points, const std::vector<int32>& PointToOriginalMap, const MeshBuildOptions& BuildOptions = MeshBuildOptions(), std::vector<std::string> * OutWarningMessages = NULL, std::vector<std::string> * OutWarningNames = NULL);
 	void BuildSkeletalModelFromChunks(SkeletalMeshLODModel& LODModel, const FReferenceSkeleton& RefSkeleton, std::vector<FSkinnedMeshChunk*>& Chunks, const std::vector<int32>& PointToOriginalMap);
 
-	bool BuildStaticMesh(FStaticMeshRenderData& OutRenderData, StaticMesh* Mesh/*, const FStaticMeshLODGroup& LODGroup */);
+	bool BuildStaticMesh(FStaticMeshRenderData& OutRenderData, UStaticMesh* Mesh/*, const FStaticMeshLODGroup& LODGroup */);
 	void BuildVertexBuffer(const MeshDescription& MD2, FStaticMeshLODResources& StaticMeshLOD, std::vector<std::vector<uint32> >& OutPerSectionIndices, std::vector<StaticMeshBuildVertex>& StaticMeshBuildVertices);
 public:
 	FbxScene* fbxScene;

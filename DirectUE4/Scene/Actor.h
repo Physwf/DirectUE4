@@ -4,30 +4,23 @@
 
 class UWorld;
 
-class Actor
+class AActor
 {
 public:
-	Actor(UWorld* InOwner);
-	virtual ~Actor();
+	AActor(UWorld* InOwner);
+	virtual ~AActor();
 
 	virtual void Tick(float fDeltaSeconds) = 0;
 	virtual void PostLoad() = 0;
 
-	void SetPosition(FVector InPosition);
-	FVector GetPosition() { return Position; }
-	void SetRotation(FRotator InRotation);
-	FRotator GetRotation() { return Rotation; }
+	void SetActorLocation(FVector InPosition);
+	FVector GetActorLocation() const { return Position; }
+	void SetActorRotation(FRotator InRotation);
+	FRotator GetActorRotation() { return Rotation; }
 
 	class UWorld* GetWorld() { return WorldPrivite; }
 
-	void DoDeferredRenderUpdates_Concurrent();
-
-	virtual void SendRenderTransform_Concurrent();
-	
-	class UPrimitiveComponent* Proxy;
-
 	FMatrix GetWorldMatrix();
-
 protected:
 
 	FVector Position;

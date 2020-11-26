@@ -1,29 +1,28 @@
 #include "StaticMeshActor.h"
 #include "FBXImporter.h"
-#include "StaticMesh.h"
 #include "World.h"
 #include "Scene.h"
+#include "MeshComponent.h"
+#include "StaticMesh.h"
 
 StaticMeshActor::StaticMeshActor(class UWorld* InOwner, const char* ResourcePath)
-	:Actor(InOwner)
+	:AActor(InOwner)
 {
+	MeshComponent = new UStaticMeshComponent(this);
+
 	FBXImporter Importer;
-	Mesh = Importer.ImportStaticMesh(this, ResourcePath);
-	Proxy = Mesh;
+	UStaticMesh* Mesh = Importer.ImportStaticMesh(this, ResourcePath);
+
+	MeshComponent->SetStaticMesh(Mesh);
 }
 
 void StaticMeshActor::PostLoad()
 {
-	Mesh->Register();
+	MeshComponent->Register();
 }
 
 void StaticMeshActor::Tick(float fDeltaTime)
 {
 
-}
-
-void StaticMeshActor::SendRenderTransform_Concurrent()
-{
-	GetWorld()->Scene->UpdatePrimitiveTransform(this);
 }
 

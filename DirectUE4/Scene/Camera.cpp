@@ -5,7 +5,7 @@
 float					GNearClippingPlane = 10.0f;				/* Near clipping plane */
 
 Camera::Camera(class UWorld* InOwner)
-	: Actor(InOwner), Near(1.0f), Far(1000.0f)
+	: AActor(InOwner), Near(1.0f), Far(1000.0f)
 {
 	Position = { 0,0,0 };
 	Up = { 0, 0, 1 };
@@ -26,7 +26,7 @@ void Camera::SetLen(float fNear, float fFar)
 	Far = fFar;
 }
 
-FSceneView* Camera::CalcSceneView(SceneViewFamily& ViewFamily, Viewport& VP)
+FSceneView* Camera::CalcSceneView(FSceneViewFamily& ViewFamily, Viewport& VP)
 {
 	ViewInitOptions InitOptions;
 
@@ -44,14 +44,14 @@ FSceneView* Camera::CalcSceneView(SceneViewFamily& ViewFamily, Viewport& VP)
 	InitOptions.SetViewRectangle(UnconstrainedRectangle);
 
 	InitOptions.ViewOrigin = Position;
-	InitOptions.ViewRotationMatrix = InverseRotationMatrix(Rotation) * FMatrix(
-		Plane(0, 0, 1, 0),
-		Plane(1, 0, 0, 0),
-		Plane(0, 1, 0, 0),
-		Plane(0, 0, 0, 1));
+	InitOptions.ViewRotationMatrix = FInverseRotationMatrix(Rotation) * FMatrix(
+		FPlane(0, 0, 1, 0),
+		FPlane(1, 0, 0, 0),
+		FPlane(0, 1, 0, 0),
+		FPlane(0, 0, 0, 1));
 
 	float AspectRatio = (float)VP.GetSizeXY().X / (float)VP.GetSizeXY().Y;
-	InitOptions.ProjectionMatrix = ReversedZPerspectiveMatrix(
+	InitOptions.ProjectionMatrix = FReversedZPerspectiveMatrix(
 		FMath::Max(0.001f, FOV) * (float)PI / 360.0f,
 		AspectRatio,
 		1.0f,

@@ -74,14 +74,14 @@ void Viewport::OnMouseMove(int X, int Y)
 
 void Viewport::Draw(bool bShouldPresent /*= true*/)
 {
-	SceneViewFamily ViewFamily;
+	FSceneViewFamily ViewFamily;
 	ViewFamily.Scene = GWorld.Scene;
 	for (Camera* C : GWorld.GetCameras())
 	{
 		FSceneView* View = C->CalcSceneView(ViewFamily,*this);
 	}
 	GWorld.SendAllEndOfFrameUpdates();
-	SceneRenderer Renderer(ViewFamily);
+	FSceneRenderer Renderer(ViewFamily);
 	Renderer.Render();
 	if (bShouldPresent)
 	{

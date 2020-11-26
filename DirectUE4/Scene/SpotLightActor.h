@@ -3,12 +3,12 @@
 #include "Actor.h"
 #include "LightComponent.h"
 
-class PointLightActor : public Actor 
+class PointLightActor : public AActor 
 {
 
 };
 
-class DirectionalLightActor : public Actor
+class DirectionalLightActor : public AActor
 {
 
 };

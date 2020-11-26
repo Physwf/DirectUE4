@@ -9,10 +9,10 @@
 
 class Skeleton;
 
-class SkeletalMesh : public UPrimitiveComponent
+class USkeletalMesh
 {
 public:
-	SkeletalMesh(class Actor* InOwner);
+	USkeletalMesh(class AActor* InOwner);
 
 	SkeletalMeshModel* GetImportedModel() const { return ImportedModel.get(); }
 
@@ -28,8 +28,6 @@ public:
 
 	virtual void InitResources();
 	virtual void ReleaseResources();
-	virtual void GetDynamicMeshElements(const std::vector<const FSceneView*>& Views, const SceneViewFamily& ViewFamily, uint32 VisibilityMap/*, FMeshElementCollector& Collector*/) const override {} ;
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override { return FPrimitiveViewRelevance(); };
 	void AllocateResourceForRendering();
 private:
 	std::shared_ptr<SkeletalMeshModel> ImportedModel;

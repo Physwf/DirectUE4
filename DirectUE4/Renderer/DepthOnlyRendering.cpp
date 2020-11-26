@@ -173,11 +173,11 @@ public:
 
 IMPLEMENT_MATERIAL_SHADER_TYPE(, FDepthOnlyPS, ("DepthOnlyPixelShader.hlsl"), "Main", SF_Pixel);
 
-void SceneRenderer::RenderPrePassView(FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState)
+void FSceneRenderer::RenderPrePassView(FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState)
 {
 	SCOPED_DRAW_EVENT_FORMAT(EventPrePass, TEXT("PrePass"));
 
-	RenderTargets& SceneContex = RenderTargets::Get();
+	FSceneRenderTargets& SceneContex = FSceneRenderTargets::Get();
 	SceneContex.BeginRenderingPrePass(true);
 
 	D3D11DeviceContext->RSSetScissorRects(0, NULL);
@@ -228,9 +228,9 @@ void SceneRenderer::RenderPrePassView(FViewInfo& View, const FDrawingPolicyRende
 	*/
 }
 
-void SceneRenderer::RenderPrePass()
+void FSceneRenderer::RenderPrePass()
 {
-	RenderTargets& SceneContext = RenderTargets::Get();
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get();
 
 	for (uint32 ViewIndex = 0; ViewIndex < Views.size(); ++ViewIndex)
 	{

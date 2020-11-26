@@ -1,16 +1,18 @@
 #include "StaticMesh.h"
 #include "log.h"
 #include "D3D11RHI.h"
-#include <vector>
-#include <string>
-#include <algorithm>
-#include <assert.h>
 #include "MeshDescriptionOperations.h"
 #include "Scene.h"
 #include "World.h"
 #include "FBXImporter.h"
-#include "PrimitiveUniformBufferParameters.h"
 #include "Material.h"
+#include "MeshComponent.h"
+#include "PrimitiveSceneInfo.h"
+
+#include <vector>
+#include <string>
+#include <algorithm>
+#include <assert.h>
 
 void FStaticMeshLODResources::InitResources()
 {
@@ -34,7 +36,7 @@ void FStaticMeshLODResources::ReleaseResources()
 	}
 }
 
-void FStaticMeshVertexFactories::InitResources(const FStaticMeshLODResources& LodResources, const StaticMesh* Parent)
+void FStaticMeshVertexFactories::InitResources(const FStaticMeshLODResources& LodResources, const UStaticMesh* Parent)
 {
 	FLocalVertexFactory::FDataType Data;
 	Data.PositionComponent = FVertexStreamComponent(LodResources.VertexBuffers.PositionVertexBufferRHI.Get(), 0, sizeof(FVector), DXGI_FORMAT_R32G32B32_FLOAT);
@@ -53,7 +55,7 @@ void FStaticMeshVertexFactories::ReleaseResources()
 
 }
 
-void FStaticMeshRenderData::InitResources(const StaticMesh* Owner)
+void FStaticMeshRenderData::InitResources(const UStaticMesh* Owner)
 {
 	for (uint32 LODIndex = 0; LODIndex < LODResources.size(); ++LODIndex)
 	{
@@ -80,37 +82,39 @@ void FStaticMeshRenderData::AllocateLODResources(int32 NumLODs)
 	}
 }
 
-void FStaticMeshRenderData::Cache(StaticMesh* Owner/*, const FStaticMeshLODSettings& LODSettings*/)
+void FStaticMeshRenderData::Cache(UStaticMesh* Owner/*, const FStaticMeshLODSettings& LODSettings*/)
 {
 	FBXImporter Importer;
 	Importer.BuildStaticMesh(*this, Owner);
 }
 
-StaticMesh::StaticMesh(class Actor* InOwner)
-	: UPrimitiveComponent(InOwner)
+FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent, bool bForceLODsShareStaticLighting)
+	: FPrimitiveSceneProxy(InComponent)
+	, RenderData(InComponent->GetStaticMesh()->RenderData.get())
 {
-	RegisterMeshAttributes(MD);
-
-	Material = UMaterial::GetDefaultMaterial(MD_Surface);
 }
 
-
-void StaticMesh::InitResources()
+FStaticMeshSceneProxy::~FStaticMeshSceneProxy()
 {
-	UPrimitiveComponent::InitResources();
-	RenderData->InitResources(this);
 }
 
-void StaticMesh::ReleaseResources()
+bool FStaticMeshSceneProxy::GetShadowMeshElement(int32 LODIndex, int32 BatchIndex, uint8 InDepthPriorityGroup, FMeshBatch& OutMeshBatch, bool bDitheredLODTransition) const
 {
-	RenderData->ReleaseResources();
-	UPrimitiveComponent::ReleaseResources();
+	return false;
 }
 
-bool StaticMesh::GetMeshElement(int BatchIndex, int SectionIndex, FMeshBatch& OutMeshBatch)
+bool FStaticMeshSceneProxy::GetMeshElement(
+	int32 LODIndex, 
+	int32 BatchIndex, 
+	int32 SectionIndex, 
+	uint8 InDepthPriorityGroup, 
+	bool bUseSelectedMaterial, 
+	bool bUseHoveredMaterial, 
+	bool bAllowPreCulledIndices, 
+	FMeshBatch& OutMeshBatch) const
 {
-	const FStaticMeshLODResources& LOD = *RenderData->LODResources[0];
-	const FStaticMeshVertexFactories& VFs = *RenderData->LODVertexFactories[0];
+	const FStaticMeshLODResources& LOD = *RenderData->LODResources[LODIndex];
+	const FStaticMeshVertexFactories& VFs = *RenderData->LODVertexFactories[LODIndex];
 	const StaticMeshSection& Section = LOD.Sections[SectionIndex];
 
 	FMeshBatchElement Element;
@@ -120,36 +124,56 @@ bool StaticMesh::GetMeshElement(int BatchIndex, int SectionIndex, FMeshBatch& Ou
 	//Element.MaterialIndex = Section.MaterialIndex;
 	Element.IndexBuffer = RenderData->LODResources[0]->IndexBuffer.Get();
 	OutMeshBatch.VertexFactory = &VFs.VertexFactory;
-	OutMeshBatch.MaterialRenderProxy = Material->GetRenderProxy(false, false);
+	//OutMeshBatch.MaterialRenderProxy = Material->GetRenderProxy(false, false);
 	OutMeshBatch.Elements[0] = Element;
 	return true;
 }
 
-void StaticMesh::DrawStaticElements()
+void FStaticMeshSceneProxy::DrawStaticElements(FPrimitiveSceneInfo* PrimitiveSceneInfo)
 {
 	const FStaticMeshLODResources& LODModel = *RenderData->LODResources[0];
-
-	for (size_t SectionIndex = 0; SectionIndex < LODModel.Sections.size();++SectionIndex)
+	for (uint32 SectionIndex = 0; SectionIndex < LODModel.Sections.size(); SectionIndex++)
 	{
-		FMeshBatch MB;
-		for (int BatchIndex = 0; BatchIndex < GetNumberBatches(); ++BatchIndex)
+		const int32 NumBatches = GetNumMeshBatches();
+
+		for (int32 BatchIndex = 0; BatchIndex < NumBatches; BatchIndex++)
 		{
-			if (GetMeshElement(BatchIndex, SectionIndex, MB))
+			FMeshBatch MeshBatch;
+
+			if (GetMeshElement(0, BatchIndex, SectionIndex, /*PrimitiveDPG*/0, false, false, true, MeshBatch))
 			{
-				StaticMeshes.push_back(new FStaticMesh(this,MB));
+				PrimitiveSceneInfo->StaticMeshes.push_back(new FStaticMesh(PrimitiveSceneInfo, MeshBatch));
+				//PDI->DrawMesh(MeshBatch, FLT_MAX);
 			}
 		}
 	}
 }
 
-void StaticMesh::PostLoad()
+UStaticMesh::UStaticMesh(class AActor* InOwner)
+{
+	RegisterMeshAttributes(MD);
+
+	Material = UMaterial::GetDefaultMaterial(MD_Surface);
+}
+
+void UStaticMesh::InitResources()
+{
+	RenderData->InitResources(this);
+}
+
+void UStaticMesh::ReleaseResources()
+{
+	RenderData->ReleaseResources();
+}
+
+void UStaticMesh::PostLoad()
 {
 	CacheDerivedData();
 
 	InitResources();
 }
 
-void StaticMesh::GetRenderMeshDescription(const MeshDescription& InOriginalMeshDescription, MeshDescription& OutRenderMeshDescription)
+void UStaticMesh::GetRenderMeshDescription(const MeshDescription& InOriginalMeshDescription, MeshDescription& OutRenderMeshDescription)
 {
 	OutRenderMeshDescription = InOriginalMeshDescription;
 
@@ -213,7 +237,7 @@ void StaticMesh::GetRenderMeshDescription(const MeshDescription& InOriginalMeshD
 		OverlappingCorners);
 }
 
-void StaticMesh::CacheDerivedData()
+void UStaticMesh::CacheDerivedData()
 {
 	RenderData = std::make_unique<FStaticMeshRenderData>();
 	RenderData->Cache(this/*, LODSettings*/);

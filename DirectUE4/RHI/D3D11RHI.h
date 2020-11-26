@@ -1304,6 +1304,8 @@ private:
 
 void SetRenderTarget(FD3D11Texture2D* NewRenderTarget, FD3D11Texture2D* NewDepthStencilTarget);
 void SetRenderTarget(FD3D11Texture2D* NewRenderTarget, FD3D11Texture2D* NewDepthStencilTarget,bool bClearColor=false, bool bClearDepth = false,bool bClearStencil = false);
+void SetRenderTargetAndClear(FD3D11Texture2D* NewRenderTarget, FD3D11Texture2D* NewDepthStencilTarget);
+
 enum ECubeFace
 {
 	CubeFace_PosX = 0,
@@ -1701,3 +1703,6 @@ void DrawRectangle(
 	class FShader* VertexShader,
 	uint32 InstanceCount
 );
+
+extern int32 GMaxShadowDepthBufferSizeX; 
+extern int32 GMaxShadowDepthBufferSizeY;

@@ -4,21 +4,20 @@
 #include "World.h"
 
 SkeletalMeshActor::SkeletalMeshActor(class UWorld* InOwner, const char* ResourcePath)
- : Actor(InOwner)
+ : AActor(InOwner)
 {
-	FBXImporter Importer;
-	Mesh = Importer.ImportSkeletalMesh(this,ResourcePath);
-	Proxy = Mesh;
+	//FBXImporter Importer;
+	//Mesh = Importer.ImportSkeletalMesh(this,ResourcePath);
 }
 
 SkeletalMeshActor::~SkeletalMeshActor()
 {
-	Mesh->Unregister();
+	//Mesh->Unregister();
 }
 
 void SkeletalMeshActor::PostLoad()
 {
-	Mesh->Register();
+	//Mesh->Register();
 }
 
 void SkeletalMeshActor::Tick(float fDeltaTime)

@@ -3,7 +3,7 @@
 #include "DirectionalLightActor.h"
 
 DirectionalLightActor::DirectionalLightActor(class UWorld* InWorld)
-	:Actor(InWorld)
+	:AActor(InWorld)
 {
 
 }

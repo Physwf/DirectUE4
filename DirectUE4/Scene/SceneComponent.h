@@ -4,12 +4,29 @@
 #include "Transform.h"
 
 class UWorld;
-class Actor;
+class AActor;
 
-class USceneComponent
+
+class UActorComponent
+{
+protected:
+	/** Is this component's transform in need of sending to the renderer? */
+	uint8 bRenderTransformDirty : 1;
+
+	/** Is this component's dynamic data in need of sending to the renderer? */
+	uint8 bRenderDynamicDataDirty : 1;
+public:
+	void DoDeferredRenderUpdates_Concurrent();
+
+	virtual void SendRenderTransform_Concurrent() {};
+
+	virtual void SendRenderDynamicData_Concurrent() {};
+};
+
+class USceneComponent : public UActorComponent
 {
 public:
-	USceneComponent(Actor* InOwner);
+	USceneComponent(AActor* InOwner);
 	virtual ~USceneComponent();
 
 	FBoxSphereBounds Bounds;
@@ -20,6 +37,7 @@ public:
 	FVector RelativeScale3D;
 
 	FVector ComponentVelocity;
+
 private:
 	/** Current transform of the component, relative to the world */
 	FTransform ComponentToWorld;
@@ -33,12 +51,16 @@ public:
 		return GetComponentTransform().GetLocation();
 	}
 
+	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const;
+
+	AActor* GetAttachmentRootActor() const;
+
 	virtual void Register() = 0;
 	virtual void Unregister() = 0;
 
 	UWorld* GetWorld() { return WorldPrivite; }
 private:
 	UWorld* WorldPrivite;
-	Actor* Owner;
+	AActor* Owner;
 };
 

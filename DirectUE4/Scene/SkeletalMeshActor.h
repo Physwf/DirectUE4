@@ -2,9 +2,9 @@
 
 #include "Actor.h"
 
-class SkeletalMesh;
+class USkeletalMesh;
 
-class SkeletalMeshActor : public Actor
+class SkeletalMeshActor : public AActor
 {
 public:
 	SkeletalMeshActor(class UWorld* InOwner, const char* ResourcePath);
@@ -14,5 +14,5 @@ public:
 
 	virtual void Tick(float fDeltaTime) override;
 private:
-	SkeletalMesh * Mesh;
+	USkeletalMesh * Mesh;
 };

@@ -36,21 +36,17 @@ struct MeshMaterial
 
 struct FMeshBatch;
 
-class StaticMesh : public UPrimitiveComponent
+class UStaticMesh
 {
 public:
-	StaticMesh(class Actor* InOwner);
-	virtual ~StaticMesh() {}
+	UStaticMesh(class AActor* InOwner);
+	virtual ~UStaticMesh() {}
 
 	MeshDescription& GetMeshDescription() { return MD; }
 
 	virtual void InitResources();
 	virtual void ReleaseResources();
-	int GetNumberBatches() { return 1; }
-	bool GetMeshElement(int BatchIndex, int SectionIndex, FMeshBatch& OutMeshBatch);
-	virtual void DrawStaticElements() override;
-	virtual void GetDynamicMeshElements(const std::vector<const FSceneView*>& Views, const SceneViewFamily& ViewFamily, uint32 VisibilityMap/*, FMeshElementCollector& Collector*/) const {};
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const { return FPrimitiveViewRelevance(); }
+
 	void PostLoad();
 	void GetRenderMeshDescription(const MeshDescription& InOriginalMeshDescription, MeshDescription& OutRenderMeshDescription);
 
@@ -64,6 +60,7 @@ private:
 
 	class UMaterial* Material;
 	
+	friend class FStaticMeshSceneProxy;
 };
 
 static void RegisterMeshAttributes(MeshDescription& MD);

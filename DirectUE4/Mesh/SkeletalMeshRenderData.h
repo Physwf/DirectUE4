@@ -4,7 +4,7 @@
 #include "SkinWeightVertexBuffer.h"
 
 class SkeletalMeshLODModel;
-class SkeletalMesh;
+class USkeletalMesh;
 
 struct SkeletalMeshRenderSection
 {
@@ -54,5 +54,5 @@ public:
 
 	void InitResources(/*bool bNeedsVertexColors, TArray<UMorphTarget*>& InMorphTargets*/);
 
-	void Cache(SkeletalMesh* Owner);
+	void Cache(USkeletalMesh* Owner);
 };

@@ -15,7 +15,7 @@ void UWorld::InitWorld()
 	//m1->SetRotation(-3.14f / 2.0f, 0, 0);
 
 	Camera* C = SpawnActor<Camera>();
-	C->SetPosition(FVector(-400, 0,  0));
+	C->SetActorLocation(FVector(-400, 0,  0));
 	C->LookAt(FVector(0, 0, 0));
 	C->SetFOV(90.f);
 	mCameras.push_back(C);
@@ -23,13 +23,13 @@ void UWorld::InitWorld()
 
 void UWorld::Tick(float fDeltaSeconds)
 {
-	for (Actor* actor : mAllActors)
+	for (AActor* actor : mAllActors)
 	{
 		actor->Tick(fDeltaSeconds);
 	}
 }
 
-void UWorld::DestroyActor(Actor* InActor)
+void UWorld::DestroyActor(AActor* InActor)
 {
 	auto it = std::find(mAllActors.begin(), mAllActors.end(), InActor);
 	if (it != mAllActors.end())
@@ -40,9 +40,9 @@ void UWorld::DestroyActor(Actor* InActor)
 
 void UWorld::SendAllEndOfFrameUpdates()
 {
-	for (Actor* actor : mAllActors)
+	for (UActorComponent* Component : ActorComponents)
 	{
-		actor->DoDeferredRenderUpdates_Concurrent();
+		Component->DoDeferredRenderUpdates_Concurrent();
 	}
 }
 

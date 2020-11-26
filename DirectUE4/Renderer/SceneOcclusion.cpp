@@ -5,6 +5,7 @@
 #include "GPUProfiler.h"
 #include "GlobalShader.h"
 #include "PostProcessing.h"
+#include "SceneRenderTargetParameters.h"
 
 #define MAXNumMips 10
 ID3D11Texture2D* HZBRTVTexture;
@@ -74,7 +75,7 @@ public:
 		ID3D11PixelShader* const ShaderRHI = GetPixelShader();
 
 		FGlobalShader::SetParameters<FViewUniformShaderParameters>(ShaderRHI, View.ViewUniformBuffer.get());
-		RenderTargets& SceneContext = RenderTargets::Get();
+		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get();
 
 		const FIntPoint GBufferSize = SceneContext.GetBufferSizeXY();
 		const Vector2 InvSize(1.0f / float(GBufferSize.X), 1.0f / float(GBufferSize.Y));
@@ -195,7 +196,7 @@ void BuildHZB(FViewInfo& View)
 			HZBSize.X, HZBSize.Y, 
 			View.ViewRect.Min.X, View.ViewRect.Min.Y, 
 			View.ViewRect.Width(), View.ViewRect.Height(), 
-			HZBSize, RenderTargets::Get().GetBufferSizeXY(),
+			HZBSize, FSceneRenderTargets::Get().GetBufferSizeXY(),
 			*VertexShader,1
 			);
 
@@ -345,7 +346,7 @@ void BuildHZB(FViewInfo& View)
 	*/
 }
 
-void SceneRenderer::RenderHzb()
+void FSceneRenderer::RenderHzb()
 {
 	for (uint32 ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
 	{

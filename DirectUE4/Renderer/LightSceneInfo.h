@@ -20,6 +20,7 @@ public:
 
 	class FScene* Scene;
 
+	int32 Id;
 
 	FLightSceneInfo(FLightSceneProxy* InProxy);
 	virtual ~FLightSceneInfo();

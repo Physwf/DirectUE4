@@ -443,7 +443,7 @@ struct FBXUVs
 };
 
 
-StaticMesh* FBXImporter::ImportStaticMesh(class Actor* InOwner, const char* pFileName)
+UStaticMesh* FBXImporter::ImportStaticMesh(class AActor* InOwner, const char* pFileName)
 {
 	FbxManager* lFbxManager = FbxManager::Create();
 
@@ -458,7 +458,7 @@ StaticMesh* FBXImporter::ImportStaticMesh(class Actor* InOwner, const char* pFil
 		return NULL;
 	}
 
-	StaticMesh* Mesh = new StaticMesh(InOwner);
+	UStaticMesh* Mesh = new UStaticMesh(InOwner);
 	MeshDescription& MD = Mesh->GetMeshDescription();
 
 	FbxScene* lScene = FbxScene::Create(lFbxManager, "Mesh");
@@ -826,7 +826,7 @@ StaticMesh* FBXImporter::ImportStaticMesh(class Actor* InOwner, const char* pFil
 	return Mesh;
 }
 
-SkeletalMesh* FBXImporter::ImportSkeletalMesh(class Actor* InOwner, const char* pFileName)
+USkeletalMesh* FBXImporter::ImportSkeletalMesh(class AActor* InOwner, const char* pFileName)
 {
 	ImportOptions = new FBXImportOptions();
 	ImportOptions->bImportScene = false;
@@ -896,7 +896,7 @@ SkeletalMesh* FBXImporter::ImportSkeletalMesh(class Actor* InOwner, const char* 
 		return NULL;
 	}
 
-	SkeletalMesh* NewSekeletalMesh = new SkeletalMesh(InOwner);
+	USkeletalMesh* NewSekeletalMesh = new USkeletalMesh(InOwner);
 
 	// process materials from import data
 	//ProcessImportMeshMaterials(SkeletalMesh->Materials, *SkelMeshImportDataPtr);
@@ -3018,20 +3018,20 @@ public:
 
 			const FVector Normal = ((P[1] - P[2]) ^ (P[0] - P[2])).GetSafeNormal(ComparisonThreshold);
 			FMatrix	ParameterToLocal(
-				Plane(P[1].X - P[0].X, P[1].Y - P[0].Y, P[1].Z - P[0].Z, 0),
-				Plane(P[2].X - P[0].X, P[2].Y - P[0].Y, P[2].Z - P[0].Z, 0),
-				Plane(P[0].X, P[0].Y, P[0].Z, 0),
-				Plane(0, 0, 0, 1)
+				FPlane(P[1].X - P[0].X, P[1].Y - P[0].Y, P[1].Z - P[0].Z, 0),
+				FPlane(P[2].X - P[0].X, P[2].Y - P[0].Y, P[2].Z - P[0].Z, 0),
+				FPlane(P[0].X, P[0].Y, P[0].Z, 0),
+				FPlane(0, 0, 0, 1)
 			);
 
 			Vector2 T1 = BuildData->GetVertexUV(TriangleIndex, 0, UVIndex);
 			Vector2 T2 = BuildData->GetVertexUV(TriangleIndex, 1, UVIndex);
 			Vector2 T3 = BuildData->GetVertexUV(TriangleIndex, 2, UVIndex);
 			FMatrix ParameterToTexture(
-				Plane(T2.X - T1.X, T2.Y - T1.Y, 0, 0),
-				Plane(T3.X - T1.X, T3.Y - T1.Y, 0, 0),
-				Plane(T1.X, T1.Y, 1, 0),
-				Plane(0, 0, 0, 1)
+				FPlane(T2.X - T1.X, T2.Y - T1.Y, 0, 0),
+				FPlane(T3.X - T1.X, T3.Y - T1.Y, 0, 0),
+				FPlane(T1.X, T1.Y, 1, 0),
+				FPlane(0, 0, 0, 1)
 			);
 
 			// Use InverseSlow to catch singular matrices.  Inverse can miss this sometimes.
@@ -4550,10 +4550,10 @@ void FBXImporter::BuildSkeletalModelFromChunks(SkeletalMeshLODModel& LODModel, c
 	Chunks.clear();
 
 	// Compute the required bones for this model.
-	SkeletalMesh::CalculateRequiredBones(LODModel, RefSkeleton, NULL);
+	USkeletalMesh::CalculateRequiredBones(LODModel, RefSkeleton, NULL);
 }
 
-bool FBXImporter::BuildStaticMesh(FStaticMeshRenderData& OutRenderData, StaticMesh* Mesh/*, const FStaticMeshLODGroup& LODGroup */)
+bool FBXImporter::BuildStaticMesh(FStaticMeshRenderData& OutRenderData, UStaticMesh* Mesh/*, const FStaticMeshLODGroup& LODGroup */)
 {
 
 	OutRenderData.AllocateLODResources(1);

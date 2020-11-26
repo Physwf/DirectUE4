@@ -14,67 +14,30 @@ struct FPrimitiveViewRelevance
 
 class FSceneView;
 class FStaticMesh;
-class SceneViewFamily;
+class FSceneViewFamily;
 class FScene;
-class Actor;
+class AActor;
+class FPrimitiveSceneProxy;
 
 class UPrimitiveComponent : public USceneComponent
 {
 	friend class FScene;
-
 public:
-	UPrimitiveComponent(Actor* InOwner);
+	UPrimitiveComponent(AActor* InOwner);
 	virtual ~UPrimitiveComponent() {}
 
 	virtual void Register() override;
 	virtual void Unregister() override;
 
-	virtual void InitResources();
-	virtual void ReleaseResources();
+	virtual FMatrix GetRenderMatrix() const;
 
-	void ConditionalUpdateUniformBuffer();
-
-	void UpdateUniformBuffer();
-	//FPrimitiveSceneInfo
-	/** Adds the primitive to the scene. */
-	void AddToScene(FScene* Scene/*FRHICommandListImmediate& RHICmdList, bool bUpdateStaticDrawLists, bool bAddToStaticDrawLists = true*/);
-	/** Removes the primitive from the scene. */
-	void RemoveFromScene(FScene* Scene/*bool bUpdateStaticDrawLists*/);
-	/** Adds the primitive's static meshes to the scene. */
-	void AddStaticMeshes(FScene* Scene/*FRHICommandListImmediate& RHICmdList, bool bUpdateStaticDrawLists = true*/);
-	/** Removes the primitive's static meshes from the scene. */
-	void RemoveStaticMeshes(FScene* Scene);
-
-	//FPrimitiveSceneProxy
-	virtual void DrawStaticElements(/*FStaticPrimitiveDrawInterface* PDI*/) {};
-	virtual void GetDynamicMeshElements(const std::vector<const FSceneView*>& Views, const SceneViewFamily& ViewFamily, uint32 VisibilityMap/*, FMeshElementCollector& Collector*/) const = 0;
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const = 0;
-	//FPrimitiveSceneProxy
-	inline const FMatrix& GetLocalToWorld() const { return LocalToWorld; }
-	//inline const FBoxSphereBounds& GetBounds() const { return Bounds; }
-	//inline const FBoxSphereBounds& GetLocalBounds() const { return LocalBounds; }
-	inline const TUniformBuffer<FPrimitiveUniformShaderParameters>& GetUniformBuffer() const
+	virtual FPrimitiveSceneProxy* CreateSceneProxy()
 	{
-		return UniformBuffer;
+		return NULL;
 	}
-	//FPrimitiveSceneInfo
-	/** The primitive's static meshes. */
-	std::vector<FStaticMesh*> StaticMeshes;
 
+	virtual void SendRenderTransform_Concurrent() override;
+
+	FPrimitiveSceneProxy* SceneProxy;
 private:
-	//proxy
-	void SetTransform(const FMatrix& InLocalToWorld, const FBoxSphereBounds& InBounds, const FBoxSphereBounds& InLocalBounds, FVector InActorPosition);
-
-	FMatrix LocalToWorld;
-	/** The primitive's bounds. */
-	FBoxSphereBounds Bounds;
-	/** The primitive's local space bounds. */
-	FBoxSphereBounds LocalBounds;
-	/** The component's actor's position. */
-	FVector ActorPosition;
-
-	uint32 bIsLocalToWorldDeterminantNegative : 1;
-
-	bool bNeedsUniformBufferUpdate;
-	TUniformBuffer<FPrimitiveUniformShaderParameters> UniformBuffer;
 };

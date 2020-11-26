@@ -213,7 +213,7 @@ void InitLightPass()
 	*/
 }
 
-void SceneRenderer::RenderLight()
+void FSceneRenderer::RenderLight()
 {
 	/*
 	for (uint32 ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
@@ -284,11 +284,11 @@ void SceneRenderer::RenderLight()
 	*/
 }
 
-void SceneRenderer::RenderLights()
+void FSceneRenderer::RenderLights()
 {
 	SCOPED_DRAW_EVENT_FORMAT(RenderLights, TEXT("Lights"));
 
-	RenderTargets& SceneContext = RenderTargets::Get();
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get();
 	SceneContext.BeginRenderingSceneColor();
 	RenderLight();
 }

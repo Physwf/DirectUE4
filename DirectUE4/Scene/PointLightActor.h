@@ -3,7 +3,7 @@
 #include "Actor.h"
 #include "LightComponent.h"
 
-class PointLightActor : public Actor 
+class PointLightActor : public AActor 
 {
 public:
 	PointLightActor(class UWorld* InWorld);
