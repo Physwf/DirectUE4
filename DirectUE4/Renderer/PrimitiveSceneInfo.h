@@ -58,6 +58,9 @@ public:
 
 	std::vector<FStaticMesh*> StaticMeshes;
 
+
+	class FLightPrimitiveInteraction* LightList;
+
 	FScene* Scene;
 
 	FPrimitiveSceneInfo(UPrimitiveComponent* InPrimitive, FScene* InScene);

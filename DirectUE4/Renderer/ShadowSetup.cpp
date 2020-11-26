@@ -2,8 +2,11 @@
 #include "LightSceneInfo.h"
 #include "ShadowRendering.h"
 #include "Scene.h"
+#include "PrimitiveSceneInfo.h"
 
 const static uint32 SHADOW_BORDER = 4;
+
+typedef std::vector<FConvexVolume> FLightViewFrustumConvexHulls;
 
 float CalculateShadowFadeAlpha(const float MaxUnclampedResolution, const uint32 ShadowFadeResolution, const uint32 MinShadowResolution)
 {
@@ -168,10 +171,127 @@ void FProjectedShadowInfo::SetupWholeSceneProjection(
 	uint32 InBorderSize, 
 	bool bInReflectiveShadowMap)
 {
+	LightSceneInfo = InLightSceneInfo;
+	LightSceneInfoCompact = InLightSceneInfo;
+	DependentView = InDependentView;
+	PreShadowTranslation = Initializer.PreShadowTranslation;
+	CascadeSettings = Initializer.CascadeSettings;
+	ResolutionX = InResolutionX;
+	ResolutionY = InResolutionY;
+	bDirectionalLight = InLightSceneInfo->Proxy->GetLightType() == LightType_Directional;
+	bOnePassPointLightShadow = Initializer.bOnePassPointLightShadow;
+	bRayTracedDistanceField = Initializer.bRayTracedDistanceField;
+	bWholeSceneShadow = true;
+	//bTransmission = InLightSceneInfo->Proxy->Transmission();
+	bReflectiveShadowmap = bInReflectiveShadowMap;
+	BorderSize = InBorderSize;
 
+	FVector	XAxis, YAxis;
+	Initializer.FaceDirection.FindBestAxisVectors(XAxis, YAxis);
+	const FMatrix WorldToLightScaled = Initializer.WorldToLight * FScaleMatrix(Initializer.Scales);
+	const FMatrix WorldToFace = WorldToLightScaled * FBasisVectorMatrix(-XAxis, YAxis, Initializer.FaceDirection.GetSafeNormal(), FVector::ZeroVector);
+
+	MaxSubjectZ = WorldToFace.TransformPosition(Initializer.SubjectBounds.Origin).Z + Initializer.SubjectBounds.SphereRadius;
+	MinSubjectZ = FMath::Max(MaxSubjectZ - Initializer.SubjectBounds.SphereRadius * 2, Initializer.MinLightW);
+
+	if (bInReflectiveShadowMap)
+	{
+	}
+	else
+	{
+		if (bDirectionalLight)
+		{
+			// Limit how small the depth range can be for smaller cascades
+			// This is needed for shadow modes like subsurface shadows which need depth information outside of the smaller cascade depth range
+			//@todo - expose this value to the ini
+			const float DepthRangeClamp = 5000;
+			MaxSubjectZ = FMath::Max(MaxSubjectZ, DepthRangeClamp);
+			MinSubjectZ = FMath::Min(MinSubjectZ, -DepthRangeClamp);
+
+			// Transform the shadow's position into shadowmap space
+			const FVector TransformedPosition = WorldToFace.TransformPosition(-PreShadowTranslation);
+
+			// Largest amount that the shadowmap will be downsampled to during sampling
+			// We need to take this into account when snapping to get a stable result
+			// This corresponds to the maximum kernel filter size used by subsurface shadows in ShadowProjectionPixelShader.usf
+			const int32 MaxDownsampleFactor = 4;
+			// Determine the distance necessary to snap the shadow's position to the nearest texel
+			const float SnapX = FMath::Fmod(TransformedPosition.X, 2.0f * MaxDownsampleFactor / InResolutionX);
+			const float SnapY = FMath::Fmod(TransformedPosition.Y, 2.0f * MaxDownsampleFactor / InResolutionY);
+			// Snap the shadow's position and transform it back into world space
+			// This snapping prevents sub-texel camera movements which removes view dependent aliasing from the final shadow result
+			// This only maintains stable shadows under camera translation and rotation
+			const FVector SnappedWorldPosition = WorldToFace.InverseFast().TransformPosition(TransformedPosition - FVector(SnapX, SnapY, 0.0f));
+			PreShadowTranslation = -SnappedWorldPosition;
+		}
+
+		if (CascadeSettings.ShadowSplitIndex >= 0 && bDirectionalLight)
+		{
+			assert(InDependentView);
+
+			ShadowBounds = InLightSceneInfo->Proxy->GetShadowSplitBounds(
+				*InDependentView,
+				bRayTracedDistanceField ? INDEX_NONE : CascadeSettings.ShadowSplitIndex,
+				false/*InLightSceneInfo->IsPrecomputedLightingValid()*/,
+				0);
+		}
+		else
+		{
+			ShadowBounds = FSphere(-Initializer.PreShadowTranslation, Initializer.SubjectBounds.SphereRadius);
+		}
+
+		// Any meshes between the light and the subject can cast shadows, also any meshes inside the subject region
+		const FMatrix CasterMatrix = WorldToFace * FShadowProjectionMatrix(Initializer.MinLightW, MaxSubjectZ, Initializer.WAxis);
+		GetViewFrustumBounds(CasterFrustum, CasterMatrix, true);
+	}
+
+	assert(MaxSubjectZ > MinSubjectZ);// , TEXT("MaxSubjectZ %f MinSubjectZ %f SubjectBounds.SphereRadius %f"), MaxSubjectZ, MinSubjectZ, Initializer.SubjectBounds.SphereRadius);
+
+	const float ClampedMaxLightW = FMath::Min(MinSubjectZ + Initializer.MaxDistanceToCastInLightW, (float)HALF_WORLD_MAX);
+	MinPreSubjectZ = Initializer.MinLightW;
+
+	SubjectAndReceiverMatrix = WorldToFace * FShadowProjectionMatrix(MinSubjectZ, MaxSubjectZ, Initializer.WAxis);
+	ReceiverMatrix = WorldToFace * FShadowProjectionMatrix(MinSubjectZ, ClampedMaxLightW, Initializer.WAxis);
+
+	float MaxSubjectDepth = SubjectAndReceiverMatrix.TransformPosition(
+		Initializer.SubjectBounds.Origin
+		+ WorldToLightScaled.InverseFast().TransformVector(Initializer.FaceDirection) * Initializer.SubjectBounds.SphereRadius
+	).Z;
+
+	if (bOnePassPointLightShadow)
+	{
+		MaxSubjectDepth = Initializer.SubjectBounds.SphereRadius;
+	}
+
+	InvMaxSubjectDepth = 1.0f / MaxSubjectDepth;
+
+	// Store the view matrix
+	// Reorder the vectors to match the main view, since ShadowViewMatrix will be used to override the main view's view matrix during shadow depth rendering
+	ShadowViewMatrix = Initializer.WorldToLight *
+		FMatrix(
+			FPlane(0, 0, 1, 0),
+			FPlane(1, 0, 0, 0),
+			FPlane(0, 1, 0, 0),
+			FPlane(0, 0, 0, 1));
+
+	InvReceiverMatrix = ReceiverMatrix.InverseFast();
+
+	GetViewFrustumBounds(ReceiverFrustum, ReceiverMatrix, true);
+
+	UpdateShaderDepthBias();
+}
+
+void FProjectedShadowInfo::UpdateShaderDepthBias()
+{
+	ShaderDepthBias = 0.f;
 }
 
 void FProjectedShadowInfo::RenderDepth(class FSceneRenderer* SceneRenderer, FSetShadowRenderTargetFunction SetShadowRenderTargets/*, EShadowDepthRenderMode RenderMode*/)
+{
+	
+}
+
+void FProjectedShadowInfo::AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, std::vector<FViewInfo>* ViewArray, bool bRecordShadowSubjectForMobileShading)
 {
 
 }
@@ -184,6 +304,112 @@ bool FProjectedShadowInfo::HasSubjectPrims() const
 void FProjectedShadowInfo::SetupShadowDepthView(FSceneRenderer* SceneRenderer)
 {
 
+}
+int32 GCachedShadowsCastFromMovablePrimitives = 1;
+static int32 GShadowLightViewConvexHullCull = 1;
+void BuildLightViewFrustumConvexHull(const FVector& LightOrigin, const FConvexVolume& Frustum, FConvexVolume& ConvexHull)
+{
+	// This function assumes that there are 5 planes, which is the case with an infinite projection matrix
+	// If this isn't the case, we should really know about it, so assert.
+	const int32 EdgeCount = 12;
+	const int32 PlaneCount = 5;
+	assert(Frustum.Planes.size() == PlaneCount);
+
+	enum EFrustumPlanes
+	{
+		FLeft,
+		FRight,
+		FTop,
+		FBottom,
+		FFar
+	};
+
+	const EFrustumPlanes Edges[EdgeCount][2] =
+	{
+		{ FFar  , FLeft },{ FFar  , FRight },
+	{ FFar  , FTop },{ FFar  , FBottom },
+	{ FLeft , FTop },{ FLeft , FBottom },
+	{ FRight, FTop },{ FRight, FBottom }
+	};
+
+	float Distance[PlaneCount];
+	bool  Visible[PlaneCount];
+
+	for (int32 PlaneIndex = 0; PlaneIndex < PlaneCount; ++PlaneIndex)
+	{
+		const FPlane& Plane = Frustum.Planes[PlaneIndex];
+		float Dist = Plane.PlaneDot(LightOrigin);
+		bool bVisible = Dist < 0.0f;
+
+		Distance[PlaneIndex] = Dist;
+		Visible[PlaneIndex] = bVisible;
+
+		if (bVisible)
+		{
+			ConvexHull.Planes.push_back(Plane);
+		}
+	}
+
+	for (int32 EdgeIndex = 0; EdgeIndex < EdgeCount; ++EdgeIndex)
+	{
+		EFrustumPlanes I1 = Edges[EdgeIndex][0];
+		EFrustumPlanes I2 = Edges[EdgeIndex][1];
+
+		// Silhouette edge
+		if (Visible[I1] != Visible[I2])
+		{
+			// Add plane that passes through edge and light origin
+			FPlane Plane = Frustum.Planes[I1] * Distance[I2] - Frustum.Planes[I2] * Distance[I1];
+			if (Visible[I2])
+			{
+				Plane = Plane.Flip();
+			}
+			ConvexHull.Planes.push_back(Plane);
+		}
+	}
+
+	ConvexHull.Init();
+}
+
+void BuildLightViewFrustumConvexHulls(const FVector& LightOrigin, const std::vector<FViewInfo>& Views, FLightViewFrustumConvexHulls& ConvexHulls)
+{
+	if (GShadowLightViewConvexHullCull == 0)
+	{
+		return;
+	}
+
+
+	ConvexHulls.reserve(Views.size());
+	for (uint32 ViewIndex = 0; ViewIndex < Views.size(); ++ViewIndex)
+	{
+		// for now only support perspective projection as ortho camera shadows are broken anyway
+		FViewInfo const& View = Views[ViewIndex];
+		if (View.IsPerspectiveProjection())
+		{
+			FConvexVolume ConvexHull;
+			BuildLightViewFrustumConvexHull(LightOrigin, View.ViewFrustum, ConvexHull);
+			ConvexHulls.push_back(ConvexHull);
+		}
+	}
+}
+
+bool IntersectsConvexHulls(FLightViewFrustumConvexHulls const& ConvexHulls, FBoxSphereBounds const& Bounds)
+{
+	if (ConvexHulls.size() == 0)
+	{
+		return true;
+	}
+
+	for (uint32 Index = 0; Index < ConvexHulls.size(); ++Index)
+	{
+		FConvexVolume const& Hull = ConvexHulls[Index];
+		if (Hull.IntersectBox(Bounds.Origin, Bounds.BoxExtent))
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 void FSceneRenderer::CreateWholeSceneProjectedShadow(FLightSceneInfo* LightSceneInfo, uint32& InOutNumPointShadowCachesUpdatedThisFrame, uint32& InOutNumSpotShadowCachesUpdatedThisFrame)
@@ -396,63 +622,63 @@ void FSceneRenderer::CreateWholeSceneProjectedShadow(FLightSceneInfo* LightScene
 						}
 						ProjectedShadowInfo->CasterFrustum.Init();
 					}
-					/*
+					
 					// Ray traced shadows use the GPU managed distance field object buffers, no CPU culling should be used
 					if (!ProjectedShadowInfo->bRayTracedDistanceField)
 					{
-					// Build light-view convex hulls for shadow caster culling
-					FLightViewFrustumConvexHulls LightViewFrustumConvexHulls;
-					if (CacheMode[CacheModeIndex] != SDCM_StaticPrimitivesOnly)
-					{
-					FVector const& LightOrigin = LightSceneInfo->Proxy->GetOrigin();
-					BuildLightViewFrustumConvexHulls(LightOrigin, Views, LightViewFrustumConvexHulls);
-					}
+						// Build light-view convex hulls for shadow caster culling
+						FLightViewFrustumConvexHulls LightViewFrustumConvexHulls;
+						if (CacheMode[CacheModeIndex] != SDCM_StaticPrimitivesOnly)
+						{
+							FVector const& LightOrigin = LightSceneInfo->Proxy->GetOrigin();
+							BuildLightViewFrustumConvexHulls(LightOrigin, Views, LightViewFrustumConvexHulls);
+						}
 
-					bool bCastCachedShadowFromMovablePrimitives = GCachedShadowsCastFromMovablePrimitives || LightSceneInfo->Proxy->GetForceCachedShadowsForMovablePrimitives();
-					if (CacheMode[CacheModeIndex] != SDCM_StaticPrimitivesOnly
-					&& (CacheMode[CacheModeIndex] != SDCM_MovablePrimitivesOnly || bCastCachedShadowFromMovablePrimitives))
-					{
-					// Add all the shadow casting primitives affected by the light to the shadow's subject primitive list.
-					for (FLightPrimitiveInteraction* Interaction = LightSceneInfo->DynamicInteractionOftenMovingPrimitiveList;
-					Interaction;
-					Interaction = Interaction->GetNextPrimitive())
-					{
-					if (Interaction->HasShadow()
-					// If the primitive only wants to cast a self shadow don't include it in whole scene shadows.
-					&& !Interaction->CastsSelfShadowOnly()
-					&& (!bStaticSceneOnly || Interaction->GetPrimitiveSceneInfo()->Proxy->HasStaticLighting()))
-					{
-					FBoxSphereBounds const& Bounds = Interaction->GetPrimitiveSceneInfo()->Proxy->GetBounds();
-					if (IntersectsConvexHulls(LightViewFrustumConvexHulls, Bounds))
-					{
-					ProjectedShadowInfo->AddSubjectPrimitive(Interaction->GetPrimitiveSceneInfo(), &Views, FeatureLevel, false);
-					}
-					}
-					}
-					}
+						bool bCastCachedShadowFromMovablePrimitives = false;//GCachedShadowsCastFromMovablePrimitives || LightSceneInfo->Proxy->GetForceCachedShadowsForMovablePrimitives();
+						if (CacheMode[CacheModeIndex] != SDCM_StaticPrimitivesOnly
+							&& (CacheMode[CacheModeIndex] != SDCM_MovablePrimitivesOnly || bCastCachedShadowFromMovablePrimitives))
+						{
+							// Add all the shadow casting primitives affected by the light to the shadow's subject primitive list.
+							for (FLightPrimitiveInteraction* Interaction = LightSceneInfo->DynamicInteractionOftenMovingPrimitiveList;
+								Interaction;
+								Interaction = Interaction->GetNextPrimitive())
+							{
+								if (Interaction->HasShadow()
+									// If the primitive only wants to cast a self shadow don't include it in whole scene shadows.
+									&& !Interaction->CastsSelfShadowOnly()
+									&& (!bStaticSceneOnly || Interaction->GetPrimitiveSceneInfo()->Proxy->HasStaticLighting()))
+								{
+									FBoxSphereBounds const& Bounds = Interaction->GetPrimitiveSceneInfo()->Proxy->GetBounds();
+									if (IntersectsConvexHulls(LightViewFrustumConvexHulls, Bounds))
+									{
+										ProjectedShadowInfo->AddSubjectPrimitive(Interaction->GetPrimitiveSceneInfo(), &Views,  false);
+									}
+								}
+							}
+						}
 
-					if (CacheMode[CacheModeIndex] != SDCM_MovablePrimitivesOnly)
-					{
-					// Add all the shadow casting primitives affected by the light to the shadow's subject primitive list.
-					for (FLightPrimitiveInteraction* Interaction = LightSceneInfo->DynamicInteractionStaticPrimitiveList;
-					Interaction;
-					Interaction = Interaction->GetNextPrimitive())
-					{
-					if (Interaction->HasShadow()
-					// If the primitive only wants to cast a self shadow don't include it in whole scene shadows.
-					&& !Interaction->CastsSelfShadowOnly()
-					&& (!bStaticSceneOnly || Interaction->GetPrimitiveSceneInfo()->Proxy->HasStaticLighting()))
-					{
-					FBoxSphereBounds const& Bounds = Interaction->GetPrimitiveSceneInfo()->Proxy->GetBounds();
-					if (IntersectsConvexHulls(LightViewFrustumConvexHulls, Bounds))
-					{
-					ProjectedShadowInfo->AddSubjectPrimitive(Interaction->GetPrimitiveSceneInfo(), &Views, FeatureLevel, false);
+						if (CacheMode[CacheModeIndex] != SDCM_MovablePrimitivesOnly)
+						{
+							// Add all the shadow casting primitives affected by the light to the shadow's subject primitive list.
+							for (FLightPrimitiveInteraction* Interaction = LightSceneInfo->DynamicInteractionStaticPrimitiveList;
+								Interaction;
+								Interaction = Interaction->GetNextPrimitive())
+							{
+								if (Interaction->HasShadow()
+									// If the primitive only wants to cast a self shadow don't include it in whole scene shadows.
+									&& !Interaction->CastsSelfShadowOnly()
+									&& (!bStaticSceneOnly || Interaction->GetPrimitiveSceneInfo()->Proxy->HasStaticLighting()))
+								{
+									FBoxSphereBounds const& Bounds = Interaction->GetPrimitiveSceneInfo()->Proxy->GetBounds();
+									if (IntersectsConvexHulls(LightViewFrustumConvexHulls, Bounds))
+									{
+										ProjectedShadowInfo->AddSubjectPrimitive(Interaction->GetPrimitiveSceneInfo(), &Views,  false);
+									}
+								}
+							}
+						}
 					}
-					}
-					}
-					}
-					}
-					*/
+					
 					bool bRenderShadow = true;
 
 					if (CacheMode[CacheModeIndex] == SDCM_StaticPrimitivesOnly)

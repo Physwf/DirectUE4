@@ -15,6 +15,8 @@ typedef unsigned short		uint16;
 typedef unsigned int		uint32;
 typedef unsigned long long	uint64;
 
+#define INDEX_NONE -1
+
 #undef  PI
 #define PI 					(3.1415926535897932f)
 #define SMALL_NUMBER		(1.e-8f)
@@ -62,126 +64,6 @@ typedef unsigned long long	uint64;
 
 #define ZERO_ANIMWEIGHT_THRESH (0.00001f)
 
-struct VectorRegister
-{
-	float	V[4];
-};
-
-/**
-*	int32[4] vector register type, where the first int32 (X) is stored in the lowest 32 bits, and so on.
-*/
-struct VectorRegisterInt
-{
-	int32	V[4];
-};
-
-/**
-*	double[2] vector register type, where the first double (X) is stored in the lowest 64 bits, and so on.
-*/
-struct VectorRegisterDouble
-{
-	double	V[2];
-};
-
-/**
-* Returns a bitwise equivalent vector based on 4 DWORDs.
-*
-* @param X		1st uint32 component
-* @param Y		2nd uint32 component
-* @param Z		3rd uint32 component
-* @param W		4th uint32 component
-* @return		Bitwise equivalent vector with 4 floats
-*/
-inline VectorRegister MakeVectorRegister(uint32 X, uint32 Y, uint32 Z, uint32 W)
-{
-	VectorRegister Vec;
-	((uint32&)Vec.V[0]) = X;
-	((uint32&)Vec.V[1]) = Y;
-	((uint32&)Vec.V[2]) = Z;
-	((uint32&)Vec.V[3]) = W;
-	return Vec;
-}
-
-/**
-* Returns a vector based on 4 FLOATs.
-*
-* @param X		1st float component
-* @param Y		2nd float component
-* @param Z		3rd float component
-* @param W		4th float component
-* @return		Vector of the 4 FLOATs
-*/
-inline VectorRegister MakeVectorRegister(float X, float Y, float Z, float W)
-{
-	VectorRegister Vec = { { X, Y, Z, W } };
-	return Vec;
-}
-
-
-/**
-* Calculate Homogeneous transform.
-*
-* @param VecP			VectorRegister
-* @param MatrixM		Matrix pointer to the Matrix to apply transform
-* @return VectorRegister = VecP*MatrixM
-*/
-inline VectorRegister VectorTransformVector(const VectorRegister&  VecP, const void* MatrixM)
-{
-	typedef float Float4x4[4][4];
-	union { VectorRegister v; float f[4]; } Tmp, Result;
-	Tmp.v = VecP;
-	const Float4x4& M = *((const Float4x4*)MatrixM);
-
-	Result.f[0] = Tmp.f[0] * M[0][0] + Tmp.f[1] * M[1][0] + Tmp.f[2] * M[2][0] + Tmp.f[3] * M[3][0];
-	Result.f[1] = Tmp.f[0] * M[0][1] + Tmp.f[1] * M[1][1] + Tmp.f[2] * M[2][1] + Tmp.f[3] * M[3][1];
-	Result.f[2] = Tmp.f[0] * M[0][2] + Tmp.f[1] * M[1][2] + Tmp.f[2] * M[2][2] + Tmp.f[3] * M[3][2];
-	Result.f[3] = Tmp.f[0] * M[0][3] + Tmp.f[1] * M[1][3] + Tmp.f[2] * M[2][3] + Tmp.f[3] * M[3][3];
-
-	return Result.v;
-}
-// 40% faster version of the Quaternion multiplication.
-#define USE_FAST_QUAT_MUL 1
-inline void VectorQuaternionMultiply(void *Result, const void* Quat1, const void* Quat2)
-{
-	typedef float Float4[4];
-	const Float4& A = *((const Float4*)Quat1);
-	const Float4& B = *((const Float4*)Quat2);
-	Float4 & R = *((Float4*)Result);
-
-#if USE_FAST_QUAT_MUL
-	const float T0 = (A[2] - A[1]) * (B[1] - B[2]);
-	const float T1 = (A[3] + A[0]) * (B[3] + B[0]);
-	const float T2 = (A[3] - A[0]) * (B[1] + B[2]);
-	const float T3 = (A[1] + A[2]) * (B[3] - B[0]);
-	const float T4 = (A[2] - A[0]) * (B[0] - B[1]);
-	const float T5 = (A[2] + A[0]) * (B[0] + B[1]);
-	const float T6 = (A[3] + A[1]) * (B[3] - B[2]);
-	const float T7 = (A[3] - A[1]) * (B[3] + B[2]);
-	const float T8 = T5 + T6 + T7;
-	const float T9 = 0.5f * (T4 + T8);
-
-	R[0] = T1 + T9 - T8;
-	R[1] = T2 + T9 - T7;
-	R[2] = T3 + T9 - T6;
-	R[3] = T0 + T9 - T5;
-#else
-	// store intermediate results in temporaries
-	const float TX = A[3] * B[0] + A[0] * B[3] + A[1] * B[2] - A[2] * B[1];
-	const float TY = A[3] * B[1] - A[0] * B[2] + A[1] * B[3] + A[2] * B[0];
-	const float TZ = A[3] * B[2] + A[0] * B[1] - A[1] * B[0] + A[2] * B[3];
-	const float TW = A[3] * B[3] - A[0] * B[0] - A[1] * B[1] - A[2] * B[2];
-
-	// copy intermediate result to *this
-	R[0] = TX;
-	R[1] = TY;
-	R[2] = TZ;
-	R[3] = TW;
-#endif
-}
-
-#define VectorLoadAligned( Ptr )		MakeVectorRegister( ((const float*)(Ptr))[0], ((const float*)(Ptr))[1], ((const float*)(Ptr))[2], ((const float*)(Ptr))[3] )
-#define VectorStoreAligned( Vec, Ptr )	memcpy( Ptr, &(Vec), 16 )
-
 struct FRotator;
 struct FQuat;
 struct Vector4;
@@ -190,6 +72,7 @@ struct Vector2;
 struct FBox;
 class FSphere;
 struct FTransform;
+struct FPlane;
 
 namespace EAxis
 {
@@ -293,6 +176,11 @@ public:
 	static inline int32 RoundToInt(float F)
 	{
 		return FloorToInt(F + 0.5f);
+	}
+	static inline float CeilToFloat(float F)
+	{
+		// Note: the x2 is to workaround the rounding-to-nearest-even-number issue when the fraction is .5
+		return (float)CeilToInt(F);
 	}
 	static constexpr inline float TruncToFloat(float F)
 	{
@@ -493,6 +381,9 @@ public:
 		int32 Bitmask = ((int32)(CountLeadingZeros(Arg) << 26)) >> 31;
 		return (32 - CountLeadingZeros(Arg - 1)) & (~Bitmask);
 	}
+	static FVector LinePlaneIntersection(const FVector &Point1, const FVector &Point2, const FPlane  &Plane);
+	static inline float Exp(float Value) { return expf(Value); }
+	static inline float Exp2(float Value) { return powf(2.f, Value); /*exp2f(Value);*/ }
 };
 
 
@@ -730,6 +621,7 @@ struct FVector
 	FVector RotateAngleAxis(const float AngleDeg, const FVector& Axis) const;
 	FRotator Rotation() const;
 	FRotator ToOrientationRotator() const;
+	void FindBestAxisVectors(FVector& Axis1, FVector& Axis2) const;
 };
 
 float ComputeSquaredDistanceFromBoxToPoint(const FVector& Mins, const FVector& Maxs, const FVector& Point);
@@ -1431,6 +1323,12 @@ public:
 	{}
 	inline FPlane(FVector InNormal, float InW) : FVector(InNormal), W(InW)
 	{}
+	FPlane operator-(const FPlane& V) const;
+	FPlane operator*(float Scale) const;
+
+	float PlaneDot(const FVector &P) const;
+
+	FPlane Flip() const;
 };
 
 
@@ -1573,6 +1471,13 @@ public:
 	FReversedZPerspectiveMatrix(float HalfFOV, float Width, float Height, float MinZ);
 };
 
+struct FBasisVectorMatrix : FMatrix
+{
+	// Create Basis matrix from 3 axis vectors and the origin
+	FBasisVectorMatrix(const FVector& XAxis, const FVector& YAxis, const FVector& ZAxis, const FVector& Origin);
+};
+
+
 struct FLookAtMatrix : FMatrix
 {
 	/**
@@ -1667,90 +1572,6 @@ inline FTranslationMatrix::FTranslationMatrix(const FVector& Delta):
 		FPlane(Delta.X, Delta.Y, Delta.Z, 1.0f)
 	)
 { }
-
-inline void VectorMatrixInverse(void* DstMatrix, const void* SrcMatrix)
-{
-	typedef float Float4x4[4][4];
-	const Float4x4& M = *((const Float4x4*)SrcMatrix);
-	Float4x4 Result;
-	float Det[4];
-	Float4x4 Tmp;
-
-	Tmp[0][0] = M[2][2] * M[3][3] - M[2][3] * M[3][2];
-	Tmp[0][1] = M[1][2] * M[3][3] - M[1][3] * M[3][2];
-	Tmp[0][2] = M[1][2] * M[2][3] - M[1][3] * M[2][2];
-
-	Tmp[1][0] = M[2][2] * M[3][3] - M[2][3] * M[3][2];
-	Tmp[1][1] = M[0][2] * M[3][3] - M[0][3] * M[3][2];
-	Tmp[1][2] = M[0][2] * M[2][3] - M[0][3] * M[2][2];
-
-	Tmp[2][0] = M[1][2] * M[3][3] - M[1][3] * M[3][2];
-	Tmp[2][1] = M[0][2] * M[3][3] - M[0][3] * M[3][2];
-	Tmp[2][2] = M[0][2] * M[1][3] - M[0][3] * M[1][2];
-
-	Tmp[3][0] = M[1][2] * M[2][3] - M[1][3] * M[2][2];
-	Tmp[3][1] = M[0][2] * M[2][3] - M[0][3] * M[2][2];
-	Tmp[3][2] = M[0][2] * M[1][3] - M[0][3] * M[1][2];
-
-	Det[0] = M[1][1] * Tmp[0][0] - M[2][1] * Tmp[0][1] + M[3][1] * Tmp[0][2];
-	Det[1] = M[0][1] * Tmp[1][0] - M[2][1] * Tmp[1][1] + M[3][1] * Tmp[1][2];
-	Det[2] = M[0][1] * Tmp[2][0] - M[1][1] * Tmp[2][1] + M[3][1] * Tmp[2][2];
-	Det[3] = M[0][1] * Tmp[3][0] - M[1][1] * Tmp[3][1] + M[2][1] * Tmp[3][2];
-
-	float Determinant = M[0][0] * Det[0] - M[1][0] * Det[1] + M[2][0] * Det[2] - M[3][0] * Det[3];
-	const float	RDet = 1.0f / Determinant;
-
-	Result[0][0] = RDet * Det[0];
-	Result[0][1] = -RDet * Det[1];
-	Result[0][2] = RDet * Det[2];
-	Result[0][3] = -RDet * Det[3];
-	Result[1][0] = -RDet * (M[1][0] * Tmp[0][0] - M[2][0] * Tmp[0][1] + M[3][0] * Tmp[0][2]);
-	Result[1][1] = RDet * (M[0][0] * Tmp[1][0] - M[2][0] * Tmp[1][1] + M[3][0] * Tmp[1][2]);
-	Result[1][2] = -RDet * (M[0][0] * Tmp[2][0] - M[1][0] * Tmp[2][1] + M[3][0] * Tmp[2][2]);
-	Result[1][3] = RDet * (M[0][0] * Tmp[3][0] - M[1][0] * Tmp[3][1] + M[2][0] * Tmp[3][2]);
-	Result[2][0] = RDet * (
-		M[1][0] * (M[2][1] * M[3][3] - M[2][3] * M[3][1]) -
-		M[2][0] * (M[1][1] * M[3][3] - M[1][3] * M[3][1]) +
-		M[3][0] * (M[1][1] * M[2][3] - M[1][3] * M[2][1])
-		);
-	Result[2][1] = -RDet * (
-		M[0][0] * (M[2][1] * M[3][3] - M[2][3] * M[3][1]) -
-		M[2][0] * (M[0][1] * M[3][3] - M[0][3] * M[3][1]) +
-		M[3][0] * (M[0][1] * M[2][3] - M[0][3] * M[2][1])
-		);
-	Result[2][2] = RDet * (
-		M[0][0] * (M[1][1] * M[3][3] - M[1][3] * M[3][1]) -
-		M[1][0] * (M[0][1] * M[3][3] - M[0][3] * M[3][1]) +
-		M[3][0] * (M[0][1] * M[1][3] - M[0][3] * M[1][1])
-		);
-	Result[2][3] = -RDet * (
-		M[0][0] * (M[1][1] * M[2][3] - M[1][3] * M[2][1]) -
-		M[1][0] * (M[0][1] * M[2][3] - M[0][3] * M[2][1]) +
-		M[2][0] * (M[0][1] * M[1][3] - M[0][3] * M[1][1])
-		);
-	Result[3][0] = -RDet * (
-		M[1][0] * (M[2][1] * M[3][2] - M[2][2] * M[3][1]) -
-		M[2][0] * (M[1][1] * M[3][2] - M[1][2] * M[3][1]) +
-		M[3][0] * (M[1][1] * M[2][2] - M[1][2] * M[2][1])
-		);
-	Result[3][1] = RDet * (
-		M[0][0] * (M[2][1] * M[3][2] - M[2][2] * M[3][1]) -
-		M[2][0] * (M[0][1] * M[3][2] - M[0][2] * M[3][1]) +
-		M[3][0] * (M[0][1] * M[2][2] - M[0][2] * M[2][1])
-		);
-	Result[3][2] = -RDet * (
-		M[0][0] * (M[1][1] * M[3][2] - M[1][2] * M[3][1]) -
-		M[1][0] * (M[0][1] * M[3][2] - M[0][2] * M[3][1]) +
-		M[3][0] * (M[0][1] * M[1][2] - M[0][2] * M[1][1])
-		);
-	Result[3][3] = RDet * (
-		M[0][0] * (M[1][1] * M[2][2] - M[1][2] * M[2][1]) -
-		M[1][0] * (M[0][1] * M[2][2] - M[0][2] * M[2][1]) +
-		M[2][0] * (M[0][1] * M[1][2] - M[0][2] * M[1][1])
-		);
-
-	memcpy(DstMatrix, &Result, 16 * sizeof(float));
-}
 
 inline void FMatrix::SetIndentity()
 {
@@ -3161,7 +2982,7 @@ public:
 	inline bool Equals(const FQuat& Q, float Tolerance = KINDA_SMALL_NUMBER) const;
 	inline bool IsIdentity(float Tolerance = SMALL_NUMBER) const;
 	inline FQuat operator-=(const FQuat& Q);
-	inline FQuat operator*(const FQuat& Q) const;
+	FQuat operator*(const FQuat& Q) const;
 	inline FQuat operator*=(const FQuat& Q);
 	FVector operator*(const FVector& V) const;
 	FMatrix operator*(const FMatrix& M) const;
@@ -3319,24 +3140,6 @@ inline FVector FQuat::operator*(const FVector& V) const
 {
 	return RotateVector(V);
 }
-inline FMatrix FQuat::operator*(const FMatrix& M) const
-{
-	FMatrix Result;
-	FQuat VT, VR;
-	FQuat Inv = Inverse();
-	for (int32 I = 0; I<4; ++I)
-	{
-		FQuat VQ(M.M[I][0], M.M[I][1], M.M[I][2], M.M[I][3]);
-		VectorQuaternionMultiply(&VT, this, &VQ);
-		VectorQuaternionMultiply(&VR, &VT, &Inv);
-		Result.M[I][0] = VR.X;
-		Result.M[I][1] = VR.Y;
-		Result.M[I][2] = VR.Z;
-		Result.M[I][3] = VR.W;
-	}
-
-	return Result;
-}
 inline FQuat::FQuat(float InX, float InY, float InZ, float InW)
 	: X(InX)
 	, Y(InY)
@@ -3412,27 +3215,6 @@ inline FQuat FQuat::operator-=(const FQuat& Q)
 	this->Y -= Q.Y;
 	this->Z -= Q.Z;
 	this->W -= Q.W;
-
-	DiagnosticCheckNaN();
-
-	return *this;
-}
-inline FQuat FQuat::operator*(const FQuat& Q) const
-{
-	FQuat Result;
-	VectorQuaternionMultiply(&Result, this, &Q);
-	Result.DiagnosticCheckNaN();
-	return Result;
-}
-
-
-inline FQuat FQuat::operator*=(const FQuat& Q)
-{
-	VectorRegister A = VectorLoadAligned(this);
-	VectorRegister B = VectorLoadAligned(&Q);
-	VectorRegister Result;
-	VectorQuaternionMultiply(&Result, &A, &B);
-	VectorStoreAligned(Result, this);
 
 	DiagnosticCheckNaN();
 

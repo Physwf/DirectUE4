@@ -1,4 +1,5 @@
 #include "UnrealMath.h"
+#include "UnrealMathFPU.h"
 
 alignas(16) const FMatrix FMatrix::Identity(FPlane(1, 0, 0, 0), FPlane(0, 1, 0, 0), FPlane(0, 0, 1, 0), FPlane(0, 0, 0, 1));
 
@@ -470,6 +471,20 @@ FRotator FVector::ToOrientationRotator() const
 	return R;
 }
 
+void FVector::FindBestAxisVectors(FVector& Axis1, FVector& Axis2) const
+{
+	const float NX = FMath::Abs(X);
+	const float NY = FMath::Abs(Y);
+	const float NZ = FMath::Abs(Z);
+
+	// Find best basis vectors.
+	if (NZ > NX && NZ > NY)	Axis1 = FVector(1, 0, 0);
+	else					Axis1 = FVector(0, 0, 1);
+
+	Axis1 = (Axis1 - *this * (Axis1 | *this)).GetSafeNormal();
+	Axis2 = Axis1 ^ *this;
+}
+
 static const float OneOver255 = 1.0f / 255.0f;
 
 FLinearColor::FLinearColor(struct FColor InColor)
@@ -658,6 +673,14 @@ bool FMath::SphereAABBIntersection(const FVector& SphereCenter, const float Radi
 	return DistSquared <= RadiusSquared;
 }
 
+FVector FMath::LinePlaneIntersection(const FVector &Point1, const FVector &Point2, const FPlane &Plane)
+{
+	return
+		Point1
+		+ (Point2 - Point1)
+		*	((Plane.W - (Point1 | Plane)) / ((Point2 - Point1) | Plane));
+}
+
 Vector4 Vector4::GetSafeNormal(float Tolerance /*= SMALL_NUMBER*/) const
 {
 	const float SquareSum = X * X + Y * Y + Z * Z;
@@ -753,6 +776,47 @@ const Vector2 Vector2::ZeroVector(0.0f, 0.0f);
 const Vector2 Vector2::UnitVector(1.0f, 1.0f);
 const FRotator FRotator::ZeroRotator(0.f, 0.f, 0.f);
 const FQuat FQuat::Identity(0, 0, 0, 1);
+
+FQuat FQuat::operator*(const FQuat& Q) const
+{
+	FQuat Result;
+	VectorQuaternionMultiply(&Result, this, &Q);
+	Result.DiagnosticCheckNaN();
+	return Result;
+}
+
+FQuat FQuat::operator*=(const FQuat& Q)
+{
+	VectorRegister A = VectorLoadAligned(this);
+	VectorRegister B = VectorLoadAligned(&Q);
+	VectorRegister Result;
+	VectorQuaternionMultiply(&Result, &A, &B);
+	VectorStoreAligned(Result, this);
+
+	DiagnosticCheckNaN();
+
+	return *this;
+}
+
+FMatrix FQuat::operator*(const FMatrix& M) const
+{
+	FMatrix Result;
+	FQuat VT, VR;
+	FQuat Inv = Inverse();
+	for (int32 I = 0; I < 4; ++I)
+	{
+		FQuat VQ(M.M[I][0], M.M[I][1], M.M[I][2], M.M[I][3]);
+		VectorQuaternionMultiply(&VT, this, &VQ);
+		VectorQuaternionMultiply(&VR, &VT, &Inv);
+		Result.M[I][0] = VR.X;
+		Result.M[I][1] = VR.Y;
+		Result.M[I][2] = VR.Z;
+		Result.M[I][3] = VR.W;
+	}
+
+	return Result;
+}
+
 const FColor FColor::White(255, 255, 255);
 
 float ComputeSquaredDistanceFromBoxToPoint(const FVector& Mins, const FVector& Maxs, const FVector& Point)
@@ -892,6 +956,22 @@ FReversedZPerspectiveMatrix::FReversedZPerspectiveMatrix(float HalfFOV, float Wi
 #pragma warning (pop)
 #endif
 
+FBasisVectorMatrix::FBasisVectorMatrix(const FVector& XAxis, const FVector& YAxis, const FVector& ZAxis, const FVector& Origin)
+{
+	for (uint32 RowIndex = 0; RowIndex < 3; RowIndex++)
+	{
+		M[RowIndex][0] = (&XAxis.X)[RowIndex];
+		M[RowIndex][1] = (&YAxis.X)[RowIndex];
+		M[RowIndex][2] = (&ZAxis.X)[RowIndex];
+		M[RowIndex][3] = 0.0f;
+	}
+	M[3][0] = Origin | XAxis;
+	M[3][1] = Origin | YAxis;
+	M[3][2] = Origin | ZAxis;
+	M[3][3] = 1.0f;
+}
+
+
 FLookAtMatrix::FLookAtMatrix(const FVector& EyePosition, const FVector& LookAtPosition, const FVector& UpVector)
 {
 	const FVector ZAxis = (LookAtPosition - EyePosition).GetSafeNormal();
@@ -911,3 +991,23 @@ FLookAtMatrix::FLookAtMatrix(const FVector& EyePosition, const FVector& LookAtPo
 	M[3][3] = 1.0f;
 }
 
+
+FPlane FPlane::operator-(const FPlane& V) const
+{
+	return FPlane(X - V.X, Y - V.Y, Z - V.Z, W - V.W);
+}
+
+FPlane FPlane::operator*(float Scale) const
+{
+	return FPlane(X * Scale, Y * Scale, Z * Scale, W * Scale);
+}
+
+float FPlane::PlaneDot(const FVector &P) const
+{
+	return X * P.X + Y * P.Y + Z * P.Z - W;
+}
+
+FPlane FPlane::Flip() const
+{
+	return FPlane(-X, -Y, -Z, -W);
+}

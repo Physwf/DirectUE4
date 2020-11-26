@@ -32,6 +32,17 @@ void FPrimitiveSceneInfo::AddToScene(bool bUpdateStaticDrawLists, bool bAddToSta
 	{
 		AddStaticMeshes(bAddToStaticDrawLists);
 	}
+
+	FPrimitiveSceneInfoCompact CompactPrimitiveSceneInfo(this);
+
+	for (auto LightIt = Scene->Lights.begin(); LightIt != Scene->Lights.end();++LightIt)
+	{
+		const FLightSceneInfoCompact& LightSceneInfoCompact = **LightIt;
+		if (LightSceneInfoCompact.AffectsPrimitive(CompactPrimitiveSceneInfo.Bounds, CompactPrimitiveSceneInfo.Proxy))
+		{
+			FLightPrimitiveInteraction::Create(LightSceneInfoCompact.LightSceneInfo, this);
+		}
+	}
 }
 
 void FPrimitiveSceneInfo::RemoveFromScene(bool bUpdateStaticDrawLists)

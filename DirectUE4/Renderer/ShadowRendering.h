@@ -43,6 +43,19 @@ public:
 		}
 	}
 };
+
+struct FShadowProjectionMatrix : FMatrix
+{
+	FShadowProjectionMatrix(float MinZ, float MaxZ, const Vector4& WAxis) :
+		FMatrix(
+			FPlane(1, 0, 0, WAxis.X),
+			FPlane(0, 1, 0, WAxis.Y),
+			FPlane(0, 0, (WAxis.Z * MaxZ + WAxis.W) / (MaxZ - MinZ), WAxis.Z),
+			FPlane(0, 0, -MinZ * (WAxis.Z * MaxZ + WAxis.W) / (MaxZ - MinZ), WAxis.W)
+		)
+	{}
+};
+
 typedef std::function<void(bool bFirst)> FSetShadowRenderTargetFunction;
 /**
 * Information about a projected shadow.
@@ -187,6 +200,18 @@ public:
 	// default constructor
 	FProjectedShadowInfo();
 
+	bool SetupPerObjectProjection(
+		FLightSceneInfo* InLightSceneInfo,
+		const FPrimitiveSceneInfo* InParentSceneInfo,
+		const FPerObjectProjectedShadowInitializer& Initializer,
+		bool bInPreShadow,
+		uint32 InResolutionX,
+		uint32 MaxShadowResolutionY,
+		uint32 InBorderSize,
+		float InMaxScreenPercent,
+		bool bInTranslucentShadow
+	);
+
 	/** for a whole-scene shadow. */
 	void SetupWholeSceneProjection(
 		FLightSceneInfo* InLightSceneInfo,
@@ -200,12 +225,16 @@ public:
 
 	void RenderDepth(class FSceneRenderer* SceneRenderer, FSetShadowRenderTargetFunction SetShadowRenderTargets/*, EShadowDepthRenderMode RenderMode*/);
 
+	void AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, std::vector<FViewInfo>* ViewArray, bool bRecordShadowSubjectForMobileShading);
+
 	bool HasSubjectPrims() const;
 
 	void SetupShadowDepthView(FSceneRenderer* SceneRenderer);
 
 	const FLightSceneInfo& GetLightSceneInfo() const { return *LightSceneInfo; }
 	const FLightSceneInfoCompact& GetLightSceneInfoCompact() const { return LightSceneInfoCompact; }
+
+	void UpdateShaderDepthBias();
 
 private:
 	const FLightSceneInfo* LightSceneInfo;

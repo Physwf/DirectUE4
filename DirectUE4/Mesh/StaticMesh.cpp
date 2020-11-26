@@ -129,6 +129,11 @@ bool FStaticMeshSceneProxy::GetMeshElement(
 	return true;
 }
 
+// void FStaticMeshSceneProxy::GetLightRelevance(const FLightSceneProxy* LightSceneProxy, bool& bDynamic, bool& bRelevant, bool& bLightMapped, bool& bShadowMapped) const
+// {
+// 	FPrimitiveSceneProxy::GetLightRelevance()
+// }
+
 void FStaticMeshSceneProxy::DrawStaticElements(FPrimitiveSceneInfo* PrimitiveSceneInfo)
 {
 	const FStaticMeshLODResources& LODModel = *RenderData->LODResources[0];

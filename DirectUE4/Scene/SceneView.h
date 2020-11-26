@@ -2,6 +2,7 @@
 
 #include "UnrealMath.h"
 #include "D3D11RHI.h"
+#include "ConvexVolume.h"
 
 struct ViewInitOptions
 {
@@ -787,7 +788,7 @@ public:
 	float FOV;
 	float DesiredFOV;
 
-	//FConvexVolume ViewFrustum;
+	FConvexVolume ViewFrustum;
 
 	bool bHasNearClippingPlane;
 
@@ -800,6 +801,8 @@ public:
 
 	/* Vector used by shaders to convert depth buffer samples into z coordinates in world space */
 	Vector4 InvDeviceZToWorldZTransform;
+
+	inline bool IsPerspectiveProjection() const { return mViewMatrices.IsPerspectiveProjection(); }
 	/**
 	* The final settings for the current viewer position (blended together from many volumes).
 	* Setup by the main thread, passed to the render thread and never touched again by the main thread.

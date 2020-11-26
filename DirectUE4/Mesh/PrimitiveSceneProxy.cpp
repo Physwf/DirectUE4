@@ -12,6 +12,11 @@ FPrimitiveSceneProxy::~FPrimitiveSceneProxy()
 	UniformBuffer.ReleaseDynamicRHI();
 }
 
+FPrimitiveViewRelevance FPrimitiveSceneProxy::GetViewRelevance(const FSceneView* View) const
+{
+	return FPrimitiveViewRelevance();
+}
+
 void FPrimitiveSceneProxy::UpdateUniformBuffer()
 {
 	const FPrimitiveUniformShaderParameters PrimitiveUniformShaderParameters =

@@ -105,6 +105,8 @@ public:
 		FMeshBatch& OutMeshBatch) const;
 
 	virtual void DrawStaticElements(FPrimitiveSceneInfo* PrimitiveSceneInfo) override;
+
+	//virtual void GetLightRelevance(const FLightSceneProxy* LightSceneProxy, bool& bDynamic, bool& bRelevant, bool& bLightMapped, bool& bShadowMapped) const override;
 protected:
 	FStaticMeshRenderData* RenderData;
 private:

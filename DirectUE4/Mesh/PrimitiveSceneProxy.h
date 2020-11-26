@@ -2,6 +2,7 @@
 
 #include "UnrealMath.h"
 #include "PrimitiveUniformBufferParameters.h"
+#include "PrimitiveRelevance.h"
 
 #include <vector>
 
@@ -12,6 +13,7 @@ class UPrimitiveComponent;
 struct FMeshBatch;
 class FScene;
 class AActor;
+class FSceneView;
 
 class FPrimitiveComponentId
 {
@@ -66,13 +68,55 @@ public:
 	inline const FBoxSphereBounds& GetBounds() const { return Bounds; }
 	inline const FBoxSphereBounds& GetLocalBounds() const { return LocalBounds; }
 
+	inline bool IsMeshShapeOftenMoving() const
+	{
+		//return Mobility == EComponentMobility::Movable || !bGoodCandidateForCachedShadowmap;
+		return false;
+	}
+
+	inline bool HasStaticLighting() const { return bStaticLighting; }
+
+	inline bool CastsStaticShadow() const { return bCastStaticShadow; }
+	inline bool CastsDynamicShadow() const { return bCastDynamicShadow; }
+	inline bool CastsVolumetricTranslucentShadow() const { return bCastVolumetricTranslucentShadow; }
+
+	inline bool CastsSelfShadowOnly() const { return bSelfShadowOnly; }
+	inline bool CastsInsetShadow() const { return bCastInsetShadow; }
+
+	inline bool HasValidSettingsForStaticLighting() const { return bHasValidSettingsForStaticLighting; }
+
 	virtual void DrawStaticElements(FPrimitiveSceneInfo* PrimitiveSceneInfo/*FStaticPrimitiveDrawInterface* PDI*/) {};
 	
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const;
+
+	virtual void GetLightRelevance(const FLightSceneProxy* LightSceneProxy, bool& bDynamic, bool& bRelevant, bool& bLightMapped, bool& bShadowMapped) const
+	{
+		// Determine the lights relevance to the primitive.
+		bDynamic = true;
+		bRelevant = true;
+		bLightMapped = false;
+		bShadowMapped = false;
+	}
+
 	inline const TUniformBuffer<FPrimitiveUniformShaderParameters>& GetUniformBuffer() const
 	{
 		return UniformBuffer;
 	}
 	void UpdateUniformBuffer();
+private:
+	uint32 bStaticLighting : 1;
+protected:
+	uint32 bHasValidSettingsForStaticLighting : 1;
+
+	uint32 bCastDynamicShadow : 1;
+
+	uint32 bCastStaticShadow : 1;
+	uint32 bCastVolumetricTranslucentShadow : 1;
+
+	/** When enabled, the component will only cast a shadow on itself and not other components in the world.  This is especially useful for first person weapons, and forces bCastInsetShadow to be enabled. */
+	uint32 bSelfShadowOnly : 1;
+	/** Whether this component should create a per-object shadow that gives higher effective shadow resolution. true if bSelfShadowOnly is true. */
+	uint32 bCastInsetShadow : 1;
 private:
 	/** The primitive's local to world transform. */
 	FMatrix LocalToWorld;
