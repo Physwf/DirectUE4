@@ -92,6 +92,17 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent, 
 	: FPrimitiveSceneProxy(InComponent)
 	, RenderData(InComponent->GetStaticMesh()->RenderData.get())
 {
+	Materials.resize(RenderData->LODResources.size());
+	for (uint32 LODIndex = 0; LODIndex < RenderData->LODResources.size(); LODIndex++)
+	{
+		FStaticMeshLODResources& LODModel = *RenderData->LODResources[LODIndex];
+		Materials[LODIndex].resize(LODModel.Sections.size());
+		for (uint32 SectionIndex = 0; SectionIndex < LODModel.Sections.size(); ++SectionIndex)
+		{
+			const StaticMeshSection& Section = LODModel.Sections[SectionIndex];
+			Materials[LODIndex][SectionIndex] = InComponent->GetMaterial(Section.MaterialIndex);
+		}
+	}
 }
 
 FStaticMeshSceneProxy::~FStaticMeshSceneProxy()
@@ -124,7 +135,7 @@ bool FStaticMeshSceneProxy::GetMeshElement(
 	//Element.MaterialIndex = Section.MaterialIndex;
 	Element.IndexBuffer = RenderData->LODResources[0]->IndexBuffer.Get();
 	OutMeshBatch.VertexFactory = &VFs.VertexFactory;
-	//OutMeshBatch.MaterialRenderProxy = Material->GetRenderProxy(false, false);
+	OutMeshBatch.MaterialRenderProxy = Materials[LODIndex][SectionIndex]->GetRenderProxy(false, false);
 	OutMeshBatch.Elements[0] = Element;
 	return true;
 }
@@ -240,6 +251,11 @@ void UStaticMesh::GetRenderMeshDescription(const MeshDescription& InOriginalMesh
 		/*BuildSettings->MinLightmapResolution,*/64,
 		/*(MeshDescriptionOperations::ELightmapUVVersion)(StaticMesh->LightmapUVVersion),*/(MeshDescriptionOperations::ELightmapUVVersion)4,
 		OverlappingCorners);
+}
+
+UMaterial* UStaticMesh::GetMaterial(int32 MaterialIndex) const
+{
+	return Material;
 }
 
 void UStaticMesh::CacheDerivedData()

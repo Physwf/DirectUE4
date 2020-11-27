@@ -597,6 +597,8 @@ void FSceneRenderer::InitViews()
 {
 	ComputeViewVisibility();
 
+	InitViewsPossiblyAfterPrepass();
+
 	for (uint32 ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
 	{
 		FViewInfo& View = Views[ViewIndex];

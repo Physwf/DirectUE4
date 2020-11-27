@@ -4,8 +4,11 @@
 #include "D3D11RHI.h"
 #include "ConvexVolume.h"
 
+class FSceneViewFamily;
+
 struct ViewInitOptions
 {
+	const FSceneViewFamily* ViewFamily;
 	/** The view origin. */
 	FVector ViewOrigin;
 	/** Rotation matrix transforming from world space to view space. */
@@ -24,6 +27,8 @@ struct ViewInitOptions
 	// The constrained view rectangle (identical to UnconstrainedUnscaledViewRect if aspect ratio is not constrained)
 	FIntRect ConstrainedViewRect;
 
+	float OverrideFarClippingPlaneDistance;
+
 	void SetViewRectangle(const FIntRect& InViewRect)
 	{
 		ViewRect = InViewRect;
@@ -31,6 +36,16 @@ struct ViewInitOptions
 	}
 	const FIntRect& GetViewRect() const { return ViewRect; }
 	const FIntRect& GetConstrainedViewRect() const { return ConstrainedViewRect; }
+
+	ViewInitOptions()
+		: ViewFamily(NULL)
+		//, SceneViewStateInterface(NULL)
+		, ViewActor(NULL)
+		, OverrideFarClippingPlaneDistance(-1.0f)
+		, FOV(90.f)
+		, DesiredFOV(90.f)
+	{
+	}
 };
 
 struct FViewMatrices
@@ -44,6 +59,7 @@ struct FViewMatrices
 		InvTranslatedViewMatrix.SetIndentity();
 		PreViewTranslation = FVector(0.0f, 0.0f, 0.0f);
 		ViewOrigin = FVector(0.0f, 0.0f, 0.0f);
+		ScreenScale = 1.f;
 	}
 	FViewMatrices(const ViewInitOptions& InitOptions);
 private:
@@ -63,6 +79,10 @@ private:
 
 	FVector PreViewTranslation;
 	FVector ViewOrigin;
+
+	Vector2	ProjectionScale;
+
+	float ScreenScale;
 
 public:
 	inline const FMatrix& GetProjectionMatrix() const
@@ -123,7 +143,14 @@ public:
 	{
 		return ViewOrigin;
 	}
-
+	inline const Vector2& GetProjectionScale() const
+	{
+		return ProjectionScale;
+	}
+	inline float GetScreenScale() const
+	{
+		return ScreenScale;
+	}
 	inline bool IsPerspectiveProjection() const
 	{
 		return ProjectionMatrix.M[3][3] < 1.0f;
@@ -759,7 +786,7 @@ public:
 	const FSceneViewFamily* Family;
 
 	TUniformBufferPtr<FViewUniformShaderParameters> ViewUniformBuffer;
-	FViewMatrices mViewMatrices;
+	FViewMatrices ViewMatrices;
 private:
 	/** During GetDynamicMeshElements this will be the correct cull volume for shadow stuff */
 	//const FConvexVolume* DynamicMeshElementsShadowCullFrustum;
@@ -802,12 +829,15 @@ public:
 	/* Vector used by shaders to convert depth buffer samples into z coordinates in world space */
 	Vector4 InvDeviceZToWorldZTransform;
 
-	inline bool IsPerspectiveProjection() const { return mViewMatrices.IsPerspectiveProjection(); }
+	inline bool IsPerspectiveProjection() const { return ViewMatrices.IsPerspectiveProjection(); }
 	/**
 	* The final settings for the current viewer position (blended together from many volumes).
 	* Setup by the main thread, passed to the render thread and never touched again by the main thread.
 	*/
 	//FFinalPostProcessSettings FinalPostProcessSettings;
+	inline FVector GetViewRight() const { return ViewMatrices.GetViewMatrix().GetColumn(0); }
+	inline FVector GetViewUp() const { return ViewMatrices.GetViewMatrix().GetColumn(1); }
+	inline FVector GetViewDirection() const { return ViewMatrices.GetViewMatrix().GetColumn(2); }
 
 	// The antialiasing method.
 	//EAntiAliasingMethod AntiAliasingMethod;
@@ -821,6 +851,7 @@ public:
 	//FTextureRHIRef AtmosphereInscatterTexture;
 	bool bStaticSceneOnly;
 
+	float LODDistanceFactorSquared;
 	/** Sets up the view rect parameters in the view's uniform shader parameters */
 	void SetupViewRectUniformBufferParameters(FViewUniformShaderParameters& ViewUniformParameters,
 		const FIntPoint& InBufferSize,

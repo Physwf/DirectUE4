@@ -109,6 +109,7 @@ public:
 	//virtual void GetLightRelevance(const FLightSceneProxy* LightSceneProxy, bool& bDynamic, bool& bRelevant, bool& bLightMapped, bool& bShadowMapped) const override;
 protected:
 	FStaticMeshRenderData* RenderData;
+	std::vector<std::vector<class UMaterial*>> Materials;
 private:
 };
 

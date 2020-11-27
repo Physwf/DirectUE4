@@ -50,6 +50,8 @@ public:
 	void PostLoad();
 	void GetRenderMeshDescription(const MeshDescription& InOriginalMeshDescription, MeshDescription& OutRenderMeshDescription);
 
+	UMaterial* GetMaterial(int32 MaterialIndex) const;
+
 	void CacheDerivedData();
 private:
 	MeshDescription MD;

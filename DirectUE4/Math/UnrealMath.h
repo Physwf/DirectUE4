@@ -1323,6 +1323,7 @@ public:
 	{}
 	inline FPlane(FVector InNormal, float InW) : FVector(InNormal), W(InW)
 	{}
+	FPlane(FVector InBase, const FVector &InNormal);
 	FPlane operator-(const FPlane& V) const;
 	FPlane operator*(float Scale) const;
 
@@ -1399,7 +1400,7 @@ struct FMatrix
 	bool GetFrustumRightPlane(FPlane& OutPlane) const;
 	bool GetFrustumTopPlane(FPlane& OutPlane) const;
 	bool GetFrustumBottomPlane(FPlane& OutPlane) const;
-
+	FVector GetColumn(int32 i) const;
 
 	static FMatrix	FromScale(float Scale);
 	static FMatrix	DXFromPitch(float fPitch);

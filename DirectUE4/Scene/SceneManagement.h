@@ -2,6 +2,8 @@
 
 #include "UnrealMath.h"
 #include "ConvexVolume.h"
+#include "MeshBach.h"
+#include "PrimitiveSceneProxy.h"
 
 #define WORLD_MAX					2097152.0				/* Maximum size of the world */
 #define HALF_WORLD_MAX				(WORLD_MAX * 0.5)		/* Half the maximum size of the world */
@@ -258,4 +260,32 @@ protected:
 	const uint8 LightType;
 
 	void SetTransform(const FMatrix& InLightToWorld, const Vector4& InPosition);
+};
+
+/**
+* A reference to a mesh batch that is added to the collector, together with some cached relevance flags.
+*/
+struct FMeshBatchAndRelevance
+{
+	const FMeshBatch* Mesh;
+
+	/** The render info for the primitive which created this mesh, required. */
+	const FPrimitiveSceneProxy* PrimitiveSceneProxy;
+
+private:
+	/**
+	* Cached usage information to speed up traversal in the most costly passes (depth-only, base pass, shadow depth),
+	* This is done so the Mesh does not have to be dereferenced to determine pass relevance.
+	*/
+	uint32 bHasOpaqueMaterial : 1;
+	uint32 bHasMaskedMaterial : 1;
+	uint32 bRenderInMainPass : 1;
+
+public:
+	FMeshBatchAndRelevance(const FMeshBatch& InMesh, const FPrimitiveSceneProxy* InPrimitiveSceneProxy);
+
+	bool GetHasOpaqueMaterial() const { return bHasOpaqueMaterial; }
+	bool GetHasMaskedMaterial() const { return bHasMaskedMaterial; }
+	bool GetHasOpaqueOrMaskedMaterial() const { return bHasOpaqueMaterial || bHasMaskedMaterial; }
+	bool GetRenderInMainPass() const { return bRenderInMainPass; }
 };

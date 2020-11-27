@@ -2,6 +2,7 @@
 
 #include "UnrealMathFPU.h"
 #include "LightComponent.h"
+#include "PrimitiveSceneInfo.h"
 
 class ULightComponent;
 class FLightPrimitiveInteraction;
@@ -53,6 +54,9 @@ public:
 	virtual ~FLightSceneInfo();
 
 	void AddToScene();
+
+	void CreateLightPrimitiveInteraction(const FLightSceneInfoCompact& LightSceneInfoCompact, const FPrimitiveSceneInfoCompact& PrimitiveSceneInfoCompact);
+
 	void RemoveFromScene();
 
 };

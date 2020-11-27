@@ -2,6 +2,26 @@
 #include "ShadowRendering.h"
 #include "Scene.h"
 
+void FProjectedShadowInfo::CopyCachedShadowMap(const FDrawingPolicyRenderState& DrawRenderState, FSceneRenderer* SceneRenderer, const FViewInfo& View, FSetShadowRenderTargetFunction SetShadowRenderTargets)
+{
+
+}
+
+void FProjectedShadowInfo::RenderDepthInner(class FSceneRenderer* SceneRenderer, const FViewInfo* FoundView, FSetShadowRenderTargetFunction SetShadowRenderTargets, EShadowDepthRenderMode RenderMode)
+{
+
+}
+
+void FProjectedShadowInfo::RenderDepthDynamic(class FSceneRenderer* SceneRenderer, const FViewInfo* FoundView, const FDrawingPolicyRenderState& DrawRenderState)
+{
+
+}
+
+void FProjectedShadowInfo::RenderDepth(class FSceneRenderer* SceneRenderer, FSetShadowRenderTargetFunction SetShadowRenderTargets, EShadowDepthRenderMode RenderMode)
+{
+
+}
+
 void FSceneRenderer::RenderShadowDepthMapAtlases()
 {
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get();
@@ -42,7 +62,7 @@ void FSceneRenderer::RenderShadowDepthMaps()
 			SetShadowRenderTargets(bDoClear);
 		}
 
-		ProjectedShadowInfo->RenderDepth(this, SetShadowRenderTargets/*, ShadowDepthRenderMode_Normal*/);
+		ProjectedShadowInfo->RenderDepth(this, SetShadowRenderTargets, ShadowDepthRenderMode_Normal);
 
 		//RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, RenderTarget.TargetableTexture);
 	}

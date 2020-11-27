@@ -6,7 +6,21 @@
 ULightComponent::ULightComponent(class AActor* InOwner)
 	: USceneComponent(InOwner)
 {
+	bMoveable = true;
 
+	MaxDrawDistance = 1000.f;
+	MaxDistanceFadeRange = 0.f;
+	Intensity = 100.f;
+	LightColor = FColor::White;
+	CastShadows = true;
+	CastStaticShadows = true;
+	CastDynamicShadows = true;
+	bAffectTranslucentLighting = false;
+
+	bMoveable = true;
+	ShadowBias;
+	ShadowSharpen = 1.f;
+	CastTranslucentShadows = false;
 }
 
 ULightComponent::~ULightComponent()
@@ -103,7 +117,7 @@ FLightSceneProxy* UDirectionalLightComponent::CreateSceneProxy() const
 ULocalLightComponent::ULocalLightComponent(AActor* InOwner)
 	: ULightComponent(InOwner)
 {
-
+	AttenuationRadius = 1000.f;
 }
 
 ULocalLightComponent::~ULocalLightComponent()
@@ -144,7 +158,11 @@ FSphere ULocalLightComponent::GetBoundingSphere() const
 UPointLightComponent::UPointLightComponent(AActor* InOwner)
 	: ULocalLightComponent(InOwner)
 {
-
+	bUseInverseSquaredFalloff = true;
+	LightFalloffExponent = 5.f;
+	SourceRadius = 1000.f;
+	SoftSourceRadius = 100.f;
+	SourceLength = 10.f;
 }
 
 UPointLightComponent::~UPointLightComponent()

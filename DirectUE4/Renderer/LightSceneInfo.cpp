@@ -1,5 +1,6 @@
 #include "LightSceneInfo.h"
 #include "UnrealMathFPU.h"
+#include "Scene.h"
 
 void FLightSceneInfoCompact::Init(FLightSceneInfo* InLightSceneInfo)
 {
@@ -63,6 +64,8 @@ bool FLightSceneInfoCompact::AffectsPrimitive(const FBoxSphereBounds& PrimitiveB
 
 FLightSceneInfo::FLightSceneInfo(FLightSceneProxy* InProxy)
 	:Proxy(InProxy)
+	, DynamicInteractionOftenMovingPrimitiveList(NULL)
+	, DynamicInteractionStaticPrimitiveList(NULL)
 {
 
 }
@@ -74,7 +77,24 @@ FLightSceneInfo::~FLightSceneInfo()
 
 void FLightSceneInfo::AddToScene()
 {
+	const FLightSceneInfoCompact& LightSceneInfoCompact = Scene->Lights[Id];
 
+	if (Proxy->CastsDynamicShadow() || Proxy->CastsStaticShadow())
+	{
+		for (auto PrimitiveIt = Scene->PrimitiveOctree.begin(); PrimitiveIt != Scene->PrimitiveOctree.end(); ++PrimitiveIt)
+		{
+			CreateLightPrimitiveInteraction(LightSceneInfoCompact, *PrimitiveIt);
+		}
+	}
+}
+
+void FLightSceneInfo::CreateLightPrimitiveInteraction(const FLightSceneInfoCompact& LightSceneInfoCompact, const FPrimitiveSceneInfoCompact& PrimitiveSceneInfoCompact)
+{
+	if (LightSceneInfoCompact.AffectsPrimitive(PrimitiveSceneInfoCompact.Bounds, PrimitiveSceneInfoCompact.Proxy))
+	{
+		// create light interaction and add to light/primitive lists
+		FLightPrimitiveInteraction::Create(this, PrimitiveSceneInfoCompact.PrimitiveSceneInfo);
+	}
 }
 
 void FLightSceneInfo::RemoveFromScene()

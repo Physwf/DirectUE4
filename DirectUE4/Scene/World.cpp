@@ -2,6 +2,8 @@
 #include "Scene.h"
 #include "StaticMeshActor.h"
 #include "SkeletalMeshActor.h"
+#include "PointLightActor.h"
+#include "DirectionalLightActor.h"
 
 void UWorld::InitWorld()
 {
@@ -13,6 +15,8 @@ void UWorld::InitWorld()
 	//Mesh* m1 = SpawnActor<Mesh>("k526efluton4-House_15/247_House 15_fbx.fbx");
 	//m1->SetPosition(20.0f, -100.0f, 480.0f);
 	//m1->SetRotation(-3.14f / 2.0f, 0, 0);
+
+	PointLightActor* l1 = SpawnActor<PointLightActor>();
 
 	Camera* C = SpawnActor<Camera>();
 	C->SetActorLocation(FVector(-400, 0,  0));

@@ -21,7 +21,7 @@ struct FPrimitiveFlagsCompact
 	uint32 bStaticLighting : 1;
 	/** True if the primitive casts static shadows. */
 	uint32 bCastStaticShadow : 1;
-
+	FPrimitiveFlagsCompact() {}
 	FPrimitiveFlagsCompact(const FPrimitiveSceneProxy* Proxy);
 };
 
@@ -38,6 +38,7 @@ public:
 	int32 VisibilityId;
 	FPrimitiveFlagsCompact PrimitiveFlagsCompact;
 
+	FPrimitiveSceneInfoCompact() {}
 	/** Initialization constructor. */
 	FPrimitiveSceneInfoCompact(FPrimitiveSceneInfo* InPrimitiveSceneInfo);
 };
@@ -80,7 +81,30 @@ public:
 	{
 		bNeedsUniformBufferUpdate = bInNeedsUniformBufferUpdate;
 	}
+	bool NeedsUpdateStaticMeshes()
+	{
+		return bNeedsStaticMeshUpdate;
+	}
+	/** return true if we need to call LazyUpdateForRendering */
+	bool NeedsUniformBufferUpdate() const
+	{
+		return bNeedsUniformBufferUpdate;
+	}
+	/** return true if we need to call ConditionalLazyUpdateForRendering */
+	bool NeedsLazyUpdateForRendering()
+	{
+		return NeedsUniformBufferUpdate() || NeedsUpdateStaticMeshes();
+	}
 
+	void UpdateStaticMeshes(bool bReAddToDrawLists = true);
+
+	void ConditionalUpdateStaticMeshes()
+	{
+		if (NeedsUpdateStaticMeshes())
+		{
+			UpdateStaticMeshes();
+		}
+	}
 	void UpdateUniformBuffer();
 
 	/** Updates the primitive's uniform buffer. */
@@ -91,8 +115,16 @@ public:
 			UpdateUniformBuffer();
 		}
 	}
+	void ConditionalLazyUpdateForRendering()
+	{
+		ConditionalUpdateUniformBuffer();
+		ConditionalUpdateStaticMeshes();
+	}
+	int32 GetIndex() const { return PackedIndex; }
 private:
 	bool bNeedsUniformBufferUpdate;
-
+	bool bNeedsStaticMeshUpdate;
 	friend class FScene;
+
+	int32 PackedIndex;
 };

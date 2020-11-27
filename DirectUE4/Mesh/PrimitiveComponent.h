@@ -30,6 +30,7 @@ public:
 	{
 		return NULL;
 	}
+	virtual class UMaterial* GetMaterial(int32 ElementIndex) const = 0;
 
 	virtual void SendRenderTransform_Concurrent() override;
 

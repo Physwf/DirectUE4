@@ -3,6 +3,7 @@
 #include "ShadowRendering.h"
 #include "Scene.h"
 #include "PrimitiveSceneInfo.h"
+#include <algorithm>
 
 const static uint32 SHADOW_BORDER = 4;
 
@@ -286,14 +287,113 @@ void FProjectedShadowInfo::UpdateShaderDepthBias()
 	ShaderDepthBias = 0.f;
 }
 
-void FProjectedShadowInfo::RenderDepth(class FSceneRenderer* SceneRenderer, FSetShadowRenderTargetFunction SetShadowRenderTargets/*, EShadowDepthRenderMode RenderMode*/)
-{
-	
-}
-
+static float GMinScreenRadiusForShadowCaster = 0.01f;
 void FProjectedShadowInfo::AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, std::vector<FViewInfo>* ViewArray, bool bRecordShadowSubjectForMobileShading)
 {
+	assert(!bRayTracedDistanceField);
 
+	if (std::find(ReceiverPrimitives.begin(), ReceiverPrimitives.end(), PrimitiveSceneInfo) == ReceiverPrimitives.end()
+		// Far cascade only casts from primitives marked for it
+		&& (!CascadeSettings.bFarShadowCascade || PrimitiveSceneInfo->Proxy->CastsFarShadow()))
+	{
+		const FPrimitiveSceneProxy* Proxy = PrimitiveSceneInfo->Proxy;
+
+		std::vector<FViewInfo*> Views;
+		const bool bWholeSceneDirectionalShadow = IsWholeSceneDirectionalShadow();
+
+		if (bWholeSceneDirectionalShadow)
+		{
+			Views.push_back(DependentView);
+		}
+		else
+		{
+// 			checkf(ViewArray,
+// 				TEXT("bWholeSceneShadow=%d, CascadeSettings.ShadowSplitIndex=%d, bDirectionalLight=%s"),
+// 				bWholeSceneShadow ? TEXT("true") : TEXT("false"),
+// 				CascadeSettings.ShadowSplitIndex,
+// 				bDirectionalLight ? TEXT("true") : TEXT("false"));
+
+			for (uint32 ViewIndex = 0; ViewIndex < ViewArray->size(); ViewIndex++)
+			{
+				Views.push_back(&(*ViewArray)[ViewIndex]);
+			}
+		}
+
+		uint32 ViewMask = 0;
+		int32 PrimitiveId = PrimitiveSceneInfo->GetIndex();
+
+		if (PrimitiveSceneInfo->NeedsLazyUpdateForRendering())
+		{
+			if (PrimitiveSceneInfo->NeedsUpdateStaticMeshes())
+			{
+				PrimitiveSceneInfo->ConditionalLazyUpdateForRendering();
+			}
+			else
+			{
+				PrimitiveSceneInfo->ConditionalLazyUpdateForRendering();
+			}
+		}
+
+		const FBoxSphereBounds& Bounds = Proxy->GetBounds();
+		bool bDrawingStaticMeshes = false;
+
+		if (PrimitiveSceneInfo->StaticMeshes.size() > 0)
+		{
+			for (uint32 ViewIndex = 0, ViewCount = Views.size(); ViewIndex < ViewCount; ViewIndex++)
+			{
+				FViewInfo& CurrentView = *Views[ViewIndex];
+
+				const float DistanceSquared = (Bounds.Origin - CurrentView.ShadowViewMatrices.GetViewOrigin()).SizeSquared();
+
+				if (bWholeSceneShadow)
+				{
+					const bool bDrawShadowDepth = FMath::Square(Bounds.SphereRadius) > FMath::Square(GMinScreenRadiusForShadowCaster) * DistanceSquared * CurrentView.LODDistanceFactorSquared;
+					if (!bDrawShadowDepth)
+					{
+						// cull object if it's too small to be considered as shadow caster
+						continue;
+					}
+				}
+
+				// Update visibility for meshes which weren't visible in the main views or were visible with static relevance
+				//if (!CurrentView.PrimitiveVisibilityMap[PrimitiveId] || CurrentView.PrimitiveViewRelevanceMap[PrimitiveId].bStaticRelevance)
+				{
+					bDrawingStaticMeshes |= true;// ShouldDrawStaticMeshes(CurrentView, bCustomDataRelevance, PrimitiveSceneInfo);
+				}
+			}
+		}
+
+		if (bDrawingStaticMeshes)
+		{
+			if (!bWholeSceneDirectionalShadow)
+			{
+				// Add the primitive's static mesh elements to the draw lists.
+				for (uint32 MeshIndex = 0; MeshIndex < PrimitiveSceneInfo->StaticMeshes.size(); MeshIndex++)
+				{
+					FStaticMesh& StaticMesh = *PrimitiveSceneInfo->StaticMeshes[MeshIndex];
+					if (StaticMesh.CastShadow)
+					{
+						const FMaterialRenderProxy* MaterialRenderProxy = StaticMesh.MaterialRenderProxy;
+						const FMaterial* Material = MaterialRenderProxy->GetMaterial();
+						const EBlendMode BlendMode = Material->GetBlendMode();
+						const EMaterialShadingModel ShadingModel = Material->GetShadingModel();
+
+						if (/*Material->ShouldCastDynamicShadows()*/true || (bReflectiveShadowmap && Material->ShouldInjectEmissiveIntoLPV()))
+						{
+							const bool bTwoSided = false;// Material->IsTwoSided() || PrimitiveSceneInfo->Proxy->CastsShadowAsTwoSided();
+							//OverrideWithDefaultMaterialForShadowDepth(MaterialRenderProxy, Material, bReflectiveShadowmap, FeatureLevel);
+							StaticSubjectMeshElements.push_back(FShadowStaticMeshElement(MaterialRenderProxy, Material, &StaticMesh, bTwoSided));
+						}
+					}
+				}
+			}
+		}
+		else
+		{
+			// Add the primitive to the subject primitive list.
+			DynamicSubjectPrimitives.push_back(PrimitiveSceneInfo);
+		}
+	}
 }
 
 bool FProjectedShadowInfo::HasSubjectPrims() const
@@ -634,7 +734,7 @@ void FSceneRenderer::CreateWholeSceneProjectedShadow(FLightSceneInfo* LightScene
 							BuildLightViewFrustumConvexHulls(LightOrigin, Views, LightViewFrustumConvexHulls);
 						}
 
-						bool bCastCachedShadowFromMovablePrimitives = false;//GCachedShadowsCastFromMovablePrimitives || LightSceneInfo->Proxy->GetForceCachedShadowsForMovablePrimitives();
+						bool bCastCachedShadowFromMovablePrimitives = true;//GCachedShadowsCastFromMovablePrimitives || LightSceneInfo->Proxy->GetForceCachedShadowsForMovablePrimitives();
 						if (CacheMode[CacheModeIndex] != SDCM_StaticPrimitivesOnly
 							&& (CacheMode[CacheModeIndex] != SDCM_MovablePrimitivesOnly || bCastCachedShadowFromMovablePrimitives))
 						{
@@ -723,7 +823,7 @@ void FSceneRenderer::AllocateShadowDepthTargets()
 
 	for (auto LightIt = Scene->Lights.begin(); LightIt != Scene->Lights.end(); ++LightIt)
 	{
-		const FLightSceneInfoCompact& LightSceneInfoCompact = **LightIt;
+		const FLightSceneInfoCompact& LightSceneInfoCompact = *LightIt;
 		FLightSceneInfo* LightSceneInfo = LightSceneInfoCompact.LightSceneInfo;
 		FVisibleLightInfo& VisibleLightInfo = VisibleLightInfos[LightSceneInfo->Id];
 
@@ -863,7 +963,7 @@ void FSceneRenderer::InitDynamicShadows()
 {
 	for (auto LightIt = Scene->Lights.begin();LightIt!= Scene->Lights.end();++LightIt )
 	{
-		const FLightSceneInfoCompact& LightSceneInfoCompact = **LightIt;
+		const FLightSceneInfoCompact& LightSceneInfoCompact = *LightIt;
 		FLightSceneInfo* LightSceneInfo = LightSceneInfoCompact.LightSceneInfo;
 
 		uint32 NumPointShadowCachesUpdatedThisFrame = 0;

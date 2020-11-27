@@ -17,3 +17,8 @@ void PointLightActor::PostLoad()
 {
 	Componet->Register();
 }
+
+void PointLightActor::Tick(float fDeltaSeconds)
+{
+
+}

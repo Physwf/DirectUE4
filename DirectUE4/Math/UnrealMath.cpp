@@ -335,6 +335,12 @@ bool FMatrix::GetFrustumBottomPlane(FPlane& OutPlane) const
 	);
 }
 
+FVector FMatrix::GetColumn(int32 i) const
+{
+	assert(i >= 0 && i <= 3);
+	return FVector(M[0][i], M[1][i], M[2][i]);
+}
+
 float FVector::SizeSquared() const
 {
 	return X * X + Y * Y + Z * Z;
@@ -991,6 +997,10 @@ FLookAtMatrix::FLookAtMatrix(const FVector& EyePosition, const FVector& LookAtPo
 	M[3][3] = 1.0f;
 }
 
+
+FPlane::FPlane(FVector InBase, const FVector &InNormal)
+	: FVector(InNormal)
+	, W(InBase | InNormal) {}
 
 FPlane FPlane::operator-(const FPlane& V) const
 {

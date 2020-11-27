@@ -93,13 +93,14 @@ FViewMatrices::FViewMatrices(const ViewInitOptions& InitOptions)
 
 	// Compute screen scale factors.
 	// Stereo renders at half horizontal resolution, but compute shadow resolution based on full resolution.
-// 	const float ScreenXScale = bStereo ? 2.0f : 1.0f;
-// 	ProjectionScale.X = ScreenXScale * FMath::Abs(ProjectionMatrix.M[0][0]);
-// 	ProjectionScale.Y = FMath::Abs(ProjectionMatrix.M[1][1]);
-// 	ScreenScale = FMath::Max(
-// 		InitOptions.GetConstrainedViewRect().Size().X * 0.5f * ProjectionScale.X,
-// 		InitOptions.GetConstrainedViewRect().Size().Y * 0.5f * ProjectionScale.Y
-//	);
+	const bool bStereo = false;
+	const float ScreenXScale = bStereo ? 2.0f : 1.0f;
+	ProjectionScale.X = ScreenXScale * FMath::Abs(ProjectionMatrix.M[0][0]);
+	ProjectionScale.Y = FMath::Abs(ProjectionMatrix.M[1][1]);
+	ScreenScale = FMath::Max(
+		InitOptions.GetConstrainedViewRect().Size().X * 0.5f * ProjectionScale.X,
+		InitOptions.GetConstrainedViewRect().Size().Y * 0.5f * ProjectionScale.Y
+	);
 }
 
 Vector4 CreateInvDeviceZToWorldZTransform(const FMatrix& ProjMatrix)
@@ -143,14 +144,28 @@ Vector4 CreateInvDeviceZToWorldZTransform(const FMatrix& ProjMatrix)
 
 
 FSceneView::FSceneView(const ViewInitOptions& InitOptions)
-: mViewMatrices(InitOptions),
+:	ViewMatrices(InitOptions),
 	ViewActor(InitOptions.ViewActor),
 	UnscaledViewRect(InitOptions.GetConstrainedViewRect()),
 	UnconstrainedViewRect(InitOptions.GetViewRect()),
-	ProjectionMatrixUnadjustedForRHI(InitOptions.ProjectionMatrix)
-
+	ProjectionMatrixUnadjustedForRHI(InitOptions.ProjectionMatrix), 
+	bStaticSceneOnly(false)
 {
+	ShadowViewMatrices = ViewMatrices;
+
 	InvDeviceZToWorldZTransform = CreateInvDeviceZToWorldZTransform(ProjectionMatrixUnadjustedForRHI);
+
+	if (InitOptions.OverrideFarClippingPlaneDistance > 0.0f)
+	{
+		const FPlane FarPlane(ViewMatrices.GetViewOrigin() + GetViewDirection() * InitOptions.OverrideFarClippingPlaneDistance, GetViewDirection());
+		// Derive the view frustum from the view projection matrix, overriding the far plane
+		GetViewFrustumBounds(ViewFrustum, ViewMatrices.GetViewProjectionMatrix(), FarPlane, true, false);
+	}
+	else
+	{
+		// Derive the view frustum from the view projection matrix.
+		GetViewFrustumBounds(ViewFrustum, ViewMatrices.GetViewProjectionMatrix(), false);
+	}
 }
 
 void FSceneView::SetupViewRectUniformBufferParameters(

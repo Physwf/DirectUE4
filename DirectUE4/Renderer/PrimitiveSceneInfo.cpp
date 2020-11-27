@@ -11,12 +11,20 @@ FPrimitiveFlagsCompact::FPrimitiveFlagsCompact(const FPrimitiveSceneProxy* Proxy
 FPrimitiveSceneInfoCompact::FPrimitiveSceneInfoCompact(FPrimitiveSceneInfo* InPrimitiveSceneInfo)
 	: PrimitiveFlagsCompact(InPrimitiveSceneInfo->Proxy)
 {
+	PrimitiveSceneInfo = InPrimitiveSceneInfo;
+	Proxy = PrimitiveSceneInfo->Proxy;
+	Bounds = PrimitiveSceneInfo->Proxy->GetBounds();
+	//MinDrawDistance = PrimitiveSceneInfo->Proxy->GetMinDrawDistance();
+	//MaxDrawDistance = PrimitiveSceneInfo->Proxy->GetMaxDrawDistance();
 
+	//VisibilityId = PrimitiveSceneInfo->Proxy->GetVisibilityId();
 }
 
 FPrimitiveSceneInfo::FPrimitiveSceneInfo(UPrimitiveComponent* InComponent, FScene* InScene)
-	: Proxy(InComponent->SceneProxy),
-	Scene(InScene)
+	: Proxy(InComponent->SceneProxy)
+	,Scene(InScene)
+	,LightList(NULL)
+
 {
 
 }
@@ -35,9 +43,11 @@ void FPrimitiveSceneInfo::AddToScene(bool bUpdateStaticDrawLists, bool bAddToSta
 
 	FPrimitiveSceneInfoCompact CompactPrimitiveSceneInfo(this);
 
+	Scene->PrimitiveOctree.push_back(CompactPrimitiveSceneInfo);
+
 	for (auto LightIt = Scene->Lights.begin(); LightIt != Scene->Lights.end();++LightIt)
 	{
-		const FLightSceneInfoCompact& LightSceneInfoCompact = **LightIt;
+		const FLightSceneInfoCompact& LightSceneInfoCompact = *LightIt;
 		if (LightSceneInfoCompact.AffectsPrimitive(CompactPrimitiveSceneInfo.Bounds, CompactPrimitiveSceneInfo.Proxy))
 		{
 			FLightPrimitiveInteraction::Create(LightSceneInfoCompact.LightSceneInfo, this);
@@ -70,6 +80,21 @@ void FPrimitiveSceneInfo::AddStaticMeshes(bool bAddToStaticDrawLists /*= true*/)
 void FPrimitiveSceneInfo::RemoveStaticMeshes()
 {
 
+}
+
+void FPrimitiveSceneInfo::UpdateStaticMeshes(bool bReAddToDrawLists /*= true*/)
+{
+	bNeedsStaticMeshUpdate = !bReAddToDrawLists;
+
+// 	// Remove the primitive's static meshes from the draw lists they're currently in, and re-add them to the appropriate draw lists.
+// 	for (int32 MeshIndex = 0; MeshIndex < StaticMeshes.Num(); MeshIndex++)
+// 	{
+// 		StaticMeshes[MeshIndex].RemoveFromDrawLists();
+// 		if (bReAddToDrawLists)
+// 		{
+// 			StaticMeshes[MeshIndex].AddToDrawLists(Scene);
+// 		}
+// 	}
 }
 
 void FPrimitiveSceneInfo::UpdateUniformBuffer()

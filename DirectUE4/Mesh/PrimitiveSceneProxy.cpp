@@ -3,6 +3,19 @@
 #include "PrimitiveSceneInfo.h"
 
 FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponent)
+	:
+	bStaticLighting(false)
+	//, bRenderInMainPass(true)
+	, bHasValidSettingsForStaticLighting(true)
+	, bCastDynamicShadow(true)
+	, bCastStaticShadow(true)
+	, bCastVolumetricTranslucentShadow(false)
+	, bSelfShadowOnly(false)
+	, bCastInsetShadow(false)	// Assumed to be enabled if bSelfShadowOnly is enabled.
+	, bCastFarShadow(true)
+	//, Scene(InComponent->GetScene())
+	//, PrimitiveComponentId(0)
+	, PrimitiveSceneInfo(NULL)
 {
 	UniformBuffer.InitDynamicRHI();
 }

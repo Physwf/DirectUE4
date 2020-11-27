@@ -208,6 +208,20 @@ public:
 	{}
 };
 
+/**
+* Bounding information used to cull primitives in the scene.
+*/
+struct FPrimitiveBounds
+{
+	FBoxSphereBounds BoxSphereBounds;
+	/** Square of the minimum draw distance for the primitive. */
+	float MinDrawDistanceSq;
+	/** Maximum draw distance for the primitive. */
+	float MaxDrawDistance;
+	/** Maximum cull distance for the primitive. This is only different from the MaxDrawDistance for HLOD.*/
+	float MaxCullDistance;
+};
+
 class FScene
 {
 public:
@@ -254,7 +268,14 @@ public:
 
 	//std::vector<MeshBatch> AllBatches;
 	std::vector<FPrimitiveSceneInfo*> Primitives;
-	std::vector<FLightSceneInfoCompact*> Lights;
+	std::vector<FPrimitiveSceneProxy*> PrimitiveSceneProxies;
+	std::vector<FPrimitiveBounds> PrimitiveBounds;
+	std::vector<FPrimitiveComponentId> PrimitiveComponentIds;
+
+	std::vector<FLightSceneInfoCompact> Lights;
+
+
+	std::vector<FPrimitiveSceneInfoCompact> PrimitiveOctree;
 
 	class AtmosphericFogSceneInfo* AtmosphericFog;
 

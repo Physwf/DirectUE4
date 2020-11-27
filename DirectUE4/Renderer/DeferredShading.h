@@ -376,8 +376,8 @@ public:
 		FViewUniformShaderParameters& ViewUniformParameters) const
 	{
 		SetupUniformBufferParameters(SceneContext,
-			mViewMatrices,
-			mViewMatrices,/*PrevViewInfo.ViewMatrices,*/
+			ViewMatrices,
+			ViewMatrices,/*PrevViewInfo.ViewMatrices,*/
 			OutTranslucentCascadeBoundsArray,
 			NumTranslucentCascades,
 			ViewUniformParameters);

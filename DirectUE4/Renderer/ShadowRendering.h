@@ -5,13 +5,71 @@
 #include "SceneManagement.h"
 #include "RenderTargetPool.h"
 #include "LightSceneInfo.h"
+#include "Scene.h"
+#include "Material.h"
 
 #include <functional>
 
 class FPrimitiveSceneInfo;
 class FViewInfo;
+class FMaterialRenderProxy;
 
 void InitShadowDepthMapsPass();
+
+/** A single static mesh element for shadow depth rendering. */
+class FShadowStaticMeshElement
+{
+public:
+
+	FShadowStaticMeshElement()
+		: RenderProxy(0)
+		, MaterialResource(0)
+		, Mesh(0)
+		, bIsTwoSided(false)
+	{
+	}
+
+	FShadowStaticMeshElement(const FMaterialRenderProxy* InRenderProxy, const FMaterial* InMaterialResource, const FStaticMesh* InMesh, bool bInIsTwoSided) :
+		RenderProxy(InRenderProxy),
+		MaterialResource(InMaterialResource),
+		Mesh(InMesh),
+		bIsTwoSided(bInIsTwoSided)
+	{}
+
+	bool DoesDeltaRequireADrawSharedCall(const FShadowStaticMeshElement& rhs) const
+	{
+		assert(rhs.RenderProxy);
+		assert(rhs.Mesh);
+
+		// Note: this->RenderProxy or this->Mesh can be 0
+		// but in this case rhs.RenderProxy should not be 0
+		// so it will early out and there will be no crash on Mesh->VertexFactory
+		assert(!RenderProxy || rhs.RenderProxy);
+
+		return RenderProxy != rhs.RenderProxy
+			|| bIsTwoSided != rhs.bIsTwoSided
+			|| Mesh->VertexFactory != rhs.Mesh->VertexFactory
+			|| Mesh->ReverseCulling != rhs.Mesh->ReverseCulling;
+	}
+
+	/** Store the FMaterialRenderProxy pointer since it may be different from the one that FStaticMesh stores. */
+	const FMaterialRenderProxy* RenderProxy;
+	const FMaterial* MaterialResource;
+	const FStaticMesh* Mesh;
+	bool bIsTwoSided;
+};
+
+enum EShadowDepthRenderMode
+{
+	/** The render mode used by regular shadows */
+	ShadowDepthRenderMode_Normal,
+
+	/** The render mode used when injecting emissive-only objects into the RSM. */
+	ShadowDepthRenderMode_EmissiveOnly,
+
+	/** The render mode used when rendering volumes which block global illumination. */
+	ShadowDepthRenderMode_GIBlockingVolumes,
+};
 
 enum EShadowDepthCacheMode
 {
@@ -195,7 +253,7 @@ public:
 	ComPtr<PooledRenderTarget> RayTracedShadowsRT;
 
 
-	float ShaderDepthBias;
+	
 public:
 	// default constructor
 	FProjectedShadowInfo();
@@ -223,7 +281,9 @@ public:
 		bool bInReflectiveShadowMap
 	);
 
-	void RenderDepth(class FSceneRenderer* SceneRenderer, FSetShadowRenderTargetFunction SetShadowRenderTargets/*, EShadowDepthRenderMode RenderMode*/);
+	void RenderDepth(class FSceneRenderer* SceneRenderer, FSetShadowRenderTargetFunction SetShadowRenderTargets, EShadowDepthRenderMode RenderMode);
+
+	void SetStateForDepth(EShadowDepthRenderMode RenderMode, FDrawingPolicyRenderState& DrawRenderState);
 
 	void AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, std::vector<FViewInfo>* ViewArray, bool bRecordShadowSubjectForMobileShading);
 
@@ -236,7 +296,36 @@ public:
 
 	void UpdateShaderDepthBias();
 
+	inline bool IsWholeSceneDirectionalShadow() const
+	{
+		return bWholeSceneShadow && CascadeSettings.ShadowSplitIndex >= 0 && bDirectionalLight;
+	}
+
+	inline bool IsWholeScenePointLightShadow() const
+	{
+		return bWholeSceneShadow && (LightSceneInfo->Proxy->GetLightType() == LightType_Point || LightSceneInfo->Proxy->GetLightType() == LightType_Rect);
+	}
 private:
 	const FLightSceneInfo* LightSceneInfo;
 	FLightSceneInfoCompact LightSceneInfoCompact;
+
+	/** Static shadow casting elements. */
+	std::vector<FShadowStaticMeshElement> StaticSubjectMeshElements;
+
+	/** Dynamic mesh elements for subject primitives. */
+	std::vector<FMeshBatchAndRelevance> DynamicSubjectMeshElements;
+
+	PrimitiveArrayType DynamicSubjectPrimitives;
+	PrimitiveArrayType ReceiverPrimitives;
+
+	float ShaderDepthBias;
+
+	void CopyCachedShadowMap(const FDrawingPolicyRenderState& DrawRenderState, FSceneRenderer* SceneRenderer, const FViewInfo& View, FSetShadowRenderTargetFunction SetShadowRenderTargets);
+
+	/**
+	* Renders the shadow subject depth, to a particular hacked view
+	*/
+	void RenderDepthInner(class FSceneRenderer* SceneRenderer, const FViewInfo* FoundView, FSetShadowRenderTargetFunction SetShadowRenderTargets, EShadowDepthRenderMode RenderMode);
+
+	void RenderDepthDynamic(class FSceneRenderer* SceneRenderer, const FViewInfo* FoundView, const FDrawingPolicyRenderState& DrawRenderState);
 };

@@ -291,7 +291,7 @@ public:
 
 		const float LightDistance = (GetOrigin() - ShadowViewMatrices.GetViewOrigin()).Size();
 
-		return /*ShadowViewMatrices.GetScreenScale()*/1.f * GetRadius() / FMath::Max(LightDistance, 1.0f);
+		return ShadowViewMatrices.GetScreenScale() * GetRadius() / FMath::Max(LightDistance, 1.0f);
 	}
 protected:
 	/** Updates the light scene info's radius from the component. */

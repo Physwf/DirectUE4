@@ -82,7 +82,7 @@ public:
 
 	inline bool CastsSelfShadowOnly() const { return bSelfShadowOnly; }
 	inline bool CastsInsetShadow() const { return bCastInsetShadow; }
-
+	inline bool CastsFarShadow() const { return bCastFarShadow; }
 	inline bool HasValidSettingsForStaticLighting() const { return bHasValidSettingsForStaticLighting; }
 
 	virtual void DrawStaticElements(FPrimitiveSceneInfo* PrimitiveSceneInfo/*FStaticPrimitiveDrawInterface* PDI*/) {};
@@ -117,6 +117,8 @@ protected:
 	uint32 bSelfShadowOnly : 1;
 	/** Whether this component should create a per-object shadow that gives higher effective shadow resolution. true if bSelfShadowOnly is true. */
 	uint32 bCastInsetShadow : 1;
+
+	uint32 bCastFarShadow : 1;
 private:
 	/** The primitive's local to world transform. */
 	FMatrix LocalToWorld;

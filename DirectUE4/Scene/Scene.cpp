@@ -207,6 +207,10 @@ void FScene::RemoveLight(class ULightComponent* Light)
 
 void FScene::AddLightSceneInfo(FLightSceneInfo* LightSceneInfo)
 {
+	LightSceneInfo->Id = Lights.size();
+	LightSceneInfo->Scene = this;
+	Lights.push_back(FLightSceneInfoCompact(LightSceneInfo));
+
 	if (LightSceneInfo->Proxy->GetLightType() == LightType_Directional && !LightSceneInfo->Proxy->HasStaticLighting())//非静态方向光
 	{
 		if (!SimpleDirectionalLight)
@@ -222,6 +226,14 @@ void FScene::AddLightSceneInfo(FLightSceneInfo* LightSceneInfo)
 void FScene::AddPrimitiveSceneInfo(FPrimitiveSceneInfo* PrimitiveSceneInfo)
 {
 	Primitives.push_back(PrimitiveSceneInfo);
+	PrimitiveSceneProxies.push_back(PrimitiveSceneInfo->Proxy);
+	//PrimitiveBounds.AddUninitialized();
+	//PrimitiveFlagsCompact.AddUninitialized();
+	//PrimitiveVisibilityIds.AddUninitialized();
+	//PrimitiveOcclusionFlags.AddUninitialized();
+	//PrimitiveComponentIds.AddUninitialized();
+	//PrimitiveOcclusionBounds.AddUninitialized();
+
 	PrimitiveSceneInfo->AddToScene(true, true);
 }
 

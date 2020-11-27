@@ -10,6 +10,8 @@ public:
 	~PointLightActor();
 
 	void PostLoad();
+
+	virtual void Tick(float fDeltaSeconds) override;
 private:
 	UPointLightComponent* Componet;
 };
