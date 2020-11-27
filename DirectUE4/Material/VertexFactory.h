@@ -162,7 +162,10 @@ public:
 
 		(*ModifyCompilationEnvironmentRef)(Material, OutEnvironment);
 	}
-
+	bool SupportsTessellationShaders() const
+	{
+		return (*SupportsTessellationShadersRef)();
+	}
 	void AddReferencedUniformBufferIncludes(FShaderCompilerEnvironment& OutEnvironment, std::string& OutSourceFilePrefix);
 private:
 	static uint32 NextHashIndex;
@@ -209,7 +212,8 @@ public:
 // 		return bSupportsManualVertexFetch && (InFeatureLevel > ERHIFeatureLevel::ES3_1) && RHISupportsManualVertexFetch(GMaxRHIShaderPlatform);
 		return true;
 	}
-
+	virtual bool SupportsPositionOnlyStream() const { return !!PositionStream.size(); }
+	virtual bool SupportsNullPixelShader() const { return true; }
 protected:
 	D3D11_INPUT_ELEMENT_DESC AccessStreamComponent(const FVertexStreamComponent& Component, uint8 AttributeIndex);
 	D3D11_INPUT_ELEMENT_DESC AccessPositionStreamComponent(const FVertexStreamComponent& Component, uint8 AttributeIndex);

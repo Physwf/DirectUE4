@@ -406,7 +406,16 @@ template<
 	UINT8 RT6ColorWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL,
 	UINT8 RT7ColorWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL
 >
-class TStaticBlendStateWriteMask
+class TStaticBlendStateWriteMask : public TStaticBlendState<FALSE,FALSE,
+	RT0ColorWriteMask, D3D11_BLEND_OP_ADD, D3D11_BLEND_ONE, D3D11_BLEND_ZERO, D3D11_BLEND_OP_ADD, D3D11_BLEND_ONE, D3D11_BLEND_ZERO,
+	RT1ColorWriteMask, D3D11_BLEND_OP_ADD, D3D11_BLEND_ONE, D3D11_BLEND_ZERO, D3D11_BLEND_OP_ADD, D3D11_BLEND_ONE, D3D11_BLEND_ZERO,
+	RT2ColorWriteMask, D3D11_BLEND_OP_ADD, D3D11_BLEND_ONE, D3D11_BLEND_ZERO, D3D11_BLEND_OP_ADD, D3D11_BLEND_ONE, D3D11_BLEND_ZERO,
+	RT3ColorWriteMask, D3D11_BLEND_OP_ADD, D3D11_BLEND_ONE, D3D11_BLEND_ZERO, D3D11_BLEND_OP_ADD, D3D11_BLEND_ONE, D3D11_BLEND_ZERO,
+	RT4ColorWriteMask, D3D11_BLEND_OP_ADD, D3D11_BLEND_ONE, D3D11_BLEND_ZERO, D3D11_BLEND_OP_ADD, D3D11_BLEND_ONE, D3D11_BLEND_ZERO,
+	RT5ColorWriteMask, D3D11_BLEND_OP_ADD, D3D11_BLEND_ONE, D3D11_BLEND_ZERO, D3D11_BLEND_OP_ADD, D3D11_BLEND_ONE, D3D11_BLEND_ZERO,
+	RT6ColorWriteMask, D3D11_BLEND_OP_ADD, D3D11_BLEND_ONE, D3D11_BLEND_ZERO, D3D11_BLEND_OP_ADD, D3D11_BLEND_ONE, D3D11_BLEND_ZERO,
+	RT7ColorWriteMask, D3D11_BLEND_OP_ADD, D3D11_BLEND_ONE, D3D11_BLEND_ZERO, D3D11_BLEND_OP_ADD, D3D11_BLEND_ONE, D3D11_BLEND_ZERO
+>
 {
 public:
 	static ID3D11BlendState* CrateRHI()
@@ -1646,15 +1655,42 @@ inline void SetSamplerParameter(
 		);
 	}
 }
+
+template<typename ShaderRHIParamRef, class ParameterType>
+void SetShaderValueArray(
+	ShaderRHIParamRef Shader,
+	const FShaderParameter& Parameter,
+	const ParameterType* Values,
+	uint32 NumElements,
+	uint32 BaseElementIndex = 0
+)
+{
+	const uint32 AlignedTypeSize = Align(sizeof(ParameterType), 16);
+	const int32 NumBytesToSet = FMath::Min<int32>(NumElements * AlignedTypeSize, Parameter.GetNumBytes() - BaseElementIndex * AlignedTypeSize);
+
+	// This will trigger if the parameter was not serialized
+	assert(Parameter.IsInitialized());
+
+	if (NumBytesToSet > 0)
+	{
+		RHISetShaderParameter(
+			Shader,
+			Parameter.GetBufferIndex(),
+			Parameter.GetBaseIndex() + BaseElementIndex * AlignedTypeSize,
+			(uint32)NumBytesToSet,
+			Values
+		);
+	}
+}
 struct FBoundShaderStateInput
 {
 	std::shared_ptr<std::vector<D3D11_INPUT_ELEMENT_DESC>> VertexDeclarationRHI;
-	ComPtr<ID3DBlob> VSCode;
-	ComPtr<ID3D11VertexShader> VertexShaderRHI;
-	ComPtr<ID3D11HullShader> HullShaderRHI;
-	ComPtr<ID3D11DomainShader> DomainShaderRHI;
-	ComPtr<ID3D11PixelShader> PixelShaderRHI;
-	ComPtr<ID3D11GeometryShader> GeometryShaderRHI;
+	ID3DBlob* VSCode;
+	ID3D11VertexShader* VertexShaderRHI;
+	ID3D11HullShader* HullShaderRHI;
+	ID3D11DomainShader* DomainShaderRHI;
+	ID3D11PixelShader* PixelShaderRHI;
+	ID3D11GeometryShader* GeometryShaderRHI;
 
 	inline FBoundShaderStateInput()
 		: VertexDeclarationRHI(nullptr)
@@ -1669,12 +1705,12 @@ struct FBoundShaderStateInput
 
 	inline FBoundShaderStateInput(
 		std::shared_ptr<std::vector<D3D11_INPUT_ELEMENT_DESC>> InVertexDeclarationRHI,
-		ComPtr<ID3DBlob> InVSCode,
-		ComPtr<ID3D11VertexShader> InVertexShaderRHI,
-		ComPtr<ID3D11HullShader> InHullShaderRHI,
-		ComPtr<ID3D11DomainShader> InDomainShaderRHI,
-		ComPtr<ID3D11PixelShader> InPixelShaderRHI,
-		ComPtr<ID3D11GeometryShader> InGeometryShaderRHI
+		ID3DBlob* InVSCode,
+		ID3D11VertexShader* InVertexShaderRHI,
+		ID3D11HullShader* InHullShaderRHI,
+		ID3D11DomainShader* InDomainShaderRHI,
+		ID3D11PixelShader* InPixelShaderRHI,
+		ID3D11GeometryShader* InGeometryShaderRHI
 	)
 		: VertexDeclarationRHI(InVertexDeclarationRHI)
 		, VSCode(InVSCode)
@@ -1706,3 +1742,5 @@ void DrawRectangle(
 
 extern int32 GMaxShadowDepthBufferSizeX; 
 extern int32 GMaxShadowDepthBufferSizeY;
+
+void RHISetViewport(uint32 MinX, uint32 MinY, float MinZ, uint32 MaxX, uint32 MaxY, float MaxZ);

@@ -9,6 +9,7 @@
 #include "MeshBach.h"
 #include "MeshMaterialShader.h"
 #include "Material.h"
+#include "PrimitiveSceneProxy.h"
 
 ID3D11InputLayout* PositionOnlyMeshInputLayout;
 
@@ -94,7 +95,7 @@ public:
 		const bool bIsInstancedStereoEmulated
 	)
 	{
-		FMeshMaterialShader::SetParameters(GetVertexShader(), MaterialRenderProxy, MaterialResource, View, DrawRenderState.GetViewUniformBuffer(), DrawRenderState.GetPassUniformBuffer().get());
+		FMeshMaterialShader::SetParameters(GetVertexShader(), MaterialRenderProxy, MaterialResource, View, DrawRenderState.GetViewUniformBuffer(), DrawRenderState.GetPassUniformBuffer());
 
 // 		if (IsInstancedStereoParameter.IsBound())
 // 		{
@@ -112,9 +113,9 @@ public:
 // 		}
 	}
 
-	void SetMesh(const FVertexFactory* VertexFactory, const FSceneView& View, /*const FPrimitiveSceneProxy* Proxy, */const FMeshBatchElement& BatchElement, const FDrawingPolicyRenderState& DrawRenderState)
+	void SetMesh(const FVertexFactory* VertexFactory, const FSceneView& View, const FPrimitiveSceneProxy* Proxy, const FMeshBatchElement& BatchElement, const FDrawingPolicyRenderState& DrawRenderState)
 	{
-		FMeshMaterialShader::SetMesh(GetVertexShader(), VertexFactory, View, /*Proxy,*/ BatchElement, DrawRenderState);
+		FMeshMaterialShader::SetMesh(GetVertexShader(), VertexFactory, View, Proxy, BatchElement, DrawRenderState);
 	}
 
 	void SetInstancedEyeIndex(const uint32 EyeIndex)
@@ -155,16 +156,16 @@ public:
 
 	void SetParameters(const FMaterialRenderProxy* MaterialRenderProxy, const FMaterial& MaterialResource, const FSceneView* View, const FDrawingPolicyRenderState& DrawRenderState, float InMobileColorValue)
 	{
-		FMeshMaterialShader::SetParameters(GetPixelShader(), MaterialRenderProxy,MaterialResource, *View, DrawRenderState.GetViewUniformBuffer(), DrawRenderState.GetPassUniformBuffer().get());
+		FMeshMaterialShader::SetParameters(GetPixelShader(), MaterialRenderProxy,MaterialResource, *View, DrawRenderState.GetViewUniformBuffer(), DrawRenderState.GetPassUniformBuffer());
 
 		// For debug view shaders, don't apply the depth offset as their base pass PS are using global shaders with depth equal.
 		//SetShaderValue(RHICmdList, GetPixelShader(), ApplyDepthOffsetParameter, !View->Family->UseDebugViewPS());
 		//SetShaderValue(RHICmdList, GetPixelShader(), MobileColorValue, InMobileColorValue);
 	}
 
-	void SetMesh( const FVertexFactory* VertexFactory, const FSceneView& View,/* const FPrimitiveSceneProxy* Proxy,*/ const FMeshBatchElement& BatchElement, const FDrawingPolicyRenderState& DrawRenderState)
+	void SetMesh( const FVertexFactory* VertexFactory, const FSceneView& View, const FPrimitiveSceneProxy* Proxy, const FMeshBatchElement& BatchElement, const FDrawingPolicyRenderState& DrawRenderState)
 	{
-		FMeshMaterialShader::SetMesh(GetPixelShader(), VertexFactory, View, /*Proxy,*/ BatchElement, DrawRenderState);
+		FMeshMaterialShader::SetMesh(GetPixelShader(), VertexFactory, View, Proxy, BatchElement, DrawRenderState);
 	}
 
 	FShaderParameter ApplyDepthOffsetParameter;
@@ -237,8 +238,8 @@ void FSceneRenderer::RenderPrePass()
 		FViewInfo& View = Views[ViewIndex];
 		FSceneTexturesUniformParameters SceneTextureParameters;
 		SetupSceneTextureUniformParameters(SceneContext, ESceneTextureSetupMode::None, SceneTextureParameters);
-		TUniformBufferPtr<FSceneTexturesUniformParameters> PassUniformBuffer = TUniformBufferPtr<FSceneTexturesUniformParameters>::CreateUniformBufferImmediate(SceneTextureParameters);
-		FDrawingPolicyRenderState DrawRenderState(View, PassUniformBuffer);
+		TUniformBufferPtr<FSceneTexturesUniformParameters> PassUniformBuffer = TUniformBufferPtr<FSceneTexturesUniformParameters>::CreateUniformBufferImmediate(SceneTextureParameters);//todo cache in case of gc
+		FDrawingPolicyRenderState DrawRenderState(View, PassUniformBuffer.get());
 
 		DrawRenderState.SetDepthStencilState(TStaticDepthStencilState<true, D3D11_COMPARISON_GREATER>::GetRHI());
 		DrawRenderState.SetBlendState(TStaticBlendState<>::GetRHI());
@@ -273,10 +274,10 @@ FDepthDrawingPolicy::FDepthDrawingPolicy(
 	BaseVertexShader = VertexShader;
 }
 
-void FDepthDrawingPolicy::SetSharedState(const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View/*, const ContextDataType PolicyContext*/) const
+void FDepthDrawingPolicy::SetSharedState(const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View, const ContextDataType PolicyContext) const
 {
 	// Set the depth-only shader parameters for the material.
-	VertexShader->SetParameters(MaterialRenderProxy, *MaterialResource, *View, DrawRenderState, false/*PolicyContext.bIsInstancedStereo*/, false/*PolicyContext.bIsInstancedStereoEmulated*/);
+	VertexShader->SetParameters(MaterialRenderProxy, *MaterialResource, *View, DrawRenderState, PolicyContext.bIsInstancedStereo, PolicyContext.bIsInstancedStereoEmulated);
 // 	if (HullShader && DomainShader)
 // 	{
 // 		HullShader->SetParameters(/*MaterialRenderProxy,*/ *View, DrawRenderState.GetViewUniformBuffer(), DrawRenderState.GetPassUniformBuffer());
@@ -289,14 +290,14 @@ void FDepthDrawingPolicy::SetSharedState(const FDrawingPolicyRenderState& DrawRe
 	}
 
 	// Set the shared mesh resources.
-	FMeshDrawingPolicy::SetSharedState(D3D11DeviceContext, DrawRenderState, View/*, PolicyContext*/);
+	FMeshDrawingPolicy::SetSharedState(D3D11DeviceContext, DrawRenderState, View, PolicyContext);
 }
 
 FBoundShaderStateInput FDepthDrawingPolicy::GetBoundShaderStateInput() const
 {
 	return FBoundShaderStateInput(
 		FMeshDrawingPolicy::GetVertexDeclaration(),
-		VertexShader->GetCode(),
+		VertexShader->GetCode().Get(),
 		VertexShader->GetVertexShader(),
 		NULL,
 		NULL,
@@ -307,7 +308,7 @@ FBoundShaderStateInput FDepthDrawingPolicy::GetBoundShaderStateInput() const
 void FDepthDrawingPolicy::SetMeshRenderState(
 	ID3D11DeviceContext* Context, 
 	const FSceneView& View, 
-	/*const FPrimitiveSceneProxy* PrimitiveSceneProxy, */ 
+	const FPrimitiveSceneProxy* PrimitiveSceneProxy, 
 	const FMeshBatch& Mesh, 
 	int32 BatchElementIndex,  
 const FDrawingPolicyRenderState& DrawRenderState/*,  */
@@ -315,7 +316,7 @@ const FDrawingPolicyRenderState& DrawRenderState/*,  */
 /*const ContextDataType PolicyContext */) const
 {
 	const FMeshBatchElement& BatchElement = Mesh.Elements[BatchElementIndex];
-	VertexShader->SetMesh(VertexFactory, View, /*PrimitiveSceneProxy,*/ BatchElement, DrawRenderState);
+	VertexShader->SetMesh(VertexFactory, View, PrimitiveSceneProxy, BatchElement, DrawRenderState);
 // 	if (HullShader && DomainShader)
 // 	{
 // 		HullShader->SetMesh(VertexFactory, View, /*PrimitiveSceneProxy,*/ BatchElement, DrawRenderState);
@@ -323,7 +324,7 @@ const FDrawingPolicyRenderState& DrawRenderState/*,  */
 // 	}
 	if (bNeedsPixelShader)
 	{
-		PixelShader->SetMesh(VertexFactory, View, /*PrimitiveSceneProxy,*/ BatchElement, DrawRenderState);
+		PixelShader->SetMesh(VertexFactory, View, PrimitiveSceneProxy, BatchElement, DrawRenderState);
 	}
 }
 
@@ -340,7 +341,7 @@ FPositionOnlyDepthDrawingPolicy::FPositionOnlyDepthDrawingPolicy(
 	BaseVertexShader = VertexShader;
 }
 
-void FPositionOnlyDepthDrawingPolicy::SetSharedState(ID3D11DeviceContext* Context, const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View/*, const ContextDataType PolicyContext*/) const
+void FPositionOnlyDepthDrawingPolicy::SetSharedState(ID3D11DeviceContext* Context, const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View, const ContextDataType PolicyContext) const
 {
 	VertexShader->SetParameters(MaterialRenderProxy,*MaterialResource,*View,DrawRenderState,false,false);
 	VertexFactory->SetPositionStream(Context);
@@ -352,20 +353,20 @@ FBoundShaderStateInput FPositionOnlyDepthDrawingPolicy::GetBoundShaderStateInput
 	VertexDeclaration = VertexFactory->GetPositionDeclaration();
 
 	assert(MaterialRenderProxy->GetMaterial()->GetBlendMode() == BLEND_Opaque);
-	return FBoundShaderStateInput(VertexDeclaration, VertexShader->GetCode(), VertexShader->GetVertexShader(), NULL, NULL, NULL, NULL);
+	return FBoundShaderStateInput(VertexDeclaration, VertexShader->GetCode().Get(), VertexShader->GetVertexShader(), NULL, NULL, NULL, NULL);
 }
 
 void FPositionOnlyDepthDrawingPolicy::SetMeshRenderState(
 	ID3D11DeviceContext* Context, 
 	const FSceneView& View, 
-	/*const FPrimitiveSceneProxy* PrimitiveSceneProxy, */ 
+	const FPrimitiveSceneProxy* PrimitiveSceneProxy, 
 	const FMeshBatch& Mesh, 
 	int32 BatchElementIndex,  
 	const FDrawingPolicyRenderState& DrawRenderState/*,*/ 
 /*const ElementDataType& ElementData, */ 
 /*const ContextDataType PolicyContext */) const
 {
-	VertexShader->SetMesh(VertexFactory, View, Mesh.Elements[BatchElementIndex], DrawRenderState);
+	VertexShader->SetMesh(VertexFactory, View, PrimitiveSceneProxy, Mesh.Elements[BatchElementIndex], DrawRenderState);
 }
 
 void FDepthDrawingPolicyFactory::AddStaticMesh(FScene* Scene, FStaticMesh* StaticMesh)

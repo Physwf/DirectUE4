@@ -5,16 +5,149 @@
 #include "SceneManagement.h"
 #include "RenderTargetPool.h"
 #include "LightSceneInfo.h"
-#include "Scene.h"
+#include "SceneCore.h"
 #include "Material.h"
+#include "DrawingPolicy.h"
 
 #include <functional>
 
 class FPrimitiveSceneInfo;
+class FProjectedShadowInfo;
 class FViewInfo;
 class FMaterialRenderProxy;
+template <bool bRenderingReflectiveShadowMaps> class TShadowDepthBasePS;
+class FShadowStaticMeshElement;
 
-void InitShadowDepthMapsPass();
+/**
+* The shadow depth drawing policy's context data.
+*/
+struct FShadowDepthDrawingPolicyContext : FMeshDrawingPolicy::ContextDataType
+{
+	/** CAUTION, this is assumed to be a POD type. We allocate the on the scene allocator and NEVER CALL A DESTRUCTOR.
+	If you want to add non-pod data, not a huge problem, we just need to track and destruct them at the end of the scene.
+	**/
+	/** The projected shadow info for which we are rendering shadow depths. */
+	const FProjectedShadowInfo* ShadowInfo;
+
+	/** Initialization constructor. */
+	explicit FShadowDepthDrawingPolicyContext(const FProjectedShadowInfo* InShadowInfo)
+		: ShadowInfo(InShadowInfo)
+	{}
+};
+/**
+* Outputs no color, but can be used to write the mesh's depth values to the depth buffer.
+*/
+template <bool bRenderingReflectiveShadowMaps>
+class FShadowDepthDrawingPolicy : public FMeshDrawingPolicy
+{
+public:
+	typedef FShadowDepthDrawingPolicyContext ContextDataType;
+
+	FShadowDepthDrawingPolicy(
+		const FMaterial* InMaterialResource,
+		bool bInDirectionalLight,
+		bool bInOnePassPointLightShadow,
+		bool bInPreShadow,
+		//const FMeshDrawingPolicyOverrideSettings& InOverrideSettings,
+		//ERHIFeatureLevel::Type InFeatureLevel,
+		const FVertexFactory* InVertexFactory = 0,
+		const FMaterialRenderProxy* InMaterialRenderProxy = 0,
+		bool bReverseCulling = false
+	);
+
+	void UpdateElementState(FShadowStaticMeshElement& State);
+
+	FShadowDepthDrawingPolicy& operator = (const FShadowDepthDrawingPolicy& Other)
+	{
+		VertexShader = Other.VertexShader;
+		GeometryShader = Other.GeometryShader;
+		HullShader = Other.HullShader;
+		DomainShader = Other.DomainShader;
+		PixelShader = Other.PixelShader;
+		bDirectionalLight = Other.bDirectionalLight;
+		bReverseCulling = Other.bReverseCulling;
+		bOnePassPointLightShadow = Other.bOnePassPointLightShadow;
+		bUsePositionOnlyVS = Other.bUsePositionOnlyVS;
+		bPreShadow = Other.bPreShadow;
+		(FMeshDrawingPolicy&)*this = (const FMeshDrawingPolicy&)Other;
+		return *this;
+	}
+
+	void SetSharedState(const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View, const ContextDataType PolicyContext) const;
+
+	/**
+	* Create bound shader state using the vertex decl from the mesh draw policy
+	* as well as the shaders needed to draw the mesh
+	* @return new bound shader state object
+	*/
+	FBoundShaderStateInput GetBoundShaderStateInput() const;
+
+	void SetMeshRenderState(
+		const FSceneView& View,
+		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
+		const FMeshBatch& Mesh,
+		int32 BatchElementIndex,
+		const FDrawingPolicyRenderState& DrawRenderState,
+// 		const ElementDataType& ElementData,
+		const ContextDataType PolicyContext
+	) const;
+
+	template<bool T2>
+	friend int32 CompareDrawingPolicy(const FShadowDepthDrawingPolicy<T2>& A, const FShadowDepthDrawingPolicy<T2>& B);
+
+	bool IsReversingCulling() const
+	{
+		return bReverseCulling;
+	}
+
+private:
+
+	class FShadowDepthVS* VertexShader;
+	class FOnePassPointShadowDepthGS* GeometryShader;
+	TShadowDepthBasePS<bRenderingReflectiveShadowMaps>* PixelShader;
+	class FBaseHS* HullShader;
+	class FShadowDepthDS* DomainShader;
+
+public:
+
+	uint32 bDirectionalLight : 1;
+	uint32 bReverseCulling : 1;
+	uint32 bOnePassPointLightShadow : 1;
+	uint32 bUsePositionOnlyVS : 1;
+	uint32 bPreShadow : 1;
+};
+
+
+
+/**
+* A drawing policy factory for the shadow depth drawing policy.
+*/
+class FShadowDepthDrawingPolicyFactory
+{
+public:
+
+	enum { bAllowSimpleElements = false };
+
+	struct ContextType
+	{
+		const FProjectedShadowInfo* ShadowInfo;
+
+		ContextType(const FProjectedShadowInfo* InShadowInfo) :
+			ShadowInfo(InShadowInfo)
+		{}
+	};
+
+	static void AddStaticMesh(FScene* Scene, FStaticMesh* StaticMesh);
+
+	static bool DrawDynamicMesh(
+		const FSceneView& View,
+		ContextType Context,
+		const FMeshBatch& Mesh,
+		bool bPreFog,
+		const FDrawingPolicyRenderState& DrawRenderState,
+		const FPrimitiveSceneProxy* PrimitiveSceneProxy
+	);
+};
 
 /** A single static mesh element for shadow depth rendering. */
 class FShadowStaticMeshElement
@@ -58,6 +191,7 @@ public:
 	const FStaticMesh* Mesh;
 	bool bIsTwoSided;
 };
+
 
 enum EShadowDepthRenderMode
 {
@@ -281,6 +415,8 @@ public:
 		bool bInReflectiveShadowMap
 	);
 
+	float GetShaderDepthBias() const { return ShaderDepthBias; }
+
 	void RenderDepth(class FSceneRenderer* SceneRenderer, FSetShadowRenderTargetFunction SetShadowRenderTargets, EShadowDepthRenderMode RenderMode);
 
 	void SetStateForDepth(EShadowDepthRenderMode RenderMode, FDrawingPolicyRenderState& DrawRenderState);
@@ -328,4 +464,58 @@ private:
 	void RenderDepthInner(class FSceneRenderer* SceneRenderer, const FViewInfo* FoundView, FSetShadowRenderTargetFunction SetShadowRenderTargets, EShadowDepthRenderMode RenderMode);
 
 	void RenderDepthDynamic(class FSceneRenderer* SceneRenderer, const FViewInfo* FoundView, const FDrawingPolicyRenderState& DrawRenderState);
+
+	template <bool bReflectiveShadowmap> friend void DrawShadowMeshElements(const FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState, const FProjectedShadowInfo& ShadowInfo);
+
+	friend class FShadowDepthVS;
+	template <bool bRenderingReflectiveShadowMaps> friend class TShadowDepthBasePS;
+	friend class FShadowVolumeBoundProjectionVS;
+	friend class FShadowProjectionPS;
+	friend class FShadowDepthDrawingPolicyFactory;
+};
+
+/** Shader parameters for rendering the depth of a mesh for shadowing. */
+class FShadowDepthShaderParameters
+{
+public:
+
+	void Bind(const FShaderParameterMap& ParameterMap)
+	{
+		ProjectionMatrix.Bind(ParameterMap, ("ProjectionMatrix"));
+		ShadowParams.Bind(ParameterMap, ("ShadowParams"));
+		ClampToNearPlane.Bind(ParameterMap, ("bClampToNearPlane"));
+	}
+
+	template<typename ShaderRHIParamRef>
+	void Set(ShaderRHIParamRef ShaderRHI, const FSceneView& View, const FProjectedShadowInfo* ShadowInfo, const FMaterialRenderProxy* MaterialRenderProxy)
+	{
+		SetShaderValue(
+			ShaderRHI,
+			ProjectionMatrix,
+			FTranslationMatrix(ShadowInfo->PreShadowTranslation - View.ViewMatrices.GetPreViewTranslation()) * ShadowInfo->SubjectAndReceiverMatrix
+		);
+
+		SetShaderValue(ShaderRHI, ShadowParams, Vector2(ShadowInfo->GetShaderDepthBias(), ShadowInfo->InvMaxSubjectDepth));
+		// Only clamp vertices to the near plane when rendering whole scene directional light shadow depths or preshadows from directional lights
+		const bool bClampToNearPlaneValue = ShadowInfo->IsWholeSceneDirectionalShadow() || (ShadowInfo->bPreShadow && ShadowInfo->bDirectionalLight);
+		SetShaderValue(ShaderRHI, ClampToNearPlane, bClampToNearPlaneValue ? 1.0f : 0.0f);
+	}
+
+	/** Set the vertex shader parameter values. */
+	void SetVertexShader(FShader* VertexShader, const FSceneView& View, const FProjectedShadowInfo* ShadowInfo, const FMaterialRenderProxy* MaterialRenderProxy)
+	{
+		Set(VertexShader->GetVertexShader(), View, ShadowInfo, MaterialRenderProxy);
+	}
+
+	/** Set the domain shader parameter values. */
+	void SetDomainShader(FShader* DomainShader, const FSceneView& View, const FProjectedShadowInfo* ShadowInfo, const FMaterialRenderProxy* MaterialRenderProxy)
+	{
+		Set(DomainShader->GetDomainShader(), View, ShadowInfo, MaterialRenderProxy);
+	}
+
+
+private:
+	FShaderParameter ProjectionMatrix;
+	FShaderParameter ShadowParams;
+	FShaderParameter ClampToNearPlane;
 };

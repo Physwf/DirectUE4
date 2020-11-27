@@ -91,7 +91,7 @@ struct FShaderCompilerEnvironment
 
 	std::map<std::string, std::shared_ptr<std::string>> IncludeVirtualPathToExternalContentsMap;
 
-	//std::vector<uint32> CompilerFlags;
+	std::vector<uint32> CompilerFlags;
 	//std::map<uint32, uint8> RenderTargetOutputFormatsMap;
 	//std::map<std::string, FResourceTableEntry> ResourceTableMap;
 	//std::map<std::string, uint32> ResourceTableLayoutHashes;

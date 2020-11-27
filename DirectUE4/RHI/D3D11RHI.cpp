@@ -1630,3 +1630,9 @@ void DrawRectangle(float X, float Y, float SizeX, float SizeY, float U, float V,
 
 int32 GMaxShadowDepthBufferSizeX = 2048;
 int32 GMaxShadowDepthBufferSizeY = 2048;
+
+void RHISetViewport(uint32 MinX, uint32 MinY, float MinZ, uint32 MaxX, uint32 MaxY, float MaxZ)
+{
+	D3D11_VIEWPORT VP = { (FLOAT)MinX ,(FLOAT)MinY ,(FLOAT)MaxX - (FLOAT)MinX,(FLOAT)MaxY - (FLOAT)MinY, MinZ ,MaxZ };
+	D3D11DeviceContext->RSSetViewports(1, &VP);
+}

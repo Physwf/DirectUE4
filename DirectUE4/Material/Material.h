@@ -420,7 +420,7 @@ public:
 // 	virtual bool IsUsedWithStaticLighting() const { return false; }
 // 	virtual	bool IsUsedWithMorphTargets() const { return false; }
 // 	virtual bool IsUsedWithSplineMeshes() const { return false; }
-// 	virtual bool IsUsedWithInstancedStaticMeshes() const { return false; }
+	virtual bool IsUsedWithInstancedStaticMeshes() const { return false; }
 // 	virtual bool IsUsedWithAPEXCloth() const { return false; }
 // 	virtual bool IsUsedWithUI() const { return false; }
 // 	virtual bool IsUsedWithGeometryCache() const { return false; }
@@ -483,7 +483,13 @@ public:
 // 			&& !IsWireframe();
 		return true;
 	}
-
+	inline bool ShouldCastDynamicShadows() const
+	{
+		return GetShadingModel() != MSM_Unlit &&
+			(GetBlendMode() == BLEND_Opaque ||
+				GetBlendMode() == BLEND_Masked ||
+				(GetBlendMode() == BLEND_Translucent && GetCastDynamicShadowAsMasked()));
+	}
 	bool MaterialMayModifyMeshPosition() const;
 
 	bool MaterialUsesPixelDepthOffset() const;
@@ -554,7 +560,7 @@ public:
 // 	virtual bool IsUsedWithStaticLighting() const override;
 // 	virtual bool IsUsedWithMorphTargets() const override;
 // 	virtual bool IsUsedWithSplineMeshes() const override;
-// 	virtual bool IsUsedWithInstancedStaticMeshes() const override;
+	virtual bool IsUsedWithInstancedStaticMeshes() const override;
 // 	virtual bool IsUsedWithAPEXCloth() const override;
 // 	virtual bool IsUsedWithGeometryCache() const override;
 	virtual enum EMaterialTessellationMode GetTessellationMode() const override;

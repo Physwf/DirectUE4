@@ -26,7 +26,7 @@ void FMeshDrawingPolicy::DrawMesh(ID3D11DeviceContext* Context, const FSceneView
 	Context->DrawIndexed(BatchElement.NumPrimitives*3, BatchElement.FirstIndex, BatchElement.BaseVertexIndex);
 }
 
-void FMeshDrawingPolicy::SetSharedState(ID3D11DeviceContext* Context, const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View/*, const ContextDataType PolicyContext*/) const
+void FMeshDrawingPolicy::SetSharedState(ID3D11DeviceContext* Context, const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View, const ContextDataType PolicyContext) const
 {
 	VertexFactory->SetStreams(Context);
 }

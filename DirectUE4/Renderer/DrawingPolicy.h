@@ -10,7 +10,7 @@
 
 struct FDrawingPolicyRenderState
 {
-	FDrawingPolicyRenderState(const FSceneView& View, std::shared_ptr<FUniformBuffer> InPassUniformBuffer = nullptr) :
+	FDrawingPolicyRenderState(const FSceneView& View, FUniformBuffer* InPassUniformBuffer = nullptr) :
 		BlendState(nullptr)
 		, DepthStencilState(nullptr)
 		, DepthStencilAccess(FExclusiveDepthStencil::DepthRead_StencilRead)
@@ -98,12 +98,12 @@ public:
 		return ViewUniformBuffer;
 	}
 
-	inline void SetPassUniformBuffer(std::shared_ptr<FUniformBuffer> InPassUniformBuffer)
+	inline void SetPassUniformBuffer(FUniformBuffer* InPassUniformBuffer)
 	{
 		PassUniformBuffer = InPassUniformBuffer;
 	}
 
-	inline std::shared_ptr<FUniformBuffer> GetPassUniformBuffer() const
+	inline FUniformBuffer* GetPassUniformBuffer() const
 	{
 		return PassUniformBuffer;
 	}
@@ -146,7 +146,7 @@ private:
 	FExclusiveDepthStencil::Type	DepthStencilAccess;
 
 	TUniformBufferPtr<FViewUniformShaderParameters>	ViewUniformBuffer;
-	std::shared_ptr<FUniformBuffer>	PassUniformBuffer;
+	FUniformBuffer*					PassUniformBuffer;
 	uint32							StencilRef;
 
 	//not sure if those should belong here
@@ -167,8 +167,8 @@ void CommitGraphicsPipelineState(const DrawingPolicyType& DrawingPolicy, const F
 	//GraphicsPSOInit.RasterizerState = DrawingPolicy.ComputeRasterizerState(DrawRenderState.GetViewOverrideFlags());
 
 	D3D11DeviceContext->IASetPrimitiveTopology(DrawingPolicy.GetPrimitiveType());
-	D3D11DeviceContext->VSSetShader(BoundShaderStateInput.VertexShaderRHI.Get(), 0, 0);
-	D3D11DeviceContext->PSSetShader(BoundShaderStateInput.PixelShaderRHI.Get(), 0, 0);
+	D3D11DeviceContext->VSSetShader(BoundShaderStateInput.VertexShaderRHI, 0, 0);
+	D3D11DeviceContext->PSSetShader(BoundShaderStateInput.PixelShaderRHI, 0, 0);
 	D3D11DeviceContext->RSSetState(TStaticRasterizerState<>::GetRHI());
 
 	//check(DrawRenderState.GetDepthStencilState());
@@ -199,6 +199,16 @@ void CommitGraphicsPipelineState(const DrawingPolicyType& DrawingPolicy, const F
 class FMeshDrawingPolicy
 {
 public:
+	struct ElementDataType {};
+
+	/** Context data required by the drawing policy that is not known when caching policies in static mesh draw lists. */
+	struct ContextDataType
+	{
+		ContextDataType(const bool InbIsInstancedStereo) : bIsInstancedStereo(InbIsInstancedStereo) {};
+		ContextDataType() : bIsInstancedStereo(false) {};
+		bool bIsInstancedStereo;
+	};
+
 	FMeshDrawingPolicy(
 		const FVertexFactory* InVertexFactory,
 		const FMaterialRenderProxy* InMaterialRenderProxy,
@@ -224,7 +234,7 @@ public:
 
 	void SetupPipelineState(FDrawingPolicyRenderState& DrawRenderState, const FSceneView& View) const {}
 
-	void SetSharedState(ID3D11DeviceContext* Context, const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View/*, const FMeshDrawingPolicy::ContextDataType PolicyContext*/) const;
+	void SetSharedState(ID3D11DeviceContext* Context, const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View, const FMeshDrawingPolicy::ContextDataType PolicyContext) const;
 
 	const std::shared_ptr<std::vector<D3D11_INPUT_ELEMENT_DESC>>& GetVertexDeclaration() const;
 

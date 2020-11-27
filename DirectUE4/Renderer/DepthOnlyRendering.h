@@ -10,10 +10,20 @@ template<bool>
 class TDepthOnlyVS;
 
 class FDepthOnlyPS;
+class FPrimitiveSceneProxy;
 
 class FDepthDrawingPolicy : public FMeshDrawingPolicy
 {
 public:
+	struct ContextDataType : public FMeshDrawingPolicy::ContextDataType
+	{
+		explicit ContextDataType(const bool InbIsInstancedStereo) : FMeshDrawingPolicy::ContextDataType(InbIsInstancedStereo), bIsInstancedStereoEmulated(false) {};
+		ContextDataType(const bool InbIsInstancedStereo, const bool InbIsInstancedStereoEmulated) : FMeshDrawingPolicy::ContextDataType(InbIsInstancedStereo), bIsInstancedStereoEmulated(InbIsInstancedStereoEmulated) {};
+		ContextDataType() : bIsInstancedStereoEmulated(false) {};
+
+		bool bIsInstancedStereoEmulated;
+	};
+
 	FDepthDrawingPolicy(
 		const FVertexFactory* InVertexFactory,
 		const FMaterialRenderProxy* InMaterialRenderProxy,
@@ -23,14 +33,14 @@ public:
 		float MobileColorValue
 	);
 
-	void SetSharedState(const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View/*, const FDepthDrawingPolicy::ContextDataType PolicyContext*/) const;
+	void SetSharedState(const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View, const FDepthDrawingPolicy::ContextDataType PolicyContext) const;
 
 	FBoundShaderStateInput GetBoundShaderStateInput() const;
 
 	void SetMeshRenderState(
 		ID3D11DeviceContext* Context,
 		const FSceneView& View,
-		//const FPrimitiveSceneProxy* PrimitiveSceneProxy,
+		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		const FMeshBatch& Mesh,
 		int32 BatchElementIndex,
 		const FDrawingPolicyRenderState& DrawRenderState/*,*/
@@ -51,13 +61,13 @@ class FPositionOnlyDepthDrawingPolicy : public FMeshDrawingPolicy
 {
 public:
 
-	// 	struct ContextDataType : public FMeshDrawingPolicy::ContextDataType
-	// 	{
-	// 		explicit ContextDataType(const bool InbIsInstancedStereo) : FMeshDrawingPolicy::ContextDataType(InbIsInstancedStereo), bIsInstancedStereoEmulated(false) {};
-	// 		ContextDataType(const bool InbIsInstancedStereo, const bool InbIsInstancedStereoEmulated) : FMeshDrawingPolicy::ContextDataType(InbIsInstancedStereo), bIsInstancedStereoEmulated(InbIsInstancedStereoEmulated) {};
-	// 		ContextDataType() : bIsInstancedStereoEmulated(false) {};
-	// 		bool bIsInstancedStereoEmulated;
-	// 	};
+	struct ContextDataType : public FMeshDrawingPolicy::ContextDataType
+	{
+		explicit ContextDataType(const bool InbIsInstancedStereo) : FMeshDrawingPolicy::ContextDataType(InbIsInstancedStereo), bIsInstancedStereoEmulated(false) {};
+		ContextDataType(const bool InbIsInstancedStereo, const bool InbIsInstancedStereoEmulated) : FMeshDrawingPolicy::ContextDataType(InbIsInstancedStereo), bIsInstancedStereoEmulated(InbIsInstancedStereoEmulated) {};
+		ContextDataType() : bIsInstancedStereoEmulated(false) {};
+		bool bIsInstancedStereoEmulated;
+	};
 
 	FPositionOnlyDepthDrawingPolicy(
 		const FVertexFactory* InVertexFactory,
@@ -78,7 +88,7 @@ public:
 	// 		DRAWING_POLICY_MATCH_END
 	// 	}
 
-	void SetSharedState(ID3D11DeviceContext* Context, const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View/*,*/ /*const FPositionOnlyDepthDrawingPolicy::ContextDataType PolicyContext*/) const;
+	void SetSharedState(ID3D11DeviceContext* Context, const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View,const FPositionOnlyDepthDrawingPolicy::ContextDataType PolicyContext) const;
 
 	/**
 	* Create bound shader state using the vertex decl from the mesh draw policy
@@ -90,7 +100,7 @@ public:
 	void SetMeshRenderState(
 		ID3D11DeviceContext* Context,
 		const FSceneView& View,
-		//const FPrimitiveSceneProxy* PrimitiveSceneProxy,
+		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		const FMeshBatch& Mesh,
 		int32 BatchElementIndex,
 	const FDrawingPolicyRenderState& DrawRenderState/*,*/

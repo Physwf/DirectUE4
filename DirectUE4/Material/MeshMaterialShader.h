@@ -2,6 +2,7 @@
 
 #include "MaterialShader.h"
 #include "VertexFactory.h"
+#include "PrimitiveSceneProxy.h"
 
 struct FMeshBatchElement;
 struct FDrawingPolicyRenderState;
@@ -59,7 +60,7 @@ public:
 		const ShaderRHIParamRef ShaderRHI,
 		const FVertexFactory* VertexFactory,
 		const FSceneView& View,
-		//const FPrimitiveSceneProxy* Proxy,
+		const FPrimitiveSceneProxy* Proxy,
 		const FMeshBatchElement& BatchElement,
 		const FDrawingPolicyRenderState& DrawRenderState,
 		uint32 DataFlags = 0
@@ -88,7 +89,7 @@ void FMeshMaterialShader::SetMesh(
 	const ShaderRHIParamRef ShaderRHI,
 	const FVertexFactory* VertexFactory,
 	const FSceneView& View,
-	/*const FPrimitiveSceneProxy* Proxy, */
+	const FPrimitiveSceneProxy* Proxy, 
 	const FMeshBatchElement& BatchElement,
 	const FDrawingPolicyRenderState& DrawRenderState,
 	uint32 DataFlags /*= 0 */)

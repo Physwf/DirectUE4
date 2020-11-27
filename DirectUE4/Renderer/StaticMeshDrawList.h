@@ -86,18 +86,21 @@ class TStaticMeshDrawList
 // 			return sizeof(*this) + CompactElements.GetAllocatedSize() + Elements.GetAllocatedSize();
 // 		}
 	};
-	int32 DrawElement(ID3D11DeviceContext* Context, const FViewInfo& View, /*const typename DrawingPolicyType::ContextDataType PolicyContext,*/ FDrawingPolicyRenderState& DrawRenderState, const FElement& Element, /*uint64 BatchElementMask, */FDrawingPolicyLink* DrawingPolicyLink, bool &bDrawnShared);
+	int32 DrawElement(ID3D11DeviceContext* Context, const FViewInfo& View, const typename DrawingPolicyType::ContextDataType PolicyContext, FDrawingPolicyRenderState& DrawRenderState, const FElement& Element, /*uint64 BatchElementMask, */FDrawingPolicyLink* DrawingPolicyLink, bool &bDrawnShared);
 public:
 	void AddMesh(
 		FStaticMesh* Mesh,
 		//const ElementPolicyDataType& PolicyData,
 		const DrawingPolicyType& InDrawingPolicy//,
 	);
-
+	inline bool DrawVisible(ID3D11DeviceContext* Context, const FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState/*, const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap, const TArray<uint64, SceneRenderingAllocator>& BatchVisibilityArray*/)
+	{
+		return DrawVisible(Context, View, typename DrawingPolicyType::ContextDataType(), DrawRenderState/*, StaticMeshVisibilityMap, BatchVisibilityArray*/);
+	}
 	bool DrawVisible(
 		ID3D11DeviceContext* Context, 
 		const FViewInfo& View, 
-		/*const typename DrawingPolicyType::ContextDataType PolicyContext, */
+		const typename DrawingPolicyType::ContextDataType PolicyContext, 
 		const FDrawingPolicyRenderState& DrawRenderState//,
 		/*const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap,*/ 
 		/*const TArray<uint64, SceneRenderingAllocator>& BatchVisibilityArray*/);
@@ -120,7 +123,7 @@ template<typename DrawingPolicyType>
 bool TStaticMeshDrawList<DrawingPolicyType>::DrawVisible(
 	ID3D11DeviceContext* Context, 
 	const FViewInfo& View, 
-	/*const typename DrawingPolicyType::ContextDataType PolicyContext, */ 
+	const typename DrawingPolicyType::ContextDataType PolicyContext,  
 	const FDrawingPolicyRenderState& DrawRenderState//, 
 	/*const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap,*/ 
 	/*const TArray<uint64, SceneRenderingAllocator>& BatchVisibilityArray*/)
@@ -138,7 +141,7 @@ bool TStaticMeshDrawList<DrawingPolicyType>::DrawVisible(
 			const FElement& Element = DrawingPolicyLink->Elements[ElementIndex];
 			// Avoid the cache miss looking up batch visibility if there is only one element.
 			//uint64 BatchElementMask = Element.Mesh->bRequiresPerElementVisibility ? (*BatchVisibilityArray)[Element.Mesh->BatchVisibilityId] : ((1ull << SubCount) - 1);
-			Count += DrawElement(Context, View, /*PolicyContext, */DrawRenderStateLocal, Element, /*BatchElementMask,*/ DrawingPolicyLink, bDrawnShared);
+			Count += DrawElement(Context, View, PolicyContext, DrawRenderStateLocal, Element, /*BatchElementMask,*/ DrawingPolicyLink, bDrawnShared);
 		}
 	}
 	return true;
@@ -149,7 +152,7 @@ template<typename DrawingPolicyType>
 int32 TStaticMeshDrawList<DrawingPolicyType>::DrawElement(
 	ID3D11DeviceContext* Context, 
 	const FViewInfo& View, 
-	/*const typename DrawingPolicyType::ContextDataType PolicyContext,*/ 
+	const typename DrawingPolicyType::ContextDataType PolicyContext,
 	FDrawingPolicyRenderState& DrawRenderState, 
 	const FElement& Element, 
 	/*uint64 BatchElementMask, */
@@ -180,7 +183,7 @@ int32 TStaticMeshDrawList<DrawingPolicyType>::DrawElement(
 		}
 
 		CommitGraphicsPipelineState(DrawingPolicyLink->DrawingPolicy, DrawRenderState, BoundShaderStateInput);
-		DrawingPolicyLink->DrawingPolicy.SetSharedState(D3D11DeviceContext,  DrawRenderState, &View/*, PolicyContext*/);
+		DrawingPolicyLink->DrawingPolicy.SetSharedState(D3D11DeviceContext,  DrawRenderState, &View, PolicyContext);
 
 		bDrawnShared = true;
 	}
@@ -192,11 +195,11 @@ int32 TStaticMeshDrawList<DrawingPolicyType>::DrawElement(
 
 
 	int32 BatchElementIndex = 0;
-
+	const FPrimitiveSceneProxy* Proxy = Element.Mesh->PrimitiveSceneInfo->Proxy;
 	DrawingPolicyLink->DrawingPolicy.SetMeshRenderState(
 		Context,
 		View,
-		//Proxy,
+		Proxy,
 		*Element.Mesh,
 		BatchElementIndex,
 		DrawRenderState//,

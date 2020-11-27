@@ -743,6 +743,12 @@ bool FMaterialResource::IsSpecialEngineMaterial() const
 	return true;
 }
 
+bool FMaterialResource::IsUsedWithInstancedStaticMeshes() const
+{
+	//return Material->bUsedWithInstancedStaticMeshes;
+	return true;
+}
+
 enum EMaterialTessellationMode FMaterialResource::GetTessellationMode() const
 {
 	//return (EMaterialTessellationMode)Material->D3D11TessellationMode;
