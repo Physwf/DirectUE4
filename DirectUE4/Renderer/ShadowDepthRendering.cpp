@@ -5,6 +5,7 @@
 #include "GlobalShader.h"
 #include "ShaderParameters.h"
 #include "ShaderBaseClasses.h"
+#include "ScreenRendering.h"
 
 /**
 * A vertex shader for rendering the depth of a mesh.
@@ -862,10 +863,219 @@ void FProjectedShadowInfo::RenderDepthDynamic(class FSceneRenderer* SceneRendere
 		FShadowDepthDrawingPolicyFactory::DrawDynamicMesh(*FoundView, Context, MeshBatch, true, DrawRenderState, MeshBatchAndRelevance.PrimitiveSceneProxy/*, MeshBatch.BatchHitProxyId*/);
 	}
 }
+class FCopyShadowMapsCubeGS : public FGlobalShader
+{
+	DECLARE_SHADER_TYPE(FCopyShadowMapsCubeGS, Global);
+public:
+
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
+	{
+		//return RHISupportsGeometryShaders(Parameters.Platform) && IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
+		return true;
+	}
+
+	FCopyShadowMapsCubeGS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) :
+		FGlobalShader(Initializer)
+	{
+	}
+	FCopyShadowMapsCubeGS() {}
+};
+
+IMPLEMENT_SHADER_TYPE(, FCopyShadowMapsCubeGS, ("CopyShadowMaps.usf"), ("CopyCubeDepthGS"), SF_Geometry);
+
+class FCopyShadowMapsCubePS : public FGlobalShader
+{
+	DECLARE_SHADER_TYPE(FCopyShadowMapsCubePS, Global);
+public:
+
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
+	{
+		//return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
+		return true;
+	}
+
+	FCopyShadowMapsCubePS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) :
+		FGlobalShader(Initializer)
+	{
+		ShadowDepthTexture.Bind(Initializer.ParameterMap, ("ShadowDepthCubeTexture"));
+		ShadowDepthSampler.Bind(Initializer.ParameterMap, ("ShadowDepthSampler"));
+	}
+	FCopyShadowMapsCubePS() {}
+
+	void SetParameters(const FSceneView& View, PooledRenderTarget* SourceShadowMap)
+	{
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(GetPixelShader(), View.ViewUniformBuffer.get());
+
+		SetTextureParameter(GetPixelShader(), ShadowDepthTexture, ShadowDepthSampler, TStaticSamplerState<D3D11_FILTER_MIN_MAG_MIP_POINT, D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_CLAMP>::GetRHI(), SourceShadowMap->ShaderResourceTexture->GetShaderResourceView());
+	}
+
+	FShaderResourceParameter ShadowDepthTexture;
+	FShaderResourceParameter ShadowDepthSampler;
+};
+
+IMPLEMENT_SHADER_TYPE(, FCopyShadowMapsCubePS, ("CopyShadowMaps.usf"), ("CopyCubeDepthPS"), SF_Pixel);
+
+/** */
+class FCopyShadowMaps2DPS : public FGlobalShader
+{
+	DECLARE_SHADER_TYPE(FCopyShadowMaps2DPS, Global);
+public:
+
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
+	{
+		//return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
+		return true;
+	}
+
+	FCopyShadowMaps2DPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) :
+		FGlobalShader(Initializer)
+	{
+		ShadowDepthTexture.Bind(Initializer.ParameterMap, ("ShadowDepthTexture"));
+		ShadowDepthSampler.Bind(Initializer.ParameterMap, ("ShadowDepthSampler"));
+	}
+	FCopyShadowMaps2DPS() {}
+
+	void SetParameters(const FSceneView& View, PooledRenderTarget* SourceShadowMap)
+	{
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(GetPixelShader(), View.ViewUniformBuffer.get());
+
+		SetTextureParameter(GetPixelShader(), ShadowDepthTexture, ShadowDepthSampler, TStaticSamplerState<D3D11_FILTER_MIN_MAG_MIP_POINT, D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_CLAMP>::GetRHI(), SourceShadowMap->ShaderResourceTexture->GetShaderResourceView());
+	}
+
+	FShaderResourceParameter ShadowDepthTexture;
+	FShaderResourceParameter ShadowDepthSampler;
+};
+
+IMPLEMENT_SHADER_TYPE(, FCopyShadowMaps2DPS, ("CopyShadowMaps.usf"), ("Copy2DDepthPS"), SF_Pixel);
 
 void FProjectedShadowInfo::CopyCachedShadowMap(const FDrawingPolicyRenderState& DrawRenderState, FSceneRenderer* SceneRenderer, const FViewInfo& View, FSetShadowRenderTargetFunction SetShadowRenderTargets)
 {
+	assert(CacheMode == SDCM_MovablePrimitivesOnly);
+	const FCachedShadowMapData& CachedShadowMapData = SceneRenderer->Scene->CachedShadowMaps.at(GetLightSceneInfo().Id);
 
+	//FGraphicsPipelineStateInitializer GraphicsPSOInit;
+	//DrawRenderState.ApplyToPSO(GraphicsPSOInit);
+	ID3D11BlendState* BlendState = DrawRenderState.GetBlendState();
+	ID3D11DepthStencilState* DepthStencilState = DrawRenderState.GetDepthStencilState();
+	uint32 StencilRef = DrawRenderState.GetStencilRef();
+
+	if (CachedShadowMapData.bCachedShadowMapHasPrimitives && CachedShadowMapData.ShadowMap.IsValid())
+	{
+		//SCOPED_DRAW_EVENT(RHICmdList, CopyCachedShadowMap);
+
+		//RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
+		//GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
+		// No depth tests, so we can replace the clear
+		//GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<true, CF_Always>::GetRHI();
+
+		ID3D11RasterizerState* RasterizerState = TStaticRasterizerState<D3D11_FILL_SOLID, D3D11_CULL_NONE>::GetRHI();
+		DepthStencilState = TStaticDepthStencilState<true, D3D11_COMPARISON_ALWAYS>::GetRHI();
+
+		//extern TGlobalResource<FFilterVertexDeclaration> GFilterVertexDeclaration;
+		extern ID3D11InputLayout* GFilterInputLayout;
+
+		if (bOnePassPointLightShadow)
+		{
+			//if (RHISupportsGeometryShaders(GShaderPlatformForFeatureLevel[SceneRenderer->FeatureLevel]))
+			{
+				// Set shaders and texture
+				TShaderMapRef<TScreenVSForGS<false>> ScreenVertexShader(View.ShaderMap);
+				TShaderMapRef<FCopyShadowMapsCubeGS> GeometryShader(View.ShaderMap);
+				TShaderMapRef<FCopyShadowMapsCubePS> PixelShader(View.ShaderMap);
+
+				//GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
+				//GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*ScreenVertexShader);
+				//GraphicsPSOInit.BoundShaderState.GeometryShaderRHI = GETSAFERHISHADER_GEOMETRY(*GeometryShader);
+				//GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+				//GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+				//SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+				//RHICmdList.SetStencilRef(StencilRef);
+
+				D3D11DeviceContext->IASetInputLayout(GFilterInputLayout);
+				D3D11DeviceContext->VSSetShader(ScreenVertexShader->GetVertexShader(),0,0);
+				D3D11DeviceContext->GSSetShader(GeometryShader->GetGeometryShader(), 0, 0);
+				D3D11DeviceContext->PSSetShader(PixelShader->GetPixelShader(), 0, 0);
+				D3D11DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+				D3D11DeviceContext->OMSetBlendState(BlendState, NULL, 0xffffffff);
+				D3D11DeviceContext->OMSetDepthStencilState(DepthStencilState, StencilRef);
+				
+				PixelShader->SetParameters(View, CachedShadowMapData.ShadowMap.DepthTarget.Get());
+
+				DrawRectangle(
+					0, 0,
+					ResolutionX, ResolutionY,
+					BorderSize, BorderSize,
+					ResolutionX, ResolutionY,
+					FIntPoint(ResolutionX, ResolutionY),
+					CachedShadowMapData.ShadowMap.GetSize(),
+					*ScreenVertexShader);
+			}
+// 			else
+// 			{
+// 				check(RHISupportsVertexShaderLayer(GShaderPlatformForFeatureLevel[SceneRenderer->FeatureLevel]));
+// 
+// 				// Set shaders and texture
+// 				TShaderMapRef<TScreenVSForGS<true>> ScreenVertexShader(View.ShaderMap);
+// 				TShaderMapRef<FCopyShadowMapsCubePS> PixelShader(View.ShaderMap);
+// 
+// 				GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
+// 				GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*ScreenVertexShader);
+// 				GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+// 				GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+// 
+// 				SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+// 				RHICmdList.SetStencilRef(StencilRef);
+// 
+// 				PixelShader->SetParameters(RHICmdList, View, CachedShadowMapData.ShadowMap.DepthTarget.GetReference());
+// 
+// 				DrawRectangle(
+// 					RHICmdList,
+// 					0, 0,
+// 					ResolutionX, ResolutionY,
+// 					BorderSize, BorderSize,
+// 					ResolutionX, ResolutionY,
+// 					FIntPoint(ResolutionX, ResolutionY),
+// 					CachedShadowMapData.ShadowMap.GetSize(),
+// 					*ScreenVertexShader,
+// 					EDRF_Default,
+// 					6);
+// 			}
+		}
+		else
+		{
+			// Set shaders and texture
+			TShaderMapRef<FScreenVS> ScreenVertexShader(View.ShaderMap);
+			TShaderMapRef<FCopyShadowMaps2DPS> PixelShader(View.ShaderMap);
+
+			//GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
+			//GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*ScreenVertexShader);
+			//GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+			//GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+			//SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+			//RHICmdList.SetStencilRef(StencilRef);
+
+			D3D11DeviceContext->IASetInputLayout(GFilterInputLayout);
+			D3D11DeviceContext->VSSetShader(ScreenVertexShader->GetVertexShader(), 0, 0);
+			D3D11DeviceContext->PSSetShader(PixelShader->GetPixelShader(), 0, 0);
+			D3D11DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			D3D11DeviceContext->OMSetBlendState(BlendState,NULL,0xffffffff);
+			D3D11DeviceContext->OMSetDepthStencilState(DepthStencilState, StencilRef);
+
+			PixelShader->SetParameters(View, CachedShadowMapData.ShadowMap.DepthTarget.Get());
+
+			DrawRectangle(
+				0, 0,
+				ResolutionX, ResolutionY,
+				BorderSize, BorderSize,
+				ResolutionX, ResolutionY,
+				FIntPoint(ResolutionX, ResolutionY),
+				CachedShadowMapData.ShadowMap.GetSize(),
+				*ScreenVertexShader);
+		}
+	}
 }
 
 void FProjectedShadowInfo::RenderDepthInner(class FSceneRenderer* SceneRenderer, const FViewInfo* FoundView, FSetShadowRenderTargetFunction SetShadowRenderTargets, EShadowDepthRenderMode RenderMode)

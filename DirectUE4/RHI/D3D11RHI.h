@@ -1682,6 +1682,45 @@ void SetShaderValueArray(
 		);
 	}
 }
+
+/**
+* Sets the value of a shader texture parameter. Template'd on shader type.
+*/
+template<typename ShaderTypeRHIParamRef>
+inline void SetTextureParameter(
+	ShaderTypeRHIParamRef Shader,
+	const FShaderResourceParameter& TextureParameter,
+	const FShaderResourceParameter& SamplerParameter,
+	ID3D11SamplerState* SamplerStateRHI,
+	ID3D11ShaderResourceView* TextureRHI,
+	uint32 ElementIndex = 0
+)
+{
+	// This will trigger if the parameter was not serialized
+	assert(TextureParameter.IsInitialized());
+	assert(SamplerParameter.IsInitialized());
+	if (TextureParameter.IsBound())
+	{
+		if (ElementIndex < TextureParameter.GetNumResources())
+		{
+			SetShaderSRV(Shader, TextureParameter.GetBaseIndex() + ElementIndex, TextureRHI);
+			//RHICmdList.SetShaderTexture(Shader, TextureParameter.GetBaseIndex() + ElementIndex, TextureRHI);
+		}
+	}
+	// @todo ue4 samplerstate Should we maybe pass in two separate values? SamplerElement and TextureElement? Or never allow an array of samplers? Unsure best
+	// if there is a matching sampler for this texture array index (ElementIndex), then set it. This will help with this case:
+	//			Texture2D LightMapTextures[NUM_LIGHTMAP_COEFFICIENTS];
+	//			SamplerState LightMapTexturesSampler;
+	// In this case, we only set LightMapTexturesSampler when ElementIndex is 0, we don't set the sampler state for all 4 textures
+	// This assumes that the all textures want to use the same sampler state
+	if (SamplerParameter.IsBound())
+	{
+		if (ElementIndex < SamplerParameter.GetNumResources())
+		{
+			SetShaderSampler(Shader, SamplerParameter.GetBaseIndex() + ElementIndex, SamplerStateRHI);
+		}
+	}
+}
 struct FBoundShaderStateInput
 {
 	std::shared_ptr<std::vector<D3D11_INPUT_ELEMENT_DESC>> VertexDeclarationRHI;
@@ -1737,7 +1776,7 @@ void DrawRectangle(
 	FIntPoint TargetSize,
 	FIntPoint TextureSize,
 	class FShader* VertexShader,
-	uint32 InstanceCount
+	uint32 InstanceCount = 1
 );
 
 extern int32 GMaxShadowDepthBufferSizeX; 

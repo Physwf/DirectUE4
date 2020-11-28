@@ -57,7 +57,7 @@ public:
 		BlendState = InBlendState;
 	}
 
-	inline const ID3D11BlendState* GetBlendState() const
+	inline ID3D11BlendState* const GetBlendState() const
 	{
 		return BlendState;
 	}
@@ -73,7 +73,7 @@ public:
 		StencilRef = InStencilRef;
 	}
 
-	inline const ID3D11DepthStencilState* GetDepthStencilState() const
+	inline ID3D11DepthStencilState* const GetDepthStencilState() const
 	{
 		return DepthStencilState;
 	}
