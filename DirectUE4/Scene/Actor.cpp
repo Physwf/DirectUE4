@@ -27,7 +27,7 @@ FMatrix AActor::GetWorldMatrix()
 		FPlane(0, 1, 0, 0),
 		FPlane(0, 0, 0, 1)) *FMatrix::DXFormRotation(Rotation);
 	FMatrix T = FMatrix::DXFromTranslation(Position);
-	R.Transpose();
-	T.Transpose();
-	return  T * R;
+	//R.Transpose();
+	//T.Transpose();
+	return  R * T;
 }

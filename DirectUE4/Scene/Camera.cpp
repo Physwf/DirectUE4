@@ -29,6 +29,7 @@ void Camera::SetLen(float fNear, float fFar)
 FSceneView* Camera::CalcSceneView(FSceneViewFamily& ViewFamily, Viewport& VP)
 {
 	ViewInitOptions InitOptions;
+	InitOptions.ViewFamily = &ViewFamily;
 	int32 X = FMath::TruncToInt(Origin.X * VP.GetSizeXY().X);
 	int32 Y = FMath::TruncToInt(Origin.Y * VP.GetSizeXY().Y);
 

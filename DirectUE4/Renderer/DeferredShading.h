@@ -296,7 +296,7 @@ public:
 	//float PreExposure;
 
 	/** Mip bias to apply in material's samplers. */
-	//float MaterialTextureMipBias;
+	float MaterialTextureMipBias;
 
 	/** Precomputed visibility data, the bits are indexed by VisibilityId of a primitive component. */
 	//const uint8* PrecomputedVisibilityData;
@@ -334,7 +334,7 @@ public:
 
 	TShaderMap<FGlobalShaderType>* ShaderMap;
 
-	//bool bIsSnapshot;
+	bool bIsSnapshot;
 
 	// Optional stencil dithering optimization during prepasses
 	//bool bAllowStencilDither;
@@ -433,10 +433,10 @@ public:
 	//inline FVector GetPrevViewDirection() const { return PrevViewInfo.ViewMatrices.GetViewMatrix().GetColumn(2); }
 
 	/** Create a snapshot of this view info on the scene allocator. */
-	//FViewInfo* CreateSnapshot() const;
+	FViewInfo* CreateSnapshot() const;
 
 	/** Destroy all snapshots before we wipe the scene allocator. */
-	//static void DestroyAllSnapshots();
+	static void DestroyAllSnapshots();
 
 	// Get the range in DynamicMeshElements[] for a given PrimitiveIndex
 	// @return range (start is inclusive, end is exclusive)

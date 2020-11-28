@@ -462,6 +462,14 @@ private:
 	* Renders the shadow subject depth, to a particular hacked view
 	*/
 	void RenderDepthInner(class FSceneRenderer* SceneRenderer, const FViewInfo* FoundView, FSetShadowRenderTargetFunction SetShadowRenderTargets, EShadowDepthRenderMode RenderMode);
+	/**
+	* Modifies the passed in view for this shadow
+	*/
+	void ModifyViewForShadow(FViewInfo* FoundView) const;
+	/**
+	* Finds a relevant view for a shadow
+	*/
+	FViewInfo* FindViewForShadow(FSceneRenderer* SceneRenderer) const;
 
 	void RenderDepthDynamic(class FSceneRenderer* SceneRenderer, const FViewInfo* FoundView, const FDrawingPolicyRenderState& DrawRenderState);
 

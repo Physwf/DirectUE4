@@ -14,8 +14,8 @@ FMaterialShader::FMaterialShader(const FMaterialShaderType::CompiledShaderInitia
 
 	SceneTextureParameters.Bind(Initializer);
 
-// 	InstanceCount.Bind(Initializer.ParameterMap, TEXT("InstanceCount"));
-// 	InstanceOffset.Bind(Initializer.ParameterMap, TEXT("InstanceOffset"));
+	InstanceCount.Bind(Initializer.ParameterMap, "InstanceCount");
+	InstanceOffset.Bind(Initializer.ParameterMap, "InstanceOffset");
 	VertexOffset.Bind(Initializer.ParameterMap, "VertexOffset");
 }
 

@@ -6,6 +6,7 @@
 #include "ShaderParameters.h"
 #include "ShaderBaseClasses.h"
 #include "ScreenRendering.h"
+#include "GPUProfiler.h"
 
 /**
 * A vertex shader for rendering the depth of a mesh.
@@ -137,7 +138,7 @@ public:
 				// Don't render ShadowDepth for translucent unlit materials, unless we're injecting emissive
 				&& (Material->ShouldCastDynamicShadows() || Material->ShouldInjectEmissiveIntoLPV()
 					|| Material->ShouldBlockGI())
-				/*&& IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5)*/;
+				&& true /*IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5)*/;
 		}
 		else
 		{
@@ -145,13 +146,13 @@ public:
 				// Masked and WPO materials need their shaders but cannot be used with a position only stream.
 				|| ((!Material->WritesEveryPixel(true) || Material->MaterialMayModifyMeshPosition()) && !bUsePositionOnlyStream))
 				// Only compile one pass point light shaders for feature levels >= SM4
-				&& (ShaderMode != VertexShadowDepth_OnePassPointLight /*|| IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4)*/)
+				&& (ShaderMode != VertexShadowDepth_OnePassPointLight || true/*IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4)*/)
 				// Only compile position-only shaders for vertex factories that support it.
 				&& (!bUsePositionOnlyStream || VertexFactoryType->SupportsPositionOnly())
 				// Don't render ShadowDepth for translucent unlit materials
 				&& Material->ShouldCastDynamicShadows()
 				// Only compile perspective correct light shaders for feature levels >= SM4
-				&& (ShaderMode != VertexShadowDepth_PerspectiveCorrect/* || IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4)*/);
+				&& (ShaderMode != VertexShadowDepth_PerspectiveCorrect || true/*IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4)*/);
 		}
 	}
 
@@ -511,7 +512,7 @@ public:
 			return
 				// Only compile one pass point light shaders for feature levels >= SM4
 				(Material->ShouldCastDynamicShadows() || Material->ShouldInjectEmissiveIntoLPV() || Material->ShouldBlockGI())
-				/*&& IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5)*/;
+				&&  true/*IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5)*/;
 		}
 		else
 		{
@@ -523,10 +524,10 @@ public:
 				// Perspective correct rendering needs a pixel shader and WPO materials can't be overridden with default material.
 				|| (ShaderMode == PixelShadowDepth_PerspectiveCorrect && Material->MaterialMayModifyMeshPosition()))
 				// Only compile one pass point light shaders for feature levels >= SM4
-				&& (ShaderMode != PixelShadowDepth_OnePassPointLight/* || IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4)*/)
+				&& (ShaderMode != PixelShadowDepth_OnePassPointLight || true/*IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4)*/)
 				// Don't render ShadowDepth for translucent unlit materials
 				&& Material->ShouldCastDynamicShadows()
-				/*&& IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4)*/;
+				&& true/*IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4)*/;
 		}
 	}
 
@@ -849,7 +850,19 @@ void FShadowDepthDrawingPolicy<bRenderingReflectiveShadowMaps>::SetSharedState(c
 template <bool bRenderingReflectiveShadowMaps>
 void FShadowDepthDrawingPolicy<bRenderingReflectiveShadowMaps>::UpdateElementState(FShadowStaticMeshElement& State)
 {
+	//FMeshDrawingPolicyOverrideSettings OverrideSettings = ComputeMeshOverrideSettings(*State.Mesh);
+	//OverrideSettings.MeshOverrideFlags |= State.bIsTwoSided ? EDrawingPolicyOverrideFlags::TwoSided : EDrawingPolicyOverrideFlags::None;
 
+	// can be optimized
+	*this = FShadowDepthDrawingPolicy(
+		State.MaterialResource,
+		bDirectionalLight,
+		bOnePassPointLightShadow,
+		bPreShadow,
+		//OverrideSettings,
+		State.Mesh->VertexFactory,
+		State.RenderProxy,
+		State.Mesh->ReverseCulling);
 }
 
 void FProjectedShadowInfo::RenderDepthDynamic(class FSceneRenderer* SceneRenderer, const FViewInfo* FoundView, const FDrawingPolicyRenderState& DrawRenderState)
@@ -1136,6 +1149,63 @@ void FProjectedShadowInfo::RenderDepthInner(class FSceneRenderer* SceneRenderer,
 	RenderDepthDynamic( SceneRenderer, FoundView, DrawRenderState);
 }
 
+void FProjectedShadowInfo::ModifyViewForShadow(FViewInfo* FoundView) const
+{
+	FIntRect OriginalViewRect = FoundView->ViewRect;
+	FoundView->ViewRect.Min.X = 0;
+	FoundView->ViewRect.Min.Y = 0;
+	FoundView->ViewRect.Max.X = ResolutionX;
+	FoundView->ViewRect.Max.Y = ResolutionY;
+
+	//FoundView->ViewMatrices.HackRemoveTemporalAAProjectionJitter();
+
+	// Don't do material texture mip biasing in shadow maps.
+	FoundView->MaterialTextureMipBias = 0;
+
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get();
+	FoundView->CachedViewUniformShaderParameters = new FViewUniformShaderParameters;
+
+	// Override the view matrix so that billboarding primitives will be aligned to the light
+	//FoundView->ViewMatrices.HackOverrideViewMatrixForShadows(ShadowViewMatrix);
+	FBox VolumeBounds[TVC_MAX];
+	FoundView->SetupUniformBufferParameters(
+		SceneContext,
+		VolumeBounds,
+		TVC_MAX,
+		*FoundView->CachedViewUniformShaderParameters);
+
+	FoundView->ViewUniformBuffer = TUniformBufferPtr<FViewUniformShaderParameters>::CreateUniformBufferImmediate(*FoundView->CachedViewUniformShaderParameters);
+
+	// we are going to set this back now because we only want the correct view rect for the uniform buffer. For LOD calculations, we want the rendering viewrect and proj matrix.
+	FoundView->ViewRect = OriginalViewRect;
+
+// 	extern int32 GPreshadowsForceLowestLOD;
+// 
+// 	if (bPreShadow && GPreshadowsForceLowestLOD)
+// 	{
+// 		FoundView->DrawDynamicFlags = EDrawDynamicFlags::ForceLowestLOD;
+// 	}
+
+}
+
+FViewInfo* FProjectedShadowInfo::FindViewForShadow(FSceneRenderer* SceneRenderer) const
+{
+	FViewInfo* FoundView = NULL;
+	for (uint32 ViewIndex = 0; ViewIndex < SceneRenderer->Views.size(); ViewIndex++)
+	{
+		FViewInfo* CheckView = &SceneRenderer->Views[ViewIndex];
+		//const FVisibleLightViewInfo& VisibleLightViewInfo = CheckView->VisibleLightInfos[LightSceneInfo->Id];
+		//FPrimitiveViewRelevance ViewRel = VisibleLightViewInfo.ProjectedShadowViewRelevanceMap[ShadowId];
+		if (/*ViewRel.bShadowRelevance*/true)
+		{
+			FoundView = CheckView;
+			break;
+		}
+	}
+	assert(FoundView);
+	return FoundView;
+}
+
 
 void FProjectedShadowInfo::RenderDepth(class FSceneRenderer* SceneRenderer, FSetShadowRenderTargetFunction SetShadowRenderTargets, EShadowDepthRenderMode RenderMode)
 {
@@ -1169,6 +1239,15 @@ void FProjectedShadowInfo::RenderDepth(class FSceneRenderer* SceneRenderer, FSet
 	}
 
 	RenderDepthInner(SceneRenderer, ShadowDepthView, SetShadowRenderTargets, RenderMode);
+}
+
+void FProjectedShadowInfo::SetupShadowDepthView(FSceneRenderer* SceneRenderer)
+{
+	FViewInfo* FoundView = FindViewForShadow(SceneRenderer);
+	assert(FoundView/* && IsInRenderingThread()*/);
+	FViewInfo* DepthPassView = FoundView->CreateSnapshot();
+	ModifyViewForShadow(DepthPassView);
+	ShadowDepthView = DepthPassView;
 }
 
 void FProjectedShadowInfo::SetStateForDepth(EShadowDepthRenderMode RenderMode, FDrawingPolicyRenderState& DrawRenderState)
@@ -1238,6 +1317,8 @@ void FSceneRenderer::RenderShadowDepthMaps()
 
 		assert(ShadowMap.Shadows.size() == 1);
 		FProjectedShadowInfo* ProjectedShadowInfo = ShadowMap.Shadows[0];
+
+		SCOPED_DRAW_EVENT_FORMAT(EventShadowDepths, TEXT("Cubemap %s %u^2"), TEXT("PointLight"), TargetSize.X, TargetSize.Y);
 
 		auto SetShadowRenderTargets = [this, &RenderTarget, &SceneContext](bool bPerformClear)
 		{

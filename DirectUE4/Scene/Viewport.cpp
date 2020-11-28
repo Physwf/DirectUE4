@@ -87,6 +87,7 @@ void Viewport::Draw(bool bShouldPresent /*= true*/)
 	{
 		DXGISwapChain->Present(0, 0);
 	}
+	FViewInfo::DestroyAllSnapshots();
 }
 
 Viewport GWindowViewport;

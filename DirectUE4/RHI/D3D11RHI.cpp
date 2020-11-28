@@ -334,7 +334,7 @@ bool CompileShader(const std::string& FileContent, const char* EntryPoint, const
 		NULL,
 		EntryPoint,
 		Target,
-		D3DCOMPILE_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION/*| D3DCOMPILE_ENABLE_BACKWARDS_COMPATIBILITY*/,
+		D3DCOMPILE_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION | D3DCOMPILE_PACK_MATRIX_ROW_MAJOR/*| D3DCOMPILE_ENABLE_BACKWARDS_COMPATIBILITY*/,
 		0,
 		OutBytecode,
 		&OutErrorMsg
@@ -1557,6 +1557,9 @@ bool FD3D11ConstantBuffer::CommitConstantsToDevice(bool bDiscardSharedConstants)
 }
 
 std::shared_ptr<FD3D11ConstantBuffer> VSConstantBuffer;
+std::shared_ptr<FD3D11ConstantBuffer> HSConstantBuffer;
+std::shared_ptr<FD3D11ConstantBuffer> DSConstantBuffer;
+std::shared_ptr<FD3D11ConstantBuffer> GSConstantBuffer;
 std::shared_ptr<FD3D11ConstantBuffer> PSConstantBuffer;
 
 void RHISetShaderParameter(ID3D11VertexShader* Shader, uint32 BufferIndex, uint32 BaseIndex, uint32 NumBytes, const void* NewValue)
@@ -1567,14 +1570,17 @@ void RHISetShaderParameter(ID3D11VertexShader* Shader, uint32 BufferIndex, uint3
 void RHISetShaderParameter(ID3D11HullShader* Shader, uint32 BufferIndex, uint32 BaseIndex, uint32 NumBytes, const void* NewValue)
 {
 	assert(0 == BufferIndex);
+	HSConstantBuffer->UpdateConstant((uint8*)NewValue, BaseIndex, NumBytes);
 }
 void RHISetShaderParameter(ID3D11DomainShader* Shader, uint32 BufferIndex, uint32 BaseIndex, uint32 NumBytes, const void* NewValue)
 {
 	assert(0 == BufferIndex);
+	DSConstantBuffer->UpdateConstant((uint8*)NewValue, BaseIndex, NumBytes);
 }
 void RHISetShaderParameter(ID3D11GeometryShader* Shader, uint32 BufferIndex, uint32 BaseIndex, uint32 NumBytes, const void* NewValue)
 {
 	assert(0 == BufferIndex);
+	GSConstantBuffer->UpdateConstant((uint8*)NewValue, BaseIndex, NumBytes);
 }
 void RHISetShaderParameter(ID3D11PixelShader* Shader, uint32 BufferIndex, uint32 BaseIndex, uint32 NumBytes, const void* NewValue)
 {
@@ -1588,6 +1594,12 @@ void InitConstantBuffers()
 {
 	VSConstantBuffer = std::make_shared<FD3D11ConstantBuffer>(4096);
 	VSConstantBuffer->InitDynamicRHI();
+	HSConstantBuffer = std::make_shared<FD3D11ConstantBuffer>(4096);
+	HSConstantBuffer->InitDynamicRHI();
+	DSConstantBuffer = std::make_shared<FD3D11ConstantBuffer>(4096);
+	DSConstantBuffer->InitDynamicRHI();
+	GSConstantBuffer = std::make_shared<FD3D11ConstantBuffer>(4096);
+	GSConstantBuffer->InitDynamicRHI();
 	PSConstantBuffer = std::make_shared<FD3D11ConstantBuffer>(4096);
 	PSConstantBuffer->InitDynamicRHI();
 }
@@ -1598,6 +1610,21 @@ void CommitNonComputeShaderConstants()
 	{
 		ID3D11Buffer* ConstantBuffer = VSConstantBuffer->GetConstantBuffer();
 		D3D11DeviceContext->VSSetConstantBuffers(0, 1, &ConstantBuffer);
+	}
+	if (HSConstantBuffer->CommitConstantsToDevice(false))
+	{
+		ID3D11Buffer* ConstantBuffer = HSConstantBuffer->GetConstantBuffer();
+		D3D11DeviceContext->HSSetConstantBuffers(0, 1, &ConstantBuffer);
+	}
+	if (DSConstantBuffer->CommitConstantsToDevice(false))
+	{
+		ID3D11Buffer* ConstantBuffer = DSConstantBuffer->GetConstantBuffer();
+		D3D11DeviceContext->DSSetConstantBuffers(0, 1, &ConstantBuffer);
+	}
+	if (GSConstantBuffer->CommitConstantsToDevice(false))
+	{
+		ID3D11Buffer* ConstantBuffer = GSConstantBuffer->GetConstantBuffer();
+		D3D11DeviceContext->GSSetConstantBuffers(0, 1, &ConstantBuffer);
 	}
 	if (PSConstantBuffer->CommitConstantsToDevice(false))
 	{

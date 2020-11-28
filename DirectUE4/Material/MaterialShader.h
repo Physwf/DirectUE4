@@ -89,8 +89,8 @@ private:
 	FShaderUniformBufferParameter MaterialUniformBuffer;
 	std::vector<FShaderUniformBufferParameter> ParameterCollectionUniformBuffers;
 
-// 	FShaderParameter InstanceCount;
-// 	FShaderParameter InstanceOffset;
+	FShaderParameter InstanceCount;
+	FShaderParameter InstanceOffset;
 	FShaderParameter VertexOffset;
 
 	/** If true, cached uniform expressions are allowed. */

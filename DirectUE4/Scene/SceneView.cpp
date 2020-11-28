@@ -144,7 +144,8 @@ Vector4 CreateInvDeviceZToWorldZTransform(const FMatrix& ProjMatrix)
 
 
 FSceneView::FSceneView(const ViewInitOptions& InitOptions)
-:	ViewMatrices(InitOptions),
+:	Family(InitOptions.ViewFamily),
+	ViewMatrices(InitOptions),
 	ViewActor(InitOptions.ViewActor),
 	UnscaledViewRect(InitOptions.GetConstrainedViewRect()),
 	UnconstrainedViewRect(InitOptions.GetViewRect()),
@@ -345,7 +346,7 @@ void FSceneView::SetupCommonViewUniformBufferParameters(
 
 	//to tail call keep the order and number of parameters of the caller function
 	SetupViewRectUniformBufferParameters(ViewUniformParameters, BufferSize, EffectiveViewRect, InViewMatrices, InPrevViewMatrices);
-	ViewUniformParameters.TransposeMatrices();
+	//ViewUniformParameters.TransposeMatrices();
 }
 
 void FViewUniformShaderParameters::TransposeMatrices()

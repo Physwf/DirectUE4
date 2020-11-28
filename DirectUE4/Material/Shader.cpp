@@ -57,16 +57,19 @@ void FShaderResource::InitRHI()
 	}
 	else if (Frequency == SF_Hull)
 	{
+		assert(S_OK == D3D11Device->CreateHullShader(Code->GetBufferPointer(), Code->GetBufferSize(), NULL, HullShader.GetAddressOf()));
 	}
 	else if (Frequency == SF_Domain)
 	{
+		assert(S_OK == D3D11Device->CreateDomainShader(Code->GetBufferPointer(), Code->GetBufferSize(), NULL, DomainShader.GetAddressOf()));
 	}
 	else if (Frequency == SF_Geometry)
 	{
-		
+		assert(S_OK == D3D11Device->CreateGeometryShader(Code->GetBufferPointer(), Code->GetBufferSize(), NULL, GeometryShader.GetAddressOf()));
 	}
 	else if (Frequency == SF_Compute)
 	{
+		assert(S_OK == D3D11Device->CreateComputeShader(Code->GetBufferPointer(), Code->GetBufferSize(), NULL, ComputeShader.GetAddressOf()));
 	}
 
 }

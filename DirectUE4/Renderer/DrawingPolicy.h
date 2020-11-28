@@ -168,6 +168,9 @@ void CommitGraphicsPipelineState(const DrawingPolicyType& DrawingPolicy, const F
 
 	D3D11DeviceContext->IASetPrimitiveTopology(DrawingPolicy.GetPrimitiveType());
 	D3D11DeviceContext->VSSetShader(BoundShaderStateInput.VertexShaderRHI, 0, 0);
+	D3D11DeviceContext->HSSetShader(BoundShaderStateInput.HullShaderRHI, 0, 0);
+	D3D11DeviceContext->DSSetShader(BoundShaderStateInput.DomainShaderRHI, 0, 0);
+	D3D11DeviceContext->GSSetShader(BoundShaderStateInput.GeometryShaderRHI, 0, 0);
 	D3D11DeviceContext->PSSetShader(BoundShaderStateInput.PixelShaderRHI, 0, 0);
 	D3D11DeviceContext->RSSetState(TStaticRasterizerState<>::GetRHI());
 

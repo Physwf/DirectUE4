@@ -398,13 +398,15 @@ void FProjectedShadowInfo::AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSce
 
 bool FProjectedShadowInfo::HasSubjectPrims() const
 {
-	return false;
+	return DynamicSubjectPrimitives.size() > 0
+		|| StaticSubjectMeshElements.size() > 0;
+// 		|| EmissiveOnlyPrimitives.Num() > 0
+// 		|| EmissiveOnlyMeshElements.Num() > 0
+// 		|| GIBlockingMeshElements.Num() > 0
+// 		|| GIBlockingPrimitives.Num() > 0;
+
 }
 
-void FProjectedShadowInfo::SetupShadowDepthView(FSceneRenderer* SceneRenderer)
-{
-
-}
 int32 GCachedShadowsCastFromMovablePrimitives = 1;
 static int32 GShadowLightViewConvexHullCull = 1;
 void BuildLightViewFrustumConvexHull(const FVector& LightOrigin, const FConvexVolume& Frustum, FConvexVolume& ConvexHull)

@@ -452,6 +452,70 @@ void FViewInfo::InitRHIResources()
 		*CachedViewUniformShaderParameters);
 	ViewUniformBuffer = TUniformBufferPtr<FViewUniformShaderParameters>::CreateUniformBufferImmediate(*CachedViewUniformShaderParameters); //TUniformBufferRef<FViewUniformShaderParameters>::CreateUniformBufferImmediate(*CachedViewUniformShaderParameters, UniformBuffer_SingleFrame);
 }
+// These are not real view infos, just dumb memory blocks
+static std::vector<FViewInfo*> ViewInfoSnapshots;
+// these are never freed, even at program shutdown
+static std::vector<FViewInfo*> FreeViewInfoSnapshots;
+
+FViewInfo* FViewInfo::CreateSnapshot() const
+{
+	FViewInfo* Result;
+	if (FreeViewInfoSnapshots.size())
+	{
+		Result = FreeViewInfoSnapshots.back();
+		FreeViewInfoSnapshots.pop_back();
+	}
+	else
+	{
+		Result = (FViewInfo*)_aligned_malloc(sizeof(FViewInfo), alignof(FViewInfo));
+	}
+	memcpy(Result, this, sizeof(FViewInfo));
+
+	// we want these to start null without a reference count, since we clear a ref later
+// 	TUniformBufferPtr<FViewUniformShaderParameters> NullViewUniformBuffer;
+// 	memcpy(Result->ViewUniformBuffer, NullViewUniformBuffer);
+	Result->ViewUniformBuffer.reset();
+// 	TUniformBufferPtr<FMobileDirectionalLightShaderParameters> NullMobileDirectionalLightUniformBuffer;
+// 	for (size_t i = 0; i < ARRAY_COUNT(Result->MobileDirectionalLightUniformBuffers); i++)
+// 	{
+// 		// This memcpy is necessary to clear the reference from the memcpy of the whole of this -> Result without releasing the pointer
+// 		FMemory::Memcpy(Result->MobileDirectionalLightUniformBuffers[i], NullMobileDirectionalLightUniformBuffer);
+// 
+// 		// But what we really want is the null buffer.
+// 		Result->MobileDirectionalLightUniformBuffers[i] = GetNullMobileDirectionalLightShaderParameters();
+// 	}
+
+// 	TUniquePtr<FViewUniformShaderParameters> NullViewParameters;
+// 	FMemory::Memcpy(Result->CachedViewUniformShaderParameters, NullViewParameters);
+	Result->CachedViewUniformShaderParameters = nullptr;
+	Result->bIsSnapshot = true;
+	ViewInfoSnapshots.push_back(Result);
+	return Result;
+}
+
+void FViewInfo::DestroyAllSnapshots()
+{
+	int32 NumToRemove = (int32)FreeViewInfoSnapshots.size() - (int32)(ViewInfoSnapshots.size() + 2);
+	if (NumToRemove > 0)
+	{
+		for (int32 Index = 0; Index < NumToRemove; Index++)
+		{
+			free(FreeViewInfoSnapshots[Index]);
+		}
+		FreeViewInfoSnapshots.erase(FreeViewInfoSnapshots.begin(), FreeViewInfoSnapshots.begin() + NumToRemove);
+	}
+	for (FViewInfo* Snapshot : ViewInfoSnapshots)
+	{
+		Snapshot->ViewUniformBuffer.reset();
+		if (Snapshot->CachedViewUniformShaderParameters)
+		{
+			delete Snapshot->CachedViewUniformShaderParameters;
+			Snapshot->CachedViewUniformShaderParameters = nullptr;
+		}
+		FreeViewInfoSnapshots.push_back(Snapshot);
+	}
+	ViewInfoSnapshots.clear();
+}
 
 void FViewInfo::Init()
 {
@@ -506,7 +570,7 @@ void FViewInfo::Init()
 	ShaderMap = GetGlobalShaderMap();
 
 	// 	ViewState = (FSceneViewState*)State;
-	// 	bIsSnapshot = false;
+	bIsSnapshot = false;
 	// 
 	// 	bAllowStencilDither = false;
 	// 
@@ -533,7 +597,8 @@ void FViewInfo::Init()
 	// 	else
 	// 	{
 	// 		bIsValidWorldTextureGroupSamplerFilter = false;
-	// 	}
+	// 	}
+
 }
 
 void FViewInfo::SetupSkyIrradianceEnvironmentMapConstants(Vector4* OutSkyIrradianceEnvironmentMap) const
