@@ -795,10 +795,12 @@ class FD3D11Texture2D
 public:
 	FD3D11Texture2D(
 		uint32 InSizeX, 
-		uint32 InSizeY, 
+		uint32 InSizeY,
+		uint32 InSizeZ,
 		uint32 InNumMips, 
 		uint32 InNumSamples, 
 		EPixelFormat InFormat,
+		bool bInCubemap,
 		uint32 InFlags, 
 		const FClearValueBinding& InClearValue,
 		ComPtr<ID3D11Texture2D> InResource,
@@ -810,10 +812,12 @@ public:
 		) 
 	: SizeX(InSizeX)
 	, SizeY(InSizeY)
+	, SizeZ(InSizeZ)
 	, ClearValue(InClearValue)
 	, NumMips(InNumMips)
 	, NumSamples(InNumSamples)
 	, Format(InFormat)
+	, bCubemap(bInCubemap)
 	, Flags(InFlags)
 	, MemorySize(0)
 	, Resource(InResource)
@@ -838,6 +842,7 @@ public:
 
 	uint32 GetSizeX() const { return SizeX; }
 	uint32 GetSizeY() const { return SizeY; }
+	uint32 GetSizeZ() const { return SizeZ; }
 	inline FIntPoint GetSizeXY() const { return FIntPoint(SizeX, SizeY); }
 	uint32 GetNumMips() const { return NumMips; }
 	EPixelFormat GetFormat() const { return Format; }
@@ -916,6 +921,7 @@ public:
 private:
 	uint32 SizeX;
 	uint32 SizeY;
+	uint32 SizeZ;
 	FClearValueBinding ClearValue;
 	uint32 NumMips;
 	uint32 NumSamples;
@@ -931,7 +937,7 @@ private:
 	ComPtr<ID3D11DepthStencilView> DepthStencilViews[FExclusiveDepthStencil::MaxIndex];
 	/** Number of Depth Stencil Views - used for fast call tracking. */
 	uint32	NumDepthStencilViews;
-
+	const uint32 bCubemap : 1;
 };
 
 /** Flags used for texture creation */
@@ -1014,7 +1020,18 @@ inline std::shared_ptr<FD3D11Texture2D> RHICreateTexture2D(uint32 SizeX, uint32 
 {
 	return CreateD3D11Texture2D(SizeX, SizeY,1,false,false, (EPixelFormat)Format, NumMips, NumSamples, Flags, ClearBindingValue, BulkData, BulkDataSize);
 }
-
+inline std::shared_ptr<FD3D11Texture2D> RHICreateTexture2DArray(uint32 SizeX, uint32 SizeY, uint32 SizeZ, uint8 Format, uint32 NumMips, uint32 Flags, FClearValueBinding ClearBindingValue = FClearValueBinding::Transparent, void* BulkData = nullptr, uint32 BulkDataSize = 0)
+{
+	return CreateD3D11Texture2D(SizeX, SizeY, SizeZ, true, false, (EPixelFormat)Format, NumMips, 1, Flags, ClearBindingValue, BulkData, BulkDataSize);
+}
+inline std::shared_ptr<FD3D11Texture2D> RHICreateTextureCube(uint32 Size, uint8 Format, uint32 NumMips, uint32 Flags, FClearValueBinding ClearBindingValue = FClearValueBinding::Transparent, void* BulkData = nullptr, uint32 BulkDataSize = 0)
+{
+	return CreateD3D11Texture2D(Size, Size, 6, false, true, (EPixelFormat)Format, NumMips, 1, Flags, ClearBindingValue, BulkData, BulkDataSize);
+}
+inline std::shared_ptr<FD3D11Texture2D> RHICreateTextureCubeArray(uint32 Size, uint32 ArraySize, uint8 Format, uint32 NumMips, uint32 Flags, FClearValueBinding ClearBindingValue = FClearValueBinding::Transparent, void* BulkData = nullptr, uint32 BulkDataSize = 0)
+{
+	return CreateD3D11Texture2D(Size, Size, 6 * ArraySize, true, true, (EPixelFormat)Format, NumMips, 1, Flags, ClearBindingValue, BulkData, BulkDataSize);
+}
 enum class ERenderTargetLoadAction : uint8
 {
 	ENoAction,
@@ -1078,6 +1095,109 @@ inline void RHICreateTargetableShaderResource2D(
 		// Create a texture that has TargetableTextureFlags set, and a second texture that has TexCreate_ResolveTargetable and TexCreate_ShaderResource set.
 		OutTargetableTexture = RHICreateTexture2D(SizeX, SizeY, Format, NumMips, NumSamples, Flags | TargetableTextureFlags, ClearValue);
 		OutShaderResourceTexture = RHICreateTexture2D(SizeX, SizeY, Format, NumMips, 1, Flags | ResolveTargetableTextureFlags | TexCreate_ShaderResource, ClearValue);
+	}
+}
+inline void RHICreateTargetableShaderResource2DArray(
+	uint32 SizeX,
+	uint32 SizeY,
+	uint32 SizeZ,
+	uint8 Format,
+	uint32 NumMips,
+	uint32 Flags,
+	uint32 TargetableTextureFlags,
+	FClearValueBinding ClearValue,
+	std::shared_ptr<FD3D11Texture2D>& OutTargetableTexture,
+	std::shared_ptr<FD3D11Texture2D>& OutShaderResourceTexture,
+	uint32 NumSamples = 1
+)
+{
+	// Ensure none of the usage flags are passed in.
+	assert(!(Flags & TexCreate_RenderTargetable));
+	assert(!(Flags & TexCreate_ResolveTargetable));
+	assert(!(Flags & TexCreate_ShaderResource));
+
+	// Ensure that all of the flags provided for the targetable texture are not already passed in Flags.
+	assert(!(Flags & TargetableTextureFlags));
+
+	// Ensure that the targetable texture is either render or depth-stencil targetable.
+	assert(TargetableTextureFlags & (TexCreate_RenderTargetable | TexCreate_DepthStencilTargetable));
+
+	// Create a single texture that has both TargetableTextureFlags and TexCreate_ShaderResource set.
+	OutTargetableTexture = OutShaderResourceTexture = RHICreateTexture2DArray(SizeX, SizeY, SizeZ, Format, NumMips, Flags | TargetableTextureFlags | TexCreate_ShaderResource, ClearValue);
+}
+
+inline void RHICreateTargetableShaderResourceCube(
+	uint32 LinearSize,
+	uint8 Format,
+	uint32 NumMips,
+	uint32 Flags,
+	uint32 TargetableTextureFlags,
+	bool bForceSeparateTargetAndShaderResource,
+	FClearValueBinding ClearValue,
+	std::shared_ptr<FD3D11Texture2D>& OutTargetableTexture,
+	std::shared_ptr<FD3D11Texture2D>& OutShaderResourceTexture
+)
+{
+	// Ensure none of the usage flags are passed in.
+	assert(!(Flags & TexCreate_RenderTargetable));
+	assert(!(Flags & TexCreate_ResolveTargetable));
+	assert(!(Flags & TexCreate_ShaderResource));
+
+	// Ensure that all of the flags provided for the targetable texture are not already passed in Flags.
+	assert(!(Flags & TargetableTextureFlags));
+
+	// Ensure that the targetable texture is either render or depth-stencil targetable.
+	assert(TargetableTextureFlags & (TexCreate_RenderTargetable | TexCreate_DepthStencilTargetable));
+
+	// ES2 doesn't support resolve operations.
+	bForceSeparateTargetAndShaderResource &= true;// (GMaxRHIFeatureLevel > ERHIFeatureLevel::ES2);
+
+	if (!bForceSeparateTargetAndShaderResource/* && GSupportsRenderDepthTargetableShaderResources*/)
+	{
+		// Create a single texture that has both TargetableTextureFlags and TexCreate_ShaderResource set.
+		OutTargetableTexture = OutShaderResourceTexture = RHICreateTextureCube(LinearSize, Format, NumMips, Flags | TargetableTextureFlags | TexCreate_ShaderResource, ClearValue);
+	}
+	else
+	{
+		// Create a texture that has TargetableTextureFlags set, and a second texture that has TexCreate_ResolveTargetable and TexCreate_ShaderResource set.
+		OutTargetableTexture = RHICreateTextureCube(LinearSize, Format, NumMips, Flags | TargetableTextureFlags, ClearValue);
+		OutShaderResourceTexture = RHICreateTextureCube(LinearSize, Format, NumMips, Flags | TexCreate_ResolveTargetable | TexCreate_ShaderResource, ClearValue);
+	}
+}
+inline void RHICreateTargetableShaderResourceCubeArray(
+	uint32 LinearSize,
+	uint32 ArraySize,
+	uint8 Format,
+	uint32 NumMips,
+	uint32 Flags,
+	uint32 TargetableTextureFlags,
+	bool bForceSeparateTargetAndShaderResource,
+	FClearValueBinding ClearValue,
+	std::shared_ptr<FD3D11Texture2D>& OutTargetableTexture,
+	std::shared_ptr<FD3D11Texture2D>& OutShaderResourceTexture
+)
+{
+	// Ensure none of the usage flags are passed in.
+	assert(!(Flags & TexCreate_RenderTargetable));
+	assert(!(Flags & TexCreate_ResolveTargetable));
+	assert(!(Flags & TexCreate_ShaderResource));
+
+	// Ensure that all of the flags provided for the targetable texture are not already passed in Flags.
+	assert(!(Flags & TargetableTextureFlags));
+
+	// Ensure that the targetable texture is either render or depth-stencil targetable.
+	assert(TargetableTextureFlags & (TexCreate_RenderTargetable | TexCreate_DepthStencilTargetable));
+
+	if (!bForceSeparateTargetAndShaderResource/* && GSupportsRenderDepthTargetableShaderResources*/)
+	{
+		// Create a single texture that has both TargetableTextureFlags and TexCreate_ShaderResource set.
+		OutTargetableTexture = OutShaderResourceTexture = RHICreateTextureCubeArray(LinearSize, ArraySize, Format, NumMips, Flags | TargetableTextureFlags | TexCreate_ShaderResource, ClearValue);
+	}
+	else
+	{
+		// Create a texture that has TargetableTextureFlags set, and a second texture that has TexCreate_ResolveTargetable and TexCreate_ShaderResource set.
+		OutTargetableTexture = RHICreateTextureCubeArray(LinearSize, ArraySize, Format, NumMips, Flags | TargetableTextureFlags, ClearValue);
+		OutShaderResourceTexture = RHICreateTextureCubeArray(LinearSize, ArraySize, Format, NumMips, Flags | TexCreate_ResolveTargetable | TexCreate_ShaderResource, ClearValue);
 	}
 }
 extern FPixelFormatInfo GPixelFormats[PF_MAX];

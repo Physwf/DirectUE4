@@ -211,19 +211,19 @@ Done:
 				}
 				else
 				{
-// 					RHICreateTargetableShaderResource2DArray(
-// 						Desc.Extent.X,
-// 						Desc.Extent.Y,
-// 						Desc.ArraySize,
-// 						Desc.Format,
-// 						Desc.NumMips,
-// 						Desc.Flags,
-// 						Desc.TargetableFlags,
-// 						CreateInfo,
-// 						(FTexture2DArrayRHIRef&)Found->RenderTargetItem.TargetableTexture,
-// 						(FTexture2DArrayRHIRef&)Found->RenderTargetItem.ShaderResourceTexture,
-// 						Desc.NumSamples
-// 					);
+					RHICreateTargetableShaderResource2DArray(
+						Desc.Extent.X,
+						Desc.Extent.Y,
+						Desc.ArraySize,
+						Desc.Format,
+						Desc.NumMips,
+						Desc.Flags,
+						Desc.TargetableFlags,
+						Desc.ClearValue,
+						Found->TargetableTexture,
+						Found->ShaderResourceTexture,
+						Desc.NumSamples
+					);
 				}
 
 // 				if (GSupportsRenderTargetWriteMask && Desc.bCreateRenderTargetWriteMask)
@@ -257,45 +257,45 @@ Done:
 			}
 			else
 			{
-				// 				check(Desc.IsCubemap());
-				// 				if (Desc.IsArray())
-				// 				{
-				// 					RHICreateTargetableShaderResourceCubeArray(
-				// 						Desc.Extent.X,
-				// 						Desc.ArraySize,
-				// 						Desc.Format,
-				// 						Desc.NumMips,
-				// 						Desc.Flags,
-				// 						Desc.TargetableFlags,
-				// 						false,
-				// 						CreateInfo,
-				// 						(FTextureCubeRHIRef&)Found->RenderTargetItem.TargetableTexture,
-				// 						(FTextureCubeRHIRef&)Found->RenderTargetItem.ShaderResourceTexture
-				// 					);
-				// 				}
-				// 				else
-				// 				{
-				// 					RHICreateTargetableShaderResourceCube(
-				// 						Desc.Extent.X,
-				// 						Desc.Format,
-				// 						Desc.NumMips,
-				// 						Desc.Flags,
-				// 						Desc.TargetableFlags,
-				// 						false,
-				// 						CreateInfo,
-				// 						(FTextureCubeRHIRef&)Found->RenderTargetItem.TargetableTexture,
-				// 						(FTextureCubeRHIRef&)Found->RenderTargetItem.ShaderResourceTexture
-				// 					);
-				// 
-				// 					if (Desc.NumMips > 1)
-				// 					{
-				// 						Found->RenderTargetItem.MipSRVs.SetNum(Desc.NumMips);
-				// 						for (uint16 i = 0; i < Desc.NumMips; i++)
-				// 						{
-				// 							Found->RenderTargetItem.MipSRVs[i] = RHICreateShaderResourceView((FTextureCubeRHIRef&)Found->RenderTargetItem.ShaderResourceTexture, i);
-				// 						}
-				// 					}
-				// 				}
+				assert(Desc.IsCubemap());
+				if (Desc.IsArray())
+				{
+					RHICreateTargetableShaderResourceCubeArray(
+						Desc.Extent.X,
+						Desc.ArraySize,
+						Desc.Format,
+						Desc.NumMips,
+						Desc.Flags,
+						Desc.TargetableFlags,
+						false,
+						Desc.ClearValue,
+						Found->TargetableTexture,
+						Found->ShaderResourceTexture
+					);
+				}
+				else
+				{
+					RHICreateTargetableShaderResourceCube(
+						Desc.Extent.X,
+						Desc.Format,
+						Desc.NumMips,
+						Desc.Flags,
+						Desc.TargetableFlags,
+						false,
+						Desc.ClearValue,
+						Found->TargetableTexture,
+						Found->ShaderResourceTexture
+					);
+
+					if (Desc.NumMips > 1)
+					{
+						Found->MipSRVs.resize(Desc.NumMips);
+						for (uint16 i = 0; i < Desc.NumMips; i++)
+						{
+							Found->MipSRVs[i] = RHICreateShaderResourceView(Found->ShaderResourceTexture, i);
+						}
+					}
+				}
 
 			}
 

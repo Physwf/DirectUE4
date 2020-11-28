@@ -1225,9 +1225,11 @@ std::shared_ptr<FD3D11Texture2D> CreateD3D11Texture2D(uint32 SizeX, uint32 SizeY
 	(
 		SizeX,
 		SizeY,
+		SizeZ,
 		NumMips,
 		NumSamples, 
 		(EPixelFormat)Format,
+		bCubeTexture,
 		Flags, 
 		ClearBindingValue,
 		TextureResource, 
