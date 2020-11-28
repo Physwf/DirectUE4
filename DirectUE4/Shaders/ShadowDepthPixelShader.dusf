@@ -1,0 +1,26 @@
+#include "Common.dusf"
+#include "/Generated/Material.dusf"
+#include "/Generated/VertexFactory.dusf"
+#include "ShadowDepthCommon.dusf"
+
+void Main(
+	FShadowDepthVSToPS Inputs,
+	in float4 SvPosition : SV_Position,		// after all interpolators
+	out float4 OutColor : SV_Target0
+#if PERSPECTIVE_CORRECT_DEPTH
+	, out float OutDepth : SV_DEPTH
+#endif
+)
+{
+#if PERSPECTIVE_CORRECT_DEPTH
+	float DepthBias = ShadowParams.x;
+	float InvMaxSubjectDepth = ShadowParams.y;
+
+	Inputs.ShadowDepth *= InvMaxSubjectDepth;
+	Inputs.ShadowDepth += DepthBias;
+
+	OutDepth = saturate(Inputs.ShadowDepth);
+#endif
+
+	OutColor = 0;
+}

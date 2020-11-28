@@ -53,8 +53,8 @@ void InitAtomosphereFog()
 	AtmosphereFogVertexBuffer = CreateVertexBuffer(false, sizeof(Vertices), Vertices);
 	AtmosphereFogIndexBuffer = CreateIndexBuffer(Indices, sizeof(Indices));
 
-	AtmosphereFogVSBytecode = CompileVertexShader(TEXT("./Shaders/AtmosphericFogShader.hlsl"), "VS_Main");
-	AtmosphereFogPSBytecode = CompilePixelShader(TEXT("./Shaders/AtmosphericFogShader.hlsl"), "PS_Main");
+	AtmosphereFogVSBytecode = CompileVertexShader(TEXT("./Shaders/AtmosphericFogShader.dusf"), "VS_Main");
+	AtmosphereFogPSBytecode = CompilePixelShader(TEXT("./Shaders/AtmosphericFogShader.dusf"), "PS_Main");
 	GetShaderParameterAllocations(AtmosphereFogVSBytecode, AtmosphereFogVSParams);
 	GetShaderParameterAllocations(AtmosphereFogPSBytecode, AtmosphereFogPSParams);
 	D3D11_INPUT_ELEMENT_DESC InputDesc[] = 

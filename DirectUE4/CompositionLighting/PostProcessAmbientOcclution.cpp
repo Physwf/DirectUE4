@@ -12,7 +12,7 @@ void RCPassPostProcessAmbientOcclusionSetup::Init()
 {
 	/*
 	const D3D_SHADER_MACRO Macros[] = { { "INITIAL_PASS", IsInitialPass() ? "1" : "0" } };
-	PSBytecode = CompilePixelShader(TEXT("./Shaders/PostProcessAmbientOcclusion.hlsl"), "MainSetupPS", Macros, sizeof(Macros)/ sizeof(D3D_SHADER_MACRO));
+	PSBytecode = CompilePixelShader(TEXT("./Shaders/PostProcessAmbientOcclusion.dusf"), "MainSetupPS", Macros, sizeof(Macros)/ sizeof(D3D_SHADER_MACRO));
 	GetShaderParameterAllocations(PSBytecode, PSParams);
 	PS = CreatePixelShader(PSBytecode);
 
@@ -127,7 +127,7 @@ void RCPassPostProcessAmbientOcclusion::Init(bool InAOSetupAsInput)
 	bAOSetupAsInput = InAOSetupAsInput;
 	bool bDoUpsample = (Inputs[2] != 0);
 	const D3D_SHADER_MACRO Macros[] = { { "COMPUTE_SHADER",  "0" } , {"SHADER_QUALITY", "2" }, {"USE_UPSAMPLE", bDoUpsample ? "1" : "0" },  { "USE_AO_SETUP_AS_INPUT" , bAOSetupAsInput ? "1" : "0" } };
-	PSBytecode = CompilePixelShader(TEXT("./Shaders/PostProcessAmbientOcclusion.hlsl"), "MainPS", Macros, sizeof(Macros) / sizeof(D3D_SHADER_MACRO));
+	PSBytecode = CompilePixelShader(TEXT("./Shaders/PostProcessAmbientOcclusion.dusf"), "MainPS", Macros, sizeof(Macros) / sizeof(D3D_SHADER_MACRO));
 	GetShaderParameterAllocations(PSBytecode, PSParams);
 	PS = CreatePixelShader(PSBytecode);
 	RasterState = TStaticRasterizerState<>::GetRHI();
@@ -366,7 +366,7 @@ void RCPassPostProcessAmbientOcclusion::ProcessPS(ID3D11RenderTargetView* DestRe
 void RCPassPostProcessBasePassAO::Init()
 {
 	/*
-	PSBytecode = CompilePixelShader(TEXT("./Shaders/PostProcessAmbientOcclusion.hlsl"), "BasePassAOPS");
+	PSBytecode = CompilePixelShader(TEXT("./Shaders/PostProcessAmbientOcclusion.dusf"), "BasePassAOPS");
 	GetShaderParameterAllocations(PSBytecode, PSParams);
 	PS = CreatePixelShader(PSBytecode);
 	

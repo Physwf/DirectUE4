@@ -156,7 +156,7 @@ public:
 		char buffer[512];
 		sprintf_s(buffer, sizeof(buffer), "#include \"%s\"", GetShaderFilename());
 		std::string VertexFactoryIncludeString = buffer;
-		OutEnvironment.IncludeVirtualPathToContentsMap["/Generated/VertexFactory.hlsl"] = VertexFactoryIncludeString;
+		OutEnvironment.IncludeVirtualPathToContentsMap["/Generated/VertexFactory.dusf"] = VertexFactoryIncludeString;
 
 		OutEnvironment.SetDefine(("HAS_PRIMITIVE_UNIFORM_BUFFER"), 1);
 

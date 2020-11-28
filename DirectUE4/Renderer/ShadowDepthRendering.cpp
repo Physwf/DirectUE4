@@ -365,15 +365,15 @@ private:
 
 #define IMPLEMENT_SHADOW_DEPTH_SHADERMODE_SHADERS(ShaderMode,bRenderReflectiveShadowMap) \
 	typedef TShadowDepthVS<ShaderMode, bRenderReflectiveShadowMap, false> TShadowDepthVS##ShaderMode##bRenderReflectiveShadowMap;	\
-	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TShadowDepthVS##ShaderMode##bRenderReflectiveShadowMap,("ShadowDepthVertexShader.usf"),("Main"),SF_Vertex);	\
+	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TShadowDepthVS##ShaderMode##bRenderReflectiveShadowMap,("ShadowDepthVertexShader.dusf"),("Main"),SF_Vertex);	\
 	typedef TShadowDepthVS<ShaderMode, bRenderReflectiveShadowMap, false, true> TShadowDepthVSForGS##ShaderMode##bRenderReflectiveShadowMap;	\
-	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TShadowDepthVSForGS##ShaderMode##bRenderReflectiveShadowMap,("ShadowDepthVertexShader.usf"),("MainForGS"),SF_Vertex);	\
+	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TShadowDepthVSForGS##ShaderMode##bRenderReflectiveShadowMap,("ShadowDepthVertexShader.dusf"),("MainForGS"),SF_Vertex);	\
 	typedef TShadowDepthHS<ShaderMode, bRenderReflectiveShadowMap> TShadowDepthHS##ShaderMode##bRenderReflectiveShadowMap;	\
-	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TShadowDepthHS##ShaderMode##bRenderReflectiveShadowMap,("ShadowDepthVertexShader.usf"),("MainHull"),SF_Hull);	\
+	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TShadowDepthHS##ShaderMode##bRenderReflectiveShadowMap,("ShadowDepthVertexShader.dusf"),("MainHull"),SF_Hull);	\
 	typedef TShadowDepthDS<ShaderMode, bRenderReflectiveShadowMap> TShadowDepthDS##ShaderMode##bRenderReflectiveShadowMap;	\
-	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TShadowDepthDS##ShaderMode##bRenderReflectiveShadowMap,("ShadowDepthVertexShader.usf"),("MainDomain"),SF_Domain);
+	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TShadowDepthDS##ShaderMode##bRenderReflectiveShadowMap,("ShadowDepthVertexShader.dusf"),("MainDomain"),SF_Domain);
 
-IMPLEMENT_SHADER_TYPE(, FOnePassPointShadowDepthGS, ("ShadowDepthVertexShader.usf"), ("MainOnePassPointLightGS"), SF_Geometry);
+IMPLEMENT_SHADER_TYPE(, FOnePassPointShadowDepthGS, ("ShadowDepthVertexShader.dusf"), ("MainOnePassPointLightGS"), SF_Geometry);
 
 IMPLEMENT_SHADOW_DEPTH_SHADERMODE_SHADERS(VertexShadowDepth_PerspectiveCorrect, true);
 IMPLEMENT_SHADOW_DEPTH_SHADERMODE_SHADERS(VertexShadowDepth_PerspectiveCorrect, false);
@@ -383,13 +383,13 @@ IMPLEMENT_SHADOW_DEPTH_SHADERMODE_SHADERS(VertexShadowDepth_OnePassPointLight, f
 
 // Position only vertex shaders.
 typedef TShadowDepthVS<VertexShadowDepth_PerspectiveCorrect, false, true> TShadowDepthVSVertexShadowDepth_PerspectiveCorrectPositionOnly;
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>, TShadowDepthVSVertexShadowDepth_PerspectiveCorrectPositionOnly, ("ShadowDepthVertexShader.usf"), ("PositionOnlyMain"), SF_Vertex);
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>, TShadowDepthVSVertexShadowDepth_PerspectiveCorrectPositionOnly, ("ShadowDepthVertexShader.dusf"), ("PositionOnlyMain"), SF_Vertex);
 typedef TShadowDepthVS<VertexShadowDepth_OutputDepth, false, true> TShadowDepthVSVertexShadowDepth_OutputDepthPositionOnly;
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>, TShadowDepthVSVertexShadowDepth_OutputDepthPositionOnly, ("ShadowDepthVertexShader.usf"), ("PositionOnlyMain"), SF_Vertex);
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>, TShadowDepthVSVertexShadowDepth_OutputDepthPositionOnly, ("ShadowDepthVertexShader.dusf"), ("PositionOnlyMain"), SF_Vertex);
 typedef TShadowDepthVS<VertexShadowDepth_OnePassPointLight, false, true> TShadowDepthVSVertexShadowDepth_OnePassPointLightPositionOnly;
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>, TShadowDepthVSVertexShadowDepth_OnePassPointLightPositionOnly, ("ShadowDepthVertexShader.usf"), ("PositionOnlyMain"), SF_Vertex);
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>, TShadowDepthVSVertexShadowDepth_OnePassPointLightPositionOnly, ("ShadowDepthVertexShader.dusf"), ("PositionOnlyMain"), SF_Vertex);
 typedef TShadowDepthVS<VertexShadowDepth_OnePassPointLight, false, true, true> TShadowDepthVSForGSVertexShadowDepth_OnePassPointLightPositionOnly;
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>, TShadowDepthVSForGSVertexShadowDepth_OnePassPointLightPositionOnly, ("ShadowDepthVertexShader.usf"), ("PositionOnlyMainForGS"), SF_Vertex);
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>, TShadowDepthVSForGSVertexShadowDepth_OnePassPointLightPositionOnly, ("ShadowDepthVertexShader.dusf"), ("PositionOnlyMainForGS"), SF_Vertex);
 
 /**
 * A pixel shader for rendering the depth of a mesh.
@@ -551,7 +551,7 @@ public:
 // typedef required to get around macro expansion failure due to commas in template argument list for TShadowDepthPixelShader
 #define IMPLEMENT_SHADOWDEPTHPASS_PIXELSHADER_TYPE(ShaderMode, bRenderReflectiveShadowMap) \
 	typedef TShadowDepthPS<ShaderMode, bRenderReflectiveShadowMap> TShadowDepthPS##ShaderMode##bRenderReflectiveShadowMap; \
-	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TShadowDepthPS##ShaderMode##bRenderReflectiveShadowMap,("ShadowDepthPixelShader.usf"),("Main"),SF_Pixel);
+	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TShadowDepthPS##ShaderMode##bRenderReflectiveShadowMap,("ShadowDepthPixelShader.dusf"),("Main"),SF_Pixel);
 
 IMPLEMENT_SHADOWDEPTHPASS_PIXELSHADER_TYPE(PixelShadowDepth_NonPerspectiveCorrect, true);
 IMPLEMENT_SHADOWDEPTHPASS_PIXELSHADER_TYPE(PixelShadowDepth_NonPerspectiveCorrect, false);
@@ -881,7 +881,7 @@ public:
 	FCopyShadowMapsCubeGS() {}
 };
 
-IMPLEMENT_SHADER_TYPE(, FCopyShadowMapsCubeGS, ("CopyShadowMaps.usf"), ("CopyCubeDepthGS"), SF_Geometry);
+IMPLEMENT_SHADER_TYPE(, FCopyShadowMapsCubeGS, ("CopyShadowMaps.dusf"), ("CopyCubeDepthGS"), SF_Geometry);
 
 class FCopyShadowMapsCubePS : public FGlobalShader
 {
@@ -913,7 +913,7 @@ public:
 	FShaderResourceParameter ShadowDepthSampler;
 };
 
-IMPLEMENT_SHADER_TYPE(, FCopyShadowMapsCubePS, ("CopyShadowMaps.usf"), ("CopyCubeDepthPS"), SF_Pixel);
+IMPLEMENT_SHADER_TYPE(, FCopyShadowMapsCubePS, ("CopyShadowMaps.dusf"), ("CopyCubeDepthPS"), SF_Pixel);
 
 /** */
 class FCopyShadowMaps2DPS : public FGlobalShader
@@ -946,7 +946,7 @@ public:
 	FShaderResourceParameter ShadowDepthSampler;
 };
 
-IMPLEMENT_SHADER_TYPE(, FCopyShadowMaps2DPS, ("CopyShadowMaps.usf"), ("Copy2DDepthPS"), SF_Pixel);
+IMPLEMENT_SHADER_TYPE(, FCopyShadowMaps2DPS, ("CopyShadowMaps.dusf"), ("Copy2DDepthPS"), SF_Pixel);
 
 void FProjectedShadowInfo::CopyCachedShadowMap(const FDrawingPolicyRenderState& DrawRenderState, FSceneRenderer* SceneRenderer, const FViewInfo& View, FSetShadowRenderTargetFunction SetShadowRenderTargets)
 {

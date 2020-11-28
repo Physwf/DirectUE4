@@ -420,7 +420,7 @@ bool FMaterial::BeginCompileShaderMap(const FMaterialShaderMapId& ShaderMapId, s
 		const std::string MaterialShaderCode = MaterialTranslator.GetMaterialShaderCode();
 		const bool bSynchronousCompile = true;// RequiresSynchronousCompilation() || !GShaderCompilingManager->AllowAsynchronousShaderCompiling();
 
-		MaterialEnvironment->IncludeVirtualPathToContentsMap.insert(std::make_pair(std::string("/Generated/Material.hlsl"), MaterialShaderCode));
+		MaterialEnvironment->IncludeVirtualPathToContentsMap.insert(std::make_pair(std::string("/Generated/Material.dusf"), MaterialShaderCode));
 
 		// Compile the shaders for the material.
 		NewShaderMap->Compile(this, ShaderMapId, MaterialEnvironment, NewCompilationOutput, bSynchronousCompile, bApplyCompletedShaderMapForRendering);

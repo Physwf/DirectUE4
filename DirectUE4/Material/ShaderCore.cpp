@@ -98,9 +98,9 @@ static void GetAllVirtualShaderSourcePaths(std::vector<std::string>& OutVirtualF
 	//#todo-rco: No need to loop through Shader Pipeline Types (yet)
 
 	// also always add the MaterialTemplate.usf shader file
-	//AddShaderSourceFileEntry(OutVirtualFilePaths, std::string("./Shaders/MaterialTemplate.hlsl"));
-	AddShaderSourceFileEntry(OutVirtualFilePaths, std::string("Common.hlsl"));
-	AddShaderSourceFileEntry(OutVirtualFilePaths, std::string("Definitions.hlsl"));
+	//AddShaderSourceFileEntry(OutVirtualFilePaths, std::string("./Shaders/MaterialTemplate.dusf"));
+	AddShaderSourceFileEntry(OutVirtualFilePaths, std::string("Common.dusf"));
+	AddShaderSourceFileEntry(OutVirtualFilePaths, std::string("Definitions.dusf"));
 }
 
 void LoadShaderSourceFileChecked(const char* VirtualFilePath, std::string& OutFileContents)

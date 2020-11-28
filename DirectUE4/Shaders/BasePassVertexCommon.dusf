@@ -1,0 +1,15 @@
+#include "Common.dusf"
+
+#include "Material.dusf"
+#include "BasePassCommon.dusf"
+#include "LocalVertexFactory.dusf"
+
+struct BasePassVSToPS
+{
+	VertexFactoryInterpolantsVSToPS FactoryInterpolants;
+	BasePassInterpolantsVSToPS BasePassInterpolants;
+	float4 Position : SV_POSITION;
+};
+
+#define BasePassVSOutput BasePassVSToPS
+#define VertexFactoryGetInterpolants VertexFactoryGetInterpolantsVSToPS

@@ -81,7 +81,7 @@ void CreateTriangleBuffer()
 	LPCSTR VSTarget = D3D11Device->GetFeatureLevel() >= D3D_FEATURE_LEVEL_11_0 ? "vs_5_0" : "vs_4_0";
 	UINT VSFlags = D3DCOMPILE_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG;
 
-	hr = D3DCompileFromFile(TEXT("Triangle.hlsl"), NULL, NULL, "VS_Main", VSTarget, VSFlags, 0, &VSBytecode, &OutErrorMsg);
+	hr = D3DCompileFromFile(TEXT("Triangle.dusf"), NULL, NULL, "VS_Main", VSTarget, VSFlags, 0, &VSBytecode, &OutErrorMsg);
 	if (FAILED(hr))
 	{
 		X_LOG("D3DCompileFromFile failed! %s", (const char*)OutErrorMsg->GetBufferPointer());
@@ -103,7 +103,7 @@ void CreateTriangleBuffer()
 	LPCSTR PSTarget = D3D11Device->GetFeatureLevel() >= D3D_FEATURE_LEVEL_11_0 ? "ps_5_0" : "ps_4_0";
 	UINT PSFlags = D3DCOMPILE_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG;
 
-	hr = D3DCompileFromFile(TEXT("Triangle.hlsl"), NULL, NULL, "PS_Main", PSTarget, PSFlags, 0, &PSBytecode, &OutErrorMsg);
+	hr = D3DCompileFromFile(TEXT("Triangle.dusf"), NULL, NULL, "PS_Main", PSTarget, PSFlags, 0, &PSBytecode, &OutErrorMsg);
 	if (FAILED(hr))
 	{
 		X_LOG("D3DCompileFromFile failed! %s", (const char*)OutErrorMsg->GetBufferPointer());

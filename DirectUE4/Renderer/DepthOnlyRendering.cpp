@@ -28,8 +28,8 @@ std::map<std::string, ParameterAllocation> PrePassPSParams;
 void InitPrePass()
 {
 	//Prepass
-	PrePassVSBytecode = CompileVertexShader(TEXT("./Shaders/DepthOnlyPass.hlsl"), "VS_Main");
-	PrePassPSBytecode = CompilePixelShader(TEXT("./Shaders/DepthOnlyPass.hlsl"), "PS_Main");
+	PrePassVSBytecode = CompileVertexShader(TEXT("./Shaders/DepthOnlyPass.dusf"), "VS_Main");
+	PrePassPSBytecode = CompilePixelShader(TEXT("./Shaders/DepthOnlyPass.dusf"), "PS_Main");
 	GetShaderParameterAllocations(PrePassVSBytecode, PrePassVSParams);
 	GetShaderParameterAllocations(PrePassPSBytecode, PrePassPSParams);
 
@@ -127,8 +127,8 @@ public:
 	}
 };
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>, TDepthOnlyVS<true>, ("PositionOnlyDepthShader.hlsl"), ("VS_Main"), SF_Vertex);
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>, TDepthOnlyVS<false>, ("DepthOnlyVertexShader.hlsl"), ("Main"), SF_Vertex);
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>, TDepthOnlyVS<true>, ("PositionOnlyDepthShader.dusf"), ("VS_Main"), SF_Vertex);
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>, TDepthOnlyVS<false>, ("DepthOnlyVertexShader.dusf"), ("Main"), SF_Vertex);
 
 class FDepthOnlyPS : public FMeshMaterialShader
 {
@@ -172,7 +172,7 @@ public:
 	FShaderParameter MobileColorValue;
 };
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(, FDepthOnlyPS, ("DepthOnlyPixelShader.hlsl"), "Main", SF_Pixel);
+IMPLEMENT_MATERIAL_SHADER_TYPE(, FDepthOnlyPS, ("DepthOnlyPixelShader.dusf"), "Main", SF_Pixel);
 
 void FSceneRenderer::RenderPrePassView(FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState)
 {

@@ -38,38 +38,6 @@ private:
 	FShaderResourceParameter InTextureSampler;
 };
 
-class FScreenPS_OSE : public FGlobalShader
-{
-	DECLARE_EXPORTED_SHADER_TYPE(FScreenPS_OSE, Global, );
-public:
-
-	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters) { return true; }
-
-	FScreenPS_OSE(const ShaderMetaType::CompiledShaderInitializerType& Initializer) :
-		FGlobalShader(Initializer)
-	{
-		InTexture.Bind(Initializer.ParameterMap, ("InTexture"), SPF_Mandatory);
-		InTextureSampler.Bind(Initializer.ParameterMap, ("InTextureSampler"));
-	}
-
-	FScreenPS_OSE() {}
-
-// 	void SetParameters(const FTexture* Texture)
-// 	{
-// 		SetTextureParameter(GetPixelShader(), InTexture, InTextureSampler, Texture);
-// 	}
-
-	void SetParameters(ID3D11SamplerState* SamplerStateRHI, ID3D11ShaderResourceView* TextureRHI)
-	{
-		SetTextureParameter(GetPixelShader(), InTexture, InTextureSampler, SamplerStateRHI, TextureRHI);
-	}
-
-
-private:
-	FShaderResourceParameter InTexture;
-	FShaderResourceParameter InTextureSampler;
-};
-
 /**
 * A vertex shader for rendering a textured screen element.
 */

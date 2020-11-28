@@ -7,5 +7,5 @@ PostProcessContext::PostProcessContext()
 
 }
 
-IMPLEMENT_SHADER_TYPE(, FPostProcessVS, "PostProcessBloom.hlsl", "MainPostprocessCommonVS", SF_Vertex);
+IMPLEMENT_SHADER_TYPE(, FPostProcessVS, "PostProcessBloom.dusf", "MainPostprocessCommonVS", SF_Vertex);
 

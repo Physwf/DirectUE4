@@ -1,0 +1,14 @@
+#include "Common.dusf"
+
+//本地坐标到加上平移的世界坐标,
+float4 TransformLocalToTranslatedWorld(float3 LocalPosition)
+{
+	float3 RotatedPosition = Primitive.LocalToWorld[0].xyz * LocalPosition.xxx + Primitive.LocalToWorld[1].xyz * LocalPosition.yyy + Primitive.LocalToWorld[2].xyz * LocalPosition.zzz;
+	float3 TranslationWorld = Primitive.LocalToWorld[3].xyz;
+	return float4(RotatedPosition + (TranslationWorld + ResolvedView.PreViewTranslation.xyz),1);
+}
+
+#if VERTEXSHADER && FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && ONEPASS_POINTLIGHT_SHADOW && USING_VERTEX_SHADER_LAYER
+/** This is the instance count per-face, since we are use 6*N to render to all faces of the cube without a GS. */
+uint InstanceCount;
+#endif

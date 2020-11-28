@@ -223,7 +223,7 @@ public:
 	std::string GetMaterialShaderCode()
 	{
 		std::string MaterialSource;
-		LoadShaderSourceFile("Material.hlsl", MaterialSource);
+		LoadShaderSourceFile("Material.dusf", MaterialSource);
 		return MaterialSource;
 	}
 };

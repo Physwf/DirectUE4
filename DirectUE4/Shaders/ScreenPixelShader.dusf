@@ -1,0 +1,12 @@
+#include "Common.dusf"
+
+Texture2D InTexture;
+SamplerState InTextureSampler;
+
+void Main(
+	FScreenVertexOutput Input,
+	out float4 OutColor : SV_Target0
+	)
+{
+    OutColor = Texture2DSample(InTexture, InTextureSampler, Input.UV);
+}

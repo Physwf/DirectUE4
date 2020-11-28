@@ -219,7 +219,7 @@ public:
 		std::string InputShaderSource;
 		if (LoadShaderSourceFile(InShaderInput.VirtualSourceFilePath.c_str(), InputShaderSource/*, nullptr*/))
 		{
-			char buffer[10 * 1024];
+			char buffer[512 * 1024];
 			sprintf_s(buffer, sizeof(buffer), "%s\n#line 1\n%s", ShaderInput.SourceFilePrefix.c_str(), InputShaderSource.c_str());
 			InputShaderSource = buffer;
 			CachedFileContents.insert(std::make_pair(InShaderInput.VirtualSourceFilePath, InputShaderSource));
@@ -362,7 +362,10 @@ bool PreprocessShader(
 		McppOutput.clear();
 		bSuccess = true;
 	}
-
+	else
+	{
+		assert(false);
+	}
 	return bSuccess;
 }
 

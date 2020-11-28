@@ -116,6 +116,6 @@ void CacheUniformBufferIncludes(std::map<const char*, struct FCachedUniformBuffe
 void CreateUniformBufferShaderDeclaration(const char* Name, const UniformBufferInfo& Info, std::string& OutDeclaration)
 {
 	char ShaderFileName[128];
-	sprintf_s(ShaderFileName, sizeof(ShaderFileName), "%s.hlsl", Name);
+	sprintf_s(ShaderFileName, sizeof(ShaderFileName), "%s.dusf", Name);
 	assert(LoadShaderSourceFile(ShaderFileName, OutDeclaration));
 }

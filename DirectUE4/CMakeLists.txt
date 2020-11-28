@@ -2,10 +2,10 @@
 file(GLOB_RECURSE DIR_SRC
     "./*.cpp"
     "./*.h"
+	"./*.dush"
+    "./*.dusf"
 )
-file(GLOB_RECURSE SHADER_SRC
-    "./*.hlsl"
-)
+
 foreach(_source IN ITEMS ${DIR_SRC})
     get_filename_component(_source_path "${_source}" PATH)
 	file(RELATIVE_PATH _source_path_rel "${DIR_PROJECT}" "${_source_path}")
@@ -43,14 +43,14 @@ ADD_CUSTOM_COMMAND(TARGET DirectUE4
         POST_BUILD
         COMMENT "Copy Shaders"
         COMMAND @if exist $(TargetDir)\\Shaders\\ (@echo "No Need mkdir") else ( @mkdir  $(TargetDir)\\Shaders\\ )
-        COMMAND @copy $(SolutionDir)..\\DirectUE4\\Shaders\\*.hlsl  $(TargetDir)\\Shaders\\
+        COMMAND @copy $(SolutionDir)..\\DirectUE4\\Shaders\\*.dusf  $(TargetDir)\\Shaders\\
 )
 
 add_definitions(-DUNICODE -D_UNICODE)
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS")
 
-#configure_file(${DIR_PROJECT}/Triangle.hlsl ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
-#copy $(SolutionDir)..\DirectUE4\Shaders\*.hlsl  $(TargetDir)
+#configure_file(${DIR_PROJECT}/Triangle.dusf ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
+#copy $(SolutionDir)..\DirectUE4\Shaders\*.dusf  $(TargetDir)
 SET(EXECUTABLE_OUTPUT_PATH  ${CMAKE_BINARY_DIR})
 
 MESSAGE(STATUS "operation system is ${CMAKE_SYSTEM}")

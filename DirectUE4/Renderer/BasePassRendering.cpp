@@ -115,8 +115,8 @@ void InitBasePass()
 	PrecomputedLightUniformBuffer = CreateConstantBuffer(false, sizeof(PrecomputedLightingParameters), &PrecomputedLightingParameters);
 
 	//Base Pass
-	BasePassVSBytecode = CompileVertexShader(TEXT("./Shaders/BasePassVertexShader.hlsl"), "VS_Main");
-	BasePassPSBytecode = CompilePixelShader(TEXT("./Shaders/BasePassPixelShader.hlsl"), "PS_Main");
+	BasePassVSBytecode = CompileVertexShader(TEXT("./Shaders/BasePassVertexShader.dusf"), "VS_Main");
+	BasePassPSBytecode = CompilePixelShader(TEXT("./Shaders/BasePassPixelShader.dusf"), "PS_Main");
 	GetShaderParameterAllocations(BasePassVSBytecode, BasePassVSParams);
 	GetShaderParameterAllocations(BasePassPSBytecode, BasePassPSParams);
 

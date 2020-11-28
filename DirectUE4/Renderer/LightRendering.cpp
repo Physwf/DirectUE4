@@ -151,8 +151,8 @@ std::map<std::string, ParameterAllocation> LightPassPSParams;
 void InitLightPass()
 {
 	/*
-	LightPassVSByteCode = CompileVertexShader(TEXT("./Shaders/DeferredLightVertexShader.hlsl"), "VS_Main");
-	LightPassPSByteCode = CompilePixelShader(TEXT("./Shaders/DeferredLightPixelShader.hlsl"), "PS_Main");
+	LightPassVSByteCode = CompileVertexShader(TEXT("./Shaders/DeferredLightVertexShader.dusf"), "VS_Main");
+	LightPassPSByteCode = CompilePixelShader(TEXT("./Shaders/DeferredLightPixelShader.dusf"), "PS_Main");
 	GetShaderParameterAllocations(LightPassVSByteCode, LightPassVSParams);
 	GetShaderParameterAllocations(LightPassPSByteCode, LightPassPSParams);
 

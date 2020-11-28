@@ -112,8 +112,8 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(template<>, THZBBuildPS<0>, ("HZBOcclusion.hlsl"), ("HZBBuildPS"), SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>, THZBBuildPS<1>, ("HZBOcclusion.hlsl"), ("HZBBuildPS"), SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>, THZBBuildPS<0>, ("HZBOcclusion.dusf"), ("HZBBuildPS"), SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>, THZBBuildPS<1>, ("HZBOcclusion.dusf"), ("HZBBuildPS"), SF_Pixel);
 
 void InitHZB()
 {
@@ -134,8 +134,8 @@ void InitHZB()
 	HZBSRV = HZBSRVs[0];
 	D3D_SHADER_MACRO Macro0 = { "STAGE","0" };
 	D3D_SHADER_MACRO Macro1 = { "STAGE","1" };
-	PSBytecode0 = CompilePixelShader(TEXT("./Shaders/HZBOcclusion.hlsl"), "HZBBuildPS", &Macro0, 1);
-	PSBytecode1 = CompilePixelShader(TEXT("./Shaders/HZBOcclusion.hlsl"), "HZBBuildPS", &Macro1, 1);
+	PSBytecode0 = CompilePixelShader(TEXT("./Shaders/HZBOcclusion.dusf"), "HZBBuildPS", &Macro0, 1);
+	PSBytecode1 = CompilePixelShader(TEXT("./Shaders/HZBOcclusion.dusf"), "HZBBuildPS", &Macro1, 1);
 	GetShaderParameterAllocations(PSBytecode0, PSParams0);
 	GetShaderParameterAllocations(PSBytecode1, PSParams1);
 	PS0 = CreatePixelShader(PSBytecode0);
