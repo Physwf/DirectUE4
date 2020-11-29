@@ -1,6 +1,7 @@
 #pragma once
 
 #include "UnrealMath.h"
+#include "SceneComponent.h"
 
 class UWorld;
 
@@ -13,15 +14,19 @@ public:
 	virtual void Tick(float fDeltaSeconds) = 0;
 	virtual void PostLoad() = 0;
 
-	void SetActorLocation(FVector InPosition);
+	void SetActorLocation(FVector NewLocation);
 	FVector GetActorLocation() const { return Position; }
 	void SetActorRotation(FRotator InRotation);
 	FRotator GetActorRotation() { return Rotation; }
 
-	class UWorld* GetWorld() { return WorldPrivite; }
+	FQuat GetActorQuat() const
+	{
+		return RootComponent ? RootComponent->GetComponentQuat() : FQuat(0,0,0,1.f);
+	}
 
-	FMatrix GetWorldMatrix();
+	class UWorld* GetWorld() { return WorldPrivite; }
 protected:
+	class USceneComponent* RootComponent;
 
 	FVector Position;
 	FRotator Rotation;

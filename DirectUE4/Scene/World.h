@@ -26,6 +26,8 @@ public:
 
 	void SendAllEndOfFrameUpdates();
 
+	void RegisterComponent(class UActorComponent* InComponent);
+	void UnregisterComponent(class UActorComponent* InComponent);
 private:
 	std::vector<Camera*> mCameras;
 	std::vector<AActor*> mAllActors;

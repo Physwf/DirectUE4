@@ -14,6 +14,8 @@ StaticMeshActor::StaticMeshActor(class UWorld* InOwner, const char* ResourcePath
 	UStaticMesh* Mesh = Importer.ImportStaticMesh(this, ResourcePath);
 
 	MeshComponent->SetStaticMesh(Mesh);
+
+	RootComponent = MeshComponent;
 }
 
 void StaticMeshActor::PostLoad()

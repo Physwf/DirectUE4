@@ -6,6 +6,7 @@ PointLightActor::PointLightActor(class UWorld* InWorld)
 	: AActor(InWorld)
 {
 	Componet = new UPointLightComponent(this);
+	RootComponent = Componet;
 }
 
 PointLightActor::~PointLightActor()

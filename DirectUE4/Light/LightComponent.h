@@ -27,6 +27,8 @@ public:
 	ULightComponent(AActor* InOwner);
 	~ULightComponent();
 
+	class FLightSceneProxy* SceneProxy;
+
 	float MaxDrawDistance;
 	float MaxDistanceFadeRange;
 	/**
@@ -102,6 +104,8 @@ public:
 		return NULL;
 	}
 
+	virtual void SendRenderTransform_Concurrent() override;
+
 	virtual void Register() override;
 	virtual void Unregister() override;
 };
@@ -154,6 +158,7 @@ public:
 	virtual FBox GetBoundingBox() const override;
 	virtual FSphere GetBoundingSphere() const override;
 
+	virtual void SendRenderTransform_Concurrent() override;
 };
 
 class UPointLightComponent : public ULocalLightComponent

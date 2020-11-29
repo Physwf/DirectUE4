@@ -9,18 +9,40 @@ class AActor;
 
 class UActorComponent
 {
+public:
+	UActorComponent(AActor* InOwner);
+	virtual ~UActorComponent();
 protected:
+
+	virtual void OnRegister();
+	virtual void OnUnregister();
 	/** Is this component's transform in need of sending to the renderer? */
 	uint8 bRenderTransformDirty : 1;
 
 	/** Is this component's dynamic data in need of sending to the renderer? */
 	uint8 bRenderDynamicDataDirty : 1;
+
 public:
+	virtual void Register() = 0;
+	virtual void Unregister() = 0;
+
 	void DoDeferredRenderUpdates_Concurrent();
 
-	virtual void SendRenderTransform_Concurrent() {};
+	virtual void SendRenderTransform_Concurrent() 
+	{
+		bRenderTransformDirty = false;
+	};
 
-	virtual void SendRenderDynamicData_Concurrent() {};
+	virtual void SendRenderDynamicData_Concurrent() 
+	{
+		bRenderDynamicDataDirty = false;
+	};
+
+	AActor* GetOwner() const { return Owner; }
+	UWorld* GetWorld() { return WorldPrivite; }
+private:
+	UWorld * WorldPrivite;
+	mutable AActor* Owner;
 };
 
 class USceneComponent : public UActorComponent
@@ -41,6 +63,8 @@ public:
 private:
 	/** Current transform of the component, relative to the world */
 	FTransform ComponentToWorld;
+protected:
+	bool InternalSetWorldLocationAndRotation(FVector NewLocation, const FQuat& NewQuat);
 public:
 	inline const FTransform& GetComponentTransform() const
 	{
@@ -50,17 +74,17 @@ public:
 	{
 		return GetComponentTransform().GetLocation();
 	}
-
+	FQuat GetComponentQuat() const
+	{
+		return GetComponentTransform().GetRotation();
+	}
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const;
 
 	AActor* GetAttachmentRootActor() const;
 
-	virtual void Register() = 0;
-	virtual void Unregister() = 0;
+	bool MoveComponent(const FVector& Delta, const FQuat& NewRotation);
 
-	UWorld* GetWorld() { return WorldPrivite; }
-private:
-	UWorld* WorldPrivite;
-	AActor* Owner;
+	void ConditionalUpdateComponentToWorld();
+
 };
 

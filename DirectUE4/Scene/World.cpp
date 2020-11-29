@@ -17,6 +17,7 @@ void UWorld::InitWorld()
 	//m1->SetRotation(-3.14f / 2.0f, 0, 0);
 
 	PointLightActor* l1 = SpawnActor<PointLightActor>();
+	l1->SetActorLocation(FVector(0, 100, 0));
 
 	Camera* C = SpawnActor<Camera>();
 	C->SetActorLocation(FVector(-400, 0,  0));
@@ -48,6 +49,17 @@ void UWorld::SendAllEndOfFrameUpdates()
 	{
 		Component->DoDeferredRenderUpdates_Concurrent();
 	}
+}
+
+void UWorld::RegisterComponent(class UActorComponent* InComponent)
+{
+	ActorComponents.push_back(InComponent);
+}
+
+void UWorld::UnregisterComponent(class UActorComponent* InComponent)
+{
+	auto It = std::find(ActorComponents.begin(), ActorComponents.end(), InComponent);
+	if (It != ActorComponents.end()) ActorComponents.erase(It);
 }
 
 UWorld GWorld;

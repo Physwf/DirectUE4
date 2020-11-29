@@ -48,12 +48,19 @@ struct FPrimitiveBounds
 	float MaxCullDistance;
 };
 
+struct FUpdateLightTransformParameters
+{
+	FMatrix LightToWorld;
+	Vector4 Position;
+};
+
 class FScene
 {
 public:
 	void AddPrimitive(UPrimitiveComponent* Primitive);
 	void RemovePrimitive(UPrimitiveComponent* Primitive);
 	void UpdatePrimitiveTransform(UPrimitiveComponent* Component);
+	void UpdateLightTransform(ULightComponent* Light);
 	void AddLight(class ULightComponent* Light);
 	void RemoveLight(class ULightComponent* Light);
 
@@ -61,7 +68,8 @@ public:
 	void AddLightSceneInfo(FLightSceneInfo* LightSceneInfo);
 	void AddPrimitiveSceneInfo(FPrimitiveSceneInfo* PrimitiveSceneInfo);
 
-	void UpdatePrimitiveTransform(FPrimitiveSceneProxy* PrimitiveSceneProxy, const FBoxSphereBounds& WorldBounds, const FBoxSphereBounds& LocalBounds, const FMatrix& LocalToWorld, const FVector& OwnerPosition);
+	void UpdateLightTransform_RenderThread(FLightSceneInfo* LightSceneInfo, const struct FUpdateLightTransformParameters& Parameters);
+	void UpdatePrimitiveTransform_RenderThread(FPrimitiveSceneProxy* PrimitiveSceneProxy, const FBoxSphereBounds& WorldBounds, const FBoxSphereBounds& LocalBounds, const FMatrix& LocalToWorld, const FVector& OwnerPosition);
 public:
 
 

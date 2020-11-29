@@ -99,6 +99,23 @@ void FLightSceneInfo::CreateLightPrimitiveInteraction(const FLightSceneInfoCompa
 
 void FLightSceneInfo::RemoveFromScene()
 {
+	//Scene->LightOctree.RemoveElement(OctreeId);
 
+	//Scene->CachedShadowMaps.Remove(Id);
+
+	Detach();
+}
+
+void FLightSceneInfo::Detach()
+{
+	while (DynamicInteractionOftenMovingPrimitiveList)
+	{
+		FLightPrimitiveInteraction::Destroy(DynamicInteractionOftenMovingPrimitiveList);
+	}
+
+	while (DynamicInteractionStaticPrimitiveList)
+	{
+		FLightPrimitiveInteraction::Destroy(DynamicInteractionStaticPrimitiveList);
+	}
 }
 

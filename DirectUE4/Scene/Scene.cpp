@@ -49,7 +49,7 @@ void FScene::UpdatePrimitiveTransform(UPrimitiveComponent* Primitive)
 		AttachmentRootPosition = Actor->GetActorLocation();
 	}
 
-	UpdatePrimitiveTransform(Primitive->SceneProxy, Primitive->Bounds, Primitive->CalcBounds(FTransform::Identity), Primitive->GetRenderMatrix(), AttachmentRootPosition);
+	UpdatePrimitiveTransform_RenderThread(Primitive->SceneProxy, Primitive->Bounds, Primitive->CalcBounds(FTransform::Identity), Primitive->GetRenderMatrix(), AttachmentRootPosition);
 }
 
 void FScene::AddLight(class ULightComponent* Light)
@@ -57,12 +57,24 @@ void FScene::AddLight(class ULightComponent* Light)
 	FLightSceneProxy* Proxy = Light->CreateSceneProxy();
 	if (Proxy)
 	{
+		Light->SceneProxy = Proxy;
 		Proxy->SetTransform(Light->GetComponentTransform().ToMatrixNoScale(), Light->GetLightPosition());
 		Proxy->LightSceneInfo = new FLightSceneInfo(Proxy);
 
 		AddLightSceneInfo(Proxy->LightSceneInfo);
 	}
 
+}
+
+void FScene::UpdateLightTransform(ULightComponent* Light)
+{
+	if (Light->SceneProxy)
+	{
+		FUpdateLightTransformParameters Parameters;
+		Parameters.LightToWorld = Light->GetComponentTransform().ToMatrixNoScale();
+		Parameters.Position = Light->GetLightPosition();
+		UpdateLightTransform_RenderThread(Light->SceneProxy->GetLightSceneInfo(), Parameters);
+	}
 }
 
 void FScene::RemoveLight(class ULightComponent* Light)
@@ -102,7 +114,37 @@ void FScene::AddPrimitiveSceneInfo(FPrimitiveSceneInfo* PrimitiveSceneInfo)
 	PrimitiveSceneInfo->AddToScene(true, true);
 }
 
-void FScene::UpdatePrimitiveTransform(FPrimitiveSceneProxy* PrimitiveSceneProxy, const FBoxSphereBounds& WorldBounds, const FBoxSphereBounds& LocalBounds, const FMatrix& LocalToWorld, const FVector& OwnerPosition)
+void FScene::UpdateLightTransform_RenderThread(FLightSceneInfo* LightSceneInfo, const struct FUpdateLightTransformParameters& Parameters)
+{
+	if (LightSceneInfo)
+	{
+		// Don't remove directional lights when their transform changes as nothing in RemoveFromScene() depends on their transform
+		if (!(LightSceneInfo->Proxy->GetLightType() == LightType_Directional))
+		{
+			// Remove the light from the scene.
+			LightSceneInfo->RemoveFromScene();
+		}
+
+		// Update the light's transform and position.
+		LightSceneInfo->Proxy->SetTransform(Parameters.LightToWorld, Parameters.Position);
+
+		// Also update the LightSceneInfoCompact
+		if (LightSceneInfo->Id != INDEX_NONE)
+		{
+			LightSceneInfo->Scene->Lights[LightSceneInfo->Id].Init(LightSceneInfo);
+
+			// Don't re-add directional lights when their transform changes as nothing in AddToScene() depends on their transform
+			if (!(LightSceneInfo->Proxy->GetLightType() == LightType_Directional))
+			{
+				// Add the light to the scene at its new location.
+				LightSceneInfo->AddToScene();
+			}
+		}
+	}
+}
+
+
+void FScene::UpdatePrimitiveTransform_RenderThread(FPrimitiveSceneProxy* PrimitiveSceneProxy, const FBoxSphereBounds& WorldBounds, const FBoxSphereBounds& LocalBounds, const FMatrix& LocalToWorld, const FVector& OwnerPosition)
 {
 	PrimitiveSceneProxy->SetTransform(LocalToWorld, WorldBounds, LocalBounds, OwnerPosition);
 }

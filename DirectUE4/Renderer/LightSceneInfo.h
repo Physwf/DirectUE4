@@ -50,6 +50,8 @@ public:
 
 	int32 Id;
 
+	int32 OctreeId;
+
 	FLightSceneInfo(FLightSceneProxy* InProxy);
 	virtual ~FLightSceneInfo();
 
@@ -58,5 +60,7 @@ public:
 	void CreateLightPrimitiveInteraction(const FLightSceneInfoCompact& LightSceneInfoCompact, const FPrimitiveSceneInfoCompact& PrimitiveSceneInfoCompact);
 
 	void RemoveFromScene();
+
+	void Detach();
 
 };

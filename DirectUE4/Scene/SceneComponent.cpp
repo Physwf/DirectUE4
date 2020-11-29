@@ -2,28 +2,25 @@
 #include "World.h"
 #include "Actor.h"
 
-USceneComponent::USceneComponent(AActor* InOwner) :Owner(InOwner)
+UActorComponent::UActorComponent(AActor* InOwner)
+	: Owner(InOwner)
 {
 	WorldPrivite = Owner->GetWorld();
 }
 
-USceneComponent::~USceneComponent()
+UActorComponent::~UActorComponent()
 {
 
 }
 
-FBoxSphereBounds USceneComponent::CalcBounds(const FTransform& LocalToWorld) const
+void UActorComponent::OnRegister()
 {
-	FBoxSphereBounds NewBounds;
-	NewBounds.Origin = LocalToWorld.GetLocation();
-	NewBounds.BoxExtent = FVector::ZeroVector;
-	NewBounds.SphereRadius = 0.f;
-	return NewBounds;
+	GetWorld()->RegisterComponent(this);
 }
 
-AActor* USceneComponent::GetAttachmentRootActor() const
+void UActorComponent::OnUnregister()
 {
-	return Owner;
+	GetWorld()->UnregisterComponent(this);
 }
 
 void UActorComponent::DoDeferredRenderUpdates_Concurrent()
@@ -39,3 +36,45 @@ void UActorComponent::DoDeferredRenderUpdates_Concurrent()
 		SendRenderDynamicData_Concurrent();
 	}
 }
+
+
+USceneComponent::USceneComponent(AActor* InOwner) : UActorComponent(InOwner)
+{
+	
+}
+
+USceneComponent::~USceneComponent()
+{
+
+}
+
+bool USceneComponent::MoveComponent(const FVector& Delta, const FQuat& NewRotation)
+{
+	ComponentToWorld = FTransform(NewRotation, Delta, FVector::OneVector);
+	return true;
+}
+
+void USceneComponent::ConditionalUpdateComponentToWorld()
+{
+
+}
+
+bool USceneComponent::InternalSetWorldLocationAndRotation(FVector NewLocation, const FQuat& RotationQuat)
+{
+	return true;
+}
+
+FBoxSphereBounds USceneComponent::CalcBounds(const FTransform& LocalToWorld) const
+{
+	FBoxSphereBounds NewBounds;
+	NewBounds.Origin = LocalToWorld.GetLocation();
+	NewBounds.BoxExtent = FVector::ZeroVector;
+	NewBounds.SphereRadius = 0.f;
+	return NewBounds;
+}
+
+AActor* USceneComponent::GetAttachmentRootActor() const
+{
+	return GetOwner();
+}
+

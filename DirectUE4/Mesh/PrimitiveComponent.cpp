@@ -13,11 +13,13 @@ UPrimitiveComponent::UPrimitiveComponent(AActor* InOwner)
 void UPrimitiveComponent::Register()
 {
 	GetWorld()->Scene->AddPrimitive(this);
+	OnRegister();
 }
 
 void UPrimitiveComponent::Unregister()
 {
 	GetWorld()->Scene->RemovePrimitive(this);
+	OnUnregister();
 }
 
 FMatrix UPrimitiveComponent::GetRenderMatrix() const

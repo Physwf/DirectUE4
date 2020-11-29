@@ -54,14 +54,22 @@ bool ULightComponent::HasStaticShadowing() const
 	return !bMoveable;
 }
 
+void ULightComponent::SendRenderTransform_Concurrent()
+{
+	GetWorld()->Scene->UpdateLightTransform(this);
+	UActorComponent::SendRenderTransform_Concurrent();
+}
+
 void ULightComponent::Register()
 {
 	GetWorld()->Scene->AddLight(this);
+	OnRegister();
 }
 
 void ULightComponent::Unregister()
 {
 	GetWorld()->Scene->RemoveLight(this);
+	OnUnregister();
 }
 static float GMaxCSMRadiusToAllowPerObjectShadows = 8000;
 class FDirectionalLightSceneProxy : public FLightSceneProxy
@@ -153,6 +161,11 @@ FBox ULocalLightComponent::GetBoundingBox() const
 FSphere ULocalLightComponent::GetBoundingSphere() const
 {
 	return FSphere(GetComponentTransform().GetLocation(), AttenuationRadius);
+}
+
+void ULocalLightComponent::SendRenderTransform_Concurrent()
+{
+	ULightComponent::SendRenderTransform_Concurrent();
 }
 
 UPointLightComponent::UPointLightComponent(AActor* InOwner)
