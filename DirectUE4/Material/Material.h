@@ -31,16 +31,7 @@ enum EMaterialTessellationMode
 	MTM_PNTriangles,
 	MTM_MAX,
 };
-enum EBlendMode
-{
-	BLEND_Opaque ,
-	BLEND_Masked ,
-	BLEND_Translucent ,
-	BLEND_Additive,
-	BLEND_Modulate ,
-	BLEND_AlphaComposite,
-	BLEND_MAX,
-};
+
 enum ERefractionMode
 {
 	/**
@@ -403,9 +394,9 @@ public:
 	virtual bool ShouldDoContactShadows() const { return false; }
 // 	virtual bool IsLightFunction() const = 0;
 // 	virtual bool IsUsedWithEditorCompositing() const { return false; }
-// 	virtual bool IsDeferredDecal() const = 0;
+	virtual bool IsDeferredDecal() const = 0;
 // 	virtual bool IsVolumetricPrimitive() const = 0;
-// 	virtual bool IsWireframe() const = 0;
+	virtual bool IsWireframe() const = 0;
 // 	virtual bool IsUIMaterial() const { return false; }
 	virtual bool IsSpecialEngineMaterial() const = 0;
 // 	virtual bool IsUsedWithSkeletalMesh() const { return false; }
@@ -417,7 +408,7 @@ public:
 // 	virtual bool IsUsedWithNiagaraSprites() const { return false; }
 // 	virtual bool IsUsedWithNiagaraRibbons() const { return false; }
 // 	virtual bool IsUsedWithNiagaraMeshParticles() const { return false; }
-// 	virtual bool IsUsedWithStaticLighting() const { return false; }
+	virtual bool IsUsedWithStaticLighting() const { return false; }
 // 	virtual	bool IsUsedWithMorphTargets() const { return false; }
 // 	virtual bool IsUsedWithSplineMeshes() const { return false; }
 	virtual bool IsUsedWithInstancedStaticMeshes() const { return false; }
@@ -435,7 +426,7 @@ public:
 // 	virtual bool OutputsVelocityOnBasePass() const { return true; }
 	virtual bool IsNonmetal() const { return false; }
 	virtual bool UseLmDirectionality() const { return true; }
-// 	virtual bool IsMasked() const = 0;
+	virtual bool IsMasked() const = 0;
 	virtual bool IsDitherMasked() const { return false; }
 	virtual bool AllowNegativeEmissiveColor() const { return false; }
 	virtual enum EBlendMode GetBlendMode() const = 0;
@@ -543,9 +534,9 @@ public:
 	virtual bool ShouldDoContactShadows() const override;
 // 	virtual bool IsLightFunction() const override;
 // 	virtual bool IsUsedWithEditorCompositing() const override;
-// 	virtual bool IsDeferredDecal() const override;
+	virtual bool IsDeferredDecal() const override;
 // 	virtual bool IsVolumetricPrimitive() const override;
-// 	virtual bool IsWireframe() const override;
+	virtual bool IsWireframe() const override;
 // 	virtual bool IsUIMaterial() const override;
 	virtual bool IsSpecialEngineMaterial() const override;
 // 	virtual bool IsUsedWithSkeletalMesh() const override;
@@ -557,7 +548,7 @@ public:
 // 	virtual bool IsUsedWithNiagaraSprites() const override;
 // 	virtual bool IsUsedWithNiagaraRibbons() const override;
 // 	virtual bool IsUsedWithNiagaraMeshParticles() const override;
-// 	virtual bool IsUsedWithStaticLighting() const override;
+	virtual bool IsUsedWithStaticLighting() const override;
 // 	virtual bool IsUsedWithMorphTargets() const override;
 // 	virtual bool IsUsedWithSplineMeshes() const override;
 	virtual bool IsUsedWithInstancedStaticMeshes() const override;
@@ -594,7 +585,7 @@ public:
 // 	virtual bool IsMobileSeparateTranslucencyEnabled() const override;
 // 	virtual FLinearColor GetTranslucentMultipleScatteringExtinction() const override;
 // 	virtual float GetTranslucentShadowStartOffset() const override;
-// 	virtual bool IsMasked() const override;
+	virtual bool IsMasked() const override;
 	virtual bool IsDitherMasked() const override;
 // 	virtual bool AllowNegativeEmissiveColor() const override;
 // 	virtual bool RequiresSynchronousCompilation() const override;

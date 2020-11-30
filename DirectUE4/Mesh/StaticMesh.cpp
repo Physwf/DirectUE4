@@ -92,15 +92,26 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent, 
 	: FPrimitiveSceneProxy(InComponent)
 	, RenderData(InComponent->GetStaticMesh()->RenderData.get())
 {
-	Materials.resize(RenderData->LODResources.size());
+	// Build the proxy's LOD data.
+	bool bAnySectionCastsShadows = false;
+	LODs.resize(RenderData->LODResources.size());
+	const bool bLODsShareStaticLighting = true/*RenderData->bLODsShareStaticLighting || bForceLODsShareStaticLighting*/;
 	for (uint32 LODIndex = 0; LODIndex < RenderData->LODResources.size(); LODIndex++)
 	{
-		FStaticMeshLODResources& LODModel = *RenderData->LODResources[LODIndex];
-		Materials[LODIndex].resize(LODModel.Sections.size());
-		for (uint32 SectionIndex = 0; SectionIndex < LODModel.Sections.size(); ++SectionIndex)
+		LODs.push_back(new FLODInfo(InComponent, RenderData->LODVertexFactories, LODIndex, bLODsShareStaticLighting));
+		FLODInfo* NewLODInfo = LODs.back();
+
+		// Under certain error conditions an LOD's material will be set to 
+		// DefaultMaterial. Ensure our material view relevance is set properly.
+		const uint32 NumSections = NewLODInfo->Sections.size();
+		for (uint32 SectionIndex = 0; SectionIndex < NumSections; ++SectionIndex)
 		{
-			const StaticMeshSection& Section = LODModel.Sections[SectionIndex];
-			Materials[LODIndex][SectionIndex] = InComponent->GetMaterial(Section.MaterialIndex);
+			const FLODInfo::FSectionInfo& SectionInfo = NewLODInfo->Sections[SectionIndex];
+			bAnySectionCastsShadows |= RenderData->LODResources[LODIndex].Sections[SectionIndex].bCastShadow;
+			if (SectionInfo.Material == UMaterial::GetDefaultMaterial(MD_Surface))
+			{
+				//MaterialRelevance |= UMaterial::GetDefaultMaterial(MD_Surface)->GetRelevance(FeatureLevel);
+			}
 		}
 	}
 }
@@ -128,15 +139,20 @@ bool FStaticMeshSceneProxy::GetMeshElement(
 	const FStaticMeshVertexFactories& VFs = *RenderData->LODVertexFactories[LODIndex];
 	const StaticMeshSection& Section = LOD.Sections[SectionIndex];
 
+	const FLODInfo& ProxyLODInfo = *LODs[LODIndex];
+	UMaterial* Material = ProxyLODInfo.Sections[SectionIndex].Material;
+	OutMeshBatch.MaterialRenderProxy = Material->GetRenderProxy(false, false);
+
 	FMeshBatchElement Element;
 	Element.PrimitiveUniformBufferResource = &GetUniformBuffer();
 	Element.FirstIndex = Section.FirstIndex;
 	Element.NumPrimitives = Section.NumTriangles;
 	//Element.MaterialIndex = Section.MaterialIndex;
-	Element.IndexBuffer = RenderData->LODResources[0]->IndexBuffer.Get();
+	Element.IndexBuffer = RenderData->LODResources[LODIndex]->IndexBuffer.Get();
 	OutMeshBatch.VertexFactory = &VFs.VertexFactory;
-	OutMeshBatch.MaterialRenderProxy = Materials[LODIndex][SectionIndex]->GetRenderProxy(false, false);
 	OutMeshBatch.Elements[0] = Element;
+
+	OutMeshBatch.LCI = &ProxyLODInfo;
 	return true;
 }
 
@@ -163,6 +179,41 @@ void FStaticMeshSceneProxy::DrawStaticElements(FPrimitiveSceneInfo* PrimitiveSce
 			}
 		}
 	}
+}
+
+FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponent, const std::vector<FStaticMeshVertexFactories*>& InLODVertexFactories, int32 InLODIndex, bool bLODsShareStaticLighting)
+{
+	FStaticMeshRenderData* MeshRenderData = InComponent->GetStaticMesh()->RenderData.get();
+	FStaticMeshLODResources& LODModel = *MeshRenderData->LODResources[LODIndex];
+	const FStaticMeshVertexFactories& VFs = *InLODVertexFactories[LODIndex];
+
+	Sections.clear();
+	Sections.resize(MeshRenderData->LODResources[LODIndex].Sections.size());
+	for (uint32 SectionIndex = 0; SectionIndex < LODModel.Sections.size(); SectionIndex++)
+	{
+		const StaticMeshSection& Section = LODModel.Sections[SectionIndex];
+		FSectionInfo SectionInfo;
+
+		// Determine the material applied to this element of the LOD.
+		SectionInfo.Material = InComponent->GetMaterial(Section.MaterialIndex);
+
+		// Store the element info.
+		Sections.push_back(SectionInfo);
+
+}
+
+FLightInteraction FStaticMeshSceneProxy::FLODInfo::GetInteraction(const FLightSceneProxy* LightSceneProxy) const
+{
+	// ask base class
+	ELightInteractionType LightInteraction = GetStaticInteraction(LightSceneProxy, IrrelevantLights);
+
+	if (LightInteraction != LIT_MAX)
+	{
+		return FLightInteraction(LightInteraction);
+	}
+
+	// Use dynamic lighting if the light doesn't have static lighting.
+	return FLightInteraction::Dynamic();
 }
 
 UStaticMesh::UStaticMesh(class AActor* InOwner)

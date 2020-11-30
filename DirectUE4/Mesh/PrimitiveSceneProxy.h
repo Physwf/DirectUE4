@@ -15,6 +15,7 @@ class FScene;
 class AActor;
 class FSceneView;
 
+
 class FPrimitiveComponentId
 {
 public:
@@ -73,7 +74,12 @@ public:
 		//return Mobility == EComponentMobility::Movable || !bGoodCandidateForCachedShadowmap;
 		return false;
 	}
-
+	inline bool IsMovable() const
+	{
+		// Note: primitives with EComponentMobility::Stationary can still move (as opposed to lights with EComponentMobility::Stationary)
+		return Mobility == EComponentMobility::Movable || Mobility == EComponentMobility::Stationary;
+	}
+	inline EIndirectLightingCacheQuality GetIndirectLightingCacheQuality() const { return IndirectLightingCacheQuality; }
 	inline bool HasStaticLighting() const { return bStaticLighting; }
 
 	inline bool CastsStaticShadow() const { return bCastStaticShadow; }
@@ -84,6 +90,8 @@ public:
 	inline bool CastsInsetShadow() const { return bCastInsetShadow; }
 	inline bool CastsFarShadow() const { return bCastFarShadow; }
 	inline bool HasValidSettingsForStaticLighting() const { return bHasValidSettingsForStaticLighting; }
+
+	inline const bool ReceivesDecals() const { return bReceivesDecals; }
 
 	virtual void DrawStaticElements(FPrimitiveSceneInfo* PrimitiveSceneInfo/*FStaticPrimitiveDrawInterface* PDI*/) {};
 	
@@ -106,6 +114,8 @@ public:
 private:
 	uint32 bStaticLighting : 1;
 protected:
+	uint32 bReceivesDecals : 1;
+
 	uint32 bHasValidSettingsForStaticLighting : 1;
 
 	uint32 bCastDynamicShadow : 1;
@@ -119,6 +129,10 @@ protected:
 	uint32 bCastInsetShadow : 1;
 
 	uint32 bCastFarShadow : 1;
+
+	EComponentMobility::Type Mobility;
+
+	EIndirectLightingCacheQuality IndirectLightingCacheQuality;
 private:
 	/** The primitive's local to world transform. */
 	FMatrix LocalToWorld;

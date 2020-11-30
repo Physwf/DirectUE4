@@ -2624,7 +2624,7 @@ inline void QuantizeSceneBufferSize(const FIntPoint& InBufferSize, FIntPoint& Ou
 	OutBufferSize.Y = (InBufferSize.Y + DividableBy - 1) & Mask;
 }
 
-struct IntVector
+struct FIntVector
 {
 	/** Holds the point's x-coordinate. */
 	int32 X;
@@ -2634,11 +2634,11 @@ struct IntVector
 
 	/**  Holds the point's z-coordinate. */
 	int32 Z;
-	IntVector() {}
-	IntVector(int32 InX, int32 InY, int32 InZ);
+	FIntVector() {}
+	FIntVector(int32 InX, int32 InY, int32 InZ);
 };
 
-inline IntVector::IntVector(int32 InX, int32 InY, int32 InZ) : X(InX) , Y(InY) , Z(InZ) { }
+inline FIntVector::FIntVector(int32 InX, int32 InY, int32 InZ) : X(InX) , Y(InY) , Z(InZ) { }
 
 struct FIntRect
 {

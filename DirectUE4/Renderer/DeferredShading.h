@@ -130,6 +130,122 @@ public:
 	/** A list of per-object shadows that were occluded. We need to track these so we can issue occlusion queries for them. */
 	std::vector<FProjectedShadowInfo*> OccludedPerObjectShadows;
 };
+const int32 GMaxForwardShadowCascades = 4;
+
+struct alignas(16) FForwardLightData
+{
+	FForwardLightData()
+	{
+		ConstructUniformBufferInfo(*this);
+	}
+
+	struct ConstantStruct
+	{
+		uint32 NumLocalLights;
+		uint32 NumReflectionCaptures;
+		uint32 HasDirectionalLight;
+		uint32 NumGridCells;
+		FIntVector CulledGridSize;
+		uint32 MaxCulledLightsPerCell;
+		uint32 LightGridPixelSizeShift;
+		FVector LightGridZParams;
+		FVector DirectionalLightDirection;
+		float Pading01;
+		FVector DirectionalLightColor;
+		float DirectionalLightVolumetricScatteringIntensity;
+		uint32 DirectionalLightShadowMapChannelMask;
+		Vector2 DirectionalLightDistanceFadeMAD;
+		uint32 NumDirectionalLightCascades;
+		Vector4 CascadeEndDepths;
+		FMatrix DirectionalLightWorldToShadowMatrix[GMaxForwardShadowCascades];
+		Vector4 DirectionalLightShadowmapMinMax[GMaxForwardShadowCascades];
+		Vector4 DirectionalLightShadowmapAtlasBufferSize;
+		float DirectionalLightDepthBias;
+		uint32 DirectionalLightUseStaticShadowing;
+		float Pading02;
+		float Pading03;
+		Vector4 DirectionalLightStaticShadowBufferSize;
+		FMatrix DirectionalLightWorldToStaticShadow;
+	} Constants;
+	
+	ID3D11ShaderResourceView* DirectionalLightShadowmapAtlas;
+	ID3D11SamplerState* ShadowmapSampler;
+	ID3D11ShaderResourceView* DirectionalLightStaticShadowmap;
+	ID3D11SamplerState* StaticShadowmapSampler;
+	ID3D11ShaderResourceView* ForwardLocalLightBuffer; //StrongTypedBuffer<float4>
+	ID3D11ShaderResourceView* NumCulledLightsGrid; //StrongTypedBuffer<uint>
+	ID3D11ShaderResourceView* CulledLightDataGrid;// StrongTypedBuffer<uint>
+
+	static std::string GetConstantBufferName()
+	{
+		return "ForwardLightData";
+	}
+
+#define ADD_RES(StructName, MemberName) List.insert(std::make_pair(std::string(#StructName) + "_" + std::string(#MemberName),StructName.MemberName))
+	static std::map<std::string, ID3D11ShaderResourceView*> GetSRVs(const FForwardLightData& ForwardLightData)
+	{
+		std::map<std::string, ID3D11ShaderResourceView*> List;
+		ADD_RES(ForwardLightData, DirectionalLightShadowmapAtlas);
+		ADD_RES(ForwardLightData, DirectionalLightStaticShadowmap);
+		ADD_RES(ForwardLightData, ForwardLocalLightBuffer);
+		ADD_RES(ForwardLightData, NumCulledLightsGrid);
+		ADD_RES(ForwardLightData, CulledLightDataGrid);
+		return List;
+	}
+	static std::map<std::string, ID3D11SamplerState*> GetSamplers(const FForwardLightData& ForwardLightData)
+	{
+		std::map<std::string, ID3D11SamplerState*> List;
+		ADD_RES(ForwardLightData, ShadowmapSampler);
+		ADD_RES(ForwardLightData, StaticShadowmapSampler);
+		return List;
+	}
+	static std::map<std::string, ID3D11UnorderedAccessView*> GetUAVs(const FSceneTexturesUniformParameters& SceneTexturesStruct)
+	{
+		std::map<std::string, ID3D11UnorderedAccessView*> List;
+		return List;
+	}
+#undef ADD_RES
+};
+
+static const int32 GMaxNumReflectionCaptures = 341;
+
+struct alignas(16) FReflectionCaptureShaderData
+{
+	FReflectionCaptureShaderData()
+	{
+		ConstructUniformBufferInfo(*this);
+	}
+	struct ContantStruct
+	{
+		Vector4 PositionAndRadius[GMaxNumReflectionCaptures];
+		// R is brightness, G is array index, B is shape
+		Vector4 CaptureProperties[GMaxNumReflectionCaptures];
+		Vector4 CaptureOffsetAndAverageBrightness[GMaxNumReflectionCaptures];
+		// Stores the box transform for a box shape, other data is packed for other shapes
+		FMatrix BoxTransform[GMaxNumReflectionCaptures];
+		Vector4 BoxScales[GMaxNumReflectionCaptures];
+	} Constants;
+	
+	static std::string GetConstantBufferName()
+	{
+		return "ReflectionCapture";
+	}
+	static std::map<std::string, ID3D11ShaderResourceView*> GetSRVs(const FReflectionCaptureShaderData& ReflectionCapture)
+	{
+		std::map<std::string, ID3D11ShaderResourceView*> List;
+		return List;
+	}
+	static std::map<std::string, ID3D11SamplerState*> GetSamplers(const FReflectionCaptureShaderData& ReflectionCapture)
+	{
+		std::map<std::string, ID3D11SamplerState*> List;
+		return List;
+	}
+	static std::map<std::string, ID3D11UnorderedAccessView*> GetUAVs(const FReflectionCaptureShaderData& ReflectionCapture)
+	{
+		std::map<std::string, ID3D11UnorderedAccessView*> List;
+		return List;
+	}
+};
 class FViewInfo : public FSceneView
 {
 public:
@@ -310,7 +426,7 @@ public:
 	//int32 NumBoxReflectionCaptures;
 	//int32 NumSphereReflectionCaptures;
 	//float FurthestReflectionCaptureDistance;
-	//TUniformBufferRef<FReflectionCaptureShaderData> ReflectionCaptureUniformBuffer;
+	TUniformBufferPtr<FReflectionCaptureShaderData> ReflectionCaptureUniformBuffer;
 
 	/** Used when there is no view state, buffers reallocate every frame. */
 	//TUniquePtr<FForwardLightingViewResources> ForwardLightingResourcesStorage;
@@ -473,6 +589,8 @@ private:
 class FSceneRenderer
 {
 public:
+	EDepthDrawingMode EarlyZPassMode;
+
 	FScene* Scene;
 	/** The view family being rendered.  This references the Views array. */
 	FSceneViewFamily ViewFamily;
@@ -518,7 +636,11 @@ public:
 	void RenderHzb();
 	void RenderShadowDepthMaps();
 	void RenderShadowDepthMapAtlases();
-	void RenderBasePass();
+	bool RenderBasePassStaticData(FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState);
+	bool RenderBasePassStaticDataType(FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState, const EBasePassDrawListType DrawType);
+	void RenderBasePassDynamicData(const FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState, bool& bOutDirty);
+	bool RenderBasePassView(FViewInfo& View, FExclusiveDepthStencil::Type BasePassDepthStencilAccess, const FDrawingPolicyRenderState& InDrawRenderState);
+	void RenderBasePass(FExclusiveDepthStencil::Type BasePassDepthStencilAccess);
 	void RenderLights();
 	void RenderLight();
 	void RenderAtmosphereFog();

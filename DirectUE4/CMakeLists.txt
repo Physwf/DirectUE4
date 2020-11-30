@@ -2,6 +2,7 @@
 file(GLOB_RECURSE DIR_SRC
     "./*.cpp"
     "./*.h"
+    "./*.inl"
 	"./*.dush"
     "./*.dusf"
 )

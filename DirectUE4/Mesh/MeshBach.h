@@ -133,7 +133,7 @@ struct FMeshBatch
 	float DitheredLODTransitionAlpha;
 
 	// can be NULL
-	//const FLightCacheInterface* LCI;
+	const FLightCacheInterface* LCI;
 
 	/** Vertex factory for rendering, required. */
 	const class FVertexFactory* VertexFactory;
@@ -147,33 +147,33 @@ struct FMeshBatch
 	/** This is the threshold that will be used to know if we should use this mesh batch or use one with no tessellation enabled */
 	float TessellationDisablingShadowMapMeshSize;
 
-// 	FORCEINLINE bool IsTranslucent(ERHIFeatureLevel::Type InFeatureLevel) const
-// 	{
-// 		// Note: blend mode does not depend on the feature level we are actually rendering in.
-// 		return IsTranslucentBlendMode(MaterialRenderProxy->GetMaterial(InFeatureLevel)->GetBlendMode());
-// 	}
+	FORCEINLINE bool IsTranslucent() const
+	{
+		// Note: blend mode does not depend on the feature level we are actually rendering in.
+		return IsTranslucentBlendMode(MaterialRenderProxy->GetMaterial()->GetBlendMode());
+	}
 
 	// todo: can be optimized with a single function that returns multiple states (Translucent, Decal, Masked) 
-// 	FORCEINLINE bool IsDecal(ERHIFeatureLevel::Type InFeatureLevel) const
-// 	{
-// 		// Note: does not depend on the feature level we are actually rendering in.
-// 		const FMaterial* Mat = MaterialRenderProxy->GetMaterial(InFeatureLevel);
-// 
-// 		return Mat->IsDeferredDecal();
-// 	}
+	FORCEINLINE bool IsDecal() const
+	{
+		// Note: does not depend on the feature level we are actually rendering in.
+		const FMaterial* Mat = MaterialRenderProxy->GetMaterial();
 
-// 	FORCEINLINE bool IsMasked(ERHIFeatureLevel::Type InFeatureLevel) const
-// 	{
-// 		// Note: blend mode does not depend on the feature level we are actually rendering in.
-// 		return MaterialRenderProxy->GetMaterial(InFeatureLevel)->IsMasked();
-// 	}
+		return Mat->IsDeferredDecal();
+	}
+
+	FORCEINLINE bool IsMasked() const
+	{
+		// Note: blend mode does not depend on the feature level we are actually rendering in.
+		return MaterialRenderProxy->GetMaterial()->IsMasked();
+	}
 
 	/** Converts from an int32 index into a int8 */
-// 	static int8 QuantizeLODIndex(int32 NewLODIndex)
-// 	{
-// 		checkSlow(NewLODIndex >= SCHAR_MIN && NewLODIndex <= SCHAR_MAX);
-// 		return (int8)NewLODIndex;
-// 	}
+	static int8 QuantizeLODIndex(int32 NewLODIndex)
+	{
+		assert(NewLODIndex >= SCHAR_MIN && NewLODIndex <= SCHAR_MAX);
+		return (int8)NewLODIndex;
+	}
 
 	inline int32 GetNumPrimitives() const
 	{

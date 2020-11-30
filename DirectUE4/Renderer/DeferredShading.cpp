@@ -66,6 +66,16 @@ FViewInfo::~FViewInfo()
 		delete CachedViewUniformShaderParameters;
 }
 
+void UpdateNoiseTextureParameters(FViewUniformShaderParameters& ViewUniformShaderParameters)
+{
+
+};
+
+void SetupPrecomputedVolumetricLightmapUniformBufferParameters(const FScene* Scene, FViewUniformShaderParameters& ViewUniformShaderParameters)
+{
+
+};
+
 void FViewInfo::SetupUniformBufferParameters(
 	FSceneRenderTargets& SceneContext,
 	const FViewMatrices& InViewMatrices,
@@ -182,13 +192,13 @@ void FViewInfo::SetupUniformBufferParameters(
 	//ViewUniformParameters.AtmosphereInscatterTextureSampler = TStaticSamplerState<SF_Bilinear>::GetRHI();
 
 	// This should probably be in SetupCommonViewUniformBufferParameters, but drags in too many dependencies
-	//UpdateNoiseTextureParameters(ViewUniformParameters);
+	UpdateNoiseTextureParameters(ViewUniformParameters);
 
 	//SetupDefaultGlobalDistanceFieldUniformBufferParameters(ViewUniformParameters);
 
 	//SetupVolumetricFogUniformBufferParameters(ViewUniformParameters);
 
-	//SetupPrecomputedVolumetricLightmapUniformBufferParameters(Scene, ViewUniformParameters);
+	SetupPrecomputedVolumetricLightmapUniformBufferParameters(Scene, ViewUniformParameters);
 
 	// Setup view's shared sampler for material texture sampling.
 	// 	{
@@ -622,6 +632,8 @@ FSceneRenderer::FSceneRenderer(FSceneViewFamily& InViewFamily)
 		FViewInfo View(InViewFamily.Views[ViewIndex]);
 		Views.emplace_back(View);
 	}
+	EarlyZPassMode = DDM_AllOpaque;
+
 }
 
 void FSceneRenderer::InitViewsPossiblyAfterPrepass()
@@ -676,6 +688,8 @@ void FSceneRenderer::InitViews()
 		Primitive->ConditionalUpdateUniformBuffer();
 	}
 }
+
+
 
 void FSceneRenderer::Render()
 {

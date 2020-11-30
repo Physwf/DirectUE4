@@ -8,20 +8,29 @@
 #include "MaterialShader.h"
 #include "Material.h"
 
+enum class EDrawingPolicyOverrideFlags
+{
+	None = 0,
+	TwoSided = 1 << 0,
+	DitheredLODTransition = 1 << 1,
+	Wireframe = 1 << 2,
+	ReverseCullMode = 1 << 3,
+};
+
 struct FDrawingPolicyRenderState
 {
-	FDrawingPolicyRenderState(const FSceneView& View, FUniformBuffer* InPassUniformBuffer = nullptr) :
+	FDrawingPolicyRenderState(const FSceneView& SceneView, FUniformBuffer* InPassUniformBuffer = nullptr) :
 		BlendState(nullptr)
 		, DepthStencilState(nullptr)
 		, DepthStencilAccess(FExclusiveDepthStencil::DepthRead_StencilRead)
 		, ViewUniformBuffer(View.ViewUniformBuffer)
 		, PassUniformBuffer(InPassUniformBuffer)
 		, StencilRef(0)
-		//, ViewOverrideFlags(EDrawingPolicyOverrideFlags::None)
+		, ViewOverrideFlags(EDrawingPolicyOverrideFlags::None),
 		, DitheredLODTransitionAlpha(0.0f)
 	{
-		//ViewOverrideFlags |= SceneView.bReverseCulling ? EDrawingPolicyOverrideFlags::ReverseCullMode : EDrawingPolicyOverrideFlags::None;
-		//ViewOverrideFlags |= SceneView.bRenderSceneTwoSided ? EDrawingPolicyOverrideFlags::TwoSided : EDrawingPolicyOverrideFlags::None;
+		ViewOverrideFlags |= SceneView.bReverseCulling ? EDrawingPolicyOverrideFlags::ReverseCullMode : EDrawingPolicyOverrideFlags::None;
+		ViewOverrideFlags |= SceneView.bRenderSceneTwoSided ? EDrawingPolicyOverrideFlags::TwoSided : EDrawingPolicyOverrideFlags::None;
 	}
 
 	FDrawingPolicyRenderState() :
@@ -29,8 +38,8 @@ struct FDrawingPolicyRenderState
 		, DepthStencilState(nullptr)
 		, ViewUniformBuffer()
 		, PassUniformBuffer(nullptr)
-		, StencilRef(0)
-		//, ViewOverrideFlags(EDrawingPolicyOverrideFlags::None)
+		, StencilRef(0),
+		, ViewOverrideFlags(EDrawingPolicyOverrideFlags::None),
 		, DitheredLODTransitionAlpha(0.0f)
 	{
 	}
@@ -42,7 +51,7 @@ struct FDrawingPolicyRenderState
 		, ViewUniformBuffer(DrawRenderState.ViewUniformBuffer)
 		, PassUniformBuffer(DrawRenderState.PassUniformBuffer)
 		, StencilRef(DrawRenderState.StencilRef)
-		//, ViewOverrideFlags(DrawRenderState.ViewOverrideFlags)
+		, ViewOverrideFlags(DrawRenderState.ViewOverrideFlags)
 		, DitheredLODTransitionAlpha(DrawRenderState.DitheredLODTransitionAlpha)
 	{
 	}
@@ -124,15 +133,15 @@ public:
 	}
 
 
-// 	inline EDrawingPolicyOverrideFlags& ModifyViewOverrideFlags()
-// 	{
-// 		return ViewOverrideFlags;
-// 	}
-// 
-// 	inline EDrawingPolicyOverrideFlags GetViewOverrideFlags() const
-// 	{
-// 		return ViewOverrideFlags;
-// 	}
+	inline EDrawingPolicyOverrideFlags& ModifyViewOverrideFlags()
+	{
+		return ViewOverrideFlags;
+	}
+
+	inline EDrawingPolicyOverrideFlags GetViewOverrideFlags() const
+	{
+		return ViewOverrideFlags;
+	}
 // 
 // 	inline void ApplyToPSO(FGraphicsPipelineStateInitializer& GraphicsPSOInit) const
 // 	{
@@ -150,10 +159,25 @@ private:
 	uint32							StencilRef;
 
 	//not sure if those should belong here
-	//EDrawingPolicyOverrideFlags		ViewOverrideFlags;
+	EDrawingPolicyOverrideFlags		ViewOverrideFlags;
 	float							DitheredLODTransitionAlpha;
 };
+struct FMeshDrawingPolicyOverrideSettings
+{
+	EDrawingPolicyOverrideFlags	MeshOverrideFlags = EDrawingPolicyOverrideFlags::None;
+	D3D11_PRIMITIVE_TOPOLOGY	MeshPrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+};
+FMeshDrawingPolicyOverrideSettings ComputeMeshOverrideSettings(const FMeshBatch& Mesh)
+{
+	FMeshDrawingPolicyOverrideSettings OverrideSettings;
+	OverrideSettings.MeshPrimitiveType = (D3D_PRIMITIVE_TOPOLOGY)Mesh.Type;
 
+	OverrideSettings.MeshOverrideFlags |= Mesh.bDisableBackfaceCulling ? EDrawingPolicyOverrideFlags::TwoSided : EDrawingPolicyOverrideFlags::None;
+	OverrideSettings.MeshOverrideFlags |= Mesh.bDitheredLODTransition ? EDrawingPolicyOverrideFlags::DitheredLODTransition : EDrawingPolicyOverrideFlags::None;
+	OverrideSettings.MeshOverrideFlags |= Mesh.bWireframe ? EDrawingPolicyOverrideFlags::Wireframe : EDrawingPolicyOverrideFlags::None;
+	OverrideSettings.MeshOverrideFlags |= Mesh.ReverseCulling ? EDrawingPolicyOverrideFlags::ReverseCullMode : EDrawingPolicyOverrideFlags::None;
+	return OverrideSettings;
+}
 /**
 * Creates and sets the base PSO so that resources can be set. Generally best to call during SetSharedState.
 */
@@ -215,8 +239,8 @@ public:
 	FMeshDrawingPolicy(
 		const FVertexFactory* InVertexFactory,
 		const FMaterialRenderProxy* InMaterialRenderProxy,
-		const FMaterial& InMaterialResource//,
-		//const FMeshDrawingPolicyOverrideSettings& InOverrideSettings,
+		const FMaterial& InMaterialResource,
+		const FMeshDrawingPolicyOverrideSettings& InOverrideSettings
 		//EDebugViewShaderMode InDebugViewShaderMode = DVSM_None
 	);
 

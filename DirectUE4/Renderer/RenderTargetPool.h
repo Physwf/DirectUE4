@@ -163,9 +163,9 @@ struct PooledRenderTargetDesc
 		return Extent.X != 0 && NumMips != 0 && NumSamples >= 1 && NumSamples <= 16 && Format != DXGI_FORMAT_UNKNOWN && ((TargetableFlags & TexCreate_UAV) == 0);
 	}
 
-	IntVector GetSize() const
+	FIntVector GetSize() const
 	{
-		return IntVector(Extent.X, Extent.Y, Depth);
+		return FIntVector(Extent.X, Extent.Y, Depth);
 	}
 
 	void Reset()

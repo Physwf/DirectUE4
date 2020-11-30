@@ -3,8 +3,8 @@
 FMeshDrawingPolicy::FMeshDrawingPolicy(
 	const FVertexFactory* InVertexFactory,  
 const FMaterialRenderProxy* InMaterialRenderProxy, 
-const FMaterial& InMaterialResource/*, */ 
-/*const FMeshDrawingPolicyOverrideSettings& InOverrideSettings, */
+const FMaterial& InMaterialResource, 
+const FMeshDrawingPolicyOverrideSettings& InOverrideSettings
 /*EDebugViewShaderMode InDebugViewShaderMode = DVSM_None */)
 	: VertexFactory(InVertexFactory),
 	MaterialRenderProxy(InMaterialRenderProxy),
@@ -13,6 +13,19 @@ const FMaterial& InMaterialResource/*, */
 	MeshFillMode = D3D11_FILL_SOLID;
 	MeshCullMode = D3D11_CULL_BACK;
 	MeshPrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+	bool bMaterialResourceIsTwoSided = InMaterialResource.IsTwoSided();
+
+	const bool bIsWireframeMaterial = InMaterialResource.IsWireframe() || !!(InOverrideSettings.MeshOverrideFlags & EDrawingPolicyOverrideFlags::Wireframe);
+	MeshFillMode = bIsWireframeMaterial ? D3D11_FILL_SOLID : D3D11_FILL_WIREFRAME;
+
+	const bool bInTwoSidedOverride = !!(InOverrideSettings.MeshOverrideFlags & EDrawingPolicyOverrideFlags::TwoSided);
+	const bool bInReverseCullModeOverride = !!(InOverrideSettings.MeshOverrideFlags & EDrawingPolicyOverrideFlags::ReverseCullMode);
+	const bool bIsTwoSided = (bMaterialResourceIsTwoSided || bInTwoSidedOverride);
+	const bool bMeshRenderTwoSided = bIsTwoSided || bInTwoSidedOverride;
+	MeshCullMode = (bMeshRenderTwoSided) ? D3D11_CULL_NONE : (bInReverseCullModeOverride ? D3D11_CULL_BACK : D3D11_CULL_FRONT);
+
+	bUsePositionOnlyVS = false;
 }
 
 void FMeshDrawingPolicy::DrawMesh(ID3D11DeviceContext* Context, const FSceneView& View, const FMeshBatch& Mesh, int32 BatchElementIndex, const bool bIsInstancedStereo /*= false*/) const

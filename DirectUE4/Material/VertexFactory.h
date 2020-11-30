@@ -253,7 +253,7 @@ struct alignas(16) FLocalVertexFactoryUniformShaderParameters
 
 	struct ConstantStruct
 	{
-		IntVector Parameters;
+		FIntVector Parameters;
 		int32 Pading001;
 	} Constants;
 

@@ -109,7 +109,55 @@ public:
 	//virtual void GetLightRelevance(const FLightSceneProxy* LightSceneProxy, bool& bDynamic, bool& bRelevant, bool& bLightMapped, bool& bShadowMapped) const override;
 protected:
 	FStaticMeshRenderData* RenderData;
-	std::vector<std::vector<class UMaterial*>> Materials;
+
+	/** Information used by the proxy about a single LOD of the mesh. */
+	class FLODInfo : public FLightCacheInterface
+	{
+	public:
+
+		/** Information about an element of a LOD. */
+		struct FSectionInfo
+		{
+			/** Default constructor. */
+			FSectionInfo()
+				: Material(NULL)
+				, FirstPreCulledIndex(0)
+				, NumPreCulledTriangles(-1)
+			{}
+			/** The material with which to render this section. */
+			UMaterial* Material;
+			int32 FirstPreCulledIndex;
+			int32 NumPreCulledTriangles;
+		};
+
+		/** Per-section information. */
+		std::vector<FSectionInfo> Sections;
+
+		/** Vertex color data for this LOD (or NULL when not overridden), FStaticMeshComponentLODInfo handle the release of the memory */
+		//FColorVertexBuffer* OverrideColorVertexBuffer;
+
+		TUniformBufferPtr<FLocalVertexFactoryUniformShaderParameters> OverrideColorVFUniformBuffer;
+
+		//const FRawStaticIndexBuffer* PreCulledIndexBuffer;
+
+		/** Initialization constructor. */
+		FLODInfo(const UStaticMeshComponent* InComponent, const std::vector<FStaticMeshVertexFactories*>& InLODVertexFactories, int32 InLODIndex, bool bLODsShareStaticLighting);
+
+		bool UsesMeshModifyingMaterials() const { return bUsesMeshModifyingMaterials; }
+
+		// FLightCacheInterface.
+		virtual FLightInteraction GetInteraction(const FLightSceneProxy* LightSceneProxy) const override;
+
+	private:
+		std::vector<uint32> IrrelevantLights;
+
+		/** True if any elements in this LOD use mesh-modifying materials **/
+		bool bUsesMeshModifyingMaterials;
+	};
+
+	//FStaticMeshOccluderData* OccluderData;
+
+	std::vector<FLODInfo*> LODs;
 private:
 };
 

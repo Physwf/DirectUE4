@@ -4,7 +4,17 @@
 #include "UnrealMath.h"
 #include "DrawingPolicy.h"
 
-void InitPrePass();
+enum EDepthDrawingMode
+{
+	// tested at a higher level
+	DDM_None = 0,
+	// Opaque materials only
+	DDM_NonMaskedOnly = 1,
+	// Opaque and masked materials, but no objects with bUseAsOccluder disabled
+	DDM_AllOccluders = 2,
+	// Full prepass, every object must be drawn and every pixel must match the base pass depth
+	DDM_AllOpaque = 3,
+};
 
 template<bool>
 class TDepthOnlyVS;

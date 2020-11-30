@@ -839,6 +839,8 @@ public:
 	inline FVector GetViewUp() const { return ViewMatrices.GetViewMatrix().GetColumn(1); }
 	inline FVector GetViewDirection() const { return ViewMatrices.GetViewMatrix().GetColumn(2); }
 
+	/** Whether to force two sided rendering for this view. */
+	bool bRenderSceneTwoSided;
 	// The antialiasing method.
 	//EAntiAliasingMethod AntiAliasingMethod;
 

@@ -738,8 +738,25 @@ bool FMaterialResource::ShouldDoContactShadows() const
 	return true;
 }
 
+bool FMaterialResource::IsDeferredDecal() const
+{
+	return Material->MaterialDomain == MD_DeferredDecal;
+}
+
+bool FMaterialResource::IsWireframe() const
+{
+	//return Material->Wireframe;
+	return false;
+}
+
 bool FMaterialResource::IsSpecialEngineMaterial() const
 {
+	return true;
+}
+
+bool FMaterialResource::IsUsedWithStaticLighting() const
+{
+	//return Material->bUsedWithStaticLighting;
 	return true;
 }
 
@@ -826,6 +843,12 @@ enum ETranslucencyLightingMode FMaterialResource::GetTranslucencyLightingMode() 
 bool FMaterialResource::GetCastDynamicShadowAsMasked() const
 {
 	//return MaterialInstance ? MaterialInstance->GetCastDynamicShadowAsMasked() : Material->GetCastDynamicShadowAsMasked();
+	return false;
+}
+
+bool FMaterialResource::IsMasked() const
+{
+	//return MaterialInstance ? MaterialInstance->IsMasked() : Material->IsMasked();
 	return false;
 }
 

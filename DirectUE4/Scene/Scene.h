@@ -12,6 +12,13 @@
 
 #include <memory>
 
+enum EBasePassDrawListType
+{
+	EBasePass_Default = 0,
+	EBasePass_Masked,
+	EBasePass_MAX
+};
+
 Vector4 CreateInvDeviceZToWorldZTransform(const FMatrix& ProjMatrix);
 
 class FSceneRenderTargets;
@@ -76,9 +83,9 @@ public:
 	TStaticMeshDrawList<FPositionOnlyDepthDrawingPolicy> PositionOnlyDepthDrawList;
 	TStaticMeshDrawList<FDepthDrawingPolicy> DepthDrawList;
 
-	//TStaticMeshDrawList<FDepthDrawingPolicy> MaskedDepthDrawList;
+	TStaticMeshDrawList<FDepthDrawingPolicy> MaskedDepthDrawList;
 	/** Base pass draw list - no light map */
-	//TStaticMeshDrawList<TBasePassDrawingPolicy<FUniformLightMapPolicy> > BasePassUniformLightMapPolicyDrawList[EBasePass_MAX];
+	TStaticMeshDrawList<TBasePassDrawingPolicy<FUniformLightMapPolicy> > BasePassUniformLightMapPolicyDrawList[EBasePass_MAX];
 	/** Base pass draw list - self shadowed translucency*/
 	//TStaticMeshDrawList<TBasePassDrawingPolicy<FSelfShadowedTranslucencyPolicy> > BasePassSelfShadowedTranslucencyDrawList[EBasePass_MAX];
 	//TStaticMeshDrawList<TBasePassDrawingPolicy<FSelfShadowedCachedPointIndirectLightingPolicy> > BasePassSelfShadowedCachedPointIndirectTranslucencyDrawList[EBasePass_MAX];
@@ -99,6 +106,8 @@ public:
 	/** Draw list used for rendering whole scene reflective shadow maps.  */
 	TStaticMeshDrawList<FShadowDepthDrawingPolicy<true> > WholeSceneReflectiveShadowMapDrawList;
 
+	template<typename LightMapPolicyType>
+	TStaticMeshDrawList<TBasePassDrawingPolicy<LightMapPolicyType> >& GetBasePassDrawList(EBasePassDrawListType DrawType);
 
 	//std::vector<MeshBatch> AllBatches;
 	std::vector<FPrimitiveSceneInfo*> Primitives;
@@ -113,10 +122,69 @@ public:
 
 	class AtmosphericFogSceneInfo* AtmosphericFog;
 
+	FSkyLightSceneProxy* SkyLight;
+
 	FLightSceneInfo* SimpleDirectionalLight;
 
 	std::map<int32, FCachedShadowMapData> CachedShadowMaps;
+
+
+	bool ShouldRenderSkylightInBasePass(EBlendMode BlendMode) const
+	{
+		bool bRenderSkyLight = SkyLight && !SkyLight->bHasStaticLighting;
+
+		if (IsTranslucentBlendMode(BlendMode))
+		{
+			// Both stationary and movable skylights are applied in base pass for translucent materials
+			bRenderSkyLight = bRenderSkyLight
+				&& (/*ReadOnlyCVARCache.bEnableStationarySkylight*/true || !SkyLight->bWantsStaticShadowing);
+		}
+		else
+		{
+			// For opaque materials, stationary skylight is applied in base pass but movable skylight
+			// is applied in a separate render pass (bWantssStaticShadowing means stationary skylight)
+			bRenderSkyLight = bRenderSkyLight
+				&& ((/*ReadOnlyCVARCache.bEnableStationarySkylight*/true && SkyLight->bWantsStaticShadowing)
+					/*|| (!SkyLight->bWantsStaticShadowing*/
+						/*&& (IsAnyForwardShadingEnabled(GetShaderPlatform()) || IsMobilePlatform(GetShaderPlatform())))*/);
+		}
+
+		return bRenderSkyLight;
+	}
+
+	bool HasAtmosphericFog() const
+	{
+		return (AtmosphericFog != NULL); // Use default value when Sun Light is not existing
+	}
+
 };
+
+// /**  */
+// template<>
+// TStaticMeshDrawList<TBasePassDrawingPolicy<FSelfShadowedTranslucencyPolicy> >& FScene::GetBasePassDrawList<FSelfShadowedTranslucencyPolicy>(EBasePassDrawListType DrawType)
+// {
+// 	return BasePassSelfShadowedTranslucencyDrawList[DrawType];
+// }
+// 
+// /**  */
+// template<>
+// TStaticMeshDrawList<TBasePassDrawingPolicy<FSelfShadowedCachedPointIndirectLightingPolicy> >& FScene::GetBasePassDrawList<FSelfShadowedCachedPointIndirectLightingPolicy>(EBasePassDrawListType DrawType)
+// {
+// 	return BasePassSelfShadowedCachedPointIndirectTranslucencyDrawList[DrawType];
+// }
+// 
+// template<>
+// TStaticMeshDrawList<TBasePassDrawingPolicy<FSelfShadowedVolumetricLightmapPolicy> >& FScene::GetBasePassDrawList<FSelfShadowedVolumetricLightmapPolicy>(EBasePassDrawListType DrawType)
+// {
+// 	return BasePassSelfShadowedVolumetricLightmapTranslucencyDrawList[DrawType];
+// }
+
+/**  */
+template<>
+TStaticMeshDrawList<TBasePassDrawingPolicy<FUniformLightMapPolicy> >& FScene::GetBasePassDrawList<FUniformLightMapPolicy>(EBasePassDrawListType DrawType)
+{
+	return BasePassUniformLightMapPolicyDrawList[DrawType];
+}
 
 inline bool ShouldIncludeDomainInMeshPass(EMaterialDomain Domain)
 {
