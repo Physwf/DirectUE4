@@ -7,6 +7,7 @@
 #include "VertexFactory.h"
 #include "MaterialShader.h"
 #include "Material.h"
+#include "EnumClassFlags.h"
 
 enum class EDrawingPolicyOverrideFlags
 {
@@ -16,6 +17,7 @@ enum class EDrawingPolicyOverrideFlags
 	Wireframe = 1 << 2,
 	ReverseCullMode = 1 << 3,
 };
+ENUM_CLASS_FLAGS(EDrawingPolicyOverrideFlags);
 
 struct FDrawingPolicyRenderState
 {
@@ -23,10 +25,10 @@ struct FDrawingPolicyRenderState
 		BlendState(nullptr)
 		, DepthStencilState(nullptr)
 		, DepthStencilAccess(FExclusiveDepthStencil::DepthRead_StencilRead)
-		, ViewUniformBuffer(View.ViewUniformBuffer)
+		, ViewUniformBuffer(SceneView.ViewUniformBuffer)
 		, PassUniformBuffer(InPassUniformBuffer)
 		, StencilRef(0)
-		, ViewOverrideFlags(EDrawingPolicyOverrideFlags::None),
+		, ViewOverrideFlags(EDrawingPolicyOverrideFlags::None)
 		, DitheredLODTransitionAlpha(0.0f)
 	{
 		ViewOverrideFlags |= SceneView.bReverseCulling ? EDrawingPolicyOverrideFlags::ReverseCullMode : EDrawingPolicyOverrideFlags::None;
@@ -38,8 +40,8 @@ struct FDrawingPolicyRenderState
 		, DepthStencilState(nullptr)
 		, ViewUniformBuffer()
 		, PassUniformBuffer(nullptr)
-		, StencilRef(0),
-		, ViewOverrideFlags(EDrawingPolicyOverrideFlags::None),
+		, StencilRef(0)
+		, ViewOverrideFlags(EDrawingPolicyOverrideFlags::None)
 		, DitheredLODTransitionAlpha(0.0f)
 	{
 	}

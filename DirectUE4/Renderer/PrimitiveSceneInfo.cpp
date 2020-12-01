@@ -102,3 +102,8 @@ void FPrimitiveSceneInfo::UpdateUniformBuffer()
 	bNeedsUniformBufferUpdate = false;
 	Proxy->UpdateUniformBuffer();
 }
+
+void FPrimitiveSceneInfo::UpdatePrecomputedLightingBuffer()
+{
+
+}

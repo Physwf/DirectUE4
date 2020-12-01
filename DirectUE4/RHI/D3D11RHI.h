@@ -28,6 +28,13 @@ extern ID3D11DeviceContext*	D3D11DeviceContext;
 extern ID3D11Texture2D* BackBuffer;
 extern ID3D11RenderTargetView* BackBufferRTV;
 
+extern ID3D11ShaderResourceView* GBlackTextureSRV;
+extern ID3D11SamplerState* GBlackTextureSamplerState;
+extern ID3D11ShaderResourceView* GWhiteTextureSRV;
+extern ID3D11SamplerState* GWhiteTextureSamplerState;
+extern ID3D11ShaderResourceView* GBlackVolumeTextureSRV;
+extern ID3D11SamplerState* GBlackVolumeTextureSamplerState;
+
 extern LONG WindowWidth;
 extern LONG WindowHeight;
 
@@ -53,9 +60,12 @@ ID3D11PixelShader* CreatePixelShader(ID3DBlob* PSBytecode);
 ID3D11InputLayout* CreateInputLayout(D3D11_INPUT_ELEMENT_DESC* InputDesc, unsigned int Count, ID3DBlob* VSBytecode);
 ID3D11Texture2D* CreateTexture2D(unsigned int W, unsigned int H, DXGI_FORMAT Format, bool bRenderTarget, bool bShaderResource, bool bDepthStencil, UINT MipMapCount = 1);
 ID3D11Texture2D* CreateTexture2D(unsigned int W, unsigned int H, DXGI_FORMAT Format, UINT MipMapCount, void* InitData);
+ID3D11Texture3D* CreateTexture3D(unsigned int X, unsigned int Y, unsigned int Z, DXGI_FORMAT Format, UINT MipMapCount, void* InitData);
 ID3D11RenderTargetView* CreateRenderTargetView2D(ID3D11Texture2D* Resource, DXGI_FORMAT Format, UINT MipSlice);
 ID3D11DepthStencilView* CreateDepthStencilView2D(ID3D11Texture2D* Resource, DXGI_FORMAT Format, UINT MipSlice);
 ID3D11ShaderResourceView* CreateShaderResourceView2D(ID3D11Texture2D* Resource, DXGI_FORMAT Format, UINT MipLevels, UINT MostDetailedMip);
+ID3D11ShaderResourceView* CreateShaderResourceView3D(ID3D11Texture3D* Resource, DXGI_FORMAT Format, UINT MipLevels, UINT MostDetailedMip);
+
 template<typename InitializerType, typename RHIRefType, typename RHIParamRefType>
 class TStaticStateRHI
 {

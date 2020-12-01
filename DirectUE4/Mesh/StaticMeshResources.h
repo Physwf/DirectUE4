@@ -2,6 +2,7 @@
 
 #include "VertexFactory.h"
 #include "PrimitiveSceneProxy.h"
+#include "SceneManagement.h"
 
 struct FStaticMeshVertexBuffers
 {
@@ -26,7 +27,7 @@ struct FStaticMeshVertexBuffers
 
 class UStaticMesh;
 
-struct StaticMeshSection
+struct FStaticMeshSection
 {
 	int MaterialIndex;
 
@@ -34,6 +35,8 @@ struct StaticMeshSection
 	uint32 NumTriangles;
 	uint32 MinVertexIndex;
 	uint32 MaxVertexIndex;
+
+	bool bCastShadow;
 };
 
 struct FStaticMeshLODResources
@@ -46,7 +49,7 @@ struct FStaticMeshLODResources
 	//std::vector<LocalVertex> Vertices;
 	//std::vector<PositionOnlyLocalVertex> PositionOnlyVertices;
 
-	std::vector<StaticMeshSection> Sections;
+	std::vector<FStaticMeshSection> Sections;
 
 	void InitResources();
 	void ReleaseResources();

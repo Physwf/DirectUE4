@@ -12,15 +12,15 @@ FOpaqueBasePassUniformParameters OpaqueBasePass;
 
 #define IMPLEMENT_BASEPASS_VERTEXSHADER_TYPE(LightMapPolicyType,LightMapPolicyName) \
 	typedef TBasePassVS< LightMapPolicyType, false > TBasePassVS##LightMapPolicyName ; \
-	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TBasePassVS##LightMapPolicyName,TEXT("BasePassVertexShader.dusf"),("Main"),SF_Vertex); 
+	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TBasePassVS##LightMapPolicyName,("BasePassVertexShader.dusf"),("Main"),SF_Vertex); 
 
 #define IMPLEMENT_BASEPASS_VERTEXSHADER_ONLY_TYPE(LightMapPolicyType,LightMapPolicyName,AtmosphericFogShaderName) \
 	typedef TBasePassVS<LightMapPolicyType,true> TBasePassVS##LightMapPolicyName##AtmosphericFogShaderName; \
-	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TBasePassVS##LightMapPolicyName##AtmosphericFogShaderName,TEXT("BasePassVertexShader.dusf"),("Main"),SF_Vertex)
+	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TBasePassVS##LightMapPolicyName##AtmosphericFogShaderName,("BasePassVertexShader.dusf"),("Main"),SF_Vertex)
 
 #define IMPLEMENT_BASEPASS_PIXELSHADER_TYPE(LightMapPolicyType,LightMapPolicyName,bEnableSkyLight,SkyLightName) \
 	typedef TBasePassPS<LightMapPolicyType, bEnableSkyLight> TBasePassPS##LightMapPolicyName##SkyLightName; \
-	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TBasePassPS##LightMapPolicyName##SkyLightName,TEXT("BasePassPixelShader.dusf"),("MainPS"),SF_Pixel);
+	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TBasePassPS##LightMapPolicyName##SkyLightName,("BasePassPixelShader.dusf"),("MainPS"),SF_Pixel);
 
 // Implement a pixel shader type for skylights and one without, and one vertex shader that will be shared between them
 #define IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE(LightMapPolicyType,LightMapPolicyName) \
@@ -140,7 +140,8 @@ public:
 
 	bool UseVolumetricLightmap() const
 	{
-		return Scene->VolumetricLightmapSceneData.HasData();
+		//return Scene->VolumetricLightmapSceneData.HasData();
+		return true;
 	}
 
 	/** Draws the mesh with a specific light-map type */
@@ -235,8 +236,9 @@ public:
 
 	bool AllowIndirectLightingCache() const
 	{
-		const FScene* Scene = (const FScene*)View.Family->Scene;
-		return /*View.Family->EngineShowFlags.IndirectLightingCache*/true && Scene && Scene->PrecomputedLightVolumes.Num() > 0;
+		//const FScene* Scene = (const FScene*)View.Family->Scene;
+		//return View.Family->EngineShowFlags.IndirectLightingCachetrue && Scene && Scene->PrecomputedLightVolumes.Num() > 0;
+		return false;
 	}
 
 	bool AllowIndirectLightingCacheVolumeTexture() const
@@ -247,9 +249,10 @@ public:
 	bool UseVolumetricLightmap() const
 	{
 		const FScene* Scene = (const FScene*)View.Family->Scene;
-		return /*View.Family->EngineShowFlags.VolumetricLightmap*/true
-			&& Scene
-			&& Scene->VolumetricLightmapSceneData.HasData();
+// 		return View.Family->EngineShowFlags.VolumetricLightmap
+// 			&& Scene
+// 			&& Scene->VolumetricLightmapSceneData.HasData();
+		return true;
 	}
 
 	/** Draws the translucent mesh with a specific light-map type, and shader complexity predicate. */
@@ -370,7 +373,7 @@ bool FSceneRenderer::RenderBasePassStaticData(FViewInfo& View, const FDrawingPol
 bool FSceneRenderer::RenderBasePassStaticDataType(FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState, const EBasePassDrawListType DrawType)
 {
 	bool bDirty = false;
-	bDirty |= Scene->BasePassUniformLightMapPolicyDrawList[DrawType].DrawVisible(View, DrawRenderState/*, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility*/);
+	bDirty |= Scene->BasePassUniformLightMapPolicyDrawList[DrawType].DrawVisible(D3D11DeviceContext, View, DrawRenderState/*, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility*/);
 	return bDirty;
 }
 
@@ -390,7 +393,7 @@ bool FSceneRenderer::RenderBasePassView(FViewInfo& View, FExclusiveDepthStencil:
 	return bDirty;
 }
 
-void FSceneRenderer::RenderBasePass(FExclusiveDepthStencil::Type BasePassDepthStencilAccess)
+void FSceneRenderer::RenderBasePass(FExclusiveDepthStencil::Type BasePassDepthStencilAccess, PooledRenderTarget* ForwardScreenSpaceShadowMask)
 {
 	SCOPED_DRAW_EVENT_FORMAT(RenderBasePass, TEXT("BasePass"));
 	for (uint32 ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
@@ -399,7 +402,7 @@ void FSceneRenderer::RenderBasePass(FExclusiveDepthStencil::Type BasePassDepthSt
 
 		TUniformBufferPtr<FOpaqueBasePassUniformParameters> BasePassUniformBuffer;
 		CreateOpaqueBasePassUniformBuffer(View, ForwardScreenSpaceShadowMask, BasePassUniformBuffer);
-		FDrawingPolicyRenderState DrawRenderState(View, BasePassUniformBuffer);
+		FDrawingPolicyRenderState DrawRenderState(View, BasePassUniformBuffer.get());
 		RenderBasePassView(View, BasePassDepthStencilAccess, DrawRenderState);
 	}
 	

@@ -4570,7 +4570,7 @@ bool FBXImporter::BuildStaticMesh(FStaticMeshRenderData& OutRenderData, UStaticM
 	std::vector<uint32> CombinedIndices;
 	for (uint32 i = 0; i < LODResource.Sections.size(); ++i)
 	{
-		StaticMeshSection& Section = LODResource.Sections[i];
+		FStaticMeshSection& Section = LODResource.Sections[i];
 		std::vector<uint32> const& SectionIndices = OutPerSectionIndices[i];
 		Section.FirstIndex = 0;
 		Section.NumTriangles = 0;
@@ -4588,7 +4588,7 @@ bool FBXImporter::BuildStaticMesh(FStaticMeshRenderData& OutRenderData, UStaticM
 
 			Section.MinVertexIndex = *SrcPtr;
 			Section.MaxVertexIndex = *DestPtr;
-
+			Section.bCastShadow = true;
 			for (uint32 Index = 0; Index < SectionIndices.size(); Index++)
 			{
 				uint32 VertIndex = *SrcPtr++;
@@ -4622,9 +4622,9 @@ void FBXImporter::BuildVertexBuffer(const MeshDescription& MD2, FStaticMeshLODRe
 	for (const int PolgyonGroupID : MD2.PolygonGroups().GetElementIDs())
 	{
 		int& SectionIndex = PolygonGroupToSectionIndex[PolgyonGroupID];
-		StaticMeshLOD.Sections.push_back(StaticMeshSection());
+		StaticMeshLOD.Sections.push_back(FStaticMeshSection());
 		SectionIndex = (int)StaticMeshLOD.Sections.size() - 1;
-		StaticMeshSection& Section = StaticMeshLOD.Sections[SectionIndex];
+		FStaticMeshSection& Section = StaticMeshLOD.Sections[SectionIndex];
 		//if (Section.MaterialIndex == -1)
 		{
 			Section.MaterialIndex = PolgyonGroupID;

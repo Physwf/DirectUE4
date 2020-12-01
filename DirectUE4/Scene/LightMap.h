@@ -78,15 +78,15 @@ public:
 	* @param	BasisIndex - The basis index.
 	* @return	The RGB coefficient texture.
 	*/
-	const ID3D11Texture2D* GetTexture(uint32 BasisIndex) const;
-	ID3D11Texture2D* GetTexture(uint32 BasisIndex);
+	ID3D11ShaderResourceView* const GetTexture(uint32 BasisIndex) const;
+	ID3D11ShaderResourceView* GetTexture(uint32 BasisIndex);
 	/**
 	* Returns SkyOcclusionTexture.
 	* @return	The SkyOcclusionTexture.
 	*/
-	ID3D11Texture2D* GetSkyOcclusionTexture() const;
+	ID3D11ShaderResourceView* GetSkyOcclusionTexture() const;
 
-	ID3D11Texture2D* GetAOMaterialMaskTexture() const;
+	ID3D11ShaderResourceView* GetAOMaterialMaskTexture() const;
 
 	/**
 	* Returns whether the specified basis has a valid lightmap texture or not.
@@ -114,11 +114,11 @@ protected:
 	FLightMap2D(const std::vector<uint32>& InLightGuids);
 
 	/** The textures containing the light-map data. */
-	ID3D11Texture2D* Textures[2];
+	ID3D11ShaderResourceView* Textures[2];
 
-	ID3D11Texture2D* SkyOcclusionTexture;
+	ID3D11ShaderResourceView* SkyOcclusionTexture;
 
-	ID3D11Texture2D* AOMaterialMaskTexture;
+	ID3D11ShaderResourceView* AOMaterialMaskTexture;
 
 	/** A scale to apply to the coefficients. */
 	Vector4 ScaleVectors[NUM_STORED_LIGHTMAP_COEF];

@@ -3,6 +3,7 @@
 #include "UnrealMath.h"
 #include "PrimitiveUniformBufferParameters.h"
 #include "PrimitiveRelevance.h"
+#include "EngineTypes.h"
 
 #include <vector>
 
@@ -80,6 +81,14 @@ public:
 		return Mobility == EComponentMobility::Movable || Mobility == EComponentMobility::Stationary;
 	}
 	inline EIndirectLightingCacheQuality GetIndirectLightingCacheQuality() const { return IndirectLightingCacheQuality; }
+
+	inline uint8 GetLightingChannelMask() const { return LightingChannelMask; }
+	inline uint8 GetLightingChannelStencilValue() const
+	{
+		// Flip the default channel bit so that the default value is 0, to align with the default stencil clear value and GBlackTexture value
+		return (LightingChannelMask & 0x6) | (~LightingChannelMask & 0x1);
+	}
+
 	inline bool HasStaticLighting() const { return bStaticLighting; }
 
 	inline bool CastsStaticShadow() const { return bCastStaticShadow; }
@@ -113,6 +122,8 @@ public:
 	void UpdateUniformBuffer();
 private:
 	uint32 bStaticLighting : 1;
+
+	uint8 LightingChannelMask;
 protected:
 	uint32 bReceivesDecals : 1;
 
@@ -133,6 +144,7 @@ protected:
 	EComponentMobility::Type Mobility;
 
 	EIndirectLightingCacheQuality IndirectLightingCacheQuality;
+
 private:
 	/** The primitive's local to world transform. */
 	FMatrix LocalToWorld;

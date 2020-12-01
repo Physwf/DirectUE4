@@ -18,14 +18,12 @@ public:
 	std::vector<uint32> LightGuids;
 
 	/** Default constructor. */
-	FShadowMap() :
-		NumRefs(0)
+	FShadowMap() 
 	{
 	}
 
 	FShadowMap(std::vector<uint32> InLightGuids)
 		: LightGuids(std::move(InLightGuids))
-		, NumRefs(0)
 	{
 	}
 
@@ -37,9 +35,9 @@ public:
 	* @param	LightGuid - The GUID of the light to check for.
 	* @return	True if the light is stored in the light-map.
 	*/
-	bool ContainsLight(const FGuid& LightGuid) const
+	bool ContainsLight(const uint32& LightGuid) const
 	{
-		return LightGuids.Find(LightGuid) != INDEX_NONE;
+		return std::find(LightGuids.begin(), LightGuids.end(), LightGuid) != LightGuids.end();
 	}
 
 	// FShadowMap interface.
@@ -64,11 +62,11 @@ public:
 
 	FShadowMap2D();
 
-	FShadowMap2D(const TMap<ULightComponent*, FShadowMapData2D*>& ShadowMapData);
-	FShadowMap2D(TArray<FGuid> LightGuids);
+	//FShadowMap2D(const TMap<ULightComponent*, FShadowMapData2D*>& ShadowMapData);
+	FShadowMap2D(std::vector<uint32> InLightGuids);
 
 	// Accessors.
-	ID3D11Texture2D* GetTexture() const { assert(IsValid()); return Texture; }
+	ID3D11ShaderResourceView* GetTexture() const { assert(IsValid()); return Texture; }
 	const Vector2& GetCoordinateScale() const { assert(IsValid()); return CoordinateScale; }
 	const Vector2& GetCoordinateBias() const { assert(IsValid()); return CoordinateBias; }
 	bool IsValid() const { return Texture != NULL; }
@@ -86,7 +84,7 @@ public:
 protected:
 
 	/** The texture which contains the shadow-map data. */
-	ID3D11Texture2D * Texture;
+	ID3D11ShaderResourceView* Texture;
 
 	/** The scale which is applied to the shadow-map coordinates before sampling the shadow-map textures. */
 	Vector2 CoordinateScale;

@@ -2,6 +2,7 @@
 
 #include "ShaderCore.h"
 #include "Shader.h"
+#include "EngineTypes.h"
 
 enum EMaterialDomain
 {

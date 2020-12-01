@@ -501,6 +501,35 @@ FLinearColor::FLinearColor(struct FColor InColor)
 	A = float(InColor.A) * OneOver255;
 }
 
+FLinearColor FLinearColor::operator*(const FLinearColor& ColorB) const
+{
+	return FLinearColor(
+		this->R * ColorB.R,
+		this->G * ColorB.G,
+		this->B * ColorB.B,
+		this->A * ColorB.A
+	);
+}
+
+FLinearColor FLinearColor::operator*(float Scalar) const
+{
+	return FLinearColor(
+		this->R * Scalar,
+		this->G * Scalar,
+		this->B * Scalar,
+		this->A * Scalar
+	);
+}
+
+FLinearColor& FLinearColor::operator*=(float Scalar)
+{
+	R *= Scalar;
+	G *= Scalar;
+	B *= Scalar;
+	A *= Scalar;
+	return *this;
+}
+
 double FLinearColor::sRGBToLinearTable[256] =
 {
 	0,

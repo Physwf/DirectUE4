@@ -3,6 +3,9 @@
 #include "UnrealMath.h"
 #include "D3D11RHI.h"
 #include "PrimitiveUniformBufferParameters.h"
+#include "Material.h"
+
+class FLightCacheInterface;
 
 struct FMeshBatchElement
 {

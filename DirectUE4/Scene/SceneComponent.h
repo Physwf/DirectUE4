@@ -2,6 +2,7 @@
 
 #include "UnrealMath.h"
 #include "Transform.h"
+#include "EngineTypes.h"
 
 class UWorld;
 class AActor;
@@ -60,6 +61,7 @@ public:
 
 	FVector ComponentVelocity;
 
+	EComponentMobility::Type Mobility;
 private:
 	/** Current transform of the component, relative to the world */
 	FTransform ComponentToWorld;

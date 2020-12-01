@@ -218,10 +218,10 @@ FDepthDrawingPolicy::FDepthDrawingPolicy(
 	const FVertexFactory* InVertexFactory, 
 	const FMaterialRenderProxy* InMaterialRenderProxy,
 	const FMaterial& InMaterialResource, 
-	/*const FMeshDrawingPolicyOverrideSettings& InOverrideSettings, */ 
+	const FMeshDrawingPolicyOverrideSettings& InOverrideSettings, 
 	/*ERHIFeatureLevel::Type InFeatureLevel, */ 
 	float MobileColorValue)
-	: FMeshDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InMaterialResource)
+	: FMeshDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InMaterialResource, InOverrideSettings)
 {
 	bNeedsPixelShader = /*bUsesMobileColorValue ||*/ (!InMaterialResource.WritesEveryPixel() || InMaterialResource.MaterialUsesPixelDepthOffset() || InMaterialResource.IsTranslucencyWritingCustomDepth());
 
@@ -276,9 +276,9 @@ void FDepthDrawingPolicy::SetMeshRenderState(
 	const FPrimitiveSceneProxy* PrimitiveSceneProxy, 
 	const FMeshBatch& Mesh, 
 	int32 BatchElementIndex,  
-const FDrawingPolicyRenderState& DrawRenderState/*,  */
-/*const ElementDataType& ElementData, */ 
-/*const ContextDataType PolicyContext */) const
+	const FDrawingPolicyRenderState& DrawRenderState, 
+	const ElementDataType& ElementData, 
+	const ContextDataType PolicyContext ) const
 {
 	const FMeshBatchElement& BatchElement = Mesh.Elements[BatchElementIndex];
 	VertexShader->SetMesh(VertexFactory, View, PrimitiveSceneProxy, BatchElement, DrawRenderState);
@@ -297,9 +297,9 @@ const FDrawingPolicyRenderState& DrawRenderState/*,  */
 FPositionOnlyDepthDrawingPolicy::FPositionOnlyDepthDrawingPolicy(
 	const FVertexFactory* InVertexFactory,
 	const FMaterialRenderProxy* InMaterialRenderProxy, 
-	const FMaterial& InMaterialResource/*,*/
-	/*const FMeshDrawingPolicyOverrideSettings& InOverrideSettings */
-) : FMeshDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InMaterialResource/*, InOverrideSettings, DVSM_None*/)
+	const FMaterial& InMaterialResource,
+	const FMeshDrawingPolicyOverrideSettings& InOverrideSettings 
+) : FMeshDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InMaterialResource, InOverrideSettings/*, DVSM_None*/)
 {
 	VertexShader = InMaterialResource.GetShader<TDepthOnlyVS<true>>(InVertexFactory->GetType());
 	bUsePositionOnlyVS = true;
@@ -327,9 +327,9 @@ void FPositionOnlyDepthDrawingPolicy::SetMeshRenderState(
 	const FPrimitiveSceneProxy* PrimitiveSceneProxy, 
 	const FMeshBatch& Mesh, 
 	int32 BatchElementIndex,  
-	const FDrawingPolicyRenderState& DrawRenderState/*,*/ 
-/*const ElementDataType& ElementData, */ 
-/*const ContextDataType PolicyContext */) const
+	const FDrawingPolicyRenderState& DrawRenderState, 
+	const ElementDataType& ElementData, 
+	const ContextDataType PolicyContext ) const
 {
 	VertexShader->SetMesh(VertexFactory, View, PrimitiveSceneProxy, Mesh.Elements[BatchElementIndex], DrawRenderState);
 }
@@ -346,7 +346,7 @@ void FDepthDrawingPolicyFactory::AddStaticMesh(FScene* Scene, FStaticMesh* Stati
 	// Add the static mesh to the position-only depth draw list.
 	Scene->PositionOnlyDepthDrawList.AddMesh(
 		StaticMesh,
-		/*FPositionOnlyDepthDrawingPolicy::ElementDataType(),*/
+		FPositionOnlyDepthDrawingPolicy::ElementDataType(),
 		DrawingPolicy//,
 		/*FeatureLevel*/
 	);

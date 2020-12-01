@@ -29,6 +29,17 @@ ID3D11DeviceContext*	D3D11DeviceContext = NULL;
 
 ID3D11Texture2D* BackBuffer = NULL; 
 
+ID3D11Texture2D* GBlackTexture;
+ID3D11ShaderResourceView* GBlackTextureSRV;
+ID3D11SamplerState* GBlackTextureSamplerState;
+ID3D11Texture2D* GWhiteTexture;
+ID3D11ShaderResourceView* GWhiteTextureSRV;
+ID3D11SamplerState* GWhiteTextureSamplerState;
+
+ID3D11Texture3D* GBlackVolumeTexture;
+ID3D11ShaderResourceView* GBlackVolumeTextureSRV;
+ID3D11SamplerState* GBlackVolumeTextureSamplerState;
+
 LONG WindowWidth = 1920;
 LONG WindowHeight = 1080;
 
@@ -629,6 +640,40 @@ ID3D11Texture2D* CreateTexture2D(unsigned int W, unsigned int H, DXGI_FORMAT For
 }
 
 
+ID3D11Texture3D* CreateTexture3D(unsigned int Width, unsigned int Height, unsigned int Depth, DXGI_FORMAT Format, UINT MipMapCount, void* InitData)
+{
+	D3D11_TEXTURE3D_DESC Desc;
+	ZeroMemory(&Desc, sizeof(Desc));
+	Desc.Width = Width;
+	Desc.Height = Height;
+	Desc.Depth = Depth;
+	Desc.MipLevels = MipMapCount;
+	Desc.Format = Format;
+	Desc.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
+	Desc.Usage = D3D11_USAGE_DEFAULT;
+
+	unsigned int PixelSize = 0;
+	switch (Format)
+	{
+	case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:
+		PixelSize = 4;
+		break;
+	}
+
+	D3D11_SUBRESOURCE_DATA Data;
+	Data.pSysMem = InitData;
+	Data.SysMemPitch = Width * PixelSize;
+	Data.SysMemSlicePitch = Width * Height * PixelSize;
+
+	ID3D11Texture3D* Result;
+	if (S_OK == D3D11Device->CreateTexture3D(&Desc, &Data, &Result))
+	{
+		return Result;
+	}
+	X_LOG("CreateTexture3D failed!");
+	return NULL;
+}
+
 bool CreateTexture2DFromTGA(const wchar_t* FileName)
 {
 	TexMetadata Metadata;
@@ -678,6 +723,23 @@ ID3D11ShaderResourceView* CreateShaderResourceView2D(ID3D11Texture2D* Resource, 
 	D3D11_SHADER_RESOURCE_VIEW_DESC Desc;
 	Desc.Format = Format;
 	Desc.ViewDimension = D3D_SRV_DIMENSION_TEXTURE2D;
+	Desc.Texture2D.MipLevels = MipLevels;
+	Desc.Texture2D.MostDetailedMip = MostDetailedMip;
+
+	ID3D11ShaderResourceView* Result;
+	if (S_OK == D3D11Device->CreateShaderResourceView(Resource, &Desc, &Result))
+	{
+		return Result;
+	}
+	X_LOG("CreateShaderResourceView2D failed!");
+	return NULL;
+}
+
+ID3D11ShaderResourceView* CreateShaderResourceView3D(ID3D11Texture3D* Resource, DXGI_FORMAT Format, UINT MipLevels, UINT MostDetailedMip)
+{
+	D3D11_SHADER_RESOURCE_VIEW_DESC Desc;
+	Desc.Format = Format;
+	Desc.ViewDimension = D3D_SRV_DIMENSION_TEXTURE3D;
 	Desc.Texture2D.MipLevels = MipLevels;
 	Desc.Texture2D.MostDetailedMip = MostDetailedMip;
 
@@ -1469,6 +1531,26 @@ bool InitRHI()
 	GPixelFormats[PF_R16G16B16A16_UNORM].PlatformFormat = DXGI_FORMAT_R16G16B16A16_UNORM;
 	GPixelFormats[PF_R16G16B16A16_SNORM].PlatformFormat = DXGI_FORMAT_R16G16B16A16_SNORM;
 
+	{
+		FColor Black(0, 0, 0, 0);
+		GBlackTexture = CreateTexture2D(1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, 1, &Black);
+		GBlackTextureSRV = CreateShaderResourceView2D(GBlackTexture, DXGI_FORMAT_R8G8B8A8_UNORM, 1, 0);
+		GBlackTextureSamplerState = TStaticSamplerState<D3D11_FILTER_MIN_MAG_MIP_POINT, D3D11_TEXTURE_ADDRESS_WRAP, D3D11_TEXTURE_ADDRESS_WRAP, D3D11_TEXTURE_ADDRESS_WRAP>::GetRHI();
+	}
+
+	{
+		FColor White(255, 255, 255, 255);
+		GWhiteTexture = CreateTexture2D(1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, 1, &White);
+		GWhiteTextureSRV = CreateShaderResourceView2D(GBlackTexture, DXGI_FORMAT_R8G8B8A8_UNORM,1, 0);
+		GWhiteTextureSamplerState = TStaticSamplerState<D3D11_FILTER_MIN_MAG_MIP_POINT, D3D11_TEXTURE_ADDRESS_WRAP, D3D11_TEXTURE_ADDRESS_WRAP, D3D11_TEXTURE_ADDRESS_WRAP>::GetRHI();
+	}
+
+	{
+		FColor Black(0, 0, 0, 0);
+		GBlackVolumeTexture = CreateTexture3D(1, 1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, 1, &Black);
+		GBlackVolumeTextureSRV = CreateShaderResourceView3D(GBlackVolumeTexture, DXGI_FORMAT_R8G8B8A8_UNORM, 1, 0);
+		GBlackVolumeTextureSamplerState = TStaticSamplerState<D3D11_FILTER_MIN_MAG_MIP_POINT, D3D11_TEXTURE_ADDRESS_WRAP, D3D11_TEXTURE_ADDRESS_WRAP, D3D11_TEXTURE_ADDRESS_WRAP>::GetRHI();
+	}
 	return true;
 }
 

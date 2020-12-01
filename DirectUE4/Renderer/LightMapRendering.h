@@ -2,7 +2,7 @@
 
 #include "D3D11RHI.h"
 #include "SceneManagement.h"
-
+#include "VertexFactory.h"
 
 struct alignas(16) FPrecomputedLightingParameters
 {
@@ -90,21 +90,21 @@ struct alignas(16) FPrecomputedLightingParameters
 
 void GetPrecomputedLightingParameters(
 	FPrecomputedLightingParameters& Parameters,
-	const class FIndirectLightingCache* LightingCache,
-	const class FIndirectLightingCacheAllocation* LightingAllocation,
+	/*const class FIndirectLightingCache* LightingCache,*/
+	/*const class FIndirectLightingCacheAllocation* LightingAllocation,*/
 	FVector VolumetricLightmapLookupPosition,
 	uint32 SceneFrameNumber,
-	class FVolumetricLightmapSceneData* VolumetricLightmapSceneData,
+	/*class FVolumetricLightmapSceneData* VolumetricLightmapSceneData,*/
 	const FLightCacheInterface* LCI
 );
 
-FUniformBufferRHIRef CreatePrecomputedLightingUniformBuffer(
-	EUniformBufferUsage BufferUsage,
-	const class FIndirectLightingCache* LightingCache,
-	const class FIndirectLightingCacheAllocation* LightingAllocation,
+std::shared_ptr<FUniformBuffer> CreatePrecomputedLightingUniformBuffer(
+	/*EUniformBufferUsage BufferUsage,*/
+	/*const class FIndirectLightingCache* LightingCache,*/
+	/*const class FIndirectLightingCacheAllocation* LightingAllocation,*/
 	FVector VolumetricLightmapLookupPosition,
 	uint32 SceneFrameNumber,
-	FVolumetricLightmapSceneData* VolumetricLightmapSceneData,
+	/*FVolumetricLightmapSceneData* VolumetricLightmapSceneData,*/
 	const FLightCacheInterface* LCI
 );
 
@@ -115,7 +115,9 @@ class FEmptyPrecomputedLightingUniformBuffer : public TUniformBuffer< FPrecomput
 {
 	typedef TUniformBuffer< FPrecomputedLightingParameters > Super;
 public:
-	virtual void InitDynamicRHI() override;
+	virtual void InitDynamicRHI()
+	{
+	}
 };
 
 extern FEmptyPrecomputedLightingUniformBuffer GEmptyPrecomputedLightingUniformBuffer;
@@ -163,12 +165,12 @@ struct TLightMapPolicy
 	static bool ShouldCompilePermutation(const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
 	{
 		//static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
-		static const auto CVarProjectCanHaveLowQualityLightmaps = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SupportLowQualityLightmaps"));
-		static const auto CVarSupportAllShadersPermutations = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SupportAllShaderPermutations"));
-		const bool bForceAllPermutations = CVarSupportAllShadersPermutations && CVarSupportAllShadersPermutations->GetValueOnAnyThread() != 0;
+		//static const auto CVarProjectCanHaveLowQualityLightmaps = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SupportLowQualityLightmaps"));
+		//static const auto CVarSupportAllShadersPermutations = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SupportAllShaderPermutations"));
+		const bool bForceAllPermutations = false;// CVarSupportAllShadersPermutations && CVarSupportAllShadersPermutations->GetValueOnAnyThread() != 0;
 
 		// if GEngine doesn't exist yet to have the project flag then we should be conservative and cache the LQ lightmap policy
-		const bool bProjectCanHaveLowQualityLightmaps = bForceAllPermutations || (!CVarProjectCanHaveLowQualityLightmaps) || (CVarProjectCanHaveLowQualityLightmaps->GetValueOnAnyThread() != 0);
+		const bool bProjectCanHaveLowQualityLightmaps = bForceAllPermutations || true/*(!CVarProjectCanHaveLowQualityLightmaps) || (CVarProjectCanHaveLowQualityLightmaps->GetValueOnAnyThread() != 0)*/;
 
 		const bool bShouldCacheQuality = (LightmapQuality != ELightmapQuality::LQ_LIGHTMAP) || bProjectCanHaveLowQualityLightmaps;
 
@@ -196,7 +198,7 @@ struct TDistanceFieldShadowsAndLightMapPolicy : public TLightMapPolicy< Lightmap
 	{
 		OutEnvironment.SetDefine(("STATICLIGHTING_TEXTUREMASK"), 1);
 		OutEnvironment.SetDefine(("STATICLIGHTING_SIGNEDDISTANCEFIELD"), 1);
-		Super::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+		Super::ModifyCompilationEnvironment(Material, OutEnvironment);
 	}
 };
 
@@ -356,11 +358,11 @@ public:
 		return A.IndirectPolicy == B.IndirectPolicy;
 	}
 
-	friend int32 CompareDrawingPolicy(const FUniformLightMapPolicy& A, const FUniformLightMapPolicy& B)
-	{
-		COMPAREDRAWINGPOLICYMEMBERS(IndirectPolicy);
-		return  0;
-	}
+// 	friend int32 CompareDrawingPolicy(const FUniformLightMapPolicy& A, const FUniformLightMapPolicy& B)
+// 	{
+// 		COMPAREDRAWINGPOLICYMEMBERS(IndirectPolicy);
+// 		return  0;
+// 	}
 
 	ELightMapPolicyType GetIndirectPolicy() const { return IndirectPolicy; }
 
@@ -378,17 +380,17 @@ public:
 
 	static bool ShouldCompilePermutation(const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
 	{
-		CA_SUPPRESS(6326);
+		//CA_SUPPRESS(6326);
 		switch (Policy)
 		{
 		case LMP_NO_LIGHTMAP:
-			return FNoLightMapPolicy::ShouldCompilePermutation(Platform, Material, VertexFactoryType);
+			return FNoLightMapPolicy::ShouldCompilePermutation(Material, VertexFactoryType);
 		case LMP_PRECOMPUTED_IRRADIANCE_VOLUME_INDIRECT_LIGHTING:
-			return FPrecomputedVolumetricLightmapLightingPolicy::ShouldCompilePermutation(Platform, Material, VertexFactoryType);
+			return FPrecomputedVolumetricLightmapLightingPolicy::ShouldCompilePermutation(Material, VertexFactoryType);
 		case LMP_CACHED_VOLUME_INDIRECT_LIGHTING:
-			return FCachedVolumeIndirectLightingPolicy::ShouldCompilePermutation(Platform, Material, VertexFactoryType);
+			return FCachedVolumeIndirectLightingPolicy::ShouldCompilePermutation(Material, VertexFactoryType);
 		case LMP_CACHED_POINT_INDIRECT_LIGHTING:
-			return FCachedPointIndirectLightingPolicy::ShouldCompilePermutation(Platform, Material, VertexFactoryType);
+			return FCachedPointIndirectLightingPolicy::ShouldCompilePermutation(Material, VertexFactoryType);
 // 		case LMP_SIMPLE_NO_LIGHTMAP:
 // 			return FSimpleNoLightmapLightingPolicy::ShouldCompilePermutation(Platform, Material, VertexFactoryType);
 // 		case LMP_SIMPLE_LIGHTMAP_ONLY_LIGHTING:
@@ -402,11 +404,11 @@ public:
 // 		case LMP_SIMPLE_STATIONARY_VOLUMETRICLIGHTMAP_SHADOW_LIGHTING:
 // 			return FSimpleStationaryLightVolumetricLightmapShadowsLightingPolicy::ShouldCompilePermutation(Platform, Material, VertexFactoryType);
 		case LMP_LQ_LIGHTMAP:
-			return TLightMapPolicy<LQ_LIGHTMAP>::ShouldCompilePermutation(Platform, Material, VertexFactoryType);
+			return TLightMapPolicy<LQ_LIGHTMAP>::ShouldCompilePermutation(Material, VertexFactoryType);
 		case LMP_HQ_LIGHTMAP:
-			return TLightMapPolicy<HQ_LIGHTMAP>::ShouldCompilePermutation(Platform, Material, VertexFactoryType);
+			return TLightMapPolicy<HQ_LIGHTMAP>::ShouldCompilePermutation(Material, VertexFactoryType);
 		case LMP_DISTANCE_FIELD_SHADOWS_AND_HQ_LIGHTMAP:
-			return TDistanceFieldShadowsAndLightMapPolicy<HQ_LIGHTMAP>::ShouldCompilePermutation(Platform, Material, VertexFactoryType);
+			return TDistanceFieldShadowsAndLightMapPolicy<HQ_LIGHTMAP>::ShouldCompilePermutation(Material, VertexFactoryType);
 
 			// Mobile specific
 
@@ -434,7 +436,7 @@ public:
 			// LightMapDensity
 
 		case LMP_DUMMY:
-			return FDummyLightMapPolicy::ShouldCompilePermutation(Platform, Material, VertexFactoryType);
+			return FDummyLightMapPolicy::ShouldCompilePermutation(Material, VertexFactoryType);
 
 		default:
 			assert(false);
@@ -444,22 +446,22 @@ public:
 
 	static void ModifyCompilationEnvironment(const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		OutEnvironment.SetDefine(TEXT("MAX_NUM_LIGHTMAP_COEF"), MAX_NUM_LIGHTMAP_COEF);
+		OutEnvironment.SetDefine(("MAX_NUM_LIGHTMAP_COEF"), MAX_NUM_LIGHTMAP_COEF);
 
-		CA_SUPPRESS(6326);
+		//CA_SUPPRESS(6326);
 		switch (Policy)
 		{
 		case LMP_NO_LIGHTMAP:
-			FNoLightMapPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+			FNoLightMapPolicy::ModifyCompilationEnvironment(Material, OutEnvironment);
 			break;
 		case LMP_PRECOMPUTED_IRRADIANCE_VOLUME_INDIRECT_LIGHTING:
-			FPrecomputedVolumetricLightmapLightingPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+			FPrecomputedVolumetricLightmapLightingPolicy::ModifyCompilationEnvironment(Material, OutEnvironment);
 			break;
 		case LMP_CACHED_VOLUME_INDIRECT_LIGHTING:
-			FCachedVolumeIndirectLightingPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+			FCachedVolumeIndirectLightingPolicy::ModifyCompilationEnvironment(Material, OutEnvironment);
 			break;
 		case LMP_CACHED_POINT_INDIRECT_LIGHTING:
-			FCachedPointIndirectLightingPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+			FCachedPointIndirectLightingPolicy::ModifyCompilationEnvironment(Material, OutEnvironment);
 			break;
 // 		case LMP_SIMPLE_NO_LIGHTMAP:
 // 			return FSimpleNoLightmapLightingPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
@@ -480,13 +482,13 @@ public:
 // 			return FSimpleStationaryLightVolumetricLightmapShadowsLightingPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 // 			break;
 		case LMP_LQ_LIGHTMAP:
-			TLightMapPolicy<LQ_LIGHTMAP>::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+			TLightMapPolicy<LQ_LIGHTMAP>::ModifyCompilationEnvironment(Material, OutEnvironment);
 			break;
 		case LMP_HQ_LIGHTMAP:
-			TLightMapPolicy<HQ_LIGHTMAP>::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+			TLightMapPolicy<HQ_LIGHTMAP>::ModifyCompilationEnvironment(Material, OutEnvironment);
 			break;
 		case LMP_DISTANCE_FIELD_SHADOWS_AND_HQ_LIGHTMAP:
-			TDistanceFieldShadowsAndLightMapPolicy<HQ_LIGHTMAP>::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+			TDistanceFieldShadowsAndLightMapPolicy<HQ_LIGHTMAP>::ModifyCompilationEnvironment( Material, OutEnvironment);
 			break;
 
 // 			// Mobile specific
@@ -524,7 +526,7 @@ public:
 			// LightMapDensity
 
 		case LMP_DUMMY:
-			FDummyLightMapPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+			FDummyLightMapPolicy::ModifyCompilationEnvironment(Material, OutEnvironment);
 			break;
 
 		default:
@@ -535,7 +537,7 @@ public:
 
 	static bool RequiresSkylight()
 	{
-		CA_SUPPRESS(6326);
+		//CA_SUPPRESS(6326);
 		switch (Policy)
 		{
 			// Simple forward

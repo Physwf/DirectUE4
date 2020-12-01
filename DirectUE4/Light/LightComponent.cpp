@@ -3,8 +3,34 @@
 #include "Scene.h"
 #include "SceneManagement.h"
 
+
+ULightComponentBase::ULightComponentBase(class AActor* InOwner)
+	:USceneComponent(InOwner)
+{
+
+}
+
+ULightComponentBase::~ULightComponentBase()
+{
+
+}
+
+bool ULightComponentBase::HasStaticLighting() const
+{
+	AActor* Owner = GetOwner();
+
+	return Owner && (Mobility == EComponentMobility::Static);
+}
+
+bool ULightComponentBase::HasStaticShadowing() const
+{
+	AActor* Owner = GetOwner();
+
+	return Owner && (Mobility != EComponentMobility::Movable);
+}
+
 ULightComponent::ULightComponent(class AActor* InOwner)
-	: USceneComponent(InOwner)
+	: ULightComponentBase(InOwner)
 {
 	bMoveable = true;
 
@@ -42,16 +68,6 @@ bool ULightComponent::AffectsBounds(const FBoxSphereBounds& InBounds) const
 FVector ULightComponent::GetDirection() const
 {
 	return GetComponentTransform().GetUnitAxis(EAxis::X);
-}
-
-bool ULightComponent::HasStaticLighting() const
-{
-	return false;
-}
-
-bool ULightComponent::HasStaticShadowing() const
-{
-	return !bMoveable;
 }
 
 void ULightComponent::SendRenderTransform_Concurrent()
@@ -208,4 +224,47 @@ bool FPointLightSceneProxy::GetWholeSceneProjectedShadowInitializer(const FScene
 	OutInitializer.bOnePassPointLightShadow = true;
 	//OutInitializer.bRayTracedDistanceField = UseRayTracedDistanceFieldShadows() && DoesPlatformSupportDistanceFieldShadowing(ViewFamily.GetShaderPlatform());
 	return true;
+}
+
+class FSkyLightSceneProxy* USkyLightComponent::CreateSceneProxy() const
+{
+	//if (ProcessedSkyTexture)
+	{
+		return new FSkyLightSceneProxy(this);
+	}
+
+	return NULL;
+}
+
+
+void FSkyLightSceneProxy::Initialize(
+	float InBlendFraction,
+	/*const FSHVectorRGB3* InIrradianceEnvironmentMap, */
+	/*const FSHVectorRGB3* BlendDestinationIrradianceEnvironmentMap, */
+	const float* InAverageBrightness,
+	const float* BlendDestinationAverageBrightness)
+{
+
+}
+
+FSkyLightSceneProxy::FSkyLightSceneProxy(const class USkyLightComponent* InLightComponent)
+	: LightComponent(InLightComponent)
+	//, ProcessedTexture(InLightComponent->ProcessedSkyTexture)
+	//, BlendDestinationProcessedTexture(InLightComponent->BlendDestinationProcessedSkyTexture)
+	, SkyDistanceThreshold(InLightComponent->SkyDistanceThreshold)
+	, bCastShadows(InLightComponent->CastShadows)
+	, bWantsStaticShadowing(InLightComponent->Mobility == EComponentMobility::Stationary)
+	, bHasStaticLighting(InLightComponent->HasStaticLighting())
+	, bCastVolumetricShadow(InLightComponent->bCastVolumetricShadow)
+	, LightColor(FLinearColor(InLightComponent->LightColor) * InLightComponent->Intensity)
+	, IndirectLightingIntensity(InLightComponent->IndirectLightingIntensity)
+	, VolumetricScatteringIntensity(FMath::Max(InLightComponent->VolumetricScatteringIntensity, 0.0f))
+	, OcclusionMaxDistance(InLightComponent->OcclusionMaxDistance)
+	, Contrast(InLightComponent->Contrast)
+	, OcclusionExponent(FMath::Clamp(InLightComponent->OcclusionExponent, .1f, 10.0f))
+	, MinOcclusion(FMath::Clamp(InLightComponent->MinOcclusion, 0.0f, 1.0f))
+	, OcclusionTint(InLightComponent->OcclusionTint)
+	, OcclusionCombineMode(InLightComponent->OcclusionCombineMode)
+{
+
 }

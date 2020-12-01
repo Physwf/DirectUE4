@@ -702,7 +702,7 @@ void FSceneRenderer::Render()
 	RenderPrePass();
 	RenderHzb();
 	RenderShadowDepthMaps();
-	RenderBasePass();
+	//RenderBasePass();
 	for (uint32 ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
 	{
 		GCompositionLighting.ProcessAfterBasePass(Views[ViewIndex]);

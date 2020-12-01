@@ -10,9 +10,14 @@ class FViewInfo;
 template<typename DrawingPolicyType>
 class TStaticMeshDrawList
 {
+public:
+	//friend class FDrawVisibleAnyThreadTask<DrawingPolicyType>;
+
+	typedef typename DrawingPolicyType::ElementDataType ElementPolicyDataType;
+
 	struct FElement
 	{
-		//ElementPolicyDataType PolicyData;
+		ElementPolicyDataType PolicyData;
 		FStaticMesh* Mesh;
 		//FBoxSphereBounds Bounds;
 		//bool bBackground;
@@ -26,12 +31,12 @@ class TStaticMeshDrawList
 		/** Minimal initialization constructor. */
 		FElement(
 			FStaticMesh* InMesh,
-			//const ElementPolicyDataType& InPolicyData,
+			const ElementPolicyDataType& InPolicyData,
 			TStaticMeshDrawList* StaticMeshDrawList,
 			//FSetElementId SetId,
 			int32 ElementIndex
 		) :
-			//PolicyData(InPolicyData),
+			PolicyData(InPolicyData),
 			Mesh(InMesh)//,
 			//Handle(new FElementHandle(StaticMeshDrawList, SetId, ElementIndex))
 		{
@@ -90,7 +95,7 @@ class TStaticMeshDrawList
 public:
 	void AddMesh(
 		FStaticMesh* Mesh,
-		//const ElementPolicyDataType& PolicyData,
+		const ElementPolicyDataType& PolicyData,
 		const DrawingPolicyType& InDrawingPolicy//,
 	);
 	inline bool DrawVisible(ID3D11DeviceContext* Context, const FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState/*, const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap, const TArray<uint64, SceneRenderingAllocator>& BatchVisibilityArray*/)
@@ -110,12 +115,12 @@ private:
 };
 
 template<typename DrawingPolicyType>
-void TStaticMeshDrawList<DrawingPolicyType>::AddMesh(FStaticMesh* Mesh, /*const ElementPolicyDataType& PolicyData, */ const DrawingPolicyType& InDrawingPolicy/*, */)
+void TStaticMeshDrawList<DrawingPolicyType>::AddMesh(FStaticMesh* Mesh, const ElementPolicyDataType& PolicyData,  const DrawingPolicyType& InDrawingPolicy/*, */)
 {
 	DrawingPolicySet.push_back(FDrawingPolicyLink(this, InDrawingPolicy/*, InFeatureLevel*/));
 	FDrawingPolicyLink* DrawingPolicyLink = &DrawingPolicySet.back();
 	const int32 ElementIndex = (int32)DrawingPolicyLink->Elements.size();
-	DrawingPolicyLink->Elements.push_back(FElement(Mesh, /*PolicyData,*/ this,/* DrawingPolicyLink->SetId,*/ ElementIndex));
+	DrawingPolicyLink->Elements.push_back(FElement(Mesh, PolicyData, this,/* DrawingPolicyLink->SetId,*/ ElementIndex));
 	//FElement* Element = new(DrawingPolicyLink->Elements) FElement(Mesh, PolicyData, this, DrawingPolicyLink->SetId, ElementIndex);
 }
 
@@ -183,7 +188,7 @@ int32 TStaticMeshDrawList<DrawingPolicyType>::DrawElement(
 		}
 
 		CommitGraphicsPipelineState(DrawingPolicyLink->DrawingPolicy, DrawRenderState, BoundShaderStateInput);
-		DrawingPolicyLink->DrawingPolicy.SetSharedState(D3D11DeviceContext,  DrawRenderState, &View, PolicyContext);
+		DrawingPolicyLink->DrawingPolicy.SetSharedState( DrawRenderState, &View, PolicyContext);
 
 		bDrawnShared = true;
 	}
@@ -202,9 +207,9 @@ int32 TStaticMeshDrawList<DrawingPolicyType>::DrawElement(
 		Proxy,
 		*Element.Mesh,
 		BatchElementIndex,
-		DrawRenderState//,
-		//Element.PolicyData,
-		//PolicyContext
+		DrawRenderState,
+		Element.PolicyData,
+		PolicyContext
 	);
 
 	DrawingPolicyLink->DrawingPolicy.DrawMesh(Context, View, *Element.Mesh, BatchElementIndex, false);

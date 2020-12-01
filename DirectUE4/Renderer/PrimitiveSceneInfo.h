@@ -59,6 +59,7 @@ public:
 
 	std::vector<FStaticMesh*> StaticMeshes;
 
+	std::shared_ptr<FUniformBuffer> IndirectLightingCacheUniformBuffer;
 
 	class FLightPrimitiveInteraction* LightList;
 
@@ -107,6 +108,12 @@ public:
 	}
 	void UpdateUniformBuffer();
 
+	void MarkPrecomputedLightingBufferDirty()
+	{
+		bPrecomputedLightingBufferDirty = true;
+	}
+	void UpdatePrecomputedLightingBuffer();
+
 	/** Updates the primitive's uniform buffer. */
 	void ConditionalUpdateUniformBuffer()
 	{
@@ -123,6 +130,7 @@ public:
 	int32 GetIndex() const { return PackedIndex; }
 private:
 	bool bNeedsUniformBufferUpdate;
+	bool bPrecomputedLightingBufferDirty;
 	bool bNeedsStaticMeshUpdate;
 	friend class FScene;
 

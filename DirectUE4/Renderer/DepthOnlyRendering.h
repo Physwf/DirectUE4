@@ -38,7 +38,7 @@ public:
 		const FVertexFactory* InVertexFactory,
 		const FMaterialRenderProxy* InMaterialRenderProxy,
 		const FMaterial& InMaterialResource,
-		//const FMeshDrawingPolicyOverrideSettings& InOverrideSettings,
+		const FMeshDrawingPolicyOverrideSettings& InOverrideSettings,
 		//ERHIFeatureLevel::Type InFeatureLevel,
 		float MobileColorValue
 	);
@@ -53,9 +53,9 @@ public:
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		const FMeshBatch& Mesh,
 		int32 BatchElementIndex,
-		const FDrawingPolicyRenderState& DrawRenderState/*,*/
-		//const ElementDataType& ElementData,
-		//const ContextDataType PolicyContext
+		const FDrawingPolicyRenderState& DrawRenderState,
+		const ElementDataType& ElementData,
+		const ContextDataType PolicyContext
 	) const;
 
 private:
@@ -81,9 +81,9 @@ public:
 
 	FPositionOnlyDepthDrawingPolicy(
 		const FVertexFactory* InVertexFactory,
-	const FMaterialRenderProxy* InMaterialRenderProxy,
-	const FMaterial& InMaterialResource//,
-	//const FMeshDrawingPolicyOverrideSettings& InOverrideSettings
+		const FMaterialRenderProxy* InMaterialRenderProxy,
+		const FMaterial& InMaterialResource,
+		const FMeshDrawingPolicyOverrideSettings& InOverrideSettings
 	);
 
 	// FMeshDrawingPolicy interface.
@@ -113,9 +113,9 @@ public:
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		const FMeshBatch& Mesh,
 		int32 BatchElementIndex,
-	const FDrawingPolicyRenderState& DrawRenderState/*,*/
-	//const ElementDataType& ElementData,
-	//const ContextDataType PolicyContext
+		const FDrawingPolicyRenderState& DrawRenderState,
+		const ElementDataType& ElementData,
+		const ContextDataType PolicyContext
 	) const;
 
 	//void SetInstancedEyeIndex(ID3D11DeviceContext* Context, const uint32 EyeIndex) const;

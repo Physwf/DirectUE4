@@ -1389,7 +1389,7 @@ void FShadowDepthDrawingPolicyFactory::AddStaticMesh(FScene* Scene, FStaticMesh*
 			// Add the static mesh to the shadow's subject draw list.
 			Scene->WholeSceneShadowDepthDrawList.AddMesh(
 				StaticMesh,
-				/*FShadowDepthDrawingPolicy<false>::ElementDataType(),*/
+				FShadowDepthDrawingPolicy<false>::ElementDataType(),
 				FShadowDepthDrawingPolicy<false>(
 					Material,
 					true,

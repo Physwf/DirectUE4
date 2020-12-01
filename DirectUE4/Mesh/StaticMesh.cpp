@@ -107,7 +107,7 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent, 
 		for (uint32 SectionIndex = 0; SectionIndex < NumSections; ++SectionIndex)
 		{
 			const FLODInfo::FSectionInfo& SectionInfo = NewLODInfo->Sections[SectionIndex];
-			bAnySectionCastsShadows |= RenderData->LODResources[LODIndex].Sections[SectionIndex].bCastShadow;
+			bAnySectionCastsShadows |= RenderData->LODResources[LODIndex]->Sections[SectionIndex].bCastShadow;
 			if (SectionInfo.Material == UMaterial::GetDefaultMaterial(MD_Surface))
 			{
 				//MaterialRelevance |= UMaterial::GetDefaultMaterial(MD_Surface)->GetRelevance(FeatureLevel);
@@ -137,7 +137,7 @@ bool FStaticMeshSceneProxy::GetMeshElement(
 {
 	const FStaticMeshLODResources& LOD = *RenderData->LODResources[LODIndex];
 	const FStaticMeshVertexFactories& VFs = *RenderData->LODVertexFactories[LODIndex];
-	const StaticMeshSection& Section = LOD.Sections[SectionIndex];
+	const FStaticMeshSection& Section = LOD.Sections[SectionIndex];
 
 	const FLODInfo& ProxyLODInfo = *LODs[LODIndex];
 	UMaterial* Material = ProxyLODInfo.Sections[SectionIndex].Material;
@@ -182,16 +182,20 @@ void FStaticMeshSceneProxy::DrawStaticElements(FPrimitiveSceneInfo* PrimitiveSce
 }
 
 FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponent, const std::vector<FStaticMeshVertexFactories*>& InLODVertexFactories, int32 InLODIndex, bool bLODsShareStaticLighting)
+	: FLightCacheInterface(nullptr, nullptr)
+	//, OverrideColorVertexBuffer(0)
+	//, PreCulledIndexBuffer(NULL)
+	, bUsesMeshModifyingMaterials(false)
 {
 	FStaticMeshRenderData* MeshRenderData = InComponent->GetStaticMesh()->RenderData.get();
-	FStaticMeshLODResources& LODModel = *MeshRenderData->LODResources[LODIndex];
-	const FStaticMeshVertexFactories& VFs = *InLODVertexFactories[LODIndex];
+	FStaticMeshLODResources& LODModel = *MeshRenderData->LODResources[InLODIndex];
+	const FStaticMeshVertexFactories& VFs = *InLODVertexFactories[InLODIndex];
 
 	Sections.clear();
-	Sections.resize(MeshRenderData->LODResources[LODIndex].Sections.size());
+	Sections.resize(MeshRenderData->LODResources[InLODIndex]->Sections.size());
 	for (uint32 SectionIndex = 0; SectionIndex < LODModel.Sections.size(); SectionIndex++)
 	{
-		const StaticMeshSection& Section = LODModel.Sections[SectionIndex];
+		const FStaticMeshSection& Section = LODModel.Sections[SectionIndex];
 		FSectionInfo SectionInfo;
 
 		// Determine the material applied to this element of the LOD.
@@ -199,7 +203,7 @@ FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponen
 
 		// Store the element info.
 		Sections.push_back(SectionInfo);
-
+	}
 }
 
 FLightInteraction FStaticMeshSceneProxy::FLODInfo::GetInteraction(const FLightSceneProxy* LightSceneProxy) const

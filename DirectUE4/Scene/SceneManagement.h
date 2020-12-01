@@ -115,9 +115,9 @@ public:
 	}
 
 	static FLightMapInteraction Texture(
-		const class ID3D11Texture2D* const* InTextures,
-		const ID3D11Texture2D* InSkyOcclusionTexture,
-		const ID3D11Texture2D* InAOMaterialMaskTexture,
+		ID3D11ShaderResourceView** InTextures,
+		ID3D11Texture2D* InSkyOcclusionTexture,
+		ID3D11Texture2D* InAOMaterialMaskTexture,
 		const Vector4* InCoefficientScales,
 		const Vector4* InCoefficientAdds,
 		const Vector2& InCoordinateScale,
@@ -134,7 +134,7 @@ public:
 	// Accessors.
 	ELightMapInteractionType GetType() const { return Type; }
 
-	const ID3D11Texture2D* GetTexture(bool bHighQuality) const
+	ID3D11ShaderResourceView* GetTexture(bool bHighQuality) const
 	{
 		assert(Type == LMIT_Texture);
 #if ALLOW_LQ_LIGHTMAPS && ALLOW_HQ_LIGHTMAPS
@@ -146,7 +146,7 @@ public:
 #endif
 	}
 
-	const ID3D11Texture2D* GetSkyOcclusionTexture() const
+	ID3D11ShaderResourceView* GetSkyOcclusionTexture() const
 	{
 		assert(Type == LMIT_Texture);
 #if ALLOW_HQ_LIGHTMAPS
@@ -156,7 +156,7 @@ public:
 #endif
 	}
 
-	const ID3D11Texture2D* GetAOMaterialMaskTexture() const
+	ID3D11ShaderResourceView* GetAOMaterialMaskTexture() const
 	{
 		assert(Type == LMIT_Texture);
 #if ALLOW_HQ_LIGHTMAPS
@@ -239,7 +239,7 @@ public:
 	*
 	*	@param	InCoordinateScale	The scale to set it to.
 	*/
-	void SetCoordinateScale(const FVector2D& InCoordinateScale)
+	void SetCoordinateScale(const Vector2& InCoordinateScale)
 	{
 		CoordinateScale = InCoordinateScale;
 	}
@@ -248,7 +248,7 @@ public:
 	*
 	*	@param	InCoordinateBias	The bias to set it to.
 	*/
-	void SetCoordinateBias(const FVector2D& InCoordinateBias)
+	void SetCoordinateBias(const Vector2& InCoordinateBias)
 	{
 		CoordinateBias = InCoordinateBias;
 	}
@@ -258,15 +258,15 @@ private:
 #if ALLOW_HQ_LIGHTMAPS
 	Vector4 HighQualityCoefficientScales[NUM_HQ_LIGHTMAP_COEF];
 	Vector4 HighQualityCoefficientAdds[NUM_HQ_LIGHTMAP_COEF];
-	const class ID3D11Texture2D* HighQualityTexture;
-	const ID3D11Texture2D* SkyOcclusionTexture;
-	const ID3D11Texture2D* AOMaterialMaskTexture;
+	ID3D11ShaderResourceView* HighQualityTexture;
+	ID3D11ShaderResourceView* SkyOcclusionTexture;
+	ID3D11ShaderResourceView* AOMaterialMaskTexture;
 #endif
 
 #if ALLOW_LQ_LIGHTMAPS
 	Vector4 LowQualityCoefficientScales[NUM_LQ_LIGHTMAP_COEF];
 	Vector4 LowQualityCoefficientAdds[NUM_LQ_LIGHTMAP_COEF];
-	const class ID3D11Texture2D* LowQualityTexture;
+	ID3D11ShaderResourceView* LowQualityTexture;
 #endif
 
 #if ALLOW_LQ_LIGHTMAPS && ALLOW_HQ_LIGHTMAPS
@@ -310,7 +310,7 @@ public:
 	}
 
 	static FShadowMapInteraction Texture(
-		class ID3D11Texture2D* InTexture,
+		ID3D11ShaderResourceView* InTexture,
 		const Vector2& InCoordinateScale,
 		const Vector2& InCoordinateBias,
 		const bool* InChannelValid,
@@ -346,7 +346,7 @@ public:
 	// Accessors.
 	EShadowMapInteractionType GetType() const { return Type; }
 
-	ID3D11Texture2D* GetTexture() const
+	ID3D11ShaderResourceView* GetTexture() const
 	{
 		assert(Type == SMIT_Texture);
 		return ShadowTexture;
@@ -376,7 +376,7 @@ public:
 	}
 
 private:
-	ID3D11Texture2D * ShadowTexture;
+	ID3D11ShaderResourceView* ShadowTexture;
 	Vector2 CoordinateScale;
 	Vector2 CoordinateBias;
 	bool bChannelValid[4];
@@ -598,22 +598,22 @@ public:
 
 	void Initialize(
 		float InBlendFraction,
-		const FSHVectorRGB3* InIrradianceEnvironmentMap,
-		const FSHVectorRGB3* BlendDestinationIrradianceEnvironmentMap,
+		//const FSHVectorRGB3* InIrradianceEnvironmentMap,
+		//const FSHVectorRGB3* BlendDestinationIrradianceEnvironmentMap,
 		const float* InAverageBrightness,
 		const float* BlendDestinationAverageBrightness);
 
 	const USkyLightComponent* LightComponent;
-	FTexture* ProcessedTexture;
+	//FTexture* ProcessedTexture;
 	float BlendFraction;
-	FTexture* BlendDestinationProcessedTexture;
+	//FTexture* BlendDestinationProcessedTexture;
 	float SkyDistanceThreshold;
 	bool bCastShadows;
 	bool bWantsStaticShadowing;
 	bool bHasStaticLighting;
 	bool bCastVolumetricShadow;
 	FLinearColor LightColor;
-	FSHVectorRGB3 IrradianceEnvironmentMap;
+	//FSHVectorRGB3 IrradianceEnvironmentMap;
 	float AverageBrightness;
 	float IndirectLightingIntensity;
 	float VolumetricScatteringIntensity;

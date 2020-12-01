@@ -9,6 +9,7 @@
 #include "SceneManagement.h"
 #include "DeferredShading.h"
 #include "ShadowRendering.h"
+#include "BasePassRendering.h"
 
 #include <memory>
 
@@ -109,7 +110,6 @@ public:
 	template<typename LightMapPolicyType>
 	TStaticMeshDrawList<TBasePassDrawingPolicy<LightMapPolicyType> >& GetBasePassDrawList(EBasePassDrawListType DrawType);
 
-	//std::vector<MeshBatch> AllBatches;
 	std::vector<FPrimitiveSceneInfo*> Primitives;
 	std::vector<FPrimitiveSceneProxy*> PrimitiveSceneProxies;
 	std::vector<FPrimitiveBounds> PrimitiveBounds;
@@ -125,6 +125,17 @@ public:
 	FSkyLightSceneProxy* SkyLight;
 
 	FLightSceneInfo* SimpleDirectionalLight;
+	/** The sun light for atmospheric effect, if any. */
+	FLightSceneInfo* SunLight;
+
+	//TSparseArray<FDeferredDecalProxy*> Decals;
+
+	//TArray<const FPrecomputedLightVolume*> PrecomputedLightVolumes;
+
+	/** Interpolates and caches indirect lighting for dynamic objects. */
+	//FIndirectLightingCache IndirectLightingCache;
+
+	//FVolumetricLightmapSceneData VolumetricLightmapSceneData;
 
 	std::map<int32, FCachedShadowMapData> CachedShadowMaps;
 

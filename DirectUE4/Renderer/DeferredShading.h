@@ -6,12 +6,14 @@
 #include "Shader.h"
 #include "RenderTargets.h"
 #include "LightSceneInfo.h"
+#include "DepthOnlyRendering.h"
 
 void InitShading();
 
 class FProjectedShadowInfo;
 class FLightSceneInfo;
 struct FDrawingPolicyRenderState;
+enum EBasePassDrawListType;
 
 class FShadowMapRenderTargetsRefCounted
 {
@@ -199,7 +201,7 @@ struct alignas(16) FForwardLightData
 		ADD_RES(ForwardLightData, StaticShadowmapSampler);
 		return List;
 	}
-	static std::map<std::string, ID3D11UnorderedAccessView*> GetUAVs(const FSceneTexturesUniformParameters& SceneTexturesStruct)
+	static std::map<std::string, ID3D11UnorderedAccessView*> GetUAVs(const FForwardLightData& ForwardLightData)
 	{
 		std::map<std::string, ID3D11UnorderedAccessView*> List;
 		return List;
@@ -640,7 +642,7 @@ public:
 	bool RenderBasePassStaticDataType(FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState, const EBasePassDrawListType DrawType);
 	void RenderBasePassDynamicData(const FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState, bool& bOutDirty);
 	bool RenderBasePassView(FViewInfo& View, FExclusiveDepthStencil::Type BasePassDepthStencilAccess, const FDrawingPolicyRenderState& InDrawRenderState);
-	void RenderBasePass(FExclusiveDepthStencil::Type BasePassDepthStencilAccess);
+	void RenderBasePass(FExclusiveDepthStencil::Type BasePassDepthStencilAccess,struct PooledRenderTarget* ForwardScreenSpaceShadowMask);
 	void RenderLights();
 	void RenderLight();
 	void RenderAtmosphereFog();

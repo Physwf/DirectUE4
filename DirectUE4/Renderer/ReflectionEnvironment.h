@@ -15,7 +15,7 @@ struct alignas(16) FReflectionUniformParameters
 
 	struct ConstantStruct
 	{
-		Vector4, SkyLightParameters;
+		Vector4 SkyLightParameters;
 		float SkyLightCubemapBrightness;
 		float Pading01;
 		float Pading02;

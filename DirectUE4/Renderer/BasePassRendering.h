@@ -2,6 +2,14 @@
 
 #include "D3D11RHI.h"
 #include "UnrealMath.h"
+#include "ReflectionEnvironment.h"
+#include "FogRendering.h"
+#include "DeferredShading.h"
+#include "LightMapRendering.h"
+#include "MeshMaterialShader.h"
+
+class FBaseHS;
+class FBaseDS;
 
 class FForwardLocalLightData
 {
@@ -94,7 +102,7 @@ struct alignas(16) FOpaqueBasePassUniformParameters
 		ADD_RES(OpaqueBasePass, EyeAdaptation);
 		return List;
 	}
-	static std::map<std::string, ID3D11SamplerState*> GetSamplers(const FOpaqueBasePassUniformParameters& BasePass)
+	static std::map<std::string, ID3D11SamplerState*> GetSamplers(const FOpaqueBasePassUniformParameters& OpaqueBasePass)
 	{
 		std::map<std::string, ID3D11SamplerState*> List;
 		ADD_RES(OpaqueBasePass, ForwardScreenSpaceShadowMaskTextureSampler);
@@ -104,7 +112,7 @@ struct alignas(16) FOpaqueBasePassUniformParameters
 		ADD_RES(OpaqueBasePass, DBufferCTextureSampler);
 		return List;
 	}
-	static std::map<std::string, ID3D11UnorderedAccessView*> GetUAVs(const FOpaqueBasePassUniformParameters& BasePass)
+	static std::map<std::string, ID3D11UnorderedAccessView*> GetUAVs(const FOpaqueBasePassUniformParameters& OpaqueBasePass)
 	{
 		std::map<std::string, ID3D11UnorderedAccessView*> List;
 		return List;
@@ -301,7 +309,7 @@ public:
 
 	static void ModifyCompilationEnvironment(const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		Super::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+		Super::ModifyCompilationEnvironment(Material, OutEnvironment);
 		// @todo MetalMRT: Remove this hack and implement proper atmospheric-fog solution for Metal MRT...
 		OutEnvironment.SetDefine(("BASEPASS_ATMOSPHERIC_FOG"), /*(Platform != SP_METAL_MRT && Platform != SP_METAL_MRT_MAC)*/true ? bEnableAtmosphericFog : 0);
 	}
@@ -346,7 +354,7 @@ public:
 
 	static void ModifyCompilationEnvironment(const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FMeshMaterialShader::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+		FMeshMaterialShader::ModifyCompilationEnvironment(Material, OutEnvironment);
 
 // 		const bool bOutputVelocity = FVelocityRendering::OutputsToGBuffer();
 // 		if (bOutputVelocity)
@@ -355,7 +363,7 @@ public:
 // 			OutEnvironment.SetRenderTargetOutputFormat(VelocityIndex, PF_G16R16);
 // 		}
 
-		FForwardLightingParameters::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FForwardLightingParameters::ModifyCompilationEnvironment(OutEnvironment);
 	}
 
 	static bool ValidateCompiledResult(const std::vector<FMaterial*>& Materials, const FVertexFactoryType* VertexFactoryType, const FShaderParameterMap& ParameterMap, std::vector<std::string>& OutError)
@@ -460,7 +468,7 @@ public:
 			|| (bProjectSupportsStationarySkylight && (Material->GetShadingModel() != MSM_Unlit));
 		return bCacheShaders
 			&& true/*(IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4))*/
-			&& TBasePassPixelShaderBaseType<LightMapPolicyType>::ShouldCompilePermutation(Platform, Material, VertexFactoryType);
+			&& TBasePassPixelShaderBaseType<LightMapPolicyType>::ShouldCompilePermutation(Material, VertexFactoryType);
 	}
 
 	static void ModifyCompilationEnvironment(const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
@@ -738,6 +746,7 @@ public:
 	{
 		FBoundShaderStateInput BoundShaderStateInput(
 			FMeshDrawingPolicy::GetVertexDeclaration(),
+			VertexShader->GetCode().Get(),
 			VertexShader->GetVertexShader(),
 			/*GETSAFERHISHADER_HULL(HullShader)*/NULL,
 			/*GETSAFERHISHADER_DOMAIN(DomainShader)*/NULL,
@@ -753,6 +762,7 @@ public:
 	}
 
 	void SetMeshRenderState(
+		ID3D11DeviceContext* Context,
 		const FViewInfo& View,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		const FMeshBatch& Mesh,
@@ -875,7 +885,7 @@ public:
 		const bool InbIsInstancedStereo = false
 	) :
 		Mesh(InMesh),
-		BatchElementMask(Mesh.Elements.Num() == 1 ? 1 : (1 << Mesh.Elements.Num()) - 1), // 1 bit set for each mesh element
+		BatchElementMask(Mesh.Elements.size() == 1 ? 1 : (1 << Mesh.Elements.size()) - 1), // 1 bit set for each mesh element
 		Material(InMaterial),
 		PrimitiveSceneProxy(InPrimitiveSceneProxy),
 		BlendMode(InMaterial->GetBlendMode()),
@@ -994,7 +1004,7 @@ void ProcessBasePassMesh(
 				&& Parameters.PrimitiveSceneProxy
 				&& (Parameters.PrimitiveSceneProxy->IsMovable()
 					/*|| Parameters.PrimitiveSceneProxy->NeedsUnbuiltPreviewLighting()*/
-					/*|| Parameters.PrimitiveSceneProxy->GetLightmapType() == ELightmapType::ForceVolumetric)*/)
+					/*|| Parameters.PrimitiveSceneProxy->GetLightmapType() == ELightmapType::ForceVolumetric*/))
 			{
 				Action.template Process< FUniformLightMapPolicy >(Parameters, FUniformLightMapPolicy(LMP_PRECOMPUTED_IRRADIANCE_VOLUME_INDIRECT_LIGHTING), Parameters.Mesh.LCI);
 			}
@@ -1003,34 +1013,34 @@ void ProcessBasePassMesh(
 				&& Action.AllowIndirectLightingCache()
 				&& Parameters.PrimitiveSceneProxy)
 			{
-				const FIndirectLightingCacheAllocation* IndirectLightingCacheAllocation = Parameters.PrimitiveSceneProxy->GetPrimitiveSceneInfo()->IndirectLightingCacheAllocation;
-				const bool bPrimitiveIsMovable = Parameters.PrimitiveSceneProxy->IsMovable();
-				const bool bPrimitiveUsesILC = Parameters.PrimitiveSceneProxy->GetIndirectLightingCacheQuality() != ILCQ_Off;
+// 				const FIndirectLightingCacheAllocation* IndirectLightingCacheAllocation = Parameters.PrimitiveSceneProxy->GetPrimitiveSceneInfo()->IndirectLightingCacheAllocation;
+// 				const bool bPrimitiveIsMovable = Parameters.PrimitiveSceneProxy->IsMovable();
+// 				const bool bPrimitiveUsesILC = Parameters.PrimitiveSceneProxy->GetIndirectLightingCacheQuality() != ILCQ_Off;
 
 				// Use the indirect lighting cache shaders if the object has a cache allocation
 				// This happens for objects with unbuilt lighting
-				if (bPrimitiveUsesILC &&
-					((IndirectLightingCacheAllocation && IndirectLightingCacheAllocation->IsValid())
-						// Use the indirect lighting cache shaders if the object is movable, it may not have a cache allocation yet because that is done in InitViews
-						// And movable objects are sometimes rendered in the static draw lists
-						|| bPrimitiveIsMovable))
-				{
-					if (/*CanIndirectLightingCacheUseVolumeTexture(Parameters.FeatureLevel)*/true
-						// Translucency forces point sample for pixel performance
-						&& Action.AllowIndirectLightingCacheVolumeTexture()
-						&& ((IndirectLightingCacheAllocation && !IndirectLightingCacheAllocation->bPointSample)
-							|| (bPrimitiveIsMovable && Parameters.PrimitiveSceneProxy->GetIndirectLightingCacheQuality() == ILCQ_Volume)))
-					{
-						// Use a lightmap policy that supports reading indirect lighting from a volume texture for dynamic objects
-						Action.template Process< FUniformLightMapPolicy >(Parameters, FUniformLightMapPolicy(LMP_CACHED_VOLUME_INDIRECT_LIGHTING), Parameters.Mesh.LCI);
-					}
-					else
-					{
-						// Use a lightmap policy that supports reading indirect lighting from a single SH sample
-						Action.template Process< FUniformLightMapPolicy >(Parameters, FUniformLightMapPolicy(LMP_CACHED_POINT_INDIRECT_LIGHTING), Parameters.Mesh.LCI);
-					}
-				}
-				else
+// 				if (bPrimitiveUsesILC &&
+// 					((IndirectLightingCacheAllocation && IndirectLightingCacheAllocation->IsValid())
+// 						// Use the indirect lighting cache shaders if the object is movable, it may not have a cache allocation yet because that is done in InitViews
+// 						// And movable objects are sometimes rendered in the static draw lists
+// 						|| bPrimitiveIsMovable))
+// 				{
+// 					if (/*CanIndirectLightingCacheUseVolumeTexture(Parameters.FeatureLevel)*/true
+// 						// Translucency forces point sample for pixel performance
+// 						&& Action.AllowIndirectLightingCacheVolumeTexture()
+// 						&& ((IndirectLightingCacheAllocation && !IndirectLightingCacheAllocation->bPointSample)
+// 							|| (bPrimitiveIsMovable && Parameters.PrimitiveSceneProxy->GetIndirectLightingCacheQuality() == ILCQ_Volume)))
+// 					{
+// 						// Use a lightmap policy that supports reading indirect lighting from a volume texture for dynamic objects
+// 						Action.template Process< FUniformLightMapPolicy >(Parameters, FUniformLightMapPolicy(LMP_CACHED_VOLUME_INDIRECT_LIGHTING), Parameters.Mesh.LCI);
+// 					}
+// 					else
+// 					{
+// 						// Use a lightmap policy that supports reading indirect lighting from a single SH sample
+// 						Action.template Process< FUniformLightMapPolicy >(Parameters, FUniformLightMapPolicy(LMP_CACHED_POINT_INDIRECT_LIGHTING), Parameters.Mesh.LCI);
+// 					}
+// 				}
+// 				else
 				{
 					Action.template Process< FUniformLightMapPolicy >(Parameters, FUniformLightMapPolicy(LMP_NO_LIGHTMAP), Parameters.Mesh.LCI);
 				}

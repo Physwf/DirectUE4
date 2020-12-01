@@ -1267,6 +1267,9 @@ struct FLinearColor
 	FLinearColor(float InR, float InG, float InB, float InA = 1.0f) : R(InR), G(InG), B(InB), A(InA) {}
 	FLinearColor(struct FColor);
 
+	FLinearColor operator*(const FLinearColor& ColorB) const;
+	FLinearColor operator*(float Scalar) const;
+	FLinearColor& operator*=(float Scalar);
 	static const FLinearColor White;
 	static const FLinearColor Gray;
 	static const FLinearColor Black;

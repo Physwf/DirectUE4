@@ -45,14 +45,14 @@ struct alignas(16) FFogUniformParameters
 		ADD_RES(FogStruct, IntegratedLightScattering);
 		return List;
 	}
-	static std::map<std::string, ID3D11SamplerState*> GetSamplers(const FFogUniformParameters& ReflectionStruct)
+	static std::map<std::string, ID3D11SamplerState*> GetSamplers(const FFogUniformParameters& FogStruct)
 	{
 		std::map<std::string, ID3D11SamplerState*> List;
 		ADD_RES(FogStruct, FogInscatteringColorSampler);
 		ADD_RES(FogStruct, IntegratedLightScatteringSampler);
 		return List;
 	}
-	static std::map<std::string, ID3D11UnorderedAccessView*> GetUAVs(const FFogUniformParameters& ReflectionStruct)
+	static std::map<std::string, ID3D11UnorderedAccessView*> GetUAVs(const FFogUniformParameters& FogStruct)
 	{
 		std::map<std::string, ID3D11UnorderedAccessView*> List;
 		return List;
@@ -60,6 +60,6 @@ struct alignas(16) FFogUniformParameters
 #undef ADD_RES
 };
 
-extern void SetupFogUniformParameters(const class FViewInfo& View, FFogUniformParameters& OutParameters);
+//extern void SetupFogUniformParameters(const class FViewInfo& View, FFogUniformParameters& OutParameters);
 
-extern bool ShouldRenderFog(const FSceneViewFamily& Family);
+//extern bool ShouldRenderFog(const FSceneViewFamily& Family);
