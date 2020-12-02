@@ -551,19 +551,19 @@ void FViewInfo::Init()
 	// 	bTranslucentSurfaceLighting = false;
 	//bUsesSceneDepth = false;
 
-	// 	ExponentialFogParameters = FVector4(0, 1, 1, 0);
-	// 	ExponentialFogColor = FVector::ZeroVector;
-	// 	FogMaxOpacity = 1;
-	// 	ExponentialFogParameters3 = FVector4(0, 0, 0, 0);
-	// 	SinCosInscatteringColorCubemapRotation = FVector2D(0, 0);
-	// 	FogInscatteringColorCubemap = NULL;
-	// 	FogInscatteringTextureParameters = FVector::ZeroVector;
+	ExponentialFogParameters = Vector4(0, 1, 1, 0);
+	ExponentialFogColor = FVector::ZeroVector;
+	FogMaxOpacity = 1;
+	ExponentialFogParameters3 = Vector4(0, 0, 0, 0);
+	SinCosInscatteringColorCubemapRotation = Vector2(0, 0);
+	FogInscatteringColorCubemap = NULL;
+	FogInscatteringTextureParameters = FVector::ZeroVector;
 	// 
-	// 	bUseDirectionalInscattering = false;
-	// 	DirectionalInscatteringExponent = 0;
-	// 	DirectionalInscatteringStartDistance = 0;
-	// 	InscatteringLightDirection = FVector(0);
-	// 	DirectionalInscatteringColor = FLinearColor(ForceInit);
+	bUseDirectionalInscattering = false;
+	DirectionalInscatteringExponent = 0;
+	DirectionalInscatteringStartDistance = 0;
+	InscatteringLightDirection = FVector(0);
+	DirectionalInscatteringColor = FLinearColor();
 
 	// 	for (int32 CascadeIndex = 0; CascadeIndex < TVC_MAX; CascadeIndex++)
 	// 	{
@@ -697,12 +697,27 @@ void FSceneRenderer::Render()
 
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get();
 	SceneContext.Allocate(this);
+	SceneContext.AllocGBufferTargets();
 
 	InitViews();
 	RenderPrePass();
 	RenderHzb();
 	RenderShadowDepthMaps();
-	//RenderBasePass();
+	// Use readonly depth in the base pass if we have a full depth prepass
+	const bool bAllowReadonlyDepthBasePass = EarlyZPassMode == DDM_AllOpaque
+		//&& CVarBasePassWriteDepthEvenWithFullPrepass.GetValueOnRenderThread() == 0
+		//&& !ViewFamily.EngineShowFlags.ShaderComplexity
+		//&& !ViewFamily.UseDebugViewPS()
+		//&& !bIsWireframe
+		/*&& !ViewFamily.EngineShowFlags.LightMapDensity*/;
+
+	const FExclusiveDepthStencil::Type BasePassDepthStencilAccess =
+		bAllowReadonlyDepthBasePass
+		? FExclusiveDepthStencil::DepthRead_StencilWrite
+		: FExclusiveDepthStencil::DepthWrite_StencilWrite;
+
+	SceneContext.BeginRenderingGBuffer(ERenderTargetLoadAction::EClear, ERenderTargetLoadAction::ELoad, BasePassDepthStencilAccess);
+	RenderBasePass(BasePassDepthStencilAccess,nullptr);
 	for (uint32 ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
 	{
 		GCompositionLighting.ProcessAfterBasePass(Views[ViewIndex]);

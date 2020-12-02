@@ -60,6 +60,6 @@ struct alignas(16) FFogUniformParameters
 #undef ADD_RES
 };
 
-//extern void SetupFogUniformParameters(const class FViewInfo& View, FFogUniformParameters& OutParameters);
+extern void SetupFogUniformParameters(const class FViewInfo& View, FFogUniformParameters& OutParameters);
 
-//extern bool ShouldRenderFog(const FSceneViewFamily& Family);
+extern bool ShouldRenderFog(const class FSceneViewFamily& Family);

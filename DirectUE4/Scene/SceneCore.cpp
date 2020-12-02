@@ -3,6 +3,7 @@
 #include "PrimitiveSceneProxy.h"
 #include "DepthOnlyRendering.h"
 #include "ShadowRendering.h"
+#include "BasePassRendering.h"
 
 void FLightPrimitiveInteraction::Create(FLightSceneInfo* LightSceneInfo, FPrimitiveSceneInfo* PrimitiveSceneInfo)
 {
@@ -132,7 +133,13 @@ FStaticMesh::~FStaticMesh()
 
 void FStaticMesh::AddToDrawLists(/*FRHICommandListImmediate& RHICmdList,*/ FScene* Scene)
 {
+	if (CastShadow)
+	{
+		FShadowDepthDrawingPolicyFactory::AddStaticMesh(Scene, this);
+	}
+
 	FDepthDrawingPolicyFactory::AddStaticMesh(Scene, this);
+	FBasePassOpaqueDrawingPolicyFactory::AddStaticMesh(Scene, this);
 }
 
 

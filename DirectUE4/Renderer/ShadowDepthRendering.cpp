@@ -594,8 +594,8 @@ void DrawShadowMeshElements(const FViewInfo& View, const FDrawingPolicyRenderSta
 		FirstMaterialResource,
 		ShadowInfo.bDirectionalLight,
 		ShadowInfo.bOnePassPointLightShadow,
-		ShadowInfo.bPreShadow//,
-		/*ComputeMeshOverrideSettings(*FirstShadowMesh.Mesh)*/);
+		ShadowInfo.bPreShadow,
+		ComputeMeshOverrideSettings(*FirstShadowMesh.Mesh));
 
 	FShadowStaticMeshElement OldState;
 
@@ -618,7 +618,7 @@ void DrawShadowMeshElements(const FViewInfo& View, const FDrawingPolicyRenderSta
 			//SetViewFlagsForShadowPass(DrawRenderStateLocal, View, SharedDrawingPolicy.IsTwoSided(), bReflectiveShadowmap, ShadowInfo.bOnePassPointLightShadow);
 			SharedDrawingPolicy.SetupPipelineState(DrawRenderStateLocal, View);
 			CommitGraphicsPipelineState(SharedDrawingPolicy, DrawRenderStateLocal, SharedDrawingPolicy.GetBoundShaderStateInput());
-			SharedDrawingPolicy.SetSharedState( DrawRenderStateLocal, &View, PolicyContext);
+			SharedDrawingPolicy.SetSharedState(D3D11DeviceContext, DrawRenderStateLocal, &View, PolicyContext);
 		}
 
 		DrawMeshElements( SharedDrawingPolicy, OldState, View, PolicyContext, DrawRenderStateLocal, ShadowMesh.Mesh);
@@ -631,12 +631,11 @@ FShadowDepthDrawingPolicy<bRenderingReflectiveShadowMaps>::FShadowDepthDrawingPo
 	bool bInDirectionalLight, 
 	bool bInOnePassPointLightShadow, 
 	bool bInPreShadow, 
-	/*const FMeshDrawingPolicyOverrideSettings& InOverrideSettings, */ 
-	/*ERHIFeatureLevel::Type InFeatureLevel, */ 
+	const FMeshDrawingPolicyOverrideSettings& InOverrideSettings,  
 	const FVertexFactory* InVertexFactory /*= 0*/, 
 	const FMaterialRenderProxy* InMaterialRenderProxy /*= 0*/,
 	bool bInReverseCulling /*= false */) :
-	FMeshDrawingPolicy(InVertexFactory, InMaterialRenderProxy, *InMaterialResource/*, InOverrideSettings, DVSM_None*/),
+	FMeshDrawingPolicy(InVertexFactory, InMaterialRenderProxy, *InMaterialResource, InOverrideSettings/*, DVSM_None*/),
 	GeometryShader(NULL),
 	bDirectionalLight(bInDirectionalLight),
 	bReverseCulling(bInReverseCulling),
@@ -814,7 +813,7 @@ void FShadowDepthDrawingPolicy<bRenderingReflectiveShadowMaps>::SetMeshRenderSta
 }
 
 template <bool bRenderingReflectiveShadowMaps>
-void FShadowDepthDrawingPolicy<bRenderingReflectiveShadowMaps>::SetSharedState(const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View, const ContextDataType PolicyContext) const
+void FShadowDepthDrawingPolicy<bRenderingReflectiveShadowMaps>::SetSharedState(ID3D11DeviceContext* Context, const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View, const ContextDataType PolicyContext) const
 {
 	assert(bDirectionalLight == PolicyContext.ShadowInfo->bDirectionalLight && bPreShadow == PolicyContext.ShadowInfo->bPreShadow);
 
@@ -839,19 +838,19 @@ void FShadowDepthDrawingPolicy<bRenderingReflectiveShadowMaps>::SetSharedState(c
 	// Set the shared mesh resources.
 	if (bUsePositionOnlyVS)
 	{
-		VertexFactory->SetPositionStream(D3D11DeviceContext);
+		VertexFactory->SetPositionStream(Context);
 	}
 	else
 	{
-		FMeshDrawingPolicy::SetSharedState(D3D11DeviceContext, DrawRenderState, View, PolicyContext);
+		FMeshDrawingPolicy::SetSharedState(Context, DrawRenderState, View, PolicyContext);
 	}
 }
 
 template <bool bRenderingReflectiveShadowMaps>
 void FShadowDepthDrawingPolicy<bRenderingReflectiveShadowMaps>::UpdateElementState(FShadowStaticMeshElement& State)
 {
-	//FMeshDrawingPolicyOverrideSettings OverrideSettings = ComputeMeshOverrideSettings(*State.Mesh);
-	//OverrideSettings.MeshOverrideFlags |= State.bIsTwoSided ? EDrawingPolicyOverrideFlags::TwoSided : EDrawingPolicyOverrideFlags::None;
+	FMeshDrawingPolicyOverrideSettings OverrideSettings = ComputeMeshOverrideSettings(*State.Mesh);
+	OverrideSettings.MeshOverrideFlags |= State.bIsTwoSided ? EDrawingPolicyOverrideFlags::TwoSided : EDrawingPolicyOverrideFlags::None;
 
 	// can be optimized
 	*this = FShadowDepthDrawingPolicy(
@@ -859,7 +858,7 @@ void FShadowDepthDrawingPolicy<bRenderingReflectiveShadowMaps>::UpdateElementSta
 		bDirectionalLight,
 		bOnePassPointLightShadow,
 		bPreShadow,
-		//OverrideSettings,
+		OverrideSettings,
 		State.Mesh->VertexFactory,
 		State.RenderProxy,
 		State.Mesh->ReverseCulling);
@@ -1354,11 +1353,11 @@ void FShadowDepthDrawingPolicyFactory::AddStaticMesh(FScene* Scene, FStaticMesh*
 		const EMaterialShadingModel ShadingModel = Material->GetShadingModel();
 
 		const bool bLightPropagationVolume = false;// UseLightPropagationVolumeRT(FeatureLevel);
-		const bool bTwoSided = false;// Material->IsTwoSided() || StaticMesh->PrimitiveSceneInfo->Proxy->CastsShadowAsTwoSided();
+		const bool bTwoSided =  Material->IsTwoSided() || StaticMesh->PrimitiveSceneInfo->Proxy->CastsShadowAsTwoSided();
 		const bool bLitOpaque = !IsTranslucentBlendMode(BlendMode) && ShadingModel != MSM_Unlit;
 
-		//FMeshDrawingPolicyOverrideSettings OverrideSettings = ComputeMeshOverrideSettings(*StaticMesh);
-		//OverrideSettings.MeshOverrideFlags |= bTwoSided ? EDrawingPolicyOverrideFlags::TwoSided : EDrawingPolicyOverrideFlags::None;
+		FMeshDrawingPolicyOverrideSettings OverrideSettings = ComputeMeshOverrideSettings(*StaticMesh);
+		OverrideSettings.MeshOverrideFlags |= bTwoSided ? EDrawingPolicyOverrideFlags::TwoSided : EDrawingPolicyOverrideFlags::None;
 
 // 		if (bLightPropagationVolume && ((!IsTranslucentBlendMode(BlendMode) && ShadingModel != MSM_Unlit) || Material->ShouldInjectEmissiveIntoLPV() || Material->ShouldBlockGI()))
 // 		{
@@ -1395,7 +1394,7 @@ void FShadowDepthDrawingPolicyFactory::AddStaticMesh(FScene* Scene, FStaticMesh*
 					true,
 					false,
 					false,
-					//OverrideSettings,
+					OverrideSettings,
 					StaticMesh->VertexFactory,
 					MaterialRenderProxy,
 					StaticMesh->ReverseCulling)//,
@@ -1436,11 +1435,11 @@ bool FShadowDepthDrawingPolicyFactory::DrawDynamicMesh(
 		{
 			const bool bLocalDirectionalLight = Context.ShadowInfo->bDirectionalLight;
 			const bool bPreShadow = Context.ShadowInfo->bPreShadow;
-			const bool bTwoSided = false;// Material->IsTwoSided() || PrimitiveSceneProxy->CastsShadowAsTwoSided();
+			const bool bTwoSided = Material->IsTwoSided() || PrimitiveSceneProxy->CastsShadowAsTwoSided();
 			const FShadowDepthDrawingPolicyContext PolicyContext(Context.ShadowInfo);
 
-			//FMeshDrawingPolicyOverrideSettings OverrideSettings = ComputeMeshOverrideSettings(Mesh);
-			//OverrideSettings.MeshOverrideFlags |= bTwoSided ? EDrawingPolicyOverrideFlags::TwoSided : EDrawingPolicyOverrideFlags::None;
+			FMeshDrawingPolicyOverrideSettings OverrideSettings = ComputeMeshOverrideSettings(Mesh);
+			OverrideSettings.MeshOverrideFlags |= bTwoSided ? EDrawingPolicyOverrideFlags::TwoSided : EDrawingPolicyOverrideFlags::None;
 
 			//OverrideWithDefaultMaterialForShadowDepth(MaterialRenderProxy, Material, bReflectiveShadowmap, FeatureLevel);
 
@@ -1451,7 +1450,7 @@ bool FShadowDepthDrawingPolicyFactory::DrawDynamicMesh(
 					bLocalDirectionalLight,
 					bLocalOnePassPointLightShadow,
 					bPreShadow,
-					//OverrideSettings,
+					OverrideSettings,
 					Mesh.VertexFactory,
 					MaterialRenderProxy,
 					Mesh.ReverseCulling
@@ -1463,7 +1462,7 @@ bool FShadowDepthDrawingPolicyFactory::DrawDynamicMesh(
 				//SetViewFlagsForShadowPass(DrawRenderStateLocal, View, View.GetFeatureLevel(), DrawingPolicy.IsTwoSided(), true, bLocalOnePassPointLightShadow);
 				DrawingPolicy.SetupPipelineState(DrawRenderStateLocal, View);
 				CommitGraphicsPipelineState(DrawingPolicy, DrawRenderStateLocal, DrawingPolicy.GetBoundShaderStateInput());
-				DrawingPolicy.SetSharedState(DrawRenderStateLocal, &View, PolicyContext);
+				DrawingPolicy.SetSharedState(D3D11DeviceContext, DrawRenderStateLocal, &View, PolicyContext);
 
 				for (uint32 BatchElementIndex = 0, Num = Mesh.Elements.size(); BatchElementIndex < Num; BatchElementIndex++)
 				{
@@ -1481,7 +1480,7 @@ bool FShadowDepthDrawingPolicyFactory::DrawDynamicMesh(
 					bLocalDirectionalLight,
 					bLocalOnePassPointLightShadow,
 					bPreShadow,
-					//OverrideSettings,
+					OverrideSettings,
 					Mesh.VertexFactory,
 					MaterialRenderProxy,
 					Mesh.ReverseCulling
@@ -1493,7 +1492,7 @@ bool FShadowDepthDrawingPolicyFactory::DrawDynamicMesh(
 				//SetViewFlagsForShadowPass(DrawRenderStateLocal, View, View.GetFeatureLevel(), DrawingPolicy.IsTwoSided(), false, bLocalOnePassPointLightShadow);
 				DrawingPolicy.SetupPipelineState(DrawRenderStateLocal, View);
 				CommitGraphicsPipelineState(DrawingPolicy, DrawRenderStateLocal, DrawingPolicy.GetBoundShaderStateInput());
-				DrawingPolicy.SetSharedState(DrawRenderStateLocal, &View, PolicyContext);
+				DrawingPolicy.SetSharedState(D3D11DeviceContext, DrawRenderStateLocal, &View, PolicyContext);
 
 				for (uint32 BatchElementIndex = 0; BatchElementIndex < Mesh.Elements.size(); BatchElementIndex++)
 				{

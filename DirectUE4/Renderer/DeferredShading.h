@@ -248,6 +248,64 @@ struct alignas(16) FReflectionCaptureShaderData
 		return List;
 	}
 };
+
+struct alignas(16) FVolumetricFogGlobalData
+{
+	FVolumetricFogGlobalData()
+	{
+		ConstructUniformBufferInfo(*this);
+	}
+
+	struct ConstantStruct
+	{
+		FIntVector GridSizeInt;
+		FVector GridSize;
+		uint32 GridPixelSizeShift;
+		FVector GridZParams;
+		Vector2 SVPosToVolumeUV;
+		FIntPoint FogGridToPixelXY;
+		float MaxDistance;
+		FVector HeightFogInscatteringColor;
+		FVector HeightFogDirectionalLightInscatteringColor;
+	} Constants;
+
+	static std::string GetConstantBufferName()
+	{
+		return "VolumetricFog";
+	}
+	static std::map<std::string, ID3D11ShaderResourceView*> GetSRVs(const FVolumetricFogGlobalData& VolumetricFog)
+	{
+		std::map<std::string, ID3D11ShaderResourceView*> List;
+		return List;
+	}
+	static std::map<std::string, ID3D11SamplerState*> GetSamplers(const FVolumetricFogGlobalData& VolumetricFog)
+	{
+		std::map<std::string, ID3D11SamplerState*> List;
+		return List;
+	}
+	static std::map<std::string, ID3D11UnorderedAccessView*> GetUAVs(const FVolumetricFogGlobalData& VolumetricFog)
+	{
+		std::map<std::string, ID3D11UnorderedAccessView*> List;
+		return List;
+	}
+};
+	 
+class FVolumetricFogViewResources
+{
+public:
+	TUniformBufferPtr<FVolumetricFogGlobalData> VolumetricFogGlobalData;
+	ComPtr<PooledRenderTarget> IntegratedLightScattering;
+
+	FVolumetricFogViewResources()
+	{}
+
+	void Release()
+	{
+		IntegratedLightScattering.Reset();
+	}
+};
+
+
 class FViewInfo : public FSceneView
 {
 public:
@@ -353,21 +411,21 @@ public:
 	// 	TArray<FMemStackBase, SceneRenderingAllocator> PrimitiveCustomDataMemStack; // Size == 1 global stack + 1 per visibility thread (if multithread)
 
 	/** Parameters for exponential height fog. */
-	// 	FVector4 ExponentialFogParameters;
-	// 	FVector ExponentialFogColor;
-	// 	float FogMaxOpacity;
-	// 	FVector4 ExponentialFogParameters3;
-	// 	FVector2D SinCosInscatteringColorCubemapRotation;
+	Vector4 ExponentialFogParameters;
+	FVector ExponentialFogColor;
+	float FogMaxOpacity;
+	Vector4 ExponentialFogParameters3;
+	Vector2 SinCosInscatteringColorCubemapRotation;
 
-	// 	UTexture* FogInscatteringColorCubemap;
-	// 	FVector FogInscatteringTextureParameters;
+	ID3D11ShaderResourceView* FogInscatteringColorCubemap;
+	FVector FogInscatteringTextureParameters;
 
 	/** Parameters for directional inscattering of exponential height fog. */
-	// 	bool bUseDirectionalInscattering;
-	// 	float DirectionalInscatteringExponent;
-	// 	float DirectionalInscatteringStartDistance;
-	// 	FVector InscatteringLightDirection;
-	// 	FLinearColor DirectionalInscatteringColor;
+	bool bUseDirectionalInscattering;
+	float DirectionalInscatteringExponent;
+	float DirectionalInscatteringStartDistance;
+	FVector InscatteringLightDirection;
+	FLinearColor DirectionalInscatteringColor;
 
 	/** Translucency lighting volume properties. */
 	// 	FVector TranslucencyLightingVolumeMin[TVC_MAX];
@@ -433,7 +491,7 @@ public:
 	/** Used when there is no view state, buffers reallocate every frame. */
 	//TUniquePtr<FForwardLightingViewResources> ForwardLightingResourcesStorage;
 
-	//FVolumetricFogViewResources VolumetricFogResources;
+	FVolumetricFogViewResources VolumetricFogResources;
 
 	// Size of the HZB's mipmap 0
 	// NOTE: the mipmap 0 is downsampled version of the depth buffer

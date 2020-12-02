@@ -40,8 +40,8 @@ void FStaticMeshVertexFactories::InitResources(const FStaticMeshLODResources& Lo
 {
 	FLocalVertexFactory::FDataType Data;
 	Data.PositionComponent = FVertexStreamComponent(LodResources.VertexBuffers.PositionVertexBufferRHI.Get(), 0, sizeof(FVector), DXGI_FORMAT_R32G32B32_FLOAT);
-	Data.TangentBasisComponents[0] = FVertexStreamComponent(LodResources.VertexBuffers.TangentsVertexBufferRHI.Get(), 0, sizeof(FVector), DXGI_FORMAT_R32G32B32A32_FLOAT);
-	Data.TangentBasisComponents[1] = FVertexStreamComponent(LodResources.VertexBuffers.TangentsVertexBufferRHI.Get(), 12, sizeof(FVector), DXGI_FORMAT_R32G32B32A32_FLOAT);
+	Data.TangentBasisComponents[0] = FVertexStreamComponent(LodResources.VertexBuffers.TangentsVertexBufferRHI.Get(), 0, sizeof(Vector4), DXGI_FORMAT_R32G32B32A32_FLOAT);
+	Data.TangentBasisComponents[1] = FVertexStreamComponent(LodResources.VertexBuffers.TangentsVertexBufferRHI.Get(), 12, sizeof(Vector4), DXGI_FORMAT_R32G32B32A32_FLOAT);
 	Data.TextureCoordinates = FVertexStreamComponent(LodResources.VertexBuffers.TexCoordVertexBufferRHI.Get(), 0, sizeof(Vector2), DXGI_FORMAT_R32G32_FLOAT);
 	Data.LightMapCoordinateComponent = FVertexStreamComponent(LodResources.VertexBuffers.TexCoordVertexBufferRHI.Get(), 8, sizeof(Vector2), DXGI_FORMAT_R32G32_FLOAT);
 	Data.TangentsSRV = LodResources.VertexBuffers.TangentsVertexBufferSRV;
@@ -94,7 +94,7 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent, 
 {
 	// Build the proxy's LOD data.
 	bool bAnySectionCastsShadows = false;
-	LODs.resize(RenderData->LODResources.size());
+	LODs.reserve(RenderData->LODResources.size());
 	const bool bLODsShareStaticLighting = true/*RenderData->bLODsShareStaticLighting || bForceLODsShareStaticLighting*/;
 	for (uint32 LODIndex = 0; LODIndex < RenderData->LODResources.size(); LODIndex++)
 	{
@@ -192,7 +192,7 @@ FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponen
 	const FStaticMeshVertexFactories& VFs = *InLODVertexFactories[InLODIndex];
 
 	Sections.clear();
-	Sections.resize(MeshRenderData->LODResources[InLODIndex]->Sections.size());
+	Sections.reserve(MeshRenderData->LODResources[InLODIndex]->Sections.size());
 	for (uint32 SectionIndex = 0; SectionIndex < LODModel.Sections.size(); SectionIndex++)
 	{
 		const FStaticMeshSection& Section = LODModel.Sections[SectionIndex];
@@ -266,15 +266,26 @@ void UStaticMesh::GetRenderMeshDescription(const MeshDescription& InOriginalMesh
 
 	for (const int VertexInstanceID : VertexInstanceArray.GetElementIDs())
 	{
+		// Dump normals and tangents if we are recomputing them.
+		//if (BuildSettings->bRecomputeTangents)
+		{
+			//Dump the tangents
+			BinormalSigns[VertexInstanceID] = 0.0f;
+			Tangents[VertexInstanceID] = FVector(0.0f);
+		}
+		//if (BuildSettings->bRecomputeNormals)
+		{
+			//Dump the normals
+			Normals[VertexInstanceID] = FVector(0.0f);
+		}
 		bHasAllNormals &= !Normals[VertexInstanceID].IsNearlyZero();
 		bHasAllTangents &= !Tangents[VertexInstanceID].IsNearlyZero();
 	}
 
 	if (!bHasAllNormals)
 	{
-
+		MeshDescriptionOperations::CreateNormals(OutRenderMeshDescription, (MeshDescriptionOperations::ETangentOptions)TangentOptions, false);
 	}
-
 	MeshDescriptionOperations::CreateMikktTangents(OutRenderMeshDescription, (MeshDescriptionOperations::ETangentOptions)TangentOptions);
 
 	

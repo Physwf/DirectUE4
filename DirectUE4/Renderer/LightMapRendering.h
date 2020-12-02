@@ -34,7 +34,7 @@ struct alignas(16) FPrecomputedLightingParameters
 		Vector4 ShadowMapCoordinateScaleBias; // TDistanceFieldShadowsAndLightMapPolicy
 		Vector4 LightMapScale[MAX_NUM_LIGHTMAP_COEF];// EShaderPrecisionModifier::Half; // TLightMapPolicy
 		Vector4 LightMapAdd[MAX_NUM_LIGHTMAP_COEF];// EShaderPrecisionModifier::Half; // TLightMapPolicy
-	};
+	} Constants ;
 
 	ID3D11ShaderResourceView* LightMapTexture; // TLightMapPolicy
 	ID3D11ShaderResourceView* SkyOcclusionTexture; // TLightMapPolicy

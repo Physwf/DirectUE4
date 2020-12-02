@@ -2,6 +2,8 @@
 
 #include "SceneManagement.h"
 
+#include <algorithm>
+
 class FLightMap2D;
 
 /**
@@ -33,7 +35,7 @@ public:
 	*/
 	bool ContainsLight(const uint32& LightGuid) const
 	{
-		return std::find(LightGuids.begin(),LightGuids.end()) != LightGuids.end();
+		return std::find(LightGuids.begin(),LightGuids.end(), LightGuid) != LightGuids.end();
 	}
 
 	// FLightMap interface.

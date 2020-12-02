@@ -585,6 +585,16 @@ public:
 
 	AttributeSet& PolygonGroupAttributes() { return PolygonGroupAttributesSet; }
 	const AttributeSet& PolygonGroupAttributes() const { return PolygonGroupAttributesSet; }
+
+	const std::set<int32>& GetVertexConnectedEdges(const int32 VertexID) const
+	{
+		return VertexArray[VertexID].ConnectedEdgeIDs;
+	}
+	const std::vector<int>& GetEdgeConnectedPolygons(const int32 EdgeID) const
+	{
+		return EdgeArray[EdgeID].ConnectedPolygons;
+	}
+
 private:
 	void CreateVertex_Internal(int VertexID)
 	{

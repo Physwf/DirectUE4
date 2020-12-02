@@ -341,6 +341,14 @@ FVector FMatrix::GetColumn(int32 i) const
 	return FVector(M[0][i], M[1][i], M[2][i]);
 }
 
+void FMatrix::SetIdentity()
+{
+	M[0][0] = 1; M[0][1] = 0;  M[0][2] = 0;  M[0][3] = 0;
+	M[1][0] = 0; M[1][1] = 1;  M[1][2] = 0;  M[1][3] = 0;
+	M[2][0] = 0; M[2][1] = 0;  M[2][2] = 1;  M[2][3] = 0;
+	M[3][0] = 0; M[3][1] = 0;  M[3][2] = 0;  M[3][3] = 1;
+}
+
 float FVector::SizeSquared() const
 {
 	return X * X + Y * Y + Z * Z;
@@ -620,6 +628,16 @@ FBox Frustum::GetBounds()
 	return Result;
 }
 
+bool Vector2::operator<(const Vector2& Other) const
+{
+	return X < Other.X && Y < Other.Y;
+}
+
+bool Vector2::operator>(const Vector2& Other) const
+{
+	return X <= Other.X && Y <= Other.Y;
+}
+
 bool Vector2::Equals(const Vector2& V, float Tolerance /*= KINDA_SMALL_NUMBER*/) const
 {
 	return FMath::Abs(X - V.X) <= Tolerance && FMath::Abs(Y - V.Y) <= Tolerance;
@@ -716,6 +734,15 @@ FVector FMath::LinePlaneIntersection(const FVector &Point1, const FVector &Point
 		*	((Plane.W - (Point1 | Plane)) / ((Point2 - Point1) | Plane));
 }
 
+Vector4::Vector4(Vector2 InXY, Vector2 InZW)
+	: X(InXY.X)
+	, Y(InXY.Y)
+	, Z(InZW.X)
+	, W(InZW.Y)
+{
+
+}
+
 Vector4 Vector4::GetSafeNormal(float Tolerance /*= SMALL_NUMBER*/) const
 {
 	const float SquareSum = X * X + Y * Y + Z * Z;
@@ -807,6 +834,13 @@ const FVector FVector::OneVector(1.0f, 1.0f, 1.0f);
 const FVector FVector::UpVector(0.0f, 0.0f, 1.0f);
 const FVector FVector::ForwardVector(1.0f, 0.0f, 0.0f);
 const FVector FVector::RightVector(0.0f, 1.0f, 0.0f);
+
+FVector::FVector(const FLinearColor& InColor)
+	: X(InColor.R), Y(InColor.G), Z(InColor.B)
+{
+
+}
+
 const Vector2 Vector2::ZeroVector(0.0f, 0.0f);
 const Vector2 Vector2::UnitVector(1.0f, 1.0f);
 const FRotator FRotator::ZeroRotator(0.f, 0.f, 0.f);

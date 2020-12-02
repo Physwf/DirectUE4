@@ -1,5 +1,7 @@
 #include "SceneManagement.h"
 #include "LightComponent.h"
+#include "LightMap.h"
+#include "ShadowMap.h"
 
 FLightSceneProxy::FLightSceneProxy(const ULightComponent* InLightComponent)
 	: LightComponent(InLightComponent)
@@ -33,7 +35,44 @@ void FLightSceneProxy::SetTransform(const FMatrix& InLightToWorld, const Vector4
 
 ELightInteractionType FLightCacheInterface::GetStaticInteraction(const FLightSceneProxy* LightSceneProxy, const std::vector<uint32>& IrrelevantLights) const
 {
+	if (bGlobalVolumeLightmap)
+	{
+		if (LightSceneProxy->HasStaticLighting())
+		{
+			return LIT_CachedLightMap;
+		}
+		else if (LightSceneProxy->HasStaticShadowing())
+		{
+			return LIT_CachedSignedDistanceFieldShadowMap2D;
+		}
+		else
+		{
+			return LIT_MAX;
+		}
+	}
 
+	ELightInteractionType Ret = LIT_MAX;
+
+	// Check if the light has static lighting or shadowing.
+	if (LightSceneProxy->HasStaticShadowing())
+	{
+		const uint32 LightGuid = LightSceneProxy->GetLightGuid();
+
+		if (std::find(IrrelevantLights.begin(),IrrelevantLights.end(),LightGuid) != IrrelevantLights.end())
+		{
+			Ret = LIT_CachedIrrelevant;
+		}
+		else if (LightMap && LightMap->ContainsLight(LightGuid))
+		{
+			Ret = LIT_CachedLightMap;
+		}
+		else if (ShadowMap && ShadowMap->ContainsLight(LightGuid))
+		{
+			Ret = LIT_CachedSignedDistanceFieldShadowMap2D;
+		}
+	}
+
+	return Ret;
 }
 
 FLightMapInteraction FLightCacheInterface::GetLightMapInteraction() const
@@ -57,9 +96,9 @@ FShadowMapInteraction FLightCacheInterface::GetShadowMapInteraction() const
 }
 
 FLightMapInteraction FLightMapInteraction::Texture(
-	ID3D11ShaderResourceView** InTextures, 
-	ID3D11Texture2D* InSkyOcclusionTexture, 
-	ID3D11Texture2D* InAOMaterialMaskTexture, 
+	ID3D11ShaderResourceView* const* InTextures,
+	ID3D11ShaderResourceView* InSkyOcclusionTexture,
+	ID3D11ShaderResourceView* InAOMaterialMaskTexture,
 	const Vector4* InCoefficientScales, 
 	const Vector4* InCoefficientAdds, 
 	const Vector2& InCoordinateScale, 

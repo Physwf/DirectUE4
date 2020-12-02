@@ -2,6 +2,7 @@
 
 #include "SceneManagement.h"
 
+class FShadowMap2D;
 /**
 * The abstract base class of 1D and 2D shadow-maps.
 */

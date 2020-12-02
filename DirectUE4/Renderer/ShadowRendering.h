@@ -48,8 +48,7 @@ public:
 		bool bInDirectionalLight,
 		bool bInOnePassPointLightShadow,
 		bool bInPreShadow,
-		//const FMeshDrawingPolicyOverrideSettings& InOverrideSettings,
-		//ERHIFeatureLevel::Type InFeatureLevel,
+		const FMeshDrawingPolicyOverrideSettings& InOverrideSettings,
 		const FVertexFactory* InVertexFactory = 0,
 		const FMaterialRenderProxy* InMaterialRenderProxy = 0,
 		bool bReverseCulling = false
@@ -73,7 +72,7 @@ public:
 		return *this;
 	}
 
-	void SetSharedState(const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View, const ContextDataType PolicyContext) const;
+	void SetSharedState(ID3D11DeviceContext* Context, const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View, const ContextDataType PolicyContext) const;
 
 	/**
 	* Create bound shader state using the vertex decl from the mesh draw policy

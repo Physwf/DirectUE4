@@ -475,7 +475,7 @@ public:
 	void BuildSkeletalModelFromChunks(SkeletalMeshLODModel& LODModel, const FReferenceSkeleton& RefSkeleton, std::vector<FSkinnedMeshChunk*>& Chunks, const std::vector<int32>& PointToOriginalMap);
 
 	bool BuildStaticMesh(FStaticMeshRenderData& OutRenderData, UStaticMesh* Mesh/*, const FStaticMeshLODGroup& LODGroup */);
-	void BuildVertexBuffer(const MeshDescription& MD2, FStaticMeshLODResources& StaticMeshLOD, std::vector<std::vector<uint32> >& OutPerSectionIndices, std::vector<StaticMeshBuildVertex>& StaticMeshBuildVertices);
+	void BuildVertexBuffer(const MeshDescription& MD2, FStaticMeshLODResources& StaticMeshLOD, std::vector<std::vector<uint32> >& OutPerSectionIndices, std::vector<StaticMeshBuildVertex>& StaticMeshBuildVertices, const std::multimap<int32, int32>& OverlappingCorners, float VertexComparisonThreshold, std::vector<int32>& RemapVerts);
 public:
 	FbxScene* fbxScene;
 	FbxManager* SDKManager;

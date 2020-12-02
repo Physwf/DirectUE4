@@ -73,6 +73,7 @@ struct FBox;
 class FSphere;
 struct FTransform;
 struct FPlane;
+struct FLinearColor;
 
 namespace EAxis
 {
@@ -404,6 +405,7 @@ struct alignas(16) Vector4
 	Vector4(const FVector& V,float InW = 1.f);
 	Vector4(float InX, float InY, float InZ, float InW = 1.0f) : X(InX), Y(InY), Z(InZ), W(InW) {}
 	Vector4(std::initializer_list<float> list);
+	Vector4(Vector2 InXY, Vector2 InZW);
 
 	Vector4 operator+(const Vector4& rhs) const;
 	Vector4 operator-(const Vector4& rhs) const;
@@ -571,6 +573,7 @@ struct FVector
 	FVector(float InX, float InY, float InZ) : X(InX), Y(InY), Z(InZ) {}
 	FVector(std::initializer_list<float> list);
 	FVector(const Vector4& V) : X(V.X), Y(V.Y), Z(V.Z) {};
+	explicit FVector(const FLinearColor& InColor);
 
 	FVector operator+(const FVector& rhs) const;
 	FVector operator-(const FVector& rhs) const;
@@ -595,7 +598,7 @@ struct FVector
 	float operator[](int32 Index) const;
 
 	float SizeSquared() const;
-	inline void Normalize();
+	inline bool Normalize(float Tolerance = SMALL_NUMBER);
 	static void CreateOrthonormalBasis(FVector& XAxis, FVector& YAxis, FVector& ZAxis);
 	static float Triple(const FVector& X, const FVector& Y, const FVector& Z);
 	friend inline FVector operator*(float Value, const FVector& rhs)
@@ -741,12 +744,16 @@ inline float FVector::operator[](int32 Index) const
 	return (&X)[Index];
 }
 
-inline void FVector::Normalize()
+inline bool FVector::Normalize(float Tolerance/* = SMALL_NUMBER*/)
 {
-	float InvSqrt = 1.0f / sqrtf(X * X + Y * Y + Z * Z);
-	X *= InvSqrt;
-	Y *= InvSqrt;
-	Z *= InvSqrt;
+	const float SquareSum = X * X + Y * Y + Z * Z;
+	if (SquareSum > Tolerance)
+	{
+		const float Scale = FMath::InvSqrt(SquareSum);
+		X *= Scale; Y *= Scale; Z *= Scale;
+		return true;
+	}
+	return false;
 }
 
 inline bool FVector::IsNearlyZero(float Tolerance /*= KINDA_SMALL_NUMBER*/) const
@@ -1108,7 +1115,8 @@ struct Vector2
 	Vector2 operator*=(float Value);
 	Vector2 operator/=(float Value);
 	Vector2 operator-() const;
-
+	bool operator<(const Vector2& Other) const;
+	bool operator>(const Vector2& Other) const;
 	bool operator==(const Vector2& rhs) const;
 	bool operator!=(const Vector2& rhs) const;
 
@@ -1348,7 +1356,7 @@ struct FMatrix
 	FMatrix() {}
 	FMatrix(const FPlane& InX, const FPlane& InY, const FPlane& InZ, const FPlane& InW);
 	FMatrix(const FVector& InX, const FVector& InY, const FVector& InZ, const FVector& InW);
-	void SetIndentity();
+	void SetIdentity();
 	void Transpose();
 	FMatrix GetTransposed() const;
 	inline FMatrix Inverse() const;
@@ -1576,14 +1584,6 @@ inline FTranslationMatrix::FTranslationMatrix(const FVector& Delta):
 		FPlane(Delta.X, Delta.Y, Delta.Z, 1.0f)
 	)
 { }
-
-inline void FMatrix::SetIndentity()
-{
-	M[0][0] = 1; M[0][1] = 0;  M[0][2] = 0;  M[0][3] = 0;
-	M[1][0] = 0; M[1][1] = 1;  M[1][2] = 0;  M[1][3] = 0;
-	M[2][0] = 0; M[2][1] = 0;  M[2][2] = 1;  M[2][3] = 0;
-	M[3][0] = 0; M[3][1] = 0;  M[3][2] = 0;  M[3][3] = 1;
-}
 
 
 inline void FMatrix::Transpose()

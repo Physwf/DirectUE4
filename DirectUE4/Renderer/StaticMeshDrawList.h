@@ -188,7 +188,7 @@ int32 TStaticMeshDrawList<DrawingPolicyType>::DrawElement(
 		}
 
 		CommitGraphicsPipelineState(DrawingPolicyLink->DrawingPolicy, DrawRenderState, BoundShaderStateInput);
-		DrawingPolicyLink->DrawingPolicy.SetSharedState( DrawRenderState, &View, PolicyContext);
+		DrawingPolicyLink->DrawingPolicy.SetSharedState(D3D11DeviceContext, DrawRenderState, &View, PolicyContext);
 
 		bDrawnShared = true;
 	}

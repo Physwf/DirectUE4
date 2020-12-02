@@ -62,7 +62,7 @@ public:
 	void BeginRenderingPrePass(bool bClear);
 	void FinishRenderingPrePass();
 
-	void BeginRenderingGBuffer(bool bClearColor, const FLinearColor& ClearColor = { 0,0,0,1 });
+	void BeginRenderingGBuffer(ERenderTargetLoadAction ColorLoadAction, ERenderTargetLoadAction DepthLoadAction, FExclusiveDepthStencil::Type DepthStencilAccess, const FLinearColor& ClearColor = { 0,0,0,1 });
 	void FinishRenderingGBuffer();
 
 	bool BeginRenderingCustomDepth();

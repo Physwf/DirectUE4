@@ -28,12 +28,12 @@ FLightMap2D::FLightMap2D(const std::vector<uint32>& InLightGuids)
 	AOMaterialMaskTexture = NULL;
 }
 
-ID3D11Texture2D* FLightMap2D::GetSkyOcclusionTexture() const
+ID3D11ShaderResourceView* FLightMap2D::GetSkyOcclusionTexture() const
 {
 	return SkyOcclusionTexture;
 }
 
-ID3D11Texture2D* FLightMap2D::GetAOMaterialMaskTexture() const
+ID3D11ShaderResourceView* FLightMap2D::GetAOMaterialMaskTexture() const
 {
 	return AOMaterialMaskTexture;
 }

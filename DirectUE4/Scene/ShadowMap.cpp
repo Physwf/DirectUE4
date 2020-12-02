@@ -32,3 +32,7 @@ FShadowMapInteraction FShadowMap2D::GetInteraction() const
 	return FShadowMapInteraction::None();
 }
 
+void FShadowMap::Cleanup()
+{
+
+}

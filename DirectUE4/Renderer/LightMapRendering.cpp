@@ -1,6 +1,20 @@
 #include "LightMapRendering.h"
+#include "PrimitiveSceneInfo.h"
+
+const char* GLightmapDefineName[2] =
+{
+	("LQ_TEXTURE_LIGHTMAP"),
+	("HQ_TEXTURE_LIGHTMAP")
+};
+
+int32 GNumLightmapCoefficients[2] =
+{
+	NUM_LQ_LIGHTMAP_COEF,
+	NUM_HQ_LIGHTMAP_COEF
+};
 
 FPrecomputedLightingParameters PrecomputedLightingParameters;
+FEmptyPrecomputedLightingUniformBuffer GEmptyPrecomputedLightingUniformBuffer;
 
 void GetPrecomputedLightingParameters(
 	FPrecomputedLightingParameters& Parameters, 
@@ -65,20 +79,20 @@ void GetPrecomputedLightingParameters(
 		else
 		*/
 		{
-			Parameters.IndirectLightingCachePrimitiveAdd = FVector(0, 0, 0);
-			Parameters.IndirectLightingCachePrimitiveScale = FVector(1, 1, 1);
-			Parameters.IndirectLightingCacheMinUV = FVector(0, 0, 0);
-			Parameters.IndirectLightingCacheMaxUV = FVector(1, 1, 1);
-			Parameters.PointSkyBentNormal = Vector4(0, 0, 1, 1);
-			Parameters.DirectionalLightShadowing = 1;
+			Parameters.Constants.IndirectLightingCachePrimitiveAdd = FVector(0, 0, 0);
+			Parameters.Constants.IndirectLightingCachePrimitiveScale = FVector(1, 1, 1);
+			Parameters.Constants.IndirectLightingCacheMinUV = FVector(0, 0, 0);
+			Parameters.Constants.IndirectLightingCacheMaxUV = FVector(1, 1, 1);
+			Parameters.Constants.PointSkyBentNormal = Vector4(0, 0, 1, 1);
+			Parameters.Constants.DirectionalLightShadowing = 1;
 
 			for (uint32 i = 0; i < 3; ++i) // RGB
 			{
-				Parameters.IndirectLightingSHCoefficients0[i] = Vector4(0, 0, 0, 0);
-				Parameters.IndirectLightingSHCoefficients1[i] = Vector4(0, 0, 0, 0);
+				Parameters.Constants.IndirectLightingSHCoefficients0[i] = Vector4(0, 0, 0, 0);
+				Parameters.Constants.IndirectLightingSHCoefficients1[i] = Vector4(0, 0, 0, 0);
 			}
-			Parameters.IndirectLightingSHCoefficients2 = Vector4(0, 0, 0, 0);
-			Parameters.IndirectLightingSHSingleCoefficient = Vector4(0, 0, 0, 0);
+			Parameters.Constants.IndirectLightingSHCoefficients2 = Vector4(0, 0, 0, 0);
+			Parameters.Constants.IndirectLightingSHSingleCoefficient = Vector4(0, 0, 0, 0);
 		}
 
 		// If we are using FCachedVolumeIndirectLightingPolicy then InitViews should have updated the lighting cache which would have initialized it
@@ -121,19 +135,19 @@ void GetPrecomputedLightingParameters(
 	const FShadowMapInteraction ShadowMapInteraction = LCI ? LCI->GetShadowMapInteraction() : FShadowMapInteraction();
 	if (ShadowMapInteraction.GetType() == SMIT_Texture)
 	{
-		const ID3D11ShaderResourceView* ShadowMapTexture = ShadowMapInteraction.GetTexture();
-		Parameters.ShadowMapCoordinateScaleBias = Vector4(ShadowMapInteraction.GetCoordinateScale(), ShadowMapInteraction.GetCoordinateBias());
-		Parameters.StaticShadowMapMasks = Vector4(ShadowMapInteraction.GetChannelValid(0), ShadowMapInteraction.GetChannelValid(1), ShadowMapInteraction.GetChannelValid(2), ShadowMapInteraction.GetChannelValid(3));
-		Parameters.InvUniformPenumbraSizes = ShadowMapInteraction.GetInvUniformPenumbraSize();
+		ID3D11ShaderResourceView* const ShadowMapTexture = ShadowMapInteraction.GetTexture();
+		Parameters.Constants.ShadowMapCoordinateScaleBias = Vector4(ShadowMapInteraction.GetCoordinateScale(), ShadowMapInteraction.GetCoordinateBias());
+		Parameters.Constants.StaticShadowMapMasks = Vector4(ShadowMapInteraction.GetChannelValid(0), ShadowMapInteraction.GetChannelValid(1), ShadowMapInteraction.GetChannelValid(2), ShadowMapInteraction.GetChannelValid(3));
+		Parameters.Constants.InvUniformPenumbraSizes = ShadowMapInteraction.GetInvUniformPenumbraSize();
 		Parameters.StaticShadowTexture = ShadowMapTexture ? ShadowMapTexture/* ShadowMapTexture->TextureReference.TextureReferenceRHI.GetReference()*/ : GWhiteTextureSRV;// GWhiteTexture->TextureRHI;
-		Parameters.StaticShadowTextureSampler = (ShadowMapTexture && ShadowMapTexture->Resource) ? TStaticSamplerState<>::GetRHI() /*ShadowMapTexture->Resource->SamplerStateRHI*/ : GWhiteTextureSRV;// GWhiteTexture->SamplerStateRHI;
+		Parameters.StaticShadowTextureSampler = (ShadowMapTexture /*&& ShadowMapTexture->Resource*/) ? TStaticSamplerState<>::GetRHI() /*ShadowMapTexture->Resource->SamplerStateRHI*/ : GWhiteTextureSamplerState;// GWhiteTexture->SamplerStateRHI;
 	}
 	else
 	{
-		Parameters.StaticShadowMapMasks = Vector4(1, 1, 1, 1);
-		Parameters.InvUniformPenumbraSizes = Vector4(0, 0, 0, 0);
+		Parameters.Constants.StaticShadowMapMasks = Vector4(1, 1, 1, 1);
+		Parameters.Constants.InvUniformPenumbraSizes = Vector4(0, 0, 0, 0);
 		Parameters.StaticShadowTexture = GWhiteTextureSRV; //GWhiteTexture->TextureRHI;
-		Parameters.StaticShadowTextureSampler = GWhiteTextureSRV; //GWhiteTexture->SamplerStateRHI;
+		Parameters.StaticShadowTextureSampler = GWhiteTextureSamplerState; //GWhiteTexture->SamplerStateRHI;
 	}
 
 	// TLightMapPolicy
@@ -145,7 +159,7 @@ void GetPrecomputedLightingParameters(
 		// Vertex Shader
 		const Vector2 LightmapCoordinateScale = LightMapInteraction.GetCoordinateScale();
 		const Vector2 LightmapCoordinateBias = LightMapInteraction.GetCoordinateBias();
-		Parameters.LightMapCoordinateScaleBias = Vector4(LightmapCoordinateScale.X, LightmapCoordinateScale.Y, LightmapCoordinateBias.X, LightmapCoordinateBias.Y);
+		Parameters.Constants.LightMapCoordinateScaleBias = Vector4(LightmapCoordinateScale.X, LightmapCoordinateScale.Y, LightmapCoordinateBias.X, LightmapCoordinateBias.Y);
 
 		// Pixel Shader
 		ID3D11ShaderResourceView* const LightMapTexture = LightMapInteraction.GetTexture(bAllowHighQualityLightMaps);
@@ -156,23 +170,23 @@ void GetPrecomputedLightingParameters(
 		Parameters.SkyOcclusionTexture = SkyOcclusionTexture ? SkyOcclusionTexture/*SkyOcclusionTexture->TextureReference.TextureReferenceRHI.GetReference()*/ : GWhiteTextureSRV;// GWhiteTexture->TextureRHI;
 		Parameters.AOMaterialMaskTexture = AOMaterialMaskTexture ? AOMaterialMaskTexture /*AOMaterialMaskTexture->TextureReference.TextureReferenceRHI.GetReference()*/ : GBlackTextureSRV;// GBlackTexture->TextureRHI;
 
-		Parameters.LightMapSampler = (LightMapTexture && LightMapTexture->Resource) ? TStaticSamplerState<>::GetRHI()/*LightMapTexture->Resource->SamplerStateRHI*/ : GBlackTextureSamplerState;// GBlackTexture->SamplerStateRHI;
-		Parameters.SkyOcclusionSampler = (SkyOcclusionTexture && SkyOcclusionTexture->Resource) ? TStaticSamplerState<>::GetRHI()/*SkyOcclusionTexture->Resource->SamplerStateRHI*/ : GWhiteTextureSamplerState;// GWhiteTexture->SamplerStateRHI;
-		Parameters.AOMaterialMaskSampler = (AOMaterialMaskTexture && AOMaterialMaskTexture->Resource) ? TStaticSamplerState<>::GetRHI()/*AOMaterialMaskTexture->Resource->SamplerStateRHI*/ : GBlackTextureSamplerState;// GBlackTexture->SamplerStateRHI;
+		Parameters.LightMapSampler = (LightMapTexture /*&& LightMapTexture->Resource*/) ? TStaticSamplerState<>::GetRHI()/*LightMapTexture->Resource->SamplerStateRHI*/ : GBlackTextureSamplerState;// GBlackTexture->SamplerStateRHI;
+		Parameters.SkyOcclusionSampler = (SkyOcclusionTexture /*&& SkyOcclusionTexture->Resource*/) ? TStaticSamplerState<>::GetRHI()/*SkyOcclusionTexture->Resource->SamplerStateRHI*/ : GWhiteTextureSamplerState;// GWhiteTexture->SamplerStateRHI;
+		Parameters.AOMaterialMaskSampler = (AOMaterialMaskTexture /*&& AOMaterialMaskTexture->Resource*/) ? TStaticSamplerState<>::GetRHI()/*AOMaterialMaskTexture->Resource->SamplerStateRHI*/ : GBlackTextureSamplerState;// GBlackTexture->SamplerStateRHI;
 
 		const uint32 NumCoef = bAllowHighQualityLightMaps ? NUM_HQ_LIGHTMAP_COEF : NUM_LQ_LIGHTMAP_COEF;
 		const Vector4* Scales = LightMapInteraction.GetScaleArray();
 		const Vector4* Adds = LightMapInteraction.GetAddArray();
 		for (uint32 CoefIndex = 0; CoefIndex < NumCoef; ++CoefIndex)
 		{
-			Parameters.LightMapScale[CoefIndex] = Scales[CoefIndex];
-			Parameters.LightMapAdd[CoefIndex] = Adds[CoefIndex];
+			Parameters.Constants.LightMapScale[CoefIndex] = Scales[CoefIndex];
+			Parameters.Constants.LightMapAdd[CoefIndex] = Adds[CoefIndex];
 		}
 	}
 	else
 	{
 		// Vertex Shader
-		Parameters.LightMapCoordinateScaleBias = Vector4(1, 1, 0, 0);
+		Parameters.Constants.LightMapCoordinateScaleBias = Vector4(1, 1, 0, 0);
 
 		// Pixel Shader
 		Parameters.LightMapTexture = GBlackTextureSRV;// GBlackTexture->TextureRHI;
@@ -186,8 +200,8 @@ void GetPrecomputedLightingParameters(
 		const uint32 NumCoef = FMath::Max<uint32>(NUM_HQ_LIGHTMAP_COEF, NUM_LQ_LIGHTMAP_COEF);
 		for (uint32 CoefIndex = 0; CoefIndex < NumCoef; ++CoefIndex)
 		{
-			Parameters.LightMapScale[CoefIndex] = Vector4(1, 1, 1, 1);
-			Parameters.LightMapAdd[CoefIndex] = Vector4(0, 0, 0, 0);
+			Parameters.Constants.LightMapScale[CoefIndex] = Vector4(1, 1, 1, 1);
+			Parameters.Constants.LightMapAdd[CoefIndex] = Vector4(0, 0, 0, 0);
 		}
 	}
 }

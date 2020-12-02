@@ -3,7 +3,7 @@
 #include "BasePassCommon.dusf"
 #include "LocalVertexFactory.dusf"
 #include "LightmapCommon.dusf"  
-#include "PlanarReflectionShared.dusf"
+//#include "PlanarReflectionShared.dusf"
 // #include "BRDF.ush"
 #include "Random.dusf"
 #include "LightAccumulator.dusf"
@@ -481,7 +481,7 @@ void FPixelShaderInOut_PS_Main(
 #endif
 
 //[earlydepthstencil]
-void PS_Main(
+void MainPS(
     VertexFactoryInterpolantsVSToPS Interpolants, 
     BasePassInterpolantsVSToPS BasePassInterpolants,
     in INPUT_POSITION_QUALIFIERS float4 SvPosition : SV_Position

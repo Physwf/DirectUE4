@@ -7,43 +7,113 @@
 // #include "ForwardLightingCommon.ush"
 // #endif
 
-void VS_Main(VertexFactoryInput Input, out BasePassVSOutput Output)
+/** Entry point for the base pass vertex shader. */
+void Main(
+	VertexFactoryInput Input,
+	OPTIONAL_VertexID
+	out BasePassVSOutput Output
+#if USE_GLOBAL_CLIP_PLANE && !USING_TESSELLATION
+	, out float OutGlobalClipPlaneDistance : SV_ClipDistance
+#endif
+)
 {
-    ResolvedView = ResolveView();
+	uint EyeIndex = 0;
+	ResolvedView = ResolveView();
 
-    VertexFactoryIntermediates VFIntermediates = GetVertexFactoryIntermediates(Input);
+	VertexFactoryIntermediates VFIntermediates = GetVertexFactoryIntermediates(Input);
+	float4 WorldPositionExcludingWPO = VertexFactoryGetWorldPosition(Input, VFIntermediates);
+	float4 WorldPosition = WorldPositionExcludingWPO;
+	float4 ClipSpacePosition;
 
-    //WPO==World Position Offset
-    float4 WorldPositionExcludingWPO = VertexFactoryGetWorldPosition(Input, VFIntermediates);
-    float4 WorldPosition = WorldPositionExcludingWPO;
-    float4 ClipSpacePosition;
+	float3x3 TangentToLocal = VertexFactoryGetTangentToLocal(Input, VFIntermediates);
+	MaterialVertexParameters VertexParameters = GetMaterialVertexParameters(Input, VFIntermediates, WorldPosition.xyz, TangentToLocal);
 
-    float3x3 TangentToLocal = VertexFactoryGetTangentToLocal(Input, VFIntermediates);	
-    MaterialVertexParameters VertexParameters = GetMaterialVertexParameters(Input, VFIntermediates, WorldPosition.xyz, TangentToLocal);
-    
-    //ISOLATE
+	// Isolate instructions used for world position offset
+	// As these cause the optimizer to generate different position calculating instructions in each pass, resulting in self-z-fighting.
+	// This is only necessary for shaders used in passes that have depth testing enabled.
+	[ISOLATE]
 	{
-		//WorldPosition.xyz += GetMaterialWorldPositionOffset(VertexParameters);
+		WorldPosition.xyz += GetMaterialWorldPositionOffset(VertexParameters);
 	}
 
-    float4 RasterizedWorldPosition = VertexFactoryGetRasterizedWorldPosition(Input, VFIntermediates, WorldPosition);
-    ClipSpacePosition = mul(WorldPositionExcludingWPO, ResolvedView.TranslatedWorldToClip);
-    
-    Output.Position = ClipSpacePosition; //INVARIANT(ClipSpacePosition);
+	[ISOLATE]
+	{
+		float4 RasterizedWorldPosition = VertexFactoryGetRasterizedWorldPosition(Input, VFIntermediates, WorldPosition);
+		ClipSpacePosition = mul(RasterizedWorldPosition, ResolvedView.TranslatedWorldToClip);
+		Output.Position = /*INVARIANT*/(ClipSpacePosition);
+	}
 
-    Output.FactoryInterpolants = VertexFactoryGetInterpolants(Input, VFIntermediates, VertexParameters);
-    
+
+// #if USE_GLOBAL_CLIP_PLANE
+// 	OutGlobalClipPlaneDistance = dot(ResolvedView.GlobalClippingPlane, float4(WorldPosition.xyz - ResolvedView.PreViewTranslation.xyz, 1));
+// #endif
+// #if USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS
+// 	Output.BasePassInterpolants.PixelPositionExcludingWPO = WorldPositionExcludingWPO.xyz;
+// #endif
+
+	Output.FactoryInterpolants = VertexFactoryGetInterpolants(Input, VFIntermediates, VertexParameters);
+
+	// Calculate the fog needed for translucency
 // #if NEEDS_BASEPASS_VERTEX_FOGGING
+// #if BASEPASS_ATMOSPHERIC_FOG
+// 	Output.BasePassInterpolants.VertexFog = CalculateVertexAtmosphericFog(WorldPosition.xyz, ResolvedView.TranslatedWorldCameraOrigin);
+// #else
+// 	Output.BasePassInterpolants.VertexFog = CalculateHeightFog(WorldPosition.xyz - ResolvedView.TranslatedWorldCameraOrigin);
+// #endif
 // #endif
 
 // #if TRANSLUCENCY_ANY_PERVERTEX_LIGHTING
+// 	float3 WorldPositionForVertexLightingTranslated = VertexFactoryGetPositionForVertexLighting(Input, VFIntermediates, WorldPosition.xyz);
+// 	float3 WorldPositionForVertexLighting = WorldPositionForVertexLightingTranslated - ResolvedView.PreViewTranslation.xyz;
 // #endif
 
 // #if TRANSLUCENCY_PERVERTEX_LIGHTING_VOLUME
+// 	float4 VolumeLighting;
+// 	float3 InterpolatedLighting = 0;
+// 
+// 	float3 InnerVolumeUVs;
+// 	float3 OuterVolumeUVs;
+// 	float FinalLerpFactor;
+// 
+// 	//@todo - get from VF
+// 	float3 LightingPositionOffset = 0;
+// 	ComputeVolumeUVs(WorldPositionForVertexLighting, LightingPositionOffset, InnerVolumeUVs, OuterVolumeUVs, FinalLerpFactor);
+// 
+// #if TRANSLUCENCY_LIGHTING_VOLUMETRIC_PERVERTEX_DIRECTIONAL
+// 
+// 	Output.BasePassInterpolants.AmbientLightingVector = GetAmbientLightingVectorFromTranslucentLightingVolume(InnerVolumeUVs, OuterVolumeUVs, FinalLerpFactor).xyz;
+// 	Output.BasePassInterpolants.DirectionalLightingVector = GetDirectionalLightingVectorFromTranslucentLightingVolume(InnerVolumeUVs, OuterVolumeUVs, FinalLerpFactor);
+// 
+// #elif TRANSLUCENCY_LIGHTING_VOLUMETRIC_PERVERTEX_NONDIRECTIONAL
+// 
+// 	Output.BasePassInterpolants.AmbientLightingVector = GetAmbientLightingVectorFromTranslucentLightingVolume(InnerVolumeUVs, OuterVolumeUVs, FinalLerpFactor).xyz;
+// 
+// #endif
 // #elif TRANSLUCENCY_PERVERTEX_FORWARD_SHADING
+// 
+// 	float4 VertexLightingClipSpacePosition = mul(float4(WorldPositionForVertexLightingTranslated, 1), ResolvedView.TranslatedWorldToClip);
+// 	float2 SvPosition = (VertexLightingClipSpacePosition.xy / VertexLightingClipSpacePosition.w * float2(.5f, -.5f) + .5f) * ResolvedView.ViewSizeAndInvSize.xy;
+// 	uint GridIndex = ComputeLightGridCellIndex((uint2)SvPosition, VertexLightingClipSpacePosition.w, EyeIndex);
+// 	Output.BasePassInterpolants.VertexDiffuseLighting = GetForwardDirectLightingForVertexLighting(GridIndex, WorldPositionForVertexLighting, Output.Position.w, VertexParameters.TangentToWorld[2], EyeIndex);
+// 
 // #endif
 
-// #if WRITES_VELOCITY_TO_GBUFFER
+// #if PRECOMPUTED_IRRADIANCE_VOLUME_LIGHTING && TRANSLUCENCY_ANY_PERVERTEX_LIGHTING
+// 	float3 BrickTextureUVs = ComputeVolumetricLightmapBrickTextureUVs(WorldPositionForVertexLighting);
+// 
+// #if TRANSLUCENCY_LIGHTING_VOLUMETRIC_PERVERTEX_NONDIRECTIONAL
+// 	FOneBandSHVectorRGB IrradianceSH = GetVolumetricLightmapSH1(BrickTextureUVs);
+// 	Output.BasePassInterpolants.VertexIndirectAmbient = float3(IrradianceSH.R.V, IrradianceSH.G.V, IrradianceSH.B.V);
+// #elif TRANSLUCENCY_LIGHTING_VOLUMETRIC_PERVERTEX_DIRECTIONAL
+// 	// Need to interpolate directional lighting so we can incorporate a normal in the pixel shader
+// 	FTwoBandSHVectorRGB IrradianceSH = GetVolumetricLightmapSH2(BrickTextureUVs);
+// 	Output.BasePassInterpolants.VertexIndirectSH[0] = IrradianceSH.R.V;
+// 	Output.BasePassInterpolants.VertexIndirectSH[1] = IrradianceSH.G.V;
+// 	Output.BasePassInterpolants.VertexIndirectSH[2] = IrradianceSH.B.V;
 // #endif
+// #endif
+
+
+	OutputVertexID(Output);
 }
 

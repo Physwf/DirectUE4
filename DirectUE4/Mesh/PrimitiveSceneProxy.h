@@ -94,6 +94,7 @@ public:
 	inline bool CastsStaticShadow() const { return bCastStaticShadow; }
 	inline bool CastsDynamicShadow() const { return bCastDynamicShadow; }
 	inline bool CastsVolumetricTranslucentShadow() const { return bCastVolumetricTranslucentShadow; }
+	inline bool CastsShadowAsTwoSided() const { return bCastShadowAsTwoSided; }
 
 	inline bool CastsSelfShadowOnly() const { return bSelfShadowOnly; }
 	inline bool CastsInsetShadow() const { return bCastInsetShadow; }
@@ -133,7 +134,8 @@ protected:
 
 	uint32 bCastStaticShadow : 1;
 	uint32 bCastVolumetricTranslucentShadow : 1;
-
+	/** Whether this primitive should cast dynamic shadows as if it were a two sided material. */
+	uint32 bCastShadowAsTwoSided : 1;
 	/** When enabled, the component will only cast a shadow on itself and not other components in the world.  This is especially useful for first person weapons, and forces bCastInsetShadow to be enabled. */
 	uint32 bSelfShadowOnly : 1;
 	/** Whether this component should create a per-object shadow that gives higher effective shadow resolution. true if bSelfShadowOnly is true. */

@@ -25,7 +25,7 @@ public:
 	};
 
 	static void CreatePolygonNTB(MeshDescription& MD, float ComparisonThreshold);
-
+	static void CreateNormals(MeshDescription& MD, ETangentOptions TangentOptions, bool bComputeTangent);
 	static void CreateMikktTangents(MeshDescription& MD, ETangentOptions TangentOptions);
 
 	static void FindOverlappingCorners(std::multimap<int, int>& OverlappingCorners, const MeshDescription& MD, float ComparisonThreshold);

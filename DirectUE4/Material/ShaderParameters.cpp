@@ -43,7 +43,7 @@ void FShaderUniformBufferParameter::BindSRV(const FShaderParameterMap& Parameter
 	uint16 UnusedBaseIndex = 0;
 	uint16 UnusedNumBytes = 0;
 	uint16 ResourceIndex = 0;
-	if (!ParameterMap.FindParameterAllocation(ParameterName, ResourceIndex, UnusedBaseIndex, UnusedNumBytes))
+	if (!ParameterMap.FindParameterAllocation(ParameterName, UnusedNumBytes, ResourceIndex, UnusedNumBytes))
 	{
 		if (Flags == SPF_Mandatory)
 		{
@@ -61,7 +61,7 @@ void FShaderUniformBufferParameter::BindSampler(const FShaderParameterMap& Param
 	uint16 UnusedBaseIndex = 0;
 	uint16 UnusedNumBytes = 0;
 	uint16 ResourceIndex = 0;
-	if (!ParameterMap.FindParameterAllocation(ParameterName, ResourceIndex, UnusedBaseIndex, UnusedNumBytes))
+	if (!ParameterMap.FindParameterAllocation(ParameterName, UnusedBaseIndex, ResourceIndex, UnusedNumBytes))
 	{
 		if (Flags == SPF_Mandatory)
 		{

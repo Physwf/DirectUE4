@@ -52,11 +52,11 @@ struct FViewMatrices
 {
 	FViewMatrices()
 	{
-		ProjectionMatrix.SetIndentity();
-		ViewMatrix.SetIndentity();
-		TranslatedViewMatrix.SetIndentity();
-		TranslatedViewProjectionMatrix.SetIndentity();
-		InvTranslatedViewMatrix.SetIndentity();
+		ProjectionMatrix.SetIdentity();
+		ViewMatrix.SetIdentity();
+		TranslatedViewMatrix.SetIdentity();
+		TranslatedViewProjectionMatrix.SetIdentity();
+		InvTranslatedViewMatrix.SetIdentity();
 		PreViewTranslation = FVector(0.0f, 0.0f, 0.0f);
 		ViewOrigin = FVector(0.0f, 0.0f, 0.0f);
 		ScreenScale = 1.f;

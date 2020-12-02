@@ -536,7 +536,7 @@ UStaticMesh* FBXImporter::ImportStaticMesh(class AActor* InOwner, const char* pF
 
 			fbxUVs.Phase2(lMesh);
 
-			bool bSmootingAvaliable = false;
+			bool bSmootingAvaliables = false;
 			FbxLayerElementSmoothing* SmoothingInfo = BaseLayer->GetSmoothing();
 			FbxLayerElement::EReferenceMode SmoothingReferenceMode(FbxLayerElement::eDirect);
 			FbxLayerElement::EMappingMode SmoothingMappingMode(FbxLayerElement::eByEdge);
@@ -549,7 +549,7 @@ UStaticMesh* FBXImporter::ImportStaticMesh(class AActor* InOwner, const char* pF
 
 				if (SmoothingInfo->GetMappingMode() == FbxLayerElement::eByEdge)
 				{
-					bSmootingAvaliable = true;
+					bSmootingAvaliables = true;
 				}
 
 				SmoothingReferenceMode = SmoothingInfo->GetReferenceMode();
@@ -600,6 +600,7 @@ UStaticMesh* FBXImporter::ImportStaticMesh(class AActor* InOwner, const char* pF
 			TotalMatrix = ::ComputeTotalMatrix(lScene, lNode, true, false);
 			TotalMatrixForNormal = TotalMatrix.Inverse();
 			TotalMatrixForNormal = TotalMatrixForNormal.Transpose();
+			int PolygonCount = lMesh->GetPolygonCount();
 
 			std::vector<FVector>& VertexPositions = MD.VertexAttributes().GetAttributes<FVector>(MeshAttribute::Vertex::Position);
 
@@ -652,11 +653,33 @@ UStaticMesh* FBXImporter::ImportStaticMesh(class AActor* InOwner, const char* pF
 				VertexPositions[VertexID] = VectorPositon;
 			}
 
-			int PolygonCount = lMesh->GetPolygonCount();
+			lMesh->BeginGetMeshEdgeVertices();
+			std::map<uint64, int32> RemapEdgeID;
+			//Fill the edge array
+			int32 FbxEdgeCount = lMesh->GetMeshEdgeCount();
+			//RemapEdgeID.Reserve(FbxEdgeCount * 2);
+			for (int32 FbxEdgeIndex = 0; FbxEdgeIndex < FbxEdgeCount; ++FbxEdgeIndex)
+			{
+				int32 EdgeStartVertexIndex = -1;
+				int32 EdgeEndVertexIndex = -1;
+				lMesh->GetMeshEdgeVertices(FbxEdgeIndex, EdgeStartVertexIndex, EdgeEndVertexIndex);
+				int32 EdgeVertexStart(EdgeStartVertexIndex + VertexOffset);
+				assert(MD.Vertices().IsValid(EdgeVertexStart));
+				int32 EdgeVertexEnd(EdgeEndVertexIndex + VertexOffset);
+				assert(MD.Vertices().IsValid(EdgeVertexEnd));
+				uint64 CompactedKey = (((uint64)EdgeVertexStart << 32) | ((uint64)EdgeVertexEnd));
+				RemapEdgeID.insert(std::make_pair(CompactedKey, FbxEdgeIndex));
+				//Add the other edge side
+				CompactedKey = ((((uint64)EdgeVertexEnd) << 32) | ((uint64)EdgeVertexStart));
+				RemapEdgeID.insert(std::make_pair(CompactedKey, FbxEdgeIndex));
+			}
+			//Call this after all GetMeshEdgeIndexForPolygon call this is for optimization purpose.
+			lMesh->EndGetMeshEdgeVertices();
+
+			lMesh->BeginGetMeshEdgeIndexForPolygon();
 			int CurrentVertexInstanceIndex = 0;
 			int SkippedVertexInstance = 0;
 
-			lMesh->BeginGetMeshEdgeIndexForPolygon();
 			for (auto PolygonIndex = 0; PolygonIndex < PolygonCount; ++PolygonIndex)
 			{
 				int PolygonVertexCount = lMesh->GetPolygonSize(PolygonIndex);
@@ -801,9 +824,39 @@ UStaticMesh* FBXImporter::ImportStaticMesh(class AActor* InOwner, const char* pF
 						CP.EdgeID = MatchEdgeId;
 						CP.VertexInstanceID = CornerInstanceIDs[CornerIndices[0]];
 
-						//int EdgeIndex = -1;
+						int32 EdgeIndex = INDEX_NONE;
+						uint64 CompactedKey = (((uint64)EdgeVertexIDs[0] << 32) | ((uint64)EdgeVertexIDs[1]));
+						if (RemapEdgeID.find(CompactedKey) != RemapEdgeID.end())
+						{
+							EdgeIndex = RemapEdgeID[CompactedKey];
+						}
+						else
+						{
+							EdgeIndex = lMesh->GetMeshEdgeIndexForPolygon(PolygonIndex, PolygonEdgeNumber);
+						}
 
-
+						EdgeCreaseSharpnesses[MatchEdgeId] = (float)lMesh->GetEdgeCreaseInfo(EdgeIndex);
+						if (!EdgeHardnesses[MatchEdgeId])
+						{
+							if (bSmootingAvaliables && SmoothingInfo)
+							{
+								if (SmoothingMappingMode == FbxLayerElement::eByEdge)
+								{
+									int32 lSmoothingIndex = (SmoothingReferenceMode == FbxLayerElement::eDirect) ? EdgeIndex : SmoothingInfo->GetIndexArray().GetAt(EdgeIndex);
+									//Set the hard edges
+									EdgeHardnesses[MatchEdgeId] = (SmoothingInfo->GetDirectArray().GetAt(lSmoothingIndex) == 0);
+								}
+								else
+								{
+									//AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("Error_UnsupportedSmoothingGroup", "Unsupported Smoothing group mapping mode on mesh  '{0}'"), FText::FromString(Mesh->GetName()))), FFbxErrors::Generic_Mesh_UnsupportingSmoothingGroup);
+								}
+							}
+							else
+							{
+								//When there is no smoothing group we set all edge to hard (faceted mesh)
+								EdgeHardnesses[MatchEdgeId] = true;
+							}
+						}
 					}
 				}
 
@@ -2842,6 +2895,14 @@ public:
 	const std::vector<FVector>& Points;
 	const std::vector<int32>& PointToOriginalMap;
 };
+/**
+* Returns true if the specified normal vectors are about equal
+*/
+inline bool NormalsEqual(const FVector& V1, const FVector& V2)
+{
+	const float Epsilon = THRESH_NORMALS_ARE_SAME;
+	return FMath::Abs(V1.X - V2.X) <= Epsilon && FMath::Abs(V1.Y - V2.Y) <= Epsilon && FMath::Abs(V1.Z - V2.Z) <= Epsilon;
+}
 
 /**
 * Returns true if the specified points are about equal
@@ -4565,7 +4626,8 @@ bool FBXImporter::BuildStaticMesh(FStaticMeshRenderData& OutRenderData, UStaticM
 	OutPerSectionIndices.resize(Mesh->GetMeshDescription().PolygonGroups().Num());
 	std::vector<StaticMeshBuildVertex> StaticMeshBuildVertices;
 	FStaticMeshLODResources& LODResource = *OutRenderData.LODResources[0];
-	BuildVertexBuffer(MD2, LODResource, OutPerSectionIndices, StaticMeshBuildVertices);
+	std::vector<int32> RemapVerts;
+	BuildVertexBuffer(MD2, LODResource, OutPerSectionIndices, StaticMeshBuildVertices,Mesh->GetOverlappingCorners(), THRESH_POINTS_ARE_SAME, RemapVerts);
 
 	std::vector<uint32> CombinedIndices;
 	for (uint32 i = 0; i < LODResource.Sections.size(); ++i)
@@ -4601,13 +4663,41 @@ bool FBXImporter::BuildStaticMesh(FStaticMeshRenderData& OutRenderData, UStaticM
 	LODResource.Indices = std::move(CombinedIndices);
 	return true;
 }
+bool AreVerticesEqual(StaticMeshBuildVertex const& A, StaticMeshBuildVertex const& B, float ComparisonThreshold)
+{
+	if (!A.Position.Equals(B.Position, ComparisonThreshold)
+		|| !NormalsEqual(A.TangentX, B.TangentX)
+		|| !NormalsEqual(A.TangentY, B.TangentY)
+		|| !NormalsEqual(A.TangentZ, B.TangentZ)
+		/*|| A.Color != B.Color*/)
+	{
+		return false;
+	}
 
-void FBXImporter::BuildVertexBuffer(const MeshDescription& MD2, FStaticMeshLODResources& StaticMeshLOD, std::vector<std::vector<uint32> >& OutPerSectionIndices, std::vector<StaticMeshBuildVertex>& StaticMeshBuildVertices)
+	// UVs
+	if (!UVsEqual(A.UVs, B.UVs))
+	{
+		return false;
+	}
+	if (!UVsEqual(A.LightMapCoordinate, B.LightMapCoordinate))
+	{
+		return false;
+	}
+	return true;
+}
+void FBXImporter::BuildVertexBuffer(const MeshDescription& MD2, FStaticMeshLODResources& StaticMeshLOD, std::vector<std::vector<uint32> >& OutPerSectionIndices, std::vector<StaticMeshBuildVertex>& StaticMeshBuildVertices, const std::multimap<int32, int32>& OverlappingCorners, float VertexComparisonThreshold, std::vector<int32>& RemapVerts)
 {
 	const TMeshElementArray<MeshVertex>& Vertices = MD2.Vertices();
 	const TMeshElementArray<MeshVertexInstance>& VertexInstances = MD2.VertexInstances();
 	const TMeshElementArray<MeshPolygonGroup>& PolygonGroupArray = MD2.PolygonGroups();
 	const TMeshElementArray<MeshPolygon>& PolygonArray = MD2.Polygons();
+
+	RemapVerts.resize(VertexInstances.Num());
+	for (int32& RemapIndex : RemapVerts)
+	{
+		RemapIndex = INDEX_NONE;
+	}
+	std::vector<int32> DupVerts;
 
 	const std::vector<std::string>& PolygonGroupImportedMaterialSlotNames = MD2.PolygonGroupAttributes().GetAttributes<std::string>(MeshAttribute::PolygonGroup::ImportedMaterialSlotName);
 
@@ -4672,13 +4762,42 @@ void FBXImporter::BuildVertexBuffer(const MeshDescription& MD2, FStaticMeshLODRe
 				StaticMeshBuildVertex StaticMeshVertex;
 				StaticMeshVertex.Position = VertexPosition;
 				StaticMeshVertex.TangentX = VertexTangent;
-				StaticMeshVertex.TangentYSign = VertexInstanceBinormalSign;
+				StaticMeshVertex.TangentY = (FVector::CrossProduct(VertexNormal, VertexTangent).GetSafeNormal() * VertexInstanceBinormalSign).GetSafeNormal();
 				StaticMeshVertex.TangentZ = VertexNormal;
 				StaticMeshVertex.UVs = UVs;
 				StaticMeshVertex.LightMapCoordinate = LightMapCoordinate;
 
-				StaticMeshBuildVertices.push_back(StaticMeshVertex);
-				SectionIndices.push_back(StaticMeshBuildVertices.size() - 1);
+				DupVerts.clear();
+				auto RangePair = OverlappingCorners.equal_range(VertexInstanceValue);
+				for (auto i = RangePair.first; i != RangePair.second; ++i)
+				{
+					DupVerts.push_back(i->second);
+				}
+				std::sort(DupVerts.begin(),DupVerts.end());
+				int32 Index = INDEX_NONE;
+				for (uint32 k = 0; k < DupVerts.size(); k++)
+				{
+					if (DupVerts[k] >= VertexInstanceValue)
+					{
+						break;
+					}
+					int32 Location = IsValidIndex(RemapVerts,DupVerts[k]) ? RemapVerts[DupVerts[k]] : INDEX_NONE;
+					if (Location != INDEX_NONE && AreVerticesEqual(StaticMeshVertex, StaticMeshBuildVertices[Location], VertexComparisonThreshold))
+					{
+						Index = Location;
+						break;
+					}
+				}
+				if (Index == INDEX_NONE)
+				{
+					Index = (int32)StaticMeshBuildVertices.size();
+					StaticMeshBuildVertices.push_back(StaticMeshVertex);
+				}
+				RemapVerts[VertexInstanceValue] = Index;
+				const uint32 RenderingVertexIndex = RemapVerts[VertexInstanceValue];
+				//IndexBuffer.Add(RenderingVertexIndex);
+				//OutWedgeMap[VertexInstanceValue] = RenderingVertexIndex;
+				SectionIndices.push_back(RenderingVertexIndex);
 			}
 		}
 
@@ -4690,7 +4809,7 @@ void FBXImporter::BuildVertexBuffer(const MeshDescription& MD2, FStaticMeshLODRe
 	{
 		StaticMeshLOD.VertexBuffers.PositionVertexBuffer[i] = StaticMeshBuildVertices[i].Position;
 		StaticMeshLOD.VertexBuffers.TangentsVertexBuffer[i * 2] = StaticMeshBuildVertices[i].TangentX;
-		StaticMeshLOD.VertexBuffers.TangentsVertexBuffer[i * 2 + 1] = Vector4( StaticMeshBuildVertices[i].TangentZ,StaticMeshBuildVertices[i].TangentYSign);
+		StaticMeshLOD.VertexBuffers.TangentsVertexBuffer[i * 2 + 1] =  Vector4( StaticMeshBuildVertices[i].TangentZ, GetBasisDeterminantSign(StaticMeshBuildVertices[i].TangentX, StaticMeshBuildVertices[i].TangentY, StaticMeshBuildVertices[i].TangentZ));
 		StaticMeshLOD.VertexBuffers.TexCoordVertexBuffer[i * 2] = StaticMeshBuildVertices[i].UVs;
 		StaticMeshLOD.VertexBuffers.TexCoordVertexBuffer[i * 2+ 1] = StaticMeshBuildVertices[i].LightMapCoordinate;
 	}

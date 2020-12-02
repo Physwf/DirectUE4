@@ -3,9 +3,16 @@
 #include "StaticMesh.h"
 #include "RenderTargets.h"
 #include "DeferredShading.h"
+#include "FogRendering.h"
+#include "ReflectionEnvironment.h"
+
 #include "GPUProfiler.h"
 #include "DirectXTex.h"
 using namespace DirectX;
+
+int32 NumCulledLightsGridStride = 2;
+int32 NumCulledGridPrimitiveTypes = 2;
+int32 LightLinkStride = 2;
 
 FSharedBasePassUniformParameters BasePass;
 FOpaqueBasePassUniformParameters OpaqueBasePass;
@@ -315,7 +322,110 @@ public:
 };
 bool FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(const FViewInfo& View, ContextType DrawingContext, const FMeshBatch& Mesh, bool bPreFog, const FDrawingPolicyRenderState& DrawRenderState, const FPrimitiveSceneProxy* PrimitiveSceneProxy, /*FHitProxyId HitProxyId,*/ const bool bIsInstancedStereo /*= false */)
 {
+	return false;
+}
+template <ELightMapPolicyType Policy>
+void GetUniformBasePassShaders(
+	const FMaterial& Material,
+	FVertexFactoryType* VertexFactoryType,
+	bool bNeedsHSDS,
+	bool bEnableAtmosphericFog,
+	bool bEnableSkyLight,
+	FBaseHS*& HullShader,
+	FBaseDS*& DomainShader,
+	TBasePassVertexShaderPolicyParamType<FUniformLightMapPolicyShaderParametersType>*& VertexShader,
+	TBasePassPixelShaderPolicyParamType<FUniformLightMapPolicyShaderParametersType>*& PixelShader
+)
+{
+	if (bNeedsHSDS)
+	{
+// 		DomainShader = Material.GetShader<TBasePassDS<TUniformLightMapPolicy<Policy> > >(VertexFactoryType);
+// 
+// 		// Metal requires matching permutations, but no other platform should worry about this complication.
+// 		if (bEnableAtmosphericFog && DomainShader && IsMetalPlatform(EShaderPlatform(DomainShader->GetTarget().Platform)))
+// 		{
+// 			HullShader = Material.GetShader<TBasePassHS<TUniformLightMapPolicy<Policy>, true > >(VertexFactoryType);
+// 		}
+// 		else
+// 		{
+// 			HullShader = Material.GetShader<TBasePassHS<TUniformLightMapPolicy<Policy>, false > >(VertexFactoryType);
+// 		}
+	}
 
+	if (bEnableAtmosphericFog)
+	{
+		VertexShader = Material.GetShader<TBasePassVS<TUniformLightMapPolicy<Policy>, true> >(VertexFactoryType);
+	}
+	else
+	{
+		VertexShader = Material.GetShader<TBasePassVS<TUniformLightMapPolicy<Policy>, false> >(VertexFactoryType);
+	}
+	if (bEnableSkyLight)
+	{
+		PixelShader = Material.GetShader<TBasePassPS<TUniformLightMapPolicy<Policy>, true> >(VertexFactoryType);
+	}
+	else
+	{
+		PixelShader = Material.GetShader<TBasePassPS<TUniformLightMapPolicy<Policy>, false> >(VertexFactoryType);
+	}
+}
+template <>
+void GetBasePassShaders(
+	const FMaterial& Material, 
+	FVertexFactoryType* VertexFactoryType,
+	FUniformLightMapPolicy LightMapPolicy, 
+	bool bNeedsHSDS, 
+	bool bEnableAtmosphericFog, 
+	bool bEnableSkyLight, 
+	FBaseHS*& HullShader, 
+	FBaseDS*& DomainShader, 
+	TBasePassVertexShaderPolicyParamType<FUniformLightMapPolicyShaderParametersType>*& VertexShader, 
+	TBasePassPixelShaderPolicyParamType<FUniformLightMapPolicyShaderParametersType>*& PixelShader)
+{
+	switch (LightMapPolicy.GetIndirectPolicy())
+	{
+	case LMP_PRECOMPUTED_IRRADIANCE_VOLUME_INDIRECT_LIGHTING:
+		GetUniformBasePassShaders<LMP_PRECOMPUTED_IRRADIANCE_VOLUME_INDIRECT_LIGHTING>(Material, VertexFactoryType, bNeedsHSDS, bEnableAtmosphericFog, bEnableSkyLight, HullShader, DomainShader, VertexShader, PixelShader);
+		break;
+	case LMP_CACHED_VOLUME_INDIRECT_LIGHTING:
+		GetUniformBasePassShaders<LMP_CACHED_VOLUME_INDIRECT_LIGHTING>(Material, VertexFactoryType, bNeedsHSDS, bEnableAtmosphericFog, bEnableSkyLight, HullShader, DomainShader, VertexShader, PixelShader);
+		break;
+	case LMP_CACHED_POINT_INDIRECT_LIGHTING:
+		GetUniformBasePassShaders<LMP_CACHED_POINT_INDIRECT_LIGHTING>(Material, VertexFactoryType, bNeedsHSDS, bEnableAtmosphericFog, bEnableSkyLight, HullShader, DomainShader, VertexShader, PixelShader);
+		break;
+// 	case LMP_SIMPLE_DIRECTIONAL_LIGHT_LIGHTING:
+// 		GetUniformBasePassShaders<LMP_SIMPLE_DIRECTIONAL_LIGHT_LIGHTING>(Material, VertexFactoryType, bNeedsHSDS, bEnableAtmosphericFog, bEnableSkyLight, HullShader, DomainShader, VertexShader, PixelShader);
+// 		break;
+// 	case LMP_SIMPLE_NO_LIGHTMAP:
+// 		GetUniformBasePassShaders<LMP_SIMPLE_NO_LIGHTMAP>(Material, VertexFactoryType, bNeedsHSDS, bEnableAtmosphericFog, bEnableSkyLight, HullShader, DomainShader, VertexShader, PixelShader);
+// 		break;
+// 	case LMP_SIMPLE_LIGHTMAP_ONLY_LIGHTING:
+// 		GetUniformBasePassShaders<LMP_SIMPLE_LIGHTMAP_ONLY_LIGHTING>(Material, VertexFactoryType, bNeedsHSDS, bEnableAtmosphericFog, bEnableSkyLight, HullShader, DomainShader, VertexShader, PixelShader);
+// 		break;
+// 	case LMP_SIMPLE_STATIONARY_PRECOMPUTED_SHADOW_LIGHTING:
+// 		GetUniformBasePassShaders<LMP_SIMPLE_STATIONARY_PRECOMPUTED_SHADOW_LIGHTING>(Material, VertexFactoryType, bNeedsHSDS, bEnableAtmosphericFog, bEnableSkyLight, HullShader, DomainShader, VertexShader, PixelShader);
+// 		break;
+// 	case LMP_SIMPLE_STATIONARY_SINGLESAMPLE_SHADOW_LIGHTING:
+// 		GetUniformBasePassShaders<LMP_SIMPLE_STATIONARY_SINGLESAMPLE_SHADOW_LIGHTING>(Material, VertexFactoryType, bNeedsHSDS, bEnableAtmosphericFog, bEnableSkyLight, HullShader, DomainShader, VertexShader, PixelShader);
+// 		break;
+// 	case LMP_SIMPLE_STATIONARY_VOLUMETRICLIGHTMAP_SHADOW_LIGHTING:
+// 		GetUniformBasePassShaders<LMP_SIMPLE_STATIONARY_VOLUMETRICLIGHTMAP_SHADOW_LIGHTING>(Material, VertexFactoryType, bNeedsHSDS, bEnableAtmosphericFog, bEnableSkyLight, HullShader, DomainShader, VertexShader, PixelShader);
+// 		break;
+	case LMP_LQ_LIGHTMAP:
+		GetUniformBasePassShaders<LMP_LQ_LIGHTMAP>(Material, VertexFactoryType, bNeedsHSDS, bEnableAtmosphericFog, bEnableSkyLight, HullShader, DomainShader, VertexShader, PixelShader);
+		break;
+	case LMP_HQ_LIGHTMAP:
+		GetUniformBasePassShaders<LMP_HQ_LIGHTMAP>(Material, VertexFactoryType, bNeedsHSDS, bEnableAtmosphericFog, bEnableSkyLight, HullShader, DomainShader, VertexShader, PixelShader);
+		break;
+	case LMP_DISTANCE_FIELD_SHADOWS_AND_HQ_LIGHTMAP:
+		GetUniformBasePassShaders<LMP_DISTANCE_FIELD_SHADOWS_AND_HQ_LIGHTMAP>(Material, VertexFactoryType, bNeedsHSDS, bEnableAtmosphericFog, bEnableSkyLight, HullShader, DomainShader, VertexShader, PixelShader);
+		break;
+	default:
+		assert(false);
+	case LMP_NO_LIGHTMAP:
+		GetUniformBasePassShaders<LMP_NO_LIGHTMAP>(Material, VertexFactoryType, bNeedsHSDS, bEnableAtmosphericFog, bEnableSkyLight, HullShader, DomainShader, VertexShader, PixelShader);
+		break;
+	}
 }
 
 static void SetupBasePassView(const FViewInfo& View, const FSceneRenderer* SceneRenderer, FDrawingPolicyRenderState& DrawRenderState, FExclusiveDepthStencil::Type BasePassDepthStencilAccess, const bool bShaderComplexity, const bool bIsEditorPrimitivePass = false)
@@ -336,14 +446,101 @@ static void SetupBasePassView(const FViewInfo& View, const FSceneRenderer* Scene
 	RHISetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 }
 
-void SetupSharedBasePassParameters(const FViewInfo& View, FSceneRenderTargets& SceneRenderTargets, FSharedBasePassUniformParameters& BasePassParameters)
+void SetupSharedBasePassParameters(const FViewInfo& View, FSceneRenderTargets& SceneRenderTargets, FSharedBasePassUniformParameters& SharedParameters)
 {
+// 	SharedParameters.Constants.Forward = View.ForwardLightingResources->ForwardLightData;
+// 
+// 	if (View.bIsInstancedStereoEnabled && View.StereoPass == EStereoscopicPass::eSSP_LEFT_EYE)
+// 	{
+// 		const FSceneView& RightEye = *View.Family->Views[1];
+// 		SharedParameters.ForwardISR = RightEye.ForwardLightingResources->ForwardLightData;
+// 	}
+// 	else
+// 	{
+// 		SharedParameters.ForwardISR = View.ForwardLightingResources->ForwardLightData;
+// 	}
+
+	SetupReflectionUniformParameters(View, SharedParameters.Constants.Reflection);
+	SetupFogUniformParameters(View, SharedParameters.Constants.Fog);
+
+// 	const IPooledRenderTarget* PooledRT = GetSubsufaceProfileTexture_RT(RHICmdList);
+// 
+// 	if (!PooledRT)
+// 	{
+// 		// no subsurface profile was used yet
+// 		PooledRT = GSystemTextures.BlackDummy;
+// 	}
+// 
+// 	const FSceneRenderTargetItem& Item = PooledRT->GetRenderTargetItem();
+// 	SharedParameters.SSProfilesTexture = Item.ShaderResourceTexture;
 
 }
 
 void CreateOpaqueBasePassUniformBuffer(const FViewInfo& View, PooledRenderTarget* ForwardScreenSpaceShadowMask, TUniformBufferPtr<FOpaqueBasePassUniformParameters>& BasePassUniformBuffer)
 {
+	FSceneRenderTargets& SceneRenderTargets = FSceneRenderTargets::Get();
 
+	FOpaqueBasePassUniformParameters BasePassParameters;
+	SetupSharedBasePassParameters(View, SceneRenderTargets, BasePassParameters.Constants.Shared);
+
+	// Forward shading
+// 	{
+// 		if (!ForwardScreenSpaceShadowMask)
+// 		{
+// 			ForwardScreenSpaceShadowMask = GSystemTextures.WhiteDummy.GetReference();
+// 		}
+// 		BasePassParameters.ForwardScreenSpaceShadowMaskTexture = ForwardScreenSpaceShadowMask->GetRenderTargetItem().ShaderResourceTexture;
+// 		BasePassParameters.ForwardScreenSpaceShadowMaskTextureSampler = TStaticSamplerState<SF_Point, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
+// 
+// 		IPooledRenderTarget* IndirectOcclusion = SceneRenderTargets.ScreenSpaceAO;
+// 
+// 		if (!SceneRenderTargets.bScreenSpaceAOIsValid)
+// 		{
+// 			IndirectOcclusion = GSystemTextures.WhiteDummy;
+// 		}
+// 
+// 		BasePassParameters.IndirectOcclusionTexture = IndirectOcclusion->GetRenderTargetItem().ShaderResourceTexture;
+// 		BasePassParameters.IndirectOcclusionTextureSampler = TStaticSamplerState<SF_Point, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
+// 
+// 		FTextureRHIParamRef ResolvedSceneDepthTextureValue = GSystemTextures.WhiteDummy->GetRenderTargetItem().ShaderResourceTexture;
+// 
+// 		if (SceneRenderTargets.GetMSAACount() > 1)
+// 		{
+// 			ResolvedSceneDepthTextureValue = SceneRenderTargets.SceneDepthZ->GetRenderTargetItem().ShaderResourceTexture;
+// 		}
+// 
+// 		BasePassParameters.ResolvedSceneDepthTexture = ResolvedSceneDepthTextureValue;
+// 	}
+
+	// DBuffer Decals
+// 	{
+// 		extern bool IsDBufferEnabled();
+// 		const bool bIsDBufferEnabled = IsDBufferEnabled();
+// 		IPooledRenderTarget* DBufferA = bIsDBufferEnabled && SceneRenderTargets.DBufferA ? SceneRenderTargets.DBufferA : GSystemTextures.BlackAlphaOneDummy;
+// 		IPooledRenderTarget* DBufferB = bIsDBufferEnabled && SceneRenderTargets.DBufferB ? SceneRenderTargets.DBufferB : GSystemTextures.DefaultNormal8Bit;
+// 		IPooledRenderTarget* DBufferC = bIsDBufferEnabled && SceneRenderTargets.DBufferC ? SceneRenderTargets.DBufferC : GSystemTextures.GreenDummy;
+// 
+// 		BasePassParameters.DBufferATexture = DBufferA->GetRenderTargetItem().ShaderResourceTexture;
+// 		BasePassParameters.DBufferBTexture = DBufferB->GetRenderTargetItem().ShaderResourceTexture;
+// 		BasePassParameters.DBufferCTexture = DBufferC->GetRenderTargetItem().ShaderResourceTexture;
+// 		BasePassParameters.DBufferATextureSampler = TStaticSamplerState<>::GetRHI();
+// 		BasePassParameters.DBufferBTextureSampler = TStaticSamplerState<>::GetRHI();
+// 		BasePassParameters.DBufferCTextureSampler = TStaticSamplerState<>::GetRHI();
+// 
+// 		if (GSupportsRenderTargetWriteMask && SceneRenderTargets.DBufferMask)
+// 		{
+// 			BasePassParameters.DBufferRenderMask = SceneRenderTargets.DBufferMask->GetRenderTargetItem().TargetableTexture;
+// 		}
+// 		else
+// 		{
+// 			BasePassParameters.DBufferRenderMask = GSystemTextures.WhiteDummy->GetRenderTargetItem().TargetableTexture;
+// 		}
+// 	}
+
+	// Misc
+	//BasePassParameters.EyeAdaptation = GetEyeAdaptation(View);
+
+	BasePassUniformBuffer = TUniformBufferPtr<FOpaqueBasePassUniformParameters>::CreateUniformBufferImmediate(BasePassParameters);
 }
 
 bool FSceneRenderer::RenderBasePassStaticData(FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState)

@@ -160,7 +160,7 @@ struct PooledRenderTargetDesc
 			}
 		}
 
-		return Extent.X != 0 && NumMips != 0 && NumSamples >= 1 && NumSamples <= 16 && Format != DXGI_FORMAT_UNKNOWN && ((TargetableFlags & TexCreate_UAV) == 0);
+		return Extent.X != 0 && NumMips != 0 && NumSamples >= 1 && NumSamples <= 16 && Format != PF_Unknown && ((TargetableFlags & TexCreate_UAV) == 0 || true/*GMaxRHIFeatureLevel == ERHIFeatureLevel::SM5*/);
 	}
 
 	FIntVector GetSize() const

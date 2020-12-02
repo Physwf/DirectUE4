@@ -169,7 +169,7 @@ struct FMeshDrawingPolicyOverrideSettings
 	EDrawingPolicyOverrideFlags	MeshOverrideFlags = EDrawingPolicyOverrideFlags::None;
 	D3D11_PRIMITIVE_TOPOLOGY	MeshPrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 };
-FMeshDrawingPolicyOverrideSettings ComputeMeshOverrideSettings(const FMeshBatch& Mesh)
+inline FMeshDrawingPolicyOverrideSettings ComputeMeshOverrideSettings(const FMeshBatch& Mesh)
 {
 	FMeshDrawingPolicyOverrideSettings OverrideSettings;
 	OverrideSettings.MeshPrimitiveType = (D3D_PRIMITIVE_TOPOLOGY)Mesh.Type;

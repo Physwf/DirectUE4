@@ -239,7 +239,7 @@ FDepthDrawingPolicy::FDepthDrawingPolicy(
 	BaseVertexShader = VertexShader;
 }
 
-void FDepthDrawingPolicy::SetSharedState(const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View, const ContextDataType PolicyContext) const
+void FDepthDrawingPolicy::SetSharedState(ID3D11DeviceContext* Context, const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View, const ContextDataType PolicyContext) const
 {
 	// Set the depth-only shader parameters for the material.
 	VertexShader->SetParameters(MaterialRenderProxy, *MaterialResource, *View, DrawRenderState, PolicyContext.bIsInstancedStereo, PolicyContext.bIsInstancedStereoEmulated);
@@ -255,7 +255,7 @@ void FDepthDrawingPolicy::SetSharedState(const FDrawingPolicyRenderState& DrawRe
 	}
 
 	// Set the shared mesh resources.
-	FMeshDrawingPolicy::SetSharedState(D3D11DeviceContext, DrawRenderState, View, PolicyContext);
+	FMeshDrawingPolicy::SetSharedState(Context, DrawRenderState, View, PolicyContext);
 }
 
 FBoundShaderStateInput FDepthDrawingPolicy::GetBoundShaderStateInput() const
@@ -336,11 +336,18 @@ void FPositionOnlyDepthDrawingPolicy::SetMeshRenderState(
 
 void FDepthDrawingPolicyFactory::AddStaticMesh(FScene* Scene, FStaticMesh* StaticMesh)
 {
+	const FMaterialRenderProxy* MaterialRenderProxy = StaticMesh->MaterialRenderProxy;
+	const FMaterial* Material = MaterialRenderProxy->GetMaterial();
+	const EBlendMode BlendMode = Material->GetBlendMode();
+
+	FMeshDrawingPolicyOverrideSettings OverrideSettings = ComputeMeshOverrideSettings(*StaticMesh);
+	OverrideSettings.MeshOverrideFlags |= Material->IsTwoSided() ? EDrawingPolicyOverrideFlags::TwoSided : EDrawingPolicyOverrideFlags::None;
+
 	const FMaterialRenderProxy* DefaultProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy(false);
 	FPositionOnlyDepthDrawingPolicy DrawingPolicy(StaticMesh->VertexFactory,
 		DefaultProxy,
-		*DefaultProxy->GetMaterial()//,
-		//OverrideSettings
+		*DefaultProxy->GetMaterial(),
+		OverrideSettings
 	);
 
 	// Add the static mesh to the position-only depth draw list.

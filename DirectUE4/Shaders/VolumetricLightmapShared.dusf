@@ -32,6 +32,12 @@ float3 ComputeVolumetricLightmapBrickTextureUVs(float3 WorldPosition)
 	return (BrickOffsetAndSize.xyz * PaddedBrickSize + frac(IndirectionTextureTexelCoordinate / BrickOffsetAndSize.w) * View.VolumetricLightmapBrickSize + .5f) * View.VolumetricLightmapBrickTexelSize;
 }
 
+float3 GetVolumetricLightmapSkyBentNormal(float3 BrickTextureUVs)
+{
+	float3 SkyBentNormal = Texture3DSampleLevel(View.SkyBentNormalBrickTexture, VLSkyBentNormalSharedSampler, BrickTextureUVs, 0).xyz * 2 - 1;
+	return SkyBentNormal;
+}
+
 float GetVolumetricLightmapDirectionalLightShadowing(float3 BrickTextureUVs)
 {
 	return Texture3DSampleLevel(View.DirectionalLightShadowingBrickTexture, VLDirectionalLightShadowingSampler, BrickTextureUVs, 0).x;

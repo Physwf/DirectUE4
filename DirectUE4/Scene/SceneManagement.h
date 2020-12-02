@@ -5,6 +5,7 @@
 #include "MeshBach.h"
 #include "PrimitiveSceneProxy.h"
 
+
 #define WORLD_MAX					2097152.0				/* Maximum size of the world */
 #define HALF_WORLD_MAX				(WORLD_MAX * 0.5)		/* Half the maximum size of the world */
 #define HALF_WORLD_MAX1				(HALF_WORLD_MAX - 1.0)	/* Half the maximum size of the world minus one */
@@ -115,9 +116,9 @@ public:
 	}
 
 	static FLightMapInteraction Texture(
-		ID3D11ShaderResourceView** InTextures,
-		ID3D11Texture2D* InSkyOcclusionTexture,
-		ID3D11Texture2D* InAOMaterialMaskTexture,
+		ID3D11ShaderResourceView* const* InTextures,
+		ID3D11ShaderResourceView* InSkyOcclusionTexture,
+		ID3D11ShaderResourceView* InAOMaterialMaskTexture,
 		const Vector4* InCoefficientScales,
 		const Vector4* InCoefficientAdds,
 		const Vector2& InCoordinateScale,
@@ -704,7 +705,7 @@ public:
 	inline bool CastsStaticShadow() const { return bCastStaticShadow; }
 	inline bool CastsTranslucentShadows() const { return bCastTranslucentShadows; }
 	inline uint8 GetLightType() const { return LightType; }
-
+	inline uint32 GetLightGuid() const { return LightGuid; }
 	virtual float GetMaxDrawDistance() const { return 0.0f; }
 	virtual float GetFadeRange() const { return 0.0f; }
 protected:
@@ -748,6 +749,8 @@ protected:
 	const uint32 bCastTranslucentShadows : 1;
 
 	const uint8 LightType;
+
+	uint32 LightGuid;
 
 	void SetTransform(const FMatrix& InLightToWorld, const Vector4& InPosition);
 };

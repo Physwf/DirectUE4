@@ -37,25 +37,21 @@ void FSceneRenderTargets::FinishRenderingPrePass()
 
 }
 
-void FSceneRenderTargets::BeginRenderingGBuffer(bool bClearColor, const FLinearColor& ClearColor /*= (0, 0, 0, 1)*/)
+void FSceneRenderTargets::BeginRenderingGBuffer(ERenderTargetLoadAction ColorLoadAction, ERenderTargetLoadAction DepthLoadAction, FExclusiveDepthStencil::Type DepthStencilAccess, const FLinearColor& ClearColor /*= (0, 0, 0, 1)*/)
 {
 	AllocSceneColor();
 
-// 	ID3D11RenderTargetView* MRT[8];
-// 	int32 OutVelocityRTIndex;
-// 	int MRTCount =  GetGBufferRenderTargets(MRT, OutVelocityRTIndex);
-// 
-// 	D3D11DeviceContext->OMSetRenderTargets(MRTCount, MRT, SceneDepthDSV);
-// 
-// 	D3D11DeviceContext->ClearDepthStencilView(SceneDepthDSV, D3D11_CLEAR_DEPTH, 0.f, 0);
-// 
-// 	if (bClearColor)
-// 	{
-// 		for (int i = 0; i < MRTCount; ++i)
-// 		{
-// 			D3D11DeviceContext->ClearRenderTargetView(MRT[i], (FLOAT*)&ClearColor);
-// 		}
-// 	}
+	FD3D11Texture2D* RenderTargets[8];
+
+	bool bClearColor = ColorLoadAction == ERenderTargetLoadAction::EClear;
+	bool bClearDepth = DepthLoadAction == ERenderTargetLoadAction::EClear;
+
+	int32 VelocityRTIndex = -1;
+	int32 MRTCount;
+
+	MRTCount = GetGBufferRenderTargets(ColorLoadAction, RenderTargets, VelocityRTIndex);
+	std::shared_ptr<FD3D11Texture2D> DepthView = GetSceneDepthSurface();
+	SetRenderTargets(MRTCount, RenderTargets, DepthView.get());
 }
 
 void FSceneRenderTargets::FinishRenderingGBuffer()

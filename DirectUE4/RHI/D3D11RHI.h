@@ -34,6 +34,8 @@ extern ID3D11ShaderResourceView* GWhiteTextureSRV;
 extern ID3D11SamplerState* GWhiteTextureSamplerState;
 extern ID3D11ShaderResourceView* GBlackVolumeTextureSRV;
 extern ID3D11SamplerState* GBlackVolumeTextureSamplerState;
+extern ID3D11ShaderResourceView* GWhiteTextureCubeSRV;
+extern ID3D11SamplerState* GWhiteTextureCubeSamplerState;
 
 extern LONG WindowWidth;
 extern LONG WindowHeight;
@@ -60,10 +62,12 @@ ID3D11PixelShader* CreatePixelShader(ID3DBlob* PSBytecode);
 ID3D11InputLayout* CreateInputLayout(D3D11_INPUT_ELEMENT_DESC* InputDesc, unsigned int Count, ID3DBlob* VSBytecode);
 ID3D11Texture2D* CreateTexture2D(unsigned int W, unsigned int H, DXGI_FORMAT Format, bool bRenderTarget, bool bShaderResource, bool bDepthStencil, UINT MipMapCount = 1);
 ID3D11Texture2D* CreateTexture2D(unsigned int W, unsigned int H, DXGI_FORMAT Format, UINT MipMapCount, void* InitData);
+ID3D11Texture2D* CreateTextureCube(unsigned int Size, DXGI_FORMAT Format, uint32 MipMapCount, const uint8* InitData);
 ID3D11Texture3D* CreateTexture3D(unsigned int X, unsigned int Y, unsigned int Z, DXGI_FORMAT Format, UINT MipMapCount, void* InitData);
 ID3D11RenderTargetView* CreateRenderTargetView2D(ID3D11Texture2D* Resource, DXGI_FORMAT Format, UINT MipSlice);
 ID3D11DepthStencilView* CreateDepthStencilView2D(ID3D11Texture2D* Resource, DXGI_FORMAT Format, UINT MipSlice);
 ID3D11ShaderResourceView* CreateShaderResourceView2D(ID3D11Texture2D* Resource, DXGI_FORMAT Format, UINT MipLevels, UINT MostDetailedMip);
+ID3D11ShaderResourceView* CreateShaderResourceViewCube(ID3D11Texture2D* Resource, DXGI_FORMAT Format, UINT MipLevels, UINT MostDetailedMip);
 ID3D11ShaderResourceView* CreateShaderResourceView3D(ID3D11Texture3D* Resource, DXGI_FORMAT Format, UINT MipLevels, UINT MostDetailedMip);
 
 template<typename InitializerType, typename RHIRefType, typename RHIParamRefType>
@@ -100,7 +104,35 @@ private:
 		}
 	};
 };
+/*
+// Determine whether we should use one of the comparison modes
+const bool bComparisonEnabled = Initializer.SamplerComparisonFunction != SCF_Never;
+switch(Initializer.Filter)
+{
+case SF_AnisotropicLinear:
+case SF_AnisotropicPoint:
+if (SamplerDesc.MaxAnisotropy == 1)
+{
+SamplerDesc.Filter = bComparisonEnabled ? D3D11_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR : D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+}
+else
+{
+// D3D11 doesn't allow using point filtering for mip filter when using anisotropic filtering
+SamplerDesc.Filter = bComparisonEnabled ? D3D11_FILTER_COMPARISON_ANISOTROPIC : D3D11_FILTER_ANISOTROPIC;
+}
 
+break;
+case SF_Trilinear:
+SamplerDesc.Filter = bComparisonEnabled ? D3D11_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR : D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+break;
+case SF_Bilinear:
+SamplerDesc.Filter = bComparisonEnabled ? D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT : D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT;
+break;
+case SF_Point:
+SamplerDesc.Filter = bComparisonEnabled ? D3D11_FILTER_COMPARISON_MIN_MAG_MIP_POINT : D3D11_FILTER_MIN_MAG_MIP_POINT;
+break;
+}
+*/
 template<D3D11_FILTER Filter = D3D11_FILTER_MIN_MAG_MIP_POINT,
 	D3D11_TEXTURE_ADDRESS_MODE AddressU = D3D11_TEXTURE_ADDRESS_CLAMP,
 	D3D11_TEXTURE_ADDRESS_MODE AddressV = D3D11_TEXTURE_ADDRESS_CLAMP,
@@ -1442,7 +1474,8 @@ private:
 };
 
 void SetRenderTarget(FD3D11Texture2D* NewRenderTarget, FD3D11Texture2D* NewDepthStencilTarget);
-void SetRenderTarget(FD3D11Texture2D* NewRenderTarget, FD3D11Texture2D* NewDepthStencilTarget,bool bClearColor=false, bool bClearDepth = false,bool bClearStencil = false);
+void SetRenderTarget(FD3D11Texture2D* NewRenderTarget, FD3D11Texture2D* NewDepthStencilTarget, bool bClearColor = false, bool bClearDepth = false, bool bClearStencil = false);
+void SetRenderTargets(uint32 NumRTV, FD3D11Texture2D** NewRenderTarget, FD3D11Texture2D* NewDepthStencilTarget, bool bClearColor = false, bool bClearDepth = false, bool bClearStencil = false);
 void SetRenderTargetAndClear(FD3D11Texture2D* NewRenderTarget, FD3D11Texture2D* NewDepthStencilTarget);
 
 enum ECubeFace

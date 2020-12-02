@@ -149,3 +149,30 @@ void FScene::UpdatePrimitiveTransform_RenderThread(FPrimitiveSceneProxy* Primiti
 	PrimitiveSceneProxy->SetTransform(LocalToWorld, WorldBounds, LocalBounds, OwnerPosition);
 }
 
+// /**  */
+// template<>
+// TStaticMeshDrawList<TBasePassDrawingPolicy<FSelfShadowedTranslucencyPolicy> >& FScene::GetBasePassDrawList<FSelfShadowedTranslucencyPolicy>(EBasePassDrawListType DrawType)
+// {
+// 	return BasePassSelfShadowedTranslucencyDrawList[DrawType];
+// }
+// 
+// /**  */
+// template<>
+// TStaticMeshDrawList<TBasePassDrawingPolicy<FSelfShadowedCachedPointIndirectLightingPolicy> >& FScene::GetBasePassDrawList<FSelfShadowedCachedPointIndirectLightingPolicy>(EBasePassDrawListType DrawType)
+// {
+// 	return BasePassSelfShadowedCachedPointIndirectTranslucencyDrawList[DrawType];
+// }
+// 
+// template<>
+// TStaticMeshDrawList<TBasePassDrawingPolicy<FSelfShadowedVolumetricLightmapPolicy> >& FScene::GetBasePassDrawList<FSelfShadowedVolumetricLightmapPolicy>(EBasePassDrawListType DrawType)
+// {
+// 	return BasePassSelfShadowedVolumetricLightmapTranslucencyDrawList[DrawType];
+// }
+
+/**  */
+template<>
+TStaticMeshDrawList<TBasePassDrawingPolicy<FUniformLightMapPolicy> >& FScene::GetBasePassDrawList<FUniformLightMapPolicy>(EBasePassDrawListType DrawType)
+{
+	return BasePassUniformLightMapPolicyDrawList[DrawType];
+}
+

@@ -258,8 +258,8 @@ struct alignas(16) FLocalVertexFactoryUniformShaderParameters
 	} Constants;
 
 	
-	ID3D11ShaderResourceView* TexCoordBuffer;
-	ID3D11ShaderResourceView* PackedTangentsBuffer;
+	ID3D11ShaderResourceView* VertexFetch_TexCoordBuffer;
+	ID3D11ShaderResourceView* VertexFetch_PackedTangentsBuffer;
 
 	static constexpr std::size_t GetConstantBufferSize() 
 	{
@@ -275,8 +275,8 @@ struct alignas(16) FLocalVertexFactoryUniformShaderParameters
 	static std::map<std::string, ID3D11ShaderResourceView*> GetSRVs(const FLocalVertexFactoryUniformShaderParameters& LocalVF)
 	{
 		std::map<std::string, ID3D11ShaderResourceView*> List;
-		ADD_RES(LocalVF, TexCoordBuffer);
-		ADD_RES(LocalVF, PackedTangentsBuffer);
+		ADD_RES(LocalVF, VertexFetch_TexCoordBuffer);
+		ADD_RES(LocalVF, VertexFetch_PackedTangentsBuffer);
 		return List;
 	}
 	static std::map<std::string, ID3D11SamplerState*> GetSamplers(const FLocalVertexFactoryUniformShaderParameters& LocalVF)

@@ -30,10 +30,10 @@ struct alignas(16) FSharedBasePassUniformParameters
 
 	struct ConstantStruct
 	{
-		FForwardLightData::ConstantStruct Forward;
-		FForwardLightData::ConstantStruct ForwardISR;
-		FReflectionUniformParameters::ConstantStruct Reflection;
-		FFogUniformParameters::ConstantStruct Fog;
+		FForwardLightData Forward;
+		FForwardLightData ForwardISR;
+		FReflectionUniformParameters Reflection;
+		FFogUniformParameters Fog;
 	} Constants;
 
 	ID3D11ShaderResourceView* SSProfilesTexture;
@@ -65,7 +65,10 @@ struct alignas(16) FSharedBasePassUniformParameters
 
 struct alignas(16) FOpaqueBasePassUniformParameters
 {
-	FSharedBasePassUniformParameters Shared;
+	struct ConstantStruct
+	{
+		FSharedBasePassUniformParameters Shared;
+	} Constants;
 	// Forward shading 
 	ID3D11ShaderResourceView* ForwardScreenSpaceShadowMaskTexture;
 	ID3D11SamplerState* ForwardScreenSpaceShadowMaskTextureSampler;
@@ -218,7 +221,7 @@ public:
 
 		FMeshMaterialShader::SetParameters(ShaderRHI, MaterialRenderProxy, InMaterialResource, View, DrawRenderState.GetViewUniformBuffer(), DrawRenderState.GetPassUniformBuffer());
 
-		SetUniformBufferParameter(ShaderRHI, ReflectionCaptureBuffer, View.ReflectionCaptureUniformBuffer);
+		SetUniformBufferParameter(ShaderRHI, ReflectionCaptureBuffer, View.ReflectionCaptureUniformBuffer.get());
 
 		if (IsInstancedStereoParameter.IsBound())
 		{
@@ -554,6 +557,9 @@ void GetBasePassShaders<FUniformLightMapPolicy>(
 	TBasePassPixelShaderPolicyParamType<FUniformLightMapPolicyShaderParametersType>*& PixelShader
 	);
 
+
+
+
 class FBasePassDrawingPolicy : public FMeshDrawingPolicy
 {
 public:
@@ -624,7 +630,7 @@ public:
 
 		const EMaterialTessellationMode MaterialTessellationMode = InMaterialResource.GetTessellationMode();
 
-		const bool bNeedsHSDS = true;// RHISupportsTessellation(GShaderPlatformForFeatureLevel[InFeatureLevel])
+		const bool bNeedsHSDS = true// RHISupportsTessellation(GShaderPlatformForFeatureLevel[InFeatureLevel])
 			&& InVertexFactory->GetType()->SupportsTessellationShaders()
 			&& MaterialTessellationMode != MTM_NoTessellation;
 
@@ -696,7 +702,7 @@ public:
 		}
 	}
 
-	void SetSharedState(const FDrawingPolicyRenderState& DrawRenderState, const FViewInfo* View, const ContextDataType PolicyContext) const
+	void SetSharedState(ID3D11DeviceContext* Context, const FDrawingPolicyRenderState& DrawRenderState, const FViewInfo* View, const ContextDataType PolicyContext) const
 	{
 		// If the current debug view shader modes are allowed, different VS/DS/HS must be used (with only SV_POSITION as PS interpolant).
 // 		if (View->Family->UseDebugViewVSDSHS())
@@ -705,20 +711,20 @@ public:
 // 		}
 // 		else
 		{
-			assert(VertexFactory && VertexFactory->IsInitialized());
-			VertexFactory->SetStreams(D3D11DeviceContext);
+			//assert(VertexFactory && VertexFactory->IsInitialized());
+			VertexFactory->SetStreams(Context);
 
 			VertexShader->SetParameters(MaterialRenderProxy, VertexFactory, *MaterialResource, *View, DrawRenderState, PolicyContext.bIsInstancedStereo);
 
-			if (HullShader)
-			{
-				HullShader->SetParameters(MaterialRenderProxy, *View, DrawRenderState.GetViewUniformBuffer(), DrawRenderState.GetPassUniformBuffer());
-			}
-
-			if (DomainShader)
-			{
-				DomainShader->SetParameters(MaterialRenderProxy, *View, DrawRenderState.GetViewUniformBuffer(), DrawRenderState.GetPassUniformBuffer());
-			}
+// 			if (HullShader)
+// 			{
+// 				HullShader->SetParameters(MaterialRenderProxy, *View, DrawRenderState.GetViewUniformBuffer(), DrawRenderState.GetPassUniformBuffer());
+// 			}
+// 
+// 			if (DomainShader)
+// 			{
+// 				DomainShader->SetParameters(MaterialRenderProxy, *View, DrawRenderState.GetViewUniformBuffer(), DrawRenderState.GetPassUniformBuffer());
+// 			}
 		}
 
 // 		if (UseDebugViewPS())

@@ -43,7 +43,7 @@ public:
 		float MobileColorValue
 	);
 
-	void SetSharedState(const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View, const FDepthDrawingPolicy::ContextDataType PolicyContext) const;
+	void SetSharedState(ID3D11DeviceContext* Context, const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View, const FDepthDrawingPolicy::ContextDataType PolicyContext) const;
 
 	FBoundShaderStateInput GetBoundShaderStateInput() const;
 

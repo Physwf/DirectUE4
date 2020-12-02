@@ -15,7 +15,7 @@ struct StaticMeshBuildVertex
 	FVector Position;
 
 	FVector TangentX;
-	float TangentYSign;
+	FVector TangentY;
 	FVector TangentZ;
 
 	FColor C;
@@ -53,6 +53,8 @@ public:
 	UMaterial* GetMaterial(int32 MaterialIndex) const;
 
 	void CacheDerivedData();
+
+	const std::multimap<int32, int32>& GetOverlappingCorners() const { return OverlappingCorners; }
 private:
 	MeshDescription MD;
 
