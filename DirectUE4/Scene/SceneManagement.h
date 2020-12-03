@@ -690,7 +690,11 @@ public:
 	}
 	virtual FSphere GetShadowSplitBounds(const class FSceneView& View, int32 InCascadeIndex, bool bPrecomputedLightingIsValid, FShadowCascadeSettings* OutCascadeSettings) const { return FSphere(FVector::ZeroVector, 0); }
 	virtual FSphere GetShadowSplitBoundsDepthRange(const FSceneView& View, FVector ViewOrigin, float SplitNear, float SplitFar, FShadowCascadeSettings* OutCascadeSettings) const { return FSphere(FVector::ZeroVector, 0); }
-
+	virtual bool GetScissorRect(FIntRect& ScissorRect, const FSceneView& View, const FIntRect& ViewRect) const
+	{
+		ScissorRect = ViewRect;
+		return false;
+	}
 	inline const ULightComponent* GetLightComponent() const { return LightComponent; }
 	inline FLightSceneInfo* GetLightSceneInfo() const { return LightSceneInfo; }
 	inline const FMatrix& GetWorldToLight() const { return WorldToLight; }

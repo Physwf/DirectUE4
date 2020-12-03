@@ -9,10 +9,10 @@ FSceneRenderTargets& FSceneRenderTargets::Get()
 	return Instance;
 }
 
-void FSceneRenderTargets::BeginRenderingSceneColor()
+void FSceneRenderTargets::BeginRenderingSceneColor(bool bClearColor, bool bClearDepth, bool bClearStencil)
 {
 	AllocSceneColor();
-	//D3D11DeviceContext->OMSetRenderTargets(1, &SceneColorRTV, NULL);
+	SetRenderTarget(GetSceneColorSurface().get(), GetSceneDepthSurface().get(), bClearColor, bClearDepth, bClearStencil);
 }
 
 void FSceneRenderTargets::BeginRenderingPrePass(bool bClear)
@@ -341,6 +341,11 @@ void FSceneRenderTargets::AllocGBufferTargets()
 	}
 
 	//GBufferRefCount = 1;
+}
+
+void FSceneRenderTargets::AllocateScreenShadowMask(ComPtr<PooledRenderTarget>& ScreenShadowMaskTexture)
+{
+
 }
 
 FIntPoint FSceneRenderTargets::GetShadowDepthTextureResolution() const

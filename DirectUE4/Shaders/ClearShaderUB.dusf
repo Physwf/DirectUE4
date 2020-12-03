@@ -1,0 +1,25 @@
+#ifndef __UniformBuffer_ClearShaderUB_Definition__
+#define __UniformBuffer_ClearShaderUB_Definition__
+
+cbuffer ClearShaderUB
+{
+	float4 ClearShaderUB_DrawColorMRT[8];
+}
+
+static const struct
+{
+	float4 DrawColorMRT[8];
+} ClearShaderUB = 
+{ 
+	{
+		ClearShaderUB_DrawColorMRT[0],
+		ClearShaderUB_DrawColorMRT[1],
+		ClearShaderUB_DrawColorMRT[2],
+		ClearShaderUB_DrawColorMRT[3],
+		ClearShaderUB_DrawColorMRT[4],
+		ClearShaderUB_DrawColorMRT[5],
+		ClearShaderUB_DrawColorMRT[6],
+		ClearShaderUB_DrawColorMRT[7],
+	}
+};
+#endif

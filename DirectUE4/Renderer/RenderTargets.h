@@ -57,7 +57,7 @@ class FSceneRenderTargets
 public:
 	static FSceneRenderTargets& Get();
 
-	void BeginRenderingSceneColor();
+	void BeginRenderingSceneColor(bool bClearColor,bool bClearDepth, bool bClearStencil);
 
 	void BeginRenderingPrePass(bool bClear);
 	void FinishRenderingPrePass();
@@ -113,7 +113,7 @@ public:
 
 	//void AllocateDebugViewModeTargets(FRHICommandList& RHICmdList);
 
-	//void AllocateScreenShadowMask(FRHICommandList& RHICmdList, TRefCountPtr<IPooledRenderTarget>& ScreenShadowMaskTexture);
+	void AllocateScreenShadowMask(ComPtr<PooledRenderTarget>& ScreenShadowMaskTexture);
 
 
 	FIntPoint GetShadowDepthTextureResolution() const;

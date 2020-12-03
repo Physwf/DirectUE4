@@ -74,6 +74,8 @@ class FSphere;
 struct FTransform;
 struct FPlane;
 struct FLinearColor;
+struct FIntRect;
+struct FMatrix;
 
 namespace EAxis
 {
@@ -385,6 +387,7 @@ public:
 	static FVector LinePlaneIntersection(const FVector &Point1, const FVector &Point2, const FPlane  &Plane);
 	static inline float Exp(float Value) { return expf(Value); }
 	static inline float Exp2(float Value) { return powf(2.f, Value); /*exp2f(Value);*/ }
+	static uint32 ComputeProjectedSphereScissorRect(FIntRect& InOutScissorRect, FVector SphereOrigin, float Radius, FVector ViewOrigin, const FMatrix& ViewMatrix, const FMatrix& ProjMatrix);
 };
 
 
@@ -452,7 +455,7 @@ struct alignas(16) Vector4
 	{
 		return X * X + Y * Y + Z * Z + W * W;
 	}
-
+	void Set(float InX, float InY, float InZ, float InW);
 };
 
 inline Vector4::Vector4(std::initializer_list<float> list)

@@ -1946,3 +1946,21 @@ extern int32 GMaxShadowDepthBufferSizeX;
 extern int32 GMaxShadowDepthBufferSizeY;
 
 void RHISetViewport(uint32 MinX, uint32 MinY, float MinZ, uint32 MaxX, uint32 MaxY, float MaxZ);
+
+extern void DrawClearQuadMRT(bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil);
+extern void DrawClearQuadMRT(bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntPoint ViewSize, FIntRect ExcludeRect);
+
+inline void DrawClearQuad(bool bClearColor, const FLinearColor& Color, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil)
+{
+	DrawClearQuadMRT(bClearColor, 1, &Color, bClearDepth, Depth, bClearStencil, Stencil);
+}
+
+inline void DrawClearQuad(bool bClearColor, const FLinearColor& Color, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntPoint ViewSize, FIntRect ExcludeRect)
+{
+	DrawClearQuadMRT(bClearColor, 1, &Color, bClearDepth, Depth, bClearStencil, Stencil, ViewSize, ExcludeRect);
+}
+
+inline void DrawClearQuad(const FLinearColor& Color)
+{
+	DrawClearQuadMRT(true, 1, &Color, false, 0, false, 0);
+}

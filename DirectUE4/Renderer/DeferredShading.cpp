@@ -21,24 +21,6 @@ char GlobalConstantBufferData[4096];
 
 void InitShading()
 {
-	/*
-	GlobalConstantBuffer = CreateConstantBuffer(false,4096);
-	memset(GlobalConstantBufferData, 0, sizeof(GlobalConstantBufferData));
-
-	RenderTargets& SceneContex = RenderTargets::Get();
-	SceneContex.Allocate();
-	SceneContex.SetBufferSize(int32(WindowWidth), int32(WindowHeight));
-
-
-	InitPrePass();
-	InitHZB();
-	InitShadowDepthMapsPass();
-	InitBasePass();
-	GCompositionLighting.Init();
-	InitLightPass();
-	InitAtomosphereFog();
-	*/
-
 	GSystemTextures.InitializeTextures();
 	InitializeShaderTypes();
 	InitConstantBuffers();
@@ -644,8 +626,6 @@ void FSceneRenderer::PrepareViewRectsForRendering()
 		View.ViewRect = View.UnscaledViewRect;
 	}
 }
-
-
 
 void FSceneRenderer::Render()
 {

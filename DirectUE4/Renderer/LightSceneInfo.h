@@ -37,6 +37,40 @@ public:
 	bool AffectsPrimitive(const FBoxSphereBounds& PrimitiveBounds,  const FPrimitiveSceneProxy* PrimitiveSceneProxy) const;
 };
 
+/** Information for sorting lights. */
+struct FSortedLightSceneInfo
+{
+	union
+	{
+		struct
+		{
+			// Note: the order of these members controls the light sort order!
+			// Currently bUsesLightingChannels is the MSB and LightType is LSB
+			/** The type of light. */
+			uint32 LightType : LightType_NumBits;
+			/** Whether the light has a texture profile. */
+			uint32 bTextureProfile : 1;
+			/** Whether the light uses a light function. */
+			uint32 bLightFunction : 1;
+			/** Whether the light casts shadows. */
+			uint32 bShadowed : 1;
+			/** Whether the light uses lighting channels. */
+			uint32 bUsesLightingChannels : 1;
+		} Fields;
+		/** Sort key bits packed into an integer. */
+		int32 Packed;
+	} SortKey;
+
+	const FLightSceneInfo* LightSceneInfo;
+
+	/** Initialization constructor. */
+	explicit FSortedLightSceneInfo(const FLightSceneInfo* InLightSceneInfo)
+		: LightSceneInfo(InLightSceneInfo)
+	{
+		SortKey.Packed = 0;
+	}
+};
+
 class FLightSceneInfo
 {
 public:

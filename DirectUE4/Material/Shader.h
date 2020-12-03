@@ -1225,6 +1225,38 @@ private:
 		ShaderClass::GetStreamOutElements \
 		);
 
+#define IMPLEMENT_SHADER_TYPE2(ShaderClass,Frequency) \
+	template<> \
+	ShaderClass::ShaderMetaType ShaderClass::StaticType( \
+	#ShaderClass, \
+	ShaderClass::GetSourceFilename(), \
+	ShaderClass::GetFunctionName(), \
+	Frequency, \
+	1, \
+	ShaderClass::ConstructSerializedInstance, \
+	ShaderClass::ConstructCompiledInstance, \
+	ShaderClass::ModifyCompilationEnvironment, \
+	ShaderClass::ShouldCompilePermutation, \
+	ShaderClass::ValidateCompiledResult, \
+	ShaderClass::GetStreamOutElements \
+	);
+
+
+/** todo: this should replace IMPLEMENT_SHADER_TYPE */
+#define IMPLEMENT_SHADER_TYPE3(ShaderClass,Frequency) \
+	ShaderClass::ShaderMetaType ShaderClass::StaticType( \
+	#ShaderClass, \
+	ShaderClass::GetSourceFilename(), \
+	ShaderClass::GetFunctionName(), \
+	Frequency, \
+	1, \
+	ShaderClass::ConstructSerializedInstance, \
+	ShaderClass::ConstructCompiledInstance, \
+	ShaderClass::ModifyCompilationEnvironment, \
+	ShaderClass::ShouldCompilePermutation, \
+	ShaderClass::ValidateCompiledResult, \
+	ShaderClass::GetStreamOutElements \
+	);
 
 /** A reference which is initialized with the requested shader type from a shader map. */
 template<typename ShaderType>

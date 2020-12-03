@@ -12,6 +12,7 @@
 #include "ShaderCore.h"
 #include "SceneFilterRendering.h"
 #include "Shader.h"
+#include "OneColorShader.h"
 
 // #define STB_IMAGE_IMPLEMENTATION
 // #include "stb_image.h"
@@ -43,6 +44,9 @@ ID3D11SamplerState* GBlackVolumeTextureSamplerState;
 ID3D11Texture2D* GWhiteTextureCube;
 ID3D11ShaderResourceView* GWhiteTextureCubeSRV;
 ID3D11SamplerState* GWhiteTextureCubeSamplerState;
+
+ComPtr<ID3D11Buffer> DynamicVB;
+ComPtr<ID3D11Buffer> DynamicIB;
 
 LONG WindowWidth = 1920;
 LONG WindowHeight = 1080;
@@ -1676,6 +1680,31 @@ bool InitRHI()
 		GWhiteTextureCubeSRV = CreateShaderResourceViewCube(GWhiteTextureCube, DXGI_FORMAT_R8G8B8A8_UNORM, 1, 0);
 		GWhiteTextureCubeSamplerState = TStaticSamplerState<D3D11_FILTER_MIN_MAG_MIP_POINT, D3D11_TEXTURE_ADDRESS_WRAP, D3D11_TEXTURE_ADDRESS_WRAP, D3D11_TEXTURE_ADDRESS_WRAP>::GetRHI();
 	}
+
+	{
+
+	}
+	{
+		D3D11_BUFFER_DESC VertexDesc;
+		ZeroMemory(&VertexDesc, sizeof(VertexDesc));
+		VertexDesc.ByteWidth = 1024;
+		VertexDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		VertexDesc.Usage = D3D11_USAGE_DEFAULT;
+		VertexDesc.CPUAccessFlags = 0;
+		VertexDesc.MiscFlags = 0;
+		assert(S_OK == D3D11Device->CreateBuffer(&VertexDesc, NULL, DynamicVB.GetAddressOf()));
+	}
+	{
+		D3D11_BUFFER_DESC IndexDesc;
+		ZeroMemory(&IndexDesc, sizeof(IndexDesc));
+		IndexDesc.Usage = D3D11_USAGE_DEFAULT;
+		IndexDesc.ByteWidth = 1024;
+		IndexDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+		IndexDesc.CPUAccessFlags = 0;
+		IndexDesc.MiscFlags = 0;
+
+		assert(S_OK == D3D11Device->CreateBuffer(&IndexDesc, NULL, DynamicIB.GetAddressOf()));
+	}
 	return true;
 }
 
@@ -1839,6 +1868,67 @@ void CommitNonComputeShaderConstants()
 		D3D11DeviceContext->PSSetConstantBuffers(0, 1, &ConstantBuffer);
 	}
 }
+uint32 PendingNumVertices;
+uint32 PendingVertexDataStride;
+D3D11_PRIMITIVE_TOPOLOGY PendingPrimitiveType;
+uint32 PendingNumPrimitives;
+uint32 PendingMinVertexIndex;
+uint32 PendingNumIndices;
+uint32 PendingIndexDataStride;
+
+void RHIBeginDrawPrimitiveUP(D3D11_PRIMITIVE_TOPOLOGY PrimitiveType, uint32 NumPrimitives, uint32 NumVertices, uint32 VertexDataStride, void*& OutVertexData)
+{
+	assert(PendingNumVertices == 0);
+
+	// Remember the parameters for the draw call.
+	PendingPrimitiveType = PrimitiveType;
+	PendingNumPrimitives = NumPrimitives;
+	PendingNumVertices = NumVertices;
+	PendingVertexDataStride = VertexDataStride;
+
+	CommitNonComputeShaderConstants();
+
+	D3D11_MAPPED_SUBRESOURCE MapedSubresource;
+	D3D11DeviceContext->Map(DynamicVB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0,&MapedSubresource);
+	OutVertexData = MapedSubresource.pData;
+}
+
+void RHIEndDrawPrimitiveUP()
+{
+	UINT Stride = 0;
+	UINT Offset = 0;
+	D3D11DeviceContext->Unmap(DynamicVB.Get(),0);
+	D3D11DeviceContext->IASetVertexBuffers(0, 1, DynamicVB.GetAddressOf(), &Stride, &Offset);
+	D3D11DeviceContext->IASetPrimitiveTopology(PendingPrimitiveType);
+	D3D11DeviceContext->Draw(PendingNumPrimitives, 0);
+
+	PendingPrimitiveType = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+	PendingNumPrimitives = 0;
+	PendingNumVertices = 0;
+	PendingVertexDataStride = 0;
+}
+inline uint32 GetVertexCountForPrimitiveCount(uint32 NumPrimitives, D3D11_PRIMITIVE_TOPOLOGY PrimitiveType)
+{
+	uint32 VertexCount = 0;
+	switch (PrimitiveType)
+	{
+	case D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST: VertexCount = NumPrimitives * 3; break;
+	case D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP: VertexCount = NumPrimitives + 2; break;
+	case D3D11_PRIMITIVE_TOPOLOGY_LINELIST: VertexCount = NumPrimitives * 2; break;
+	case D3D11_PRIMITIVE_TOPOLOGY_POINTLIST: VertexCount = NumPrimitives; break;
+	//default: X_LOG("Unknown primitive type: %u", PrimitiveType);
+	};
+	return VertexCount;
+}
+inline void DrawPrimitiveUP(D3D11_PRIMITIVE_TOPOLOGY PrimitiveType, uint32 NumPrimitives, const void* VertexData, uint32 VertexDataStride)
+{
+	void* Buffer = NULL;
+	assert(NumPrimitives > 0);
+	const uint32 VertexCount = GetVertexCountForPrimitiveCount(NumPrimitives, PrimitiveType);
+	RHIBeginDrawPrimitiveUP(PrimitiveType, NumPrimitives, VertexCount, VertexDataStride, Buffer);
+	memcpy(Buffer, VertexData, VertexCount * VertexDataStride);
+	RHIEndDrawPrimitiveUP();
+}
 
 std::map<std::vector<D3D11_INPUT_ELEMENT_DESC>*, ComPtr<ID3D11InputLayout>> InputLayoutCache;
 
@@ -1871,4 +1961,137 @@ void RHISetViewport(uint32 MinX, uint32 MinY, float MinZ, uint32 MaxX, uint32 Ma
 {
 	D3D11_VIEWPORT VP = { (FLOAT)MinX ,(FLOAT)MinY ,(FLOAT)MaxX - (FLOAT)MinX,(FLOAT)MaxY - (FLOAT)MinY, MinZ ,MaxZ };
 	D3D11DeviceContext->RSSetViewports(1, &VP);
+}
+std::shared_ptr<std::vector<D3D11_INPUT_ELEMENT_DESC>>& GetVertexDeclarationFVector4()
+{
+	static std::shared_ptr<std::vector<D3D11_INPUT_ELEMENT_DESC>> GVector4VertexDeclaration;
+	return GVector4VertexDeclaration;
+}
+
+void ClearQuadSetup(bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil)
+{
+	// Set new states
+	ID3D11BlendState* BlendStateRHI;
+
+	BlendStateRHI = bClearColor ? TStaticBlendState<>::GetRHI() : TStaticBlendStateWriteMask<0, 0, 0, 0, 0, 0, 0, 0>::GetRHI();
+
+	ID3D11DepthStencilState* const DepthStencilStateRHI =
+		(bClearDepth && bClearStencil)
+			? TStaticDepthStencilState<
+				true, D3D11_COMPARISON_ALWAYS,
+				true, D3D11_COMPARISON_ALWAYS, D3D11_STENCIL_OP_REPLACE, D3D11_STENCIL_OP_REPLACE, D3D11_STENCIL_OP_REPLACE,
+				false, D3D11_COMPARISON_ALWAYS, D3D11_STENCIL_OP_REPLACE, D3D11_STENCIL_OP_REPLACE, D3D11_STENCIL_OP_REPLACE,
+				0xff, 0xff
+					>::GetRHI()
+					: bClearDepth
+						? TStaticDepthStencilState<true, D3D11_COMPARISON_ALWAYS>::GetRHI()
+						: bClearStencil
+							? TStaticDepthStencilState<
+									false, D3D11_COMPARISON_ALWAYS,
+									true, D3D11_COMPARISON_ALWAYS, D3D11_STENCIL_OP_REPLACE, D3D11_STENCIL_OP_REPLACE, D3D11_STENCIL_OP_REPLACE,
+									false, D3D11_COMPARISON_ALWAYS, D3D11_STENCIL_OP_REPLACE, D3D11_STENCIL_OP_REPLACE, D3D11_STENCIL_OP_REPLACE,
+									0xff, 0xff
+							>::GetRHI() : TStaticDepthStencilState<false, D3D11_COMPARISON_ALWAYS>::GetRHI();
+
+	//FGraphicsPipelineStateInitializer GraphicsPSOInit;
+	//RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
+	D3D11DeviceContext->RSSetState(TStaticRasterizerState<D3D11_FILL_SOLID, D3D11_CULL_NONE>::GetRHI());
+	D3D11DeviceContext->OMSetBlendState(BlendStateRHI, NULL, 0xffffffff);
+	D3D11DeviceContext->OMSetDepthStencilState(DepthStencilStateRHI, Stencil);
+
+	auto ShaderMap = GetGlobalShaderMap();
+
+
+	// Set the new shaders
+	TShaderMapRef<TOneColorVS<true> > VertexShader(ShaderMap);
+
+	FOneColorPS* PixelShader = NULL;
+
+	// Set the shader to write to the appropriate number of render targets
+	// On AMD PC hardware, outputting to a color index in the shader without a matching render target set has a significant performance hit
+	if (NumClearColors <= 1)
+	{
+		TShaderMapRef<TOneColorPixelShaderMRT<1> > MRTPixelShader(ShaderMap);
+		PixelShader = *MRTPixelShader;
+	}
+	else if (NumClearColors == 2)
+	{
+		TShaderMapRef<TOneColorPixelShaderMRT<2> > MRTPixelShader(ShaderMap);
+		PixelShader = *MRTPixelShader;
+	}
+	else if (NumClearColors == 3)
+	{
+		TShaderMapRef<TOneColorPixelShaderMRT<3> > MRTPixelShader(ShaderMap);
+		PixelShader = *MRTPixelShader;
+	}
+	else if (NumClearColors == 4)
+	{
+		TShaderMapRef<TOneColorPixelShaderMRT<4> > MRTPixelShader(ShaderMap);
+		PixelShader = *MRTPixelShader;
+	}
+	else if (NumClearColors == 5)
+	{
+		TShaderMapRef<TOneColorPixelShaderMRT<5> > MRTPixelShader(ShaderMap);
+		PixelShader = *MRTPixelShader;
+	}
+	else if (NumClearColors == 6)
+	{
+		TShaderMapRef<TOneColorPixelShaderMRT<6> > MRTPixelShader(ShaderMap);
+		PixelShader = *MRTPixelShader;
+	}
+	else if (NumClearColors == 7)
+	{
+		TShaderMapRef<TOneColorPixelShaderMRT<7> > MRTPixelShader(ShaderMap);
+		PixelShader = *MRTPixelShader;
+	}
+	else if (NumClearColors == 8)
+	{
+		TShaderMapRef<TOneColorPixelShaderMRT<8> > MRTPixelShader(ShaderMap);
+		PixelShader = *MRTPixelShader;
+	}
+
+	auto It = InputLayoutCache.find(GetVertexDeclarationFVector4().get());
+	if (It != InputLayoutCache.end())
+	{
+		D3D11DeviceContext->IASetInputLayout(It->second.Get());
+	}
+	else
+	{
+		ComPtr<ID3D11InputLayout> InputLayout;
+		D3D11Device->CreateInputLayout(GetVertexDeclarationFVector4()->data(), GetVertexDeclarationFVector4()->size(), VertexShader->GetCode()->GetBufferPointer(), VertexShader->GetCode()->GetBufferSize(), InputLayout.GetAddressOf());
+		InputLayoutCache[GetVertexDeclarationFVector4().get()] = InputLayout;
+		D3D11DeviceContext->IASetInputLayout(InputLayout.Get());
+	}
+
+	//GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GetVertexDeclarationFVector4();
+	//GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+	//GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(PixelShader);
+	//GraphicsPSOInit.PrimitiveType = PT_TriangleStrip;
+
+	D3D11DeviceContext->VSSetShader(VertexShader->GetVertexShader(), 0, 0);
+	D3D11DeviceContext->PSSetShader(PixelShader->GetPixelShader(), 0, 0);
+	D3D11DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	//SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+	//RHICmdList.SetStencilRef(Stencil);
+
+	PixelShader->SetColors(ClearColorArray, NumClearColors);
+}
+void DrawClearQuadMRT(bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil)
+{
+	ClearQuadSetup(bClearColor, NumClearColors, ClearColorArray, bClearDepth, Depth, bClearStencil, Stencil);
+
+	Vector4 Vertices[4];
+	Vertices[0].Set(-1.0f, 1.0f, Depth, 1.0f);
+	Vertices[1].Set(1.0f, 1.0f, Depth, 1.0f);
+	Vertices[2].Set(-1.0f, -1.0f, Depth, 1.0f);
+	Vertices[3].Set(1.0f, -1.0f, Depth, 1.0f);
+
+	DrawPrimitiveUP(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, 2, Vertices, sizeof(Vertices[0]));
+}
+
+void DrawClearQuadMRT(bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntPoint ViewSize, FIntRect ExcludeRect)
+{
+
 }
