@@ -441,14 +441,14 @@ public:
 	}
 
 	// WARNING : This can be called with buffers valid for a single frame only, don't cache anywhere. See FPrimitiveSceneInfo::UpdatePrecomputedLightingBuffer()
-	void SetPrecomputedLightingBuffer(FUniformBuffer* InPrecomputedLightingUniformBuffer)
+	void SetPrecomputedLightingBuffer(std::shared_ptr<FUniformBuffer> InPrecomputedLightingUniformBuffer)
 	{
 		PrecomputedLightingUniformBuffer = InPrecomputedLightingUniformBuffer;
 	}
 
 	FUniformBuffer* GetPrecomputedLightingBuffer() const
 	{
-		return PrecomputedLightingUniformBuffer;
+		return PrecomputedLightingUniformBuffer.get();
 	}
 
 	FLightMapInteraction GetLightMapInteraction() const;
@@ -466,7 +466,7 @@ private:
 	const FShadowMap* ShadowMap;
 
 	/** The uniform buffer holding mapping the lightmap policy resources. */
-	FUniformBuffer* PrecomputedLightingUniformBuffer;
+	std::shared_ptr<FUniformBuffer> PrecomputedLightingUniformBuffer;
 };
 
 // Information about a single shadow cascade.

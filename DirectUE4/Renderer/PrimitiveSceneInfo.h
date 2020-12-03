@@ -107,7 +107,10 @@ public:
 		}
 	}
 	void UpdateUniformBuffer();
-
+	bool NeedsPrecomputedLightingBufferUpdate()
+	{
+		return bPrecomputedLightingBufferDirty;
+	}
 	void MarkPrecomputedLightingBufferDirty()
 	{
 		bPrecomputedLightingBufferDirty = true;

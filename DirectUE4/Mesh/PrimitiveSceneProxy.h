@@ -88,7 +88,7 @@ public:
 		// Flip the default channel bit so that the default value is 0, to align with the default stencil clear value and GBlackTexture value
 		return (LightingChannelMask & 0x6) | (~LightingChannelMask & 0x1);
 	}
-
+	virtual void GetLCIs(std::vector<class FLightCacheInterface*>& LCIs) {}
 	inline bool HasStaticLighting() const { return bStaticLighting; }
 
 	inline bool CastsStaticShadow() const { return bCastStaticShadow; }

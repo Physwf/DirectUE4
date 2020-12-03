@@ -110,6 +110,8 @@ public:
 	virtual void DrawStaticElements(FPrimitiveSceneInfo* PrimitiveSceneInfo) override;
 
 	//virtual void GetLightRelevance(const FLightSceneProxy* LightSceneProxy, bool& bDynamic, bool& bRelevant, bool& bLightMapped, bool& bShadowMapped) const override;
+
+	virtual void GetLCIs(std::vector<FLightCacheInterface*>& LCIs) override;
 protected:
 	FStaticMeshRenderData* RenderData;
 

@@ -37,45 +37,45 @@ END_UNIFORM_BUFFER_STRUCT( FPrecomputedLightingParameters )
 #ifndef __UniformBuffer_PrecomputedLighting_Definition__
 #define __UniformBuffer_PrecomputedLighting_Definition__
 
-cbuffer PrecomputedLightingParameters
+cbuffer PrecomputedLightingBuffer
 {
-    float3 PrecomputedLighting_IndirectLightingCachePrimitiveAdd;// FCachedVolumeIndirectLightingPolicy
+    float3 PrecomputedLightingBuffer_IndirectLightingCachePrimitiveAdd;// FCachedVolumeIndirectLightingPolicy
     float Pading01;
-    float3 PrecomputedLighting_IndirectLightingCachePrimitiveScale;// FCachedVolumeIndirectLightingPolicy
+    float3 PrecomputedLightingBuffer_IndirectLightingCachePrimitiveScale;// FCachedVolumeIndirectLightingPolicy
     float Pading02;
-    float3 PrecomputedLighting_IndirectLightingCacheMinUV;// FCachedVolumeIndirectLightingPolicy
+    float3 PrecomputedLightingBuffer_IndirectLightingCacheMinUV;// FCachedVolumeIndirectLightingPolicy
     float Pading03;
-    float3 PrecomputedLighting_IndirectLightingCacheMaxUV;// FCachedVolumeIndirectLightingPolicy
+    float3 PrecomputedLightingBuffer_IndirectLightingCacheMaxUV;// FCachedVolumeIndirectLightingPolicy
     float Pading04;
-    float4 PrecomputedLighting_PointSkyBentNormal;// FCachedPointIndirectLightingPolicy
-    float PrecomputedLighting_DirectionalLightShadowing;// FCachedPointIndirectLightingPolicy
+    float4 PrecomputedLightingBuffer_PointSkyBentNormal;// FCachedPointIndirectLightingPolicy
+    float PrecomputedLightingBuffer_DirectionalLightShadowing;// FCachedPointIndirectLightingPolicy
     float3 Pading05;
-    float4 PrecomputedLighting_StaticShadowMapMasks;// TDistanceFieldShadowsAndLightMapPolicy
-    float4 PrecomputedLighting_InvUniformPenumbraSizes;// TDistanceFieldShadowsAndLightMapPolicy
-    float4 PrecomputedLighting_IndirectLightingSHCoefficients0[3]; // FCachedPointIndirectLightingPolicy
-    float4 PrecomputedLighting_IndirectLightingSHCoefficients1[3]; // FCachedPointIndirectLightingPolicy
-    float4 PrecomputedLighting_IndirectLightingSHCoefficients2;// FCachedPointIndirectLightingPolicy
-    float4 PrecomputedLighting_IndirectLightingSHSingleCoefficient;// FCachedPointIndirectLightingPolicy
-    float4 PrecomputedLighting_LightMapCoordinateScaleBias; // TLightMapPolicy
-    float4 PrecomputedLighting_ShadowMapCoordinateScaleBias;// TDistanceFieldShadowsAndLightMapPolicy
-    float4 PrecomputedLighting_LightMapScale[2];// TLightMapPolicy
-    float4 PrecomputedLighting_LightMapAdd[2];// TLightMapPolicy
+    float4 PrecomputedLightingBuffer_StaticShadowMapMasks;// TDistanceFieldShadowsAndLightMapPolicy
+    float4 PrecomputedLightingBuffer_InvUniformPenumbraSizes;// TDistanceFieldShadowsAndLightMapPolicy
+    float4 PrecomputedLightingBuffer_IndirectLightingSHCoefficients0[3]; // FCachedPointIndirectLightingPolicy
+    float4 PrecomputedLightingBuffer_IndirectLightingSHCoefficients1[3]; // FCachedPointIndirectLightingPolicy
+    float4 PrecomputedLightingBuffer_IndirectLightingSHCoefficients2;// FCachedPointIndirectLightingPolicy
+    float4 PrecomputedLightingBuffer_IndirectLightingSHSingleCoefficient;// FCachedPointIndirectLightingPolicy
+    float4 PrecomputedLightingBuffer_LightMapCoordinateScaleBias; // TLightMapPolicy
+    float4 PrecomputedLightingBuffer_ShadowMapCoordinateScaleBias;// TDistanceFieldShadowsAndLightMapPolicy
+    float4 PrecomputedLightingBuffer_LightMapScale[2];// TLightMapPolicy
+    float4 PrecomputedLightingBuffer_LightMapAdd[2];// TLightMapPolicy
 };
 
-Texture2D PrecomputedLighting_LightMapTexture;// TLightMapPolicy
-Texture2D PrecomputedLighting_SkyOcclusionTexture;// TLightMapPolicy
-Texture2D PrecomputedLighting_AOMaterialMaskTexture;// TLightMapPolicy
-Texture2D PrecomputedLighting_IndirectLightingCacheTexture0;// FCachedVolumeIndirectLightingPolicy
-Texture2D PrecomputedLighting_IndirectLightingCacheTexture1;// FCachedVolumeIndirectLightingPolicy
-Texture2D PrecomputedLighting_IndirectLightingCacheTexture2;// FCachedVolumeIndirectLightingPolicy
-Texture2D PrecomputedLighting_StaticShadowTexture;
-SamplerState PrecomputedLighting_LightMapSampler;// TLightMapPolicy
-SamplerState PrecomputedLighting_SkyOcclusionSampler;// TLightMapPolicy
-SamplerState PrecomputedLighting_AOMaterialMaskSampler;// TLightMapPolicy
-SamplerState PrecomputedLighting_IndirectLightingCacheTextureSampler0;// FCachedVolumeIndirectLightingPolicy
-SamplerState PrecomputedLighting_IndirectLightingCacheTextureSampler1;// FCachedVolumeIndirectLightingPolicy
-SamplerState PrecomputedLighting_IndirectLightingCacheTextureSampler2;// FCachedVolumeIndirectLightingPolicy
-SamplerState PrecomputedLighting_StaticShadowTextureSampler;// TDistanceFieldShadowsAndLightMapPolicy
+Texture2D PrecomputedLightingBuffer_LightMapTexture;// TLightMapPolicy
+Texture2D PrecomputedLightingBuffer_SkyOcclusionTexture;// TLightMapPolicy
+Texture2D PrecomputedLightingBuffer_AOMaterialMaskTexture;// TLightMapPolicy
+Texture2D PrecomputedLightingBuffer_IndirectLightingCacheTexture0;// FCachedVolumeIndirectLightingPolicy
+Texture2D PrecomputedLightingBuffer_IndirectLightingCacheTexture1;// FCachedVolumeIndirectLightingPolicy
+Texture2D PrecomputedLightingBuffer_IndirectLightingCacheTexture2;// FCachedVolumeIndirectLightingPolicy
+Texture2D PrecomputedLightingBuffer_StaticShadowTexture;
+SamplerState PrecomputedLightingBuffer_LightMapSampler;// TLightMapPolicy
+SamplerState PrecomputedLightingBuffer_SkyOcclusionSampler;// TLightMapPolicy
+SamplerState PrecomputedLightingBuffer_AOMaterialMaskSampler;// TLightMapPolicy
+SamplerState PrecomputedLightingBuffer_IndirectLightingCacheTextureSampler0;// FCachedVolumeIndirectLightingPolicy
+SamplerState PrecomputedLightingBuffer_IndirectLightingCacheTextureSampler1;// FCachedVolumeIndirectLightingPolicy
+SamplerState PrecomputedLightingBuffer_IndirectLightingCacheTextureSampler2;// FCachedVolumeIndirectLightingPolicy
+SamplerState PrecomputedLightingBuffer_StaticShadowTextureSampler;// TDistanceFieldShadowsAndLightMapPolicy
 
 static const struct 
 {
@@ -111,50 +111,50 @@ static const struct
     SamplerState StaticShadowTextureSampler;
 } PrecomputedLightingBuffer =
 {
-    PrecomputedLighting_IndirectLightingCachePrimitiveAdd,// FCachedVolumeIndirectLightingPolicy
-    PrecomputedLighting_IndirectLightingCachePrimitiveScale,// FCachedVolumeIndirectLightingPolicy
-    PrecomputedLighting_IndirectLightingCacheMinUV,// FCachedVolumeIndirectLightingPolicy
-    PrecomputedLighting_IndirectLightingCacheMaxUV,// FCachedVolumeIndirectLightingPolicy
-    PrecomputedLighting_PointSkyBentNormal,// FCachedPointIndirectLightingPolicy
-    PrecomputedLighting_DirectionalLightShadowing,// FCachedPointIndirectLightingPolicy
-    PrecomputedLighting_StaticShadowMapMasks,// TDistanceFieldShadowsAndLightMapPolicy
-    PrecomputedLighting_InvUniformPenumbraSizes,// TDistanceFieldShadowsAndLightMapPolicy
+    PrecomputedLightingBuffer_IndirectLightingCachePrimitiveAdd,// FCachedVolumeIndirectLightingPolicy
+    PrecomputedLightingBuffer_IndirectLightingCachePrimitiveScale,// FCachedVolumeIndirectLightingPolicy
+    PrecomputedLightingBuffer_IndirectLightingCacheMinUV,// FCachedVolumeIndirectLightingPolicy
+    PrecomputedLightingBuffer_IndirectLightingCacheMaxUV,// FCachedVolumeIndirectLightingPolicy
+    PrecomputedLightingBuffer_PointSkyBentNormal,// FCachedPointIndirectLightingPolicy
+    PrecomputedLightingBuffer_DirectionalLightShadowing,// FCachedPointIndirectLightingPolicy
+    PrecomputedLightingBuffer_StaticShadowMapMasks,// TDistanceFieldShadowsAndLightMapPolicy
+    PrecomputedLightingBuffer_InvUniformPenumbraSizes,// TDistanceFieldShadowsAndLightMapPolicy
     {
-        PrecomputedLighting_IndirectLightingSHCoefficients0[0], // FCachedPointIndirectLightingPolicy
-        PrecomputedLighting_IndirectLightingSHCoefficients0[1], // FCachedPointIndirectLightingPolicy
-        PrecomputedLighting_IndirectLightingSHCoefficients0[2], // FCachedPointIndirectLightingPolicy
+        PrecomputedLightingBuffer_IndirectLightingSHCoefficients0[0], // FCachedPointIndirectLightingPolicy
+        PrecomputedLightingBuffer_IndirectLightingSHCoefficients0[1], // FCachedPointIndirectLightingPolicy
+        PrecomputedLightingBuffer_IndirectLightingSHCoefficients0[2], // FCachedPointIndirectLightingPolicy
     },
     {
-        PrecomputedLighting_IndirectLightingSHCoefficients1[0], // FCachedPointIndirectLightingPolicy
-        PrecomputedLighting_IndirectLightingSHCoefficients1[1], // FCachedPointIndirectLightingPolicy
-        PrecomputedLighting_IndirectLightingSHCoefficients1[2], // FCachedPointIndirectLightingPolicy
+        PrecomputedLightingBuffer_IndirectLightingSHCoefficients1[0], // FCachedPointIndirectLightingPolicy
+        PrecomputedLightingBuffer_IndirectLightingSHCoefficients1[1], // FCachedPointIndirectLightingPolicy
+        PrecomputedLightingBuffer_IndirectLightingSHCoefficients1[2], // FCachedPointIndirectLightingPolicy
     },
-    PrecomputedLighting_IndirectLightingSHCoefficients2,// FCachedPointIndirectLightingPolicy
-    PrecomputedLighting_IndirectLightingSHSingleCoefficient,// FCachedPointIndirectLightingPolicy
-    PrecomputedLighting_LightMapCoordinateScaleBias, // TLightMapPolicy
-    PrecomputedLighting_ShadowMapCoordinateScaleBias,// TDistanceFieldShadowsAndLightMapPolicy
+    PrecomputedLightingBuffer_IndirectLightingSHCoefficients2,// FCachedPointIndirectLightingPolicy
+    PrecomputedLightingBuffer_IndirectLightingSHSingleCoefficient,// FCachedPointIndirectLightingPolicy
+    PrecomputedLightingBuffer_LightMapCoordinateScaleBias, // TLightMapPolicy
+    PrecomputedLightingBuffer_ShadowMapCoordinateScaleBias,// TDistanceFieldShadowsAndLightMapPolicy
     { 
-        PrecomputedLighting_LightMapScale[0],// TLightMapPolicy
-        PrecomputedLighting_LightMapScale[1],// TLightMapPolicy
+        PrecomputedLightingBuffer_LightMapScale[0],// TLightMapPolicy
+        PrecomputedLightingBuffer_LightMapScale[1],// TLightMapPolicy
     },
     { 
-        PrecomputedLighting_LightMapAdd[0],// TLightMapPolicy
-        PrecomputedLighting_LightMapAdd[1],// TLightMapPolicy
+        PrecomputedLightingBuffer_LightMapAdd[0],// TLightMapPolicy
+        PrecomputedLightingBuffer_LightMapAdd[1],// TLightMapPolicy
     }, 
-    PrecomputedLighting_LightMapTexture,// TLightMapPolicy
-    PrecomputedLighting_SkyOcclusionTexture,// TLightMapPolicy
-    PrecomputedLighting_AOMaterialMaskTexture,// TLightMapPolicy
-    PrecomputedLighting_IndirectLightingCacheTexture0,// FCachedVolumeIndirectLightingPolicy
-    PrecomputedLighting_IndirectLightingCacheTexture1,// FCachedVolumeIndirectLightingPolicy
-    PrecomputedLighting_IndirectLightingCacheTexture2,// FCachedVolumeIndirectLightingPolicy
-    PrecomputedLighting_StaticShadowTexture,
-    PrecomputedLighting_LightMapSampler,// TLightMapPolicy
-    PrecomputedLighting_SkyOcclusionSampler,// TLightMapPolicy
-    PrecomputedLighting_AOMaterialMaskSampler,// TLightMapPolicy
-    PrecomputedLighting_IndirectLightingCacheTextureSampler0,// FCachedVolumeIndirectLightingPolicy
-    PrecomputedLighting_IndirectLightingCacheTextureSampler1,// FCachedVolumeIndirectLightingPolicy
-    PrecomputedLighting_IndirectLightingCacheTextureSampler2,// FCachedVolumeIndirectLightingPolicy
-    PrecomputedLighting_StaticShadowTextureSampler,// TDistanceFieldShadowsAndLightMapPolicy
+    PrecomputedLightingBuffer_LightMapTexture,// TLightMapPolicy
+    PrecomputedLightingBuffer_SkyOcclusionTexture,// TLightMapPolicy
+    PrecomputedLightingBuffer_AOMaterialMaskTexture,// TLightMapPolicy
+    PrecomputedLightingBuffer_IndirectLightingCacheTexture0,// FCachedVolumeIndirectLightingPolicy
+    PrecomputedLightingBuffer_IndirectLightingCacheTexture1,// FCachedVolumeIndirectLightingPolicy
+    PrecomputedLightingBuffer_IndirectLightingCacheTexture2,// FCachedVolumeIndirectLightingPolicy
+    PrecomputedLightingBuffer_StaticShadowTexture,
+    PrecomputedLightingBuffer_LightMapSampler,// TLightMapPolicy
+    PrecomputedLightingBuffer_SkyOcclusionSampler,// TLightMapPolicy
+    PrecomputedLightingBuffer_AOMaterialMaskSampler,// TLightMapPolicy
+    PrecomputedLightingBuffer_IndirectLightingCacheTextureSampler0,// FCachedVolumeIndirectLightingPolicy
+    PrecomputedLightingBuffer_IndirectLightingCacheTextureSampler1,// FCachedVolumeIndirectLightingPolicy
+    PrecomputedLightingBuffer_IndirectLightingCacheTextureSampler2,// FCachedVolumeIndirectLightingPolicy
+    PrecomputedLightingBuffer_StaticShadowTextureSampler,// TDistanceFieldShadowsAndLightMapPolicy
 };
 
 #endif

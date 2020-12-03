@@ -4,10 +4,19 @@
 #include "SkeletalMeshActor.h"
 #include "PointLightActor.h"
 #include "DirectionalLightActor.h"
+#include "MapBuildDataRegistry.h"
+#include "LightMap.h"
+#include "ShadowMap.h"
 
 void UWorld::InitWorld()
 {
 	Scene = new FScene();
+
+	MapBuildData = new UMapBuildDataRegistry();
+	FMeshMapBuildData& MeshBuildData = MapBuildData->AllocateMeshBuildData(0, false);
+	MeshBuildData.LightMap = FLightMap2D::AllocateLightMap();
+	MeshBuildData.ShadowMap = FShadowMap2D::AllocateShadowMap();
+
 
 	StaticMeshActor* m1 = SpawnActor<StaticMeshActor>("Primitives/Sphere.fbx");
 	//SkeletalMeshActor* m2 = SpawnActor<SkeletalMeshActor>("./Mannequin/SK_Mannequin.FBX");

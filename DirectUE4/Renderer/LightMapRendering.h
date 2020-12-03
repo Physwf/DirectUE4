@@ -316,6 +316,14 @@ public:
 	void Bind(const FShaderParameterMap& ParameterMap)
 	{
 		BufferParameter.Bind(ParameterMap, ("PrecomputedLightingBuffer"));
+		for (auto& Pair : FPrecomputedLightingParameters::GetSRVs(FPrecomputedLightingParameters()))
+		{
+			BufferParameter.BindSRV(ParameterMap, Pair.first.c_str());
+		}
+		for (auto& Pair : FPrecomputedLightingParameters::GetSamplers(FPrecomputedLightingParameters()))
+		{
+			BufferParameter.BindSampler(ParameterMap, Pair.first.c_str());
+		}
 	}
 
 

@@ -8,6 +8,7 @@
 #include "Material.h"
 #include "MeshComponent.h"
 #include "PrimitiveSceneInfo.h"
+#include "MapBuildDataRegistry.h"
 
 #include <vector>
 #include <string>
@@ -46,6 +47,8 @@ void FStaticMeshVertexFactories::InitResources(const FStaticMeshLODResources& Lo
 	Data.LightMapCoordinateComponent = FVertexStreamComponent(LodResources.VertexBuffers.TexCoordVertexBufferRHI.Get(), 8, sizeof(Vector2), DXGI_FORMAT_R32G32_FLOAT);
 	Data.TangentsSRV = LodResources.VertexBuffers.TangentsVertexBufferSRV;
 	Data.TextureCoordinatesSRV = LodResources.VertexBuffers.TexCoordVertexBufferSRV;
+	Data.NumTexCoords = 2;
+	Data.LightMapCoordinateIndex = 1;
 	VertexFactory.SetData(Data);
 	VertexFactory.InitResource();
 }
@@ -161,6 +164,15 @@ bool FStaticMeshSceneProxy::GetMeshElement(
 // 	FPrimitiveSceneProxy::GetLightRelevance()
 // }
 
+void FStaticMeshSceneProxy::GetLCIs(std::vector<FLightCacheInterface *>& LCIs)
+{
+	for (uint32 LODIndex = 0; LODIndex < LODs.size(); ++LODIndex)
+	{
+		FLightCacheInterface* LCI = LODs[LODIndex];
+		LCIs.push_back(LCI);
+	}
+}
+
 void FStaticMeshSceneProxy::DrawStaticElements(FPrimitiveSceneInfo* PrimitiveSceneInfo)
 {
 	const FStaticMeshLODResources& LODModel = *RenderData->LODResources[0];
@@ -190,6 +202,11 @@ FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponen
 	FStaticMeshRenderData* MeshRenderData = InComponent->GetStaticMesh()->RenderData.get();
 	FStaticMeshLODResources& LODModel = *MeshRenderData->LODResources[InLODIndex];
 	const FStaticMeshVertexFactories& VFs = *InLODVertexFactories[InLODIndex];
+
+	const FMeshMapBuildData* MeshBuildData = InComponent->GetMeshMapBuildData();
+	SetLightMap(MeshBuildData->LightMap.get());
+	SetShadowMap(MeshBuildData->ShadowMap.get());
+
 
 	Sections.clear();
 	Sections.reserve(MeshRenderData->LODResources[InLODIndex]->Sections.size());

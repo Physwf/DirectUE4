@@ -356,7 +356,7 @@ public:
 	//TArray<const FPrimitiveSceneInfo*, SceneRenderingAllocator> VisibleDynamicPrimitives;
 
 	/** List of visible primitives with dirty precomputed lighting buffers */
-	//TArray<FPrimitiveSceneInfo*, SceneRenderingAllocator> DirtyPrecomputedLightingBufferPrimitives;
+	std::vector<FPrimitiveSceneInfo*> DirtyPrecomputedLightingBufferPrimitives;
 
 	/** View dependent global distance field clipmap info. */
 	//FGlobalDistanceFieldInfo GlobalDistanceFieldInfo;
@@ -673,7 +673,11 @@ public:
 
 	void AllocateShadowDepthTargets();
 
+	void PreVisibilityFrameSetup();
+
 	void ComputeViewVisibility();
+
+	void PostVisibilityFrameSetup();
 
 	void AllocatePerObjectShadowDepthTargets(std::vector<FProjectedShadowInfo*>& Shadows);
 
@@ -708,6 +712,9 @@ public:
 	void Render();
 
 	static FIntPoint GetDesiredInternalBufferSize(const FSceneViewFamily& ViewFamily);
+
+	void UpdatePrimitivePrecomputedLightingBuffers();
+	void ClearPrimitiveSingleFramePrecomputedLightingBuffers();
 public:
 	/** The view family being rendered.  This references the Views array. */
 

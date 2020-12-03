@@ -34,6 +34,7 @@ private:
 	std::vector<UActorComponent*> ActorComponents;
 public:
 	FScene* Scene;
+	class UMapBuildDataRegistry* MapBuildData;
 };
 
 extern UWorld GWorld;

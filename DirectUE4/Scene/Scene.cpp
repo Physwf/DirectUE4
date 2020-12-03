@@ -10,6 +10,39 @@
 #include "PrimitiveSceneInfo.h"
 
 
+void FIndirectLightingCache::UpdateCache(FScene* Scene, FSceneRenderer& Renderer, bool bAllowUnbuiltPreview)
+{
+	const uint32 PrimitiveCount = Scene->Primitives.size();
+
+	for (uint32 PrimitiveIndex = 0; PrimitiveIndex < PrimitiveCount; ++PrimitiveIndex)
+	{
+		FPrimitiveSceneInfo* PrimitiveSceneInfo = Scene->Primitives[PrimitiveIndex];
+		const bool bPrecomputedLightingBufferWasDirty = PrimitiveSceneInfo->NeedsPrecomputedLightingBufferUpdate();
+
+		//UpdateCachePrimitive(AttachmentGroups, PrimitiveSceneInfo, false, true, OutBlocksToUpdate, OutTransitionsOverTimeToUpdate);
+
+		// If it was already dirty, then the primitive is already in one of the view dirty primitive list at this point.
+		// This also ensures that a primitive does not get added twice to the list, which could create an array reallocation.
+		if (bPrecomputedLightingBufferWasDirty)
+		{
+			PrimitiveSceneInfo->MarkPrecomputedLightingBufferDirty();
+
+			// Check if it is visible otherwise, it will be updated next time it is visible.
+			for (uint32 ViewIndex = 0; ViewIndex < Renderer.Views.size(); ViewIndex++)
+			{
+				FViewInfo& View = Renderer.Views[ViewIndex];
+
+				//if (View.PrimitiveVisibilityMap[PrimitiveIndex])
+				{
+					// Since the update can be executed on a threaded job (see GILCUpdatePrimTaskEnabled), no reallocation must happen here.
+					//checkSlow(View.DirtyPrecomputedLightingBufferPrimitives.Num() < View.DirtyPrecomputedLightingBufferPrimitives.Max());
+					View.DirtyPrecomputedLightingBufferPrimitives.push_back(PrimitiveSceneInfo);
+					break; // We only need to add it in one of the view list.
+				}
+			}
+		}
+	}
+}
 
 void FScene::AddPrimitive(UPrimitiveComponent* Primitive)
 {
@@ -175,4 +208,3 @@ TStaticMeshDrawList<TBasePassDrawingPolicy<FUniformLightMapPolicy> >& FScene::Ge
 {
 	return BasePassUniformLightMapPolicyDrawList[DrawType];
 }
-

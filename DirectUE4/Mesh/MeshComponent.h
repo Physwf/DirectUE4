@@ -30,6 +30,8 @@ public:
 	}
 	virtual UMaterial* GetMaterial(int32 MaterialIndex) const override;
 	virtual FPrimitiveSceneProxy* CreateSceneProxy();
+
+	const class FMeshMapBuildData* GetMeshMapBuildData() const;
 private:
 	class UStaticMesh* StaticMesh;
 };

@@ -636,56 +636,12 @@ FSceneRenderer::FSceneRenderer(FSceneViewFamily& InViewFamily)
 
 }
 
-void FSceneRenderer::InitViewsPossiblyAfterPrepass()
-{
-	InitDynamicShadows();
-}
-
-
-void FSceneRenderer::ComputeViewVisibility()
-{
-	if (Scene->Lights.size() > 0)
-	{
-		VisibleLightInfos.resize(Scene->Lights.size());
-	}
-
-	for (uint32 ViewIndex = 0; ViewIndex < Views.size(); ++ViewIndex)
-	{
-		FViewInfo& View = Views[ViewIndex];
-
-		View.VisibleLightInfos.reserve(Scene->Lights.size());
-
-		for (uint32 LightIndex = 0; LightIndex < Scene->Lights.size(); LightIndex++)
-		{
-			View.VisibleLightInfos.push_back(FVisibleLightViewInfo());
-		}
-	}
-}
 
 void FSceneRenderer::PrepareViewRectsForRendering()
 {
 	for (FViewInfo& View : Views)
 	{
 		View.ViewRect = View.UnscaledViewRect;
-	}
-}
-
-void FSceneRenderer::InitViews()
-{
-	ComputeViewVisibility();
-
-	InitViewsPossiblyAfterPrepass();
-
-	for (uint32 ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
-	{
-		FViewInfo& View = Views[ViewIndex];
-		// Initialize the view's RHI resources.
-		View.InitRHIResources();
-	}
-
-	for (FPrimitiveSceneInfo* Primitive : Scene->Primitives)
-	{
-		Primitive->ConditionalUpdateUniformBuffer();
 	}
 }
 
@@ -746,5 +702,24 @@ FIntPoint FSceneRenderer::GetDesiredInternalBufferSize(const FSceneViewFamily& V
 		QuantizeSceneBufferSize(FamilySizeUpperBound, DesiredBufferSize);
 		return DesiredBufferSize;
 	}
+}
+
+void FSceneRenderer::UpdatePrimitivePrecomputedLightingBuffers()
+{
+	for (uint32 ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
+	{
+		FViewInfo& View = Views[ViewIndex];
+
+		for (uint32 Index = 0; Index < View.DirtyPrecomputedLightingBufferPrimitives.size(); ++Index)
+		{
+			FPrimitiveSceneInfo* PrimitiveSceneInfo = View.DirtyPrecomputedLightingBufferPrimitives[Index];
+			PrimitiveSceneInfo->UpdatePrecomputedLightingBuffer();
+		}
+	}
+}
+
+void FSceneRenderer::ClearPrimitiveSingleFramePrecomputedLightingBuffers()
+{
+
 }
 

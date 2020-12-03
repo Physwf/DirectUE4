@@ -41,7 +41,11 @@ public:
 		bCachedShadowMapHasPrimitives(true)
 	{}
 };
-
+class FIndirectLightingCache
+{
+public:
+	void UpdateCache(FScene* Scene, FSceneRenderer& Renderer, bool bAllowUnbuiltPreview);
+};
 /**
 * Bounding information used to cull primitives in the scene.
 */
@@ -133,7 +137,7 @@ public:
 	//TArray<const FPrecomputedLightVolume*> PrecomputedLightVolumes;
 
 	/** Interpolates and caches indirect lighting for dynamic objects. */
-	//FIndirectLightingCache IndirectLightingCache;
+	FIndirectLightingCache IndirectLightingCache;
 
 	//FVolumetricLightmapSceneData VolumetricLightmapSceneData;
 

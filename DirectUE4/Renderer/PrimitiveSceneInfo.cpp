@@ -36,6 +36,8 @@ FPrimitiveSceneInfo::~FPrimitiveSceneInfo()
 
 void FPrimitiveSceneInfo::AddToScene(bool bUpdateStaticDrawLists, bool bAddToStaticDrawLists /*= true*/)
 {
+	MarkPrecomputedLightingBufferDirty();
+
 	if (bUpdateStaticDrawLists)
 	{
 		AddStaticMeshes(bAddToStaticDrawLists);
@@ -105,5 +107,25 @@ void FPrimitiveSceneInfo::UpdateUniformBuffer()
 
 void FPrimitiveSceneInfo::UpdatePrecomputedLightingBuffer()
 {
+	IndirectLightingCacheUniformBuffer = CreatePrecomputedLightingUniformBuffer(/*&Scene->IndirectLightingCache, IndirectLightingCacheAllocation,*/ FVector(0, 0, 0), 0, /*NULL,*/ NULL);
 
+	std::vector<FLightCacheInterface*> LCIs;
+	Proxy->GetLCIs(LCIs);
+	for (uint32 i = 0; i < LCIs.size(); ++i)
+	{
+		FLightCacheInterface* LCI = LCIs[i];
+		if (!LCI) continue;
+
+		// If the LCI has no precomputed lighting buffer, it will fallback to the PrimitiveInfo buffer.
+		if (LCI->GetShadowMapInteraction().GetType() == SMIT_Texture || LCI->GetLightMapInteraction().GetType() == LMIT_Texture)
+		{
+			LCI->SetPrecomputedLightingBuffer(CreatePrecomputedLightingUniformBuffer(FVector(0, 0, 0), 0, LCI));
+			//bPrecomputedLightingBufferAssignedToProxyLCIs = true;
+		}
+		else
+		{
+			LCI->SetPrecomputedLightingBuffer(NULL);
+		}
+	}
+	bPrecomputedLightingBufferDirty = false;
 }
