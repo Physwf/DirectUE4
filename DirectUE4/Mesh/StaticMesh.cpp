@@ -20,8 +20,8 @@ void FStaticMeshLODResources::InitResources()
 	VertexBuffers.TangentsVertexBufferRHI = RHICreateVertexBuffer(VertexBuffers.TangentsVertexBuffer.size() * sizeof(Vector4), D3D11_USAGE_DEFAULT, D3D11_BIND_SHADER_RESOURCE, 0, VertexBuffers.TangentsVertexBuffer.data());
 	VertexBuffers.TexCoordVertexBufferRHI = RHICreateVertexBuffer(VertexBuffers.TexCoordVertexBuffer.size() * sizeof(Vector2), D3D11_USAGE_DEFAULT, D3D11_BIND_SHADER_RESOURCE, 0, VertexBuffers.TexCoordVertexBuffer.data());
 
-	VertexBuffers.TangentsVertexBufferSRV = RHICreateShaderResourceView(VertexBuffers.TangentsVertexBufferRHI.Get(), sizeof(Vector4) * 2, DXGI_FORMAT_R32G32B32A32_FLOAT);
-	VertexBuffers.TexCoordVertexBufferSRV = RHICreateShaderResourceView(VertexBuffers.TexCoordVertexBufferRHI.Get(), sizeof(Vector2) * 2, DXGI_FORMAT_R32G32_FLOAT);
+	VertexBuffers.TangentsVertexBufferSRV = RHICreateShaderResourceView(VertexBuffers.TangentsVertexBufferRHI.Get(), sizeof(Vector4) , DXGI_FORMAT_R32G32B32A32_FLOAT);
+	VertexBuffers.TexCoordVertexBufferSRV = RHICreateShaderResourceView(VertexBuffers.TexCoordVertexBufferRHI.Get(), sizeof(Vector2) , DXGI_FORMAT_R32G32_FLOAT);
 
 	IndexBuffer = CreateIndexBuffer(Indices.data(), sizeof(unsigned int) * Indices.size());
 
