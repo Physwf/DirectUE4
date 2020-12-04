@@ -838,7 +838,7 @@ void FSceneRenderer::AllocateShadowDepthTargets()
 
 			bool bNeedsProjection = ProjectedShadowInfo->CacheMode != SDCM_StaticPrimitivesOnly
 				// Mobile rendering only projects opaque per object shadows.
-				&& (/*FeatureLevel >= ERHIFeatureLevel::SM4 || */ProjectedShadowInfo->bPerObjectOpaqueShadow);
+				&& (/*FeatureLevel >= ERHIFeatureLevel::SM4*/true || ProjectedShadowInfo->bPerObjectOpaqueShadow);
 
 			if (bNeedsProjection)
 			{

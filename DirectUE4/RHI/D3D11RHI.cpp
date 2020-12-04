@@ -1041,8 +1041,8 @@ void SetRenderTarget(FD3D11Texture2D* NewRenderTarget, FD3D11Texture2D* NewDepth
 {
 	ID3D11RenderTargetView* RTV = NewRenderTarget ? NewRenderTarget->GetRenderTargetView(0, 0) : NULL;
 	FExclusiveDepthStencil AccessType = FExclusiveDepthStencil::DepthWrite_StencilWrite;
-	if (bClearDepth && !bClearStencil) AccessType = FExclusiveDepthStencil::DepthWrite_StencilNop;
-	if (!bClearDepth && bClearStencil) AccessType = FExclusiveDepthStencil::DepthNop_StencilWrite;
+	if (bClearDepth && !bClearStencil) AccessType = FExclusiveDepthStencil::DepthWrite_StencilRead;
+	if (!bClearDepth && bClearStencil) AccessType = FExclusiveDepthStencil::DepthRead_StencilWrite;
 	ID3D11DepthStencilView* DSV = NewDepthStencilTarget ? NewDepthStencilTarget->GetDepthStencilView(AccessType) : NULL;
 	D3D11DeviceContext->OMSetRenderTargets(1, &RTV, DSV);
 	if (bClearColor)
@@ -1692,18 +1692,18 @@ bool InitRHI()
 		ZeroMemory(&VertexDesc, sizeof(VertexDesc));
 		VertexDesc.ByteWidth = 1024;
 		VertexDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-		VertexDesc.Usage = D3D11_USAGE_DEFAULT;
-		VertexDesc.CPUAccessFlags = 0;
+		VertexDesc.Usage = D3D11_USAGE_DYNAMIC;
+		VertexDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		VertexDesc.MiscFlags = 0;
 		assert(S_OK == D3D11Device->CreateBuffer(&VertexDesc, NULL, DynamicVB.GetAddressOf()));
 	}
 	{
 		D3D11_BUFFER_DESC IndexDesc;
 		ZeroMemory(&IndexDesc, sizeof(IndexDesc));
-		IndexDesc.Usage = D3D11_USAGE_DEFAULT;
+		IndexDesc.Usage = D3D11_USAGE_DYNAMIC;
 		IndexDesc.ByteWidth = 1024;
 		IndexDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-		IndexDesc.CPUAccessFlags = 0;
+		IndexDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		IndexDesc.MiscFlags = 0;
 
 		assert(S_OK == D3D11Device->CreateBuffer(&IndexDesc, NULL, DynamicIB.GetAddressOf()));
@@ -1898,7 +1898,7 @@ void RHIBeginDrawPrimitiveUP(D3D11_PRIMITIVE_TOPOLOGY PrimitiveType, uint32 NumP
 
 void RHIEndDrawPrimitiveUP()
 {
-	UINT Stride = 0;
+	UINT Stride = sizeof(Vector4);
 	UINT Offset = 0;
 	D3D11DeviceContext->Unmap(DynamicVB.Get(),0);
 	D3D11DeviceContext->IASetVertexBuffers(0, 1, DynamicVB.GetAddressOf(), &Stride, &Offset);

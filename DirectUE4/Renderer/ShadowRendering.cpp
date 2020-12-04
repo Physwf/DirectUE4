@@ -198,6 +198,8 @@ void FProjectedShadowInfo::RenderOnePassPointLightProjection(int32 ViewIndex, co
 			assert(0);
 		}
 	}
+
+	StencilingGeometry::DrawSphere();
 }
 
 

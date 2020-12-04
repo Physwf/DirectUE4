@@ -270,7 +270,7 @@ void FPixelShaderInOut_PS_Main(
 	// #endif
 
 
-    half3 BaseColor = GetMaterialBaseColor(PMInputs);
+	half3 BaseColor = half3(0.5, 0.5, 0.5);// GetMaterialBaseColor(PMInputs);
 	half  Metallic = GetMaterialMetallic(PMInputs);
 	half  Specular = GetMaterialSpecular(PMInputs);
 

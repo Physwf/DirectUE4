@@ -8,8 +8,12 @@ FDeferredLightUniformStruct DeferredLightUniforms;
 
 void StencilingGeometry::DrawSphere()
 {
-
-}
+	CommitNonComputeShaderConstants();
+	UINT Stride = sizeof(Vector4);
+	UINT Offset = 0;
+	D3D11DeviceContext->IASetVertexBuffers(0, 1, &StencilingGeometry::GStencilSphereVertexBuffer.VertexBufferRHI, &Stride, &Offset);
+	D3D11DeviceContext->IASetIndexBuffer(StencilingGeometry::GStencilSphereIndexBuffer.IndexBufferRHI, DXGI_FORMAT_R32_UINT, 0);
+	D3D11DeviceContext->DrawIndexed(StencilingGeometry::GStencilSphereIndexBuffer.GetIndexCount(), 0, 0);}
 
 
 void StencilingGeometry::DrawVectorSphere()

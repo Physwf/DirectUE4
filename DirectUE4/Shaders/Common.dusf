@@ -370,6 +370,14 @@ void DrawRectangle(in float4 InPosition, in float2 InTexCoord,out float4 OutPosi
     OutTexCoord.xy = (DrawRectangleParameters.UVScaleBias.zw + (InTexCoord.xy * DrawRectangleParameters.UVScaleBias.xy)) * DrawRectangleParameters.InvTargetSizeAndTextureSize.xy;
 }
 
+/** Used for calculating vertex positions when drawing with DrawRectangle */
+void DrawRectangle(in float4 InPosition, out float4 OutPosition)
+{
+	OutPosition = InPosition;
+	OutPosition.xy = -1.0f + 2.0f * (DrawRectangleParameters.PosScaleBias.zw + (InPosition.xy * DrawRectangleParameters.PosScaleBias.xy)) * DrawRectangleParameters.InvTargetSizeAndTextureSize.xy;
+	OutPosition.xy *= float2(1, -1);
+}
+
 /** Converts a linear input value into a value to be stored in the light attenuation buffer. */
 MaterialFloat EncodeLightAttenuation(MaterialFloat InColor)
 {

@@ -4,7 +4,8 @@
 
 FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponent)
 	:
-	bStaticLighting(false)
+	Mobility(InComponent->Mobility)
+	, bStaticLighting(false)
 	//, bRenderInMainPass(true)
 	, bHasValidSettingsForStaticLighting(true)
 	, bCastDynamicShadow(true)

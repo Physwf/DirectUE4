@@ -72,8 +72,7 @@ public:
 
 	inline bool IsMeshShapeOftenMoving() const
 	{
-		//return Mobility == EComponentMobility::Movable || !bGoodCandidateForCachedShadowmap;
-		return false;
+		return Mobility == EComponentMobility::Movable /*|| !bGoodCandidateForCachedShadowmap*/;
 	}
 	inline bool IsMovable() const
 	{

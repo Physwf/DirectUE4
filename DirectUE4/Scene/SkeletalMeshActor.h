@@ -13,6 +13,6 @@ public:
 	virtual void PostLoad() override;
 
 	virtual void Tick(float fDeltaTime) override;
-private:
+protected:
 	USkeletalMesh * Mesh;
 };

@@ -6,6 +6,14 @@
 #include "DeferredShadingCommon.dusf"
 #include "DynamicLightingCommon.dusf"
 
+#ifndef SHADOW_QUALITY
+#define SHADOW_QUALITY 6
+#endif
+
+#ifndef USE_PCSS
+#define USE_PCSS 0
+#endif
+
 float ShadowFadeFraction;
 float ShadowSharpen;
 float4 LightPositionAndInvRadius;
@@ -47,4 +55,30 @@ void Main(in float4 SVPos : SV_Position, out float4 OutColor : SV_Target0)
     float FadedSSSShadow = lerp(1.0f, Square(SSSTransmission), ShadowFadeFraction);
 
     OutColor = EncodeLightAttenuation(half4(FadedShadow, FadedSSSShadow, FadedShadow, FadedSSSShadow));
+}
+
+// .x:DepthBias, y: unused, zw: depth projection parameters
+float4 PointLightDepthBiasAndProjParameters;
+
+/** Pixel shader for projecting a one pass point light shadow from a cube map. */
+void MainOnePassPointLightPS(
+	in float4 SVPos : SV_POSITION,
+	out float4 OutColor : SV_Target0
+)
+{
+	float2 ScreenUV = float2(SVPos.xy * View.BufferSizeAndInvSize.zw);
+	float SceneW = CalcSceneDepth(ScreenUV);
+	float2 ScreenPosition = (ScreenUV.xy - View.ScreenPositionScaleBias.wz) / View.ScreenPositionScaleBias.xy;
+	float3 WorldPosition = mul(float4(ScreenPosition.xy * SceneW, SceneW, 1), View.ScreenToWorld).xyz;
+
+	float Shadow = CubemapHardwarePCF(WorldPosition, LightPositionAndInvRadius.xyz, LightPositionAndInvRadius.w, PointLightDepthBiasAndProjParameters.x);
+
+	Shadow = saturate((Shadow - 0.5) * ShadowSharpen + 0.5);
+
+	float FadedShadow = lerp(1.0f, Square(Shadow), ShadowFadeFraction);
+
+	OutColor.b = EncodeLightAttenuation(FadedShadow);
+	OutColor.rga = 1;
+	// SSS is not correctly handled but at least it should be shadowed
+	OutColor.a = OutColor.b;
 }

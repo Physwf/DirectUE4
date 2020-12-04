@@ -345,7 +345,10 @@ void FSceneRenderTargets::AllocGBufferTargets()
 
 void FSceneRenderTargets::AllocateScreenShadowMask(ComPtr<PooledRenderTarget>& ScreenShadowMaskTexture)
 {
-
+	PooledRenderTargetDesc Desc(PooledRenderTargetDesc::Create2DDesc(GetBufferSizeXY(), PF_B8G8R8A8, FClearValueBinding::White, TexCreate_None, TexCreate_RenderTargetable, false));
+	//Desc.Flags |= GFastVRamConfig.ScreenSpaceShadowMask;
+	Desc.NumSamples = 1;// GetNumSceneColorMSAASamples(GetCurrentFeatureLevel());
+	GRenderTargetPool.FindFreeElement(Desc, ScreenShadowMaskTexture, TEXT("ScreenShadowMaskTexture"));
 }
 
 FIntPoint FSceneRenderTargets::GetShadowDepthTextureResolution() const

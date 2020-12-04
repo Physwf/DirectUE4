@@ -7,6 +7,27 @@
 #include "MapBuildDataRegistry.h"
 #include "LightMap.h"
 #include "ShadowMap.h"
+#include "MeshComponent.h"
+
+class FloorActor : public StaticMeshActor
+{
+public:
+	FloorActor(class UWorld* InOwner, const char* ResourcePath)
+		: StaticMeshActor(InOwner, ResourcePath)
+	{
+		MeshComponent->Mobility = EComponentMobility::Static;
+	}
+};
+
+class SphereActor : public StaticMeshActor
+{
+public:
+	SphereActor(class UWorld* InOwner, const char* ResourcePath)
+		:StaticMeshActor(InOwner, ResourcePath)
+	{
+		MeshComponent->Mobility = EComponentMobility::Movable;
+	}
+};
 
 void UWorld::InitWorld()
 {
@@ -18,7 +39,10 @@ void UWorld::InitWorld()
 	MeshBuildData.ShadowMap = FShadowMap2D::AllocateShadowMap();
 
 
-	StaticMeshActor* m1 = SpawnActor<StaticMeshActor>("Primitives/Sphere.fbx");
+	StaticMeshActor* Floor = SpawnActor<FloorActor>("Primitives/Floor.fbx");
+	Floor->SetActorLocation(FVector(0, 0, -100));
+	StaticMeshActor* Sphere = SpawnActor<SphereActor>("Primitives/Sphere.fbx");
+	Sphere->SetActorLocation(FVector(0,0,100));
 	//SkeletalMeshActor* m2 = SpawnActor<SkeletalMeshActor>("./Mannequin/SK_Mannequin.FBX");
 	//Mesh* m1 = SpawnActor<Mesh>("shaderBallNoCrease/shaderBall.fbx");
 	//Mesh* m1 = SpawnActor<Mesh>("k526efluton4-House_15/247_House 15_fbx.fbx");
@@ -26,7 +50,7 @@ void UWorld::InitWorld()
 	//m1->SetRotation(-3.14f / 2.0f, 0, 0);
 
 	PointLightActor* l1 = SpawnActor<PointLightActor>();
-	l1->SetActorLocation(FVector(0, 100, 0));
+	l1->SetActorLocation(FVector(0, 0 , 500));
 
 	Camera* C = SpawnActor<Camera>();
 	C->SetActorLocation(FVector(-400, 0,  0));

@@ -35,7 +35,7 @@ public:
 
 	static const char* GetSourceFilename()
 	{
-		return ("OneColorShader.usf");
+		return ("OneColorShader.dusf");
 	}
 
 	static const char* GetFunctionName()

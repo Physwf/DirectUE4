@@ -11,6 +11,6 @@ public:
 
 	virtual void Tick(float fDeltaTime) override;
 
-private:
+protected:
 	UStaticMeshComponent* MeshComponent;
 };

@@ -243,6 +243,7 @@ namespace StencilingGeometry
 
 	private:
 		int32 NumSphereVerts;
+	public:
 		ID3D11Buffer* VertexBufferRHI;
 	};
 
@@ -293,6 +294,7 @@ namespace StencilingGeometry
 
 	private:
 		int32 NumIndices;
+	public:
 		ID3D11Buffer* IndexBufferRHI;
 	};
 
@@ -365,6 +367,7 @@ namespace StencilingGeometry
 
 	protected:
 		int32 NumIndices;
+	public:
 		ID3D11Buffer* IndexBufferRHI;
 	};
 
@@ -396,7 +399,7 @@ namespace StencilingGeometry
 		}
 
 		int32 GetVertexCount() const { return NumVerts; }
-	private:
+	public:
 		ID3D11Buffer * VertexBufferRHI;
 	};
 
