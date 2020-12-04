@@ -368,6 +368,20 @@ public:
 		ScissorRect = ViewRect;
 		return FMath::ComputeProjectedSphereScissorRect(ScissorRect, GetLightToWorld().GetOrigin(), Radius, View.ViewMatrices.GetViewOrigin(), View.ViewMatrices.GetViewMatrix(), View.ViewMatrices.GetProjectionMatrix()) == 1;
 	}
+	virtual void SetScissorRect(const FSceneView& View, const FIntRect& ViewRect) const override
+	{
+		FIntRect ScissorRect;
+
+		if (GetScissorRect(ScissorRect, View, ViewRect))
+		{
+			RHISetScissorRect(true, ScissorRect.Min.X, ScissorRect.Min.Y, ScissorRect.Max.X, ScissorRect.Max.Y);
+		}
+		else
+		{
+			RHISetScissorRect(false, 0, 0, 0, 0);
+		}
+	}
+	virtual void GetParameters(FLightParameters& LightParameters) const override;
 };
 
 enum ESkyLightSourceType

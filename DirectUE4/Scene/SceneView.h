@@ -810,7 +810,10 @@ public:
 	FViewMatrices ShadowViewMatrices;
 
 	FMatrix ProjectionMatrixUnadjustedForRHI;
+	/** Maximum number of shadow cascades to render with. */
+	int32 MaxShadowCascades;
 
+	float LODDistanceFactor;
 	/** Actual field of view and that desired by the camera originally */
 	float FOV;
 	float DesiredFOV;

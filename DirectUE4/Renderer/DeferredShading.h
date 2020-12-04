@@ -706,7 +706,7 @@ public:
 	bool RenderBasePassView(FViewInfo& View, FExclusiveDepthStencil::Type BasePassDepthStencilAccess, const FDrawingPolicyRenderState& InDrawRenderState);
 	void RenderBasePass(FExclusiveDepthStencil::Type BasePassDepthStencilAccess,struct PooledRenderTarget* ForwardScreenSpaceShadowMask);
 	void RenderLights();
-
+	bool RenderShadowProjections(const FLightSceneInfo* LightSceneInfo, PooledRenderTarget* ScreenShadowMaskTexture, bool bProjectingForForwardShading, bool bMobileModulatedProjections);
 	bool RenderShadowProjections(const FLightSceneInfo* LightSceneInfo, PooledRenderTarget* ScreenShadowMaskTexture, bool& bInjectedTranslucentVolume);
 	void RenderLight(const FLightSceneInfo* LightSceneInfo, struct PooledRenderTarget* ScreenShadowMaskTexture, bool bRenderOverlap, bool bIssueDrawEvent);
 	void RenderAtmosphereFog();

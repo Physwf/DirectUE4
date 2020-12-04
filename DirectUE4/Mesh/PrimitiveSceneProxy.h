@@ -82,7 +82,6 @@ public:
 	}
 	inline EIndirectLightingCacheQuality GetIndirectLightingCacheQuality() const { return IndirectLightingCacheQuality; }
 
-	inline uint8 GetLightingChannelMask() const { return LightingChannelMask; }
 	inline uint8 GetLightingChannelStencilValue() const
 	{
 		// Flip the default channel bit so that the default value is 0, to align with the default stencil clear value and GBlackTexture value
@@ -124,7 +123,6 @@ public:
 private:
 	uint32 bStaticLighting : 1;
 
-	uint8 LightingChannelMask;
 protected:
 	uint32 bReceivesDecals : 1;
 
@@ -166,6 +164,7 @@ private:
 	/** The scene the primitive is in. */
 	FScene* Scene;
 
+	uint8 LightingChannelMask;
 	/**
 	* Id for the component this proxy belongs to.
 	* This will stay the same for the lifetime of the component, so it can be used to identify the component across re-registers.

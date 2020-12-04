@@ -27,6 +27,9 @@ void InitShading()
 	CompileGlobalShaderMap(false);
 
 	InitScreenRectangleResources();
+
+	extern void InitStencilingGeometryResources();
+	InitStencilingGeometryResources();
 }
 FViewInfo::FViewInfo(const ViewInitOptions& InitOptions)
 	: FSceneView(InitOptions),

@@ -86,6 +86,8 @@ public:
 
 	int32 OctreeId;
 
+	int32 NumUnbuiltInteractions;
+
 	FLightSceneInfo(FLightSceneProxy* InProxy);
 	virtual ~FLightSceneInfo();
 
@@ -97,4 +99,19 @@ public:
 
 	void Detach();
 
+	int32 GetDynamicShadowMapChannel() const
+	{
+		if (Proxy->HasStaticShadowing())
+		{
+			// Stationary lights get a channel assigned by ReassignStationaryLightChannels
+			return Proxy->GetPreviewShadowMapChannel();
+		}
+
+		// Movable lights get a channel assigned when they are added to the scene
+		return DynamicShadowMapChannel;
+	}
+	bool IsPrecomputedLightingValid() const;
+protected:
+	int32 DynamicShadowMapChannel;
+	uint32 bPrecomputedLightingIsValid : 1;
 };

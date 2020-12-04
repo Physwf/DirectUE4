@@ -4,10 +4,60 @@
 #include "DeferredShading.h"
 #include "GPUProfiler.h"
 
+FDeferredLightUniformStruct DeferredLightUniforms;
 
-bool FSceneRenderer::RenderShadowProjections(const FLightSceneInfo* LightSceneInfo, PooledRenderTarget* ScreenShadowMaskTexture, bool& bInjectedTranslucentVolume)
+void StencilingGeometry::DrawSphere()
 {
-	return false;
+
+}
+
+
+void StencilingGeometry::DrawVectorSphere()
+{
+
+}
+
+void StencilingGeometry::DrawCone()
+{
+
+}
+
+StencilingGeometry::TStencilSphereVertexBuffer<18, 12, Vector4> 		StencilingGeometry::GStencilSphereVertexBuffer;
+StencilingGeometry::TStencilSphereVertexBuffer<18, 12, FVector> 		StencilingGeometry::GStencilSphereVectorBuffer;
+StencilingGeometry::TStencilSphereIndexBuffer<18, 12>					StencilingGeometry::GStencilSphereIndexBuffer;
+StencilingGeometry::TStencilSphereVertexBuffer<4, 4, Vector4> 			StencilingGeometry::GLowPolyStencilSphereVertexBuffer;
+StencilingGeometry::TStencilSphereIndexBuffer<4, 4> 					StencilingGeometry::GLowPolyStencilSphereIndexBuffer;
+StencilingGeometry::FStencilConeVertexBuffer							StencilingGeometry::GStencilConeVertexBuffer;
+StencilingGeometry::FStencilConeIndexBuffer								StencilingGeometry::GStencilConeIndexBuffer;
+
+void InitStencilingGeometryResources()
+{
+	StencilingGeometry::GStencilSphereVertexBuffer.InitRHI();
+	StencilingGeometry::GStencilSphereVectorBuffer.InitRHI();
+	StencilingGeometry::GStencilSphereIndexBuffer.InitRHI();
+	StencilingGeometry::GLowPolyStencilSphereVertexBuffer.InitRHI();
+	StencilingGeometry::GLowPolyStencilSphereIndexBuffer.InitRHI();
+	StencilingGeometry::GStencilConeVertexBuffer.InitRHI();
+	StencilingGeometry::GStencilConeIndexBuffer.InitRHI();
+}
+
+
+float GetLightFadeFactor(const FSceneView& View, const FLightSceneProxy* Proxy)
+{
+	// Distance fade
+	FSphere Bounds = Proxy->GetBoundingSphere();
+
+	const float DistanceSquared = (Bounds.Center - View.ViewMatrices.GetViewOrigin()).SizeSquared();
+	extern float GMinScreenRadiusForLights;
+	float SizeFade = FMath::Square(FMath::Min(0.0002f, GMinScreenRadiusForLights / Bounds.W) * View.LODDistanceFactor) * DistanceSquared;
+	SizeFade = FMath::Clamp(6.0f - 6.0f * SizeFade, 0.0f, 1.0f);
+
+	extern float GLightMaxDrawDistanceScale;
+	float MaxDist = Proxy->GetMaxDrawDistance() * GLightMaxDrawDistanceScale;
+	float Range = Proxy->GetFadeRange();
+	float DistanceFade = MaxDist ? (MaxDist - FMath::Sqrt(DistanceSquared)) / Range : 1.0f;
+	DistanceFade = FMath::Clamp(DistanceFade, 0.0f, 1.0f);
+	return SizeFade * DistanceFade;
 }
 
 void FSceneRenderer::RenderLight(const FLightSceneInfo* LightSceneInfo, struct PooledRenderTarget* ScreenShadowMaskTexture, bool bRenderOverlap, bool bIssueDrawEvent)

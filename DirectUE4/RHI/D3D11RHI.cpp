@@ -45,6 +45,8 @@ ID3D11Texture2D* GWhiteTextureCube;
 ID3D11ShaderResourceView* GWhiteTextureCubeSRV;
 ID3D11SamplerState* GWhiteTextureCubeSamplerState;
 
+std::shared_ptr<FD3D11Texture2D> GBlackTextureDepthCube;
+
 ComPtr<ID3D11Buffer> DynamicVB;
 ComPtr<ID3D11Buffer> DynamicIB;
 
@@ -1675,14 +1677,15 @@ bool InitRHI()
 	}
 
 	{
-		FColor Black[6] = { { 0, 0, 0, 0 } };
-		GWhiteTextureCube = CreateTextureCube(1, DXGI_FORMAT_R8G8B8A8_UNORM, 1, (uint8*)&Black);
+		FColor White[6] = { { 255, 255, 255, 255 } };
+		GWhiteTextureCube = CreateTextureCube(1, DXGI_FORMAT_R8G8B8A8_UNORM, 1, (uint8*)White);
 		GWhiteTextureCubeSRV = CreateShaderResourceViewCube(GWhiteTextureCube, DXGI_FORMAT_R8G8B8A8_UNORM, 1, 0);
 		GWhiteTextureCubeSamplerState = TStaticSamplerState<D3D11_FILTER_MIN_MAG_MIP_POINT, D3D11_TEXTURE_ADDRESS_WRAP, D3D11_TEXTURE_ADDRESS_WRAP, D3D11_TEXTURE_ADDRESS_WRAP>::GetRHI();
 	}
 
 	{
-
+		FColor Black[6] = { { 0, 0, 0, 0 } };
+		GBlackTextureDepthCube = RHICreateTextureCube(1, PF_ShadowDepth, 1, 0, FClearValueBinding::Transparent, Black, sizeof(Black));
 	}
 	{
 		D3D11_BUFFER_DESC VertexDesc;
@@ -1930,7 +1933,23 @@ inline void DrawPrimitiveUP(D3D11_PRIMITIVE_TOPOLOGY PrimitiveType, uint32 NumPr
 	RHIEndDrawPrimitiveUP();
 }
 
-std::map<std::vector<D3D11_INPUT_ELEMENT_DESC>*, ComPtr<ID3D11InputLayout>> InputLayoutCache;
+
+ID3D11InputLayout* GetInputLayout(const std::vector<D3D11_INPUT_ELEMENT_DESC>* InputDecl, ID3DBlob* VSCode)
+{
+	static std::map<const std::vector<D3D11_INPUT_ELEMENT_DESC>*, ComPtr<ID3D11InputLayout>> InputLayoutCache;
+	auto It = InputLayoutCache.find(InputDecl);
+	if (It != InputLayoutCache.end())
+	{
+		return It->second.Get();
+	}
+	else
+	{
+		ComPtr<ID3D11InputLayout> InputLayout;
+		D3D11Device->CreateInputLayout(InputDecl->data(), InputDecl->size(), VSCode->GetBufferPointer(), VSCode->GetBufferSize(), InputLayout.GetAddressOf());
+		InputLayoutCache[InputDecl] = InputLayout;
+		return InputLayout.Get();
+	}
+}
 
 void DrawRectangle(float X, float Y, float SizeX, float SizeY, float U, float V, float SizeU, float SizeV, FIntPoint TargetSize, FIntPoint TextureSize, FShader* VertexShader, uint32 InstanceCount)
 {
@@ -1962,9 +1981,35 @@ void RHISetViewport(uint32 MinX, uint32 MinY, float MinZ, uint32 MaxX, uint32 Ma
 	D3D11_VIEWPORT VP = { (FLOAT)MinX ,(FLOAT)MinY ,(FLOAT)MaxX - (FLOAT)MinX,(FLOAT)MaxY - (FLOAT)MinY, MinZ ,MaxZ };
 	D3D11DeviceContext->RSSetViewports(1, &VP);
 }
+
+void RHISetScissorRect(bool bEnable, uint32 MinX, uint32 MinY, uint32 MaxX, uint32 MaxY)
+{
+	if (bEnable)
+	{
+		D3D11_RECT ScissorRect;
+		ScissorRect.left = MinX;
+		ScissorRect.right = MaxX;
+		ScissorRect.top = MinY;
+		ScissorRect.bottom = MaxY;
+		D3D11DeviceContext->RSSetScissorRects(1, &ScissorRect);
+	}
+	else
+	{
+		D3D11_RECT ScissorRect;
+		ScissorRect.left = 0;
+		ScissorRect.right = 2048;
+		ScissorRect.top = 0;
+		ScissorRect.bottom = 2048;
+		D3D11DeviceContext->RSSetScissorRects(1, &ScissorRect);
+	}
+}
+
 std::shared_ptr<std::vector<D3D11_INPUT_ELEMENT_DESC>>& GetVertexDeclarationFVector4()
 {
-	static std::shared_ptr<std::vector<D3D11_INPUT_ELEMENT_DESC>> GVector4VertexDeclaration;
+	static std::shared_ptr<std::vector<D3D11_INPUT_ELEMENT_DESC>> GVector4VertexDeclaration = std::make_shared<std::vector<D3D11_INPUT_ELEMENT_DESC>, std::vector<D3D11_INPUT_ELEMENT_DESC>::size_type, D3D11_INPUT_ELEMENT_DESC>
+		(
+			1,{ "ATTRIBUTE",0,DXGI_FORMAT_R32G32B32A32_FLOAT,0,0, D3D11_INPUT_PER_VERTEX_DATA,0 }
+		);
 	return GVector4VertexDeclaration;
 }
 
@@ -2051,19 +2096,8 @@ void ClearQuadSetup(bool bClearColor, int32 NumClearColors, const FLinearColor* 
 		PixelShader = *MRTPixelShader;
 	}
 
-	auto It = InputLayoutCache.find(GetVertexDeclarationFVector4().get());
-	if (It != InputLayoutCache.end())
-	{
-		D3D11DeviceContext->IASetInputLayout(It->second.Get());
-	}
-	else
-	{
-		ComPtr<ID3D11InputLayout> InputLayout;
-		D3D11Device->CreateInputLayout(GetVertexDeclarationFVector4()->data(), GetVertexDeclarationFVector4()->size(), VertexShader->GetCode()->GetBufferPointer(), VertexShader->GetCode()->GetBufferSize(), InputLayout.GetAddressOf());
-		InputLayoutCache[GetVertexDeclarationFVector4().get()] = InputLayout;
-		D3D11DeviceContext->IASetInputLayout(InputLayout.Get());
-	}
-
+	ID3D11InputLayout* InputLayout = GetInputLayout(GetVertexDeclarationFVector4().get(), VertexShader->GetCode().Get());
+	D3D11DeviceContext->IASetInputLayout(InputLayout);
 	//GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GetVertexDeclarationFVector4();
 	//GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
 	//GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(PixelShader);

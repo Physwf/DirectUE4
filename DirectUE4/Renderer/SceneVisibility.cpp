@@ -1,6 +1,9 @@
 #include "DeferredShading.h"
 #include "Scene.h"
 
+float GLightMaxDrawDistanceScale = 1.0f;
+float GMinScreenRadiusForLights = 0.03f;
+
 void FSceneRenderer::PreVisibilityFrameSetup()
 {
 

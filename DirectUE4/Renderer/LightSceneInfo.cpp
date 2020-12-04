@@ -2,6 +2,8 @@
 #include "UnrealMathFPU.h"
 #include "Scene.h"
 
+int32 GWholeSceneShadowUnbuiltInteractionThreshold = 500;
+
 void FLightSceneInfoCompact::Init(FLightSceneInfo* InLightSceneInfo)
 {
 	LightSceneInfo = InLightSceneInfo;
@@ -119,3 +121,7 @@ void FLightSceneInfo::Detach()
 	}
 }
 
+bool FLightSceneInfo::IsPrecomputedLightingValid() const
+{
+	return (bPrecomputedLightingIsValid && NumUnbuiltInteractions < GWholeSceneShadowUnbuiltInteractionThreshold) || !Proxy->HasStaticShadowing();
+}

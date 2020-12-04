@@ -226,6 +226,30 @@ bool FPointLightSceneProxy::GetWholeSceneProjectedShadowInitializer(const FScene
 	return true;
 }
 
+void FPointLightSceneProxy::GetParameters(FLightParameters& LightParameters) const
+{
+	LightParameters.LightPositionAndInvRadius = Vector4(
+		GetOrigin(),
+		InvRadius);
+
+	LightParameters.LightColorAndFalloffExponent = Vector4(
+		GetColor().R,
+		GetColor().G,
+		GetColor().B,
+		FalloffExponent);
+
+	const FVector ZAxis(WorldToLight.M[0][2], WorldToLight.M[1][2], WorldToLight.M[2][2]);
+
+	LightParameters.NormalizedLightDirection = -GetDirection();
+	LightParameters.NormalizedLightTangent = ZAxis;
+	LightParameters.SpotAngles = Vector2(-2.0f, 1.0f);
+	LightParameters.SpecularScale = SpecularScale;
+	LightParameters.LightSourceRadius = SourceRadius;
+	LightParameters.LightSoftSourceRadius = SoftSourceRadius;
+	LightParameters.LightSourceLength = SourceLength;
+	LightParameters.SourceTexture = GWhiteTextureSRV;
+}
+
 class FSkyLightSceneProxy* USkyLightComponent::CreateSceneProxy() const
 {
 	//if (ProcessedSkyTexture)

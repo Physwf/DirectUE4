@@ -36,6 +36,7 @@ extern ID3D11ShaderResourceView* GBlackVolumeTextureSRV;
 extern ID3D11SamplerState* GBlackVolumeTextureSamplerState;
 extern ID3D11ShaderResourceView* GWhiteTextureCubeSRV;
 extern ID3D11SamplerState* GWhiteTextureCubeSamplerState;
+extern std::shared_ptr<class FD3D11Texture2D> GBlackTextureDepthCube;
 
 extern LONG WindowWidth;
 extern LONG WindowHeight;
@@ -1477,7 +1478,6 @@ void SetRenderTarget(FD3D11Texture2D* NewRenderTarget, FD3D11Texture2D* NewDepth
 void SetRenderTarget(FD3D11Texture2D* NewRenderTarget, FD3D11Texture2D* NewDepthStencilTarget, bool bClearColor = false, bool bClearDepth = false, bool bClearStencil = false);
 void SetRenderTargets(uint32 NumRTV, FD3D11Texture2D** NewRenderTarget, FD3D11Texture2D* NewDepthStencilTarget, bool bClearColor = false, bool bClearDepth = false, bool bClearStencil = false);
 void SetRenderTargetAndClear(FD3D11Texture2D* NewRenderTarget, FD3D11Texture2D* NewDepthStencilTarget);
-
 enum ECubeFace
 {
 	CubeFace_PosX = 0,
@@ -1884,6 +1884,24 @@ inline void SetTextureParameter(
 		}
 	}
 }
+
+/**
+* Sets the value of a shader surface parameter (e.g. to access MSAA samples).
+* Template'd on shader type (e.g. pixel shader or compute shader).
+*/
+template<typename ShaderTypeRHIParamRef>
+inline void SetTextureParameter(
+	ShaderTypeRHIParamRef Shader,
+	const FShaderResourceParameter& Parameter,
+	ID3D11ShaderResourceView* NewTextureRHI
+)
+{
+	if (Parameter.IsBound())
+	{
+		SetShaderSRV(Shader, Parameter.GetBaseIndex(), NewTextureRHI);
+	}
+}
+
 struct FBoundShaderStateInput
 {
 	std::shared_ptr<std::vector<D3D11_INPUT_ELEMENT_DESC>> VertexDeclarationRHI;
@@ -1924,8 +1942,8 @@ struct FBoundShaderStateInput
 	{
 	}
 };
-
-extern std::map<std::vector<D3D11_INPUT_ELEMENT_DESC>*, ComPtr<ID3D11InputLayout>> InputLayoutCache;
+std::shared_ptr<std::vector<D3D11_INPUT_ELEMENT_DESC>>& GetVertexDeclarationFVector4();
+extern ID3D11InputLayout* GetInputLayout(const std::vector<D3D11_INPUT_ELEMENT_DESC>* InputDecl, ID3DBlob* VSCode);
 
 void DrawRectangle(
 	float X,
@@ -1946,6 +1964,7 @@ extern int32 GMaxShadowDepthBufferSizeX;
 extern int32 GMaxShadowDepthBufferSizeY;
 
 void RHISetViewport(uint32 MinX, uint32 MinY, float MinZ, uint32 MaxX, uint32 MaxY, float MaxZ);
+void RHISetScissorRect(bool bEnable, uint32 MinX, uint32 MinY, uint32 MaxX, uint32 MaxY);
 
 extern void DrawClearQuadMRT(bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil);
 extern void DrawClearQuadMRT(bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntPoint ViewSize, FIntRect ExcludeRect);

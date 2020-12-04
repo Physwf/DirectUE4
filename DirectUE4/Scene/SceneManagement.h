@@ -626,6 +626,20 @@ public:
 	EOcclusionCombineMode OcclusionCombineMode;
 };
 
+struct FLightParameters
+{
+	Vector4		LightPositionAndInvRadius;
+	Vector4		LightColorAndFalloffExponent;
+	FVector		NormalizedLightDirection;
+	FVector		NormalizedLightTangent;
+	Vector2		SpotAngles;
+	float		SpecularScale;
+	float		LightSourceRadius;
+	float		LightSoftSourceRadius;
+	float		LightSourceLength;
+	ID3D11ShaderResourceView*	SourceTexture;
+};
+
 class FLightSceneProxy
 {
 public:
@@ -654,8 +668,10 @@ public:
 	virtual bool IsRectLight() const { return false; }
 	virtual float GetLightSourceAngle() const { return 0.0f; }
 	virtual float GetEffectiveScreenRadius(const FViewMatrices& ShadowViewMatrices) const { return 0.0f; }
+	inline float GetShadowSharpen() const { return ShadowSharpen; }
 	/** Whether this light should create per object shadows for dynamic objects. */
 	virtual bool ShouldCreatePerObjectShadowsForDynamicObjects() const;
+	inline uint8 GetLightingChannelMask() const { return LightingChannelMask; }
 
 	/** Whether this light should create CSM for dynamic objects only (forward renderer) */
 	virtual bool UseCSMForDynamicObjects() const;
@@ -695,6 +711,9 @@ public:
 		ScissorRect = ViewRect;
 		return false;
 	}
+	virtual void SetScissorRect(const FSceneView& View, const FIntRect& ViewRect) const
+	{
+	}
 	inline const ULightComponent* GetLightComponent() const { return LightComponent; }
 	inline FLightSceneInfo* GetLightSceneInfo() const { return LightSceneInfo; }
 	inline const FMatrix& GetWorldToLight() const { return WorldToLight; }
@@ -712,6 +731,17 @@ public:
 	inline uint32 GetLightGuid() const { return LightGuid; }
 	virtual float GetMaxDrawDistance() const { return 0.0f; }
 	virtual float GetFadeRange() const { return 0.0f; }
+	virtual void GetParameters(FLightParameters& LightParameters) const {}
+	inline int32 GetPreviewShadowMapChannel() const { return PreviewShadowMapChannel; }
+	inline int32 GetShadowMapChannel() const { return ShadowMapChannel; }
+	inline float GetContactShadowLength() const { return ContactShadowLength; }
+	inline bool IsContactShadowLengthInWS() const { return bContactShadowLengthInWS; }
+	inline float GetVolumetricScatteringIntensity() const { return VolumetricScatteringIntensity; }
+	virtual Vector2 GetDirectionalLightDistanceFadeParameters(bool bPrecomputedLightingIsValid, int32 MaxNearCascades) const
+	{
+		return Vector2(0, 0);
+	}
+
 protected:
 	friend class FScene;
 
@@ -733,8 +763,11 @@ protected:
 	/** The light color. */
 	FLinearColor Color;
 
-	float ShadowBias;
+	float SpecularScale;
 
+	float ShadowBias;
+	/** Sharpen shadow filtering */
+	float ShadowSharpen;
 	const uint32 bStaticLighting : 1;
 	/**
 	* Whether the light has static direct shadowing.
@@ -753,8 +786,20 @@ protected:
 	const uint32 bCastTranslucentShadows : 1;
 
 	const uint8 LightType;
+	uint8 LightingChannelMask;
 
 	uint32 LightGuid;
+	int32 ShadowMapChannel;
+	int32 PreviewShadowMapChannel;
+
+	/** Length of screen space ray trace for sharp contact shadows. */
+	float ContactShadowLength;
+
+	/** True: length of screen space ray trace for sharp contact shadows is in world space. False: in screen space. */
+	bool bContactShadowLengthInWS : 1;
+
+	/** Scales this light's intensity for volumetric scattering. */
+	float VolumetricScatteringIntensity;
 
 	void SetTransform(const FMatrix& InLightToWorld, const Vector4& InPosition);
 };

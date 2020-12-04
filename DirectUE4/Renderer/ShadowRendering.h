@@ -8,6 +8,9 @@
 #include "SceneCore.h"
 #include "Material.h"
 #include "DrawingPolicy.h"
+#include "GlobalShader.h"
+#include "LightRendering.h"
+#include "SystemTextures.h"
 
 #include <functional>
 
@@ -420,6 +423,18 @@ public:
 
 	void SetStateForDepth(EShadowDepthRenderMode RenderMode, FDrawingPolicyRenderState& DrawRenderState);
 
+	static void SetBlendStateForProjection(
+		int32 ShadowMapChannel,
+		bool bIsWholeSceneDirectionalShadow,
+		bool bUseFadePlane,
+		bool bProjectingForForwardShading,
+		bool bMobileModulatedProjections);
+
+	void SetBlendStateForProjection(bool bProjectingForForwardShading, bool bMobileModulatedProjections) const;
+
+	void RenderProjection(int32 ViewIndex, const class FViewInfo* View, const class FSceneRenderer* SceneRender, bool bProjectingForForwardShading, bool bMobile) const;
+	void RenderOnePassPointLightProjection(int32 ViewIndex, const FViewInfo& View, bool bProjectingForForwardShading) const;
+
 	void AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, std::vector<FViewInfo>* ViewArray, bool bRecordShadowSubjectForMobileShading);
 
 	bool HasSubjectPrims() const;
@@ -525,4 +540,239 @@ private:
 	FShaderParameter ProjectionMatrix;
 	FShaderParameter ShadowParams;
 	FShaderParameter ClampToNearPlane;
+};
+
+/**
+* A generic vertex shader for projecting a shadow depth buffer onto the scene.
+*/
+class FShadowProjectionVertexShaderInterface : public FGlobalShader
+{
+public:
+	FShadowProjectionVertexShaderInterface() {}
+	FShadowProjectionVertexShaderInterface(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		: FGlobalShader(Initializer)
+	{ }
+
+	virtual void SetParameters(const FSceneView& View, const FProjectedShadowInfo* ShadowInfo) = 0;
+};
+
+/**
+* A vertex shader for projecting a shadow depth buffer onto the scene.
+*/
+class FShadowVolumeBoundProjectionVS : public FShadowProjectionVertexShaderInterface
+{
+	DECLARE_SHADER_TYPE(FShadowVolumeBoundProjectionVS, Global);
+public:
+
+	FShadowVolumeBoundProjectionVS() {}
+	FShadowVolumeBoundProjectionVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		: FShadowProjectionVertexShaderInterface(Initializer)
+	{
+		StencilingGeometryParameters.Bind(Initializer.ParameterMap);
+	}
+
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
+	{
+		return true;
+	}
+
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FShadowProjectionVertexShaderInterface::ModifyCompilationEnvironment(Parameters, OutEnvironment);
+		OutEnvironment.SetDefine(("USE_TRANSFORM"), (uint32)1);
+	}
+
+	void SetParameters(const FSceneView& View, const FProjectedShadowInfo* ShadowInfo) override;
+
+
+private:
+	FStencilingGeometryShaderParameters StencilingGeometryParameters;
+};
+
+/** One pass point light shadow projection parameters used by multiple shaders. */
+class FOnePassPointShadowProjectionShaderParameters
+{
+public:
+
+	void Bind(const FShaderParameterMap& ParameterMap)
+	{
+		ShadowDepthTexture.Bind(ParameterMap, ("ShadowDepthCubeTexture"));
+		ShadowDepthTexture2.Bind(ParameterMap, ("ShadowDepthCubeTexture2"));
+		ShadowDepthCubeComparisonSampler.Bind(ParameterMap, ("ShadowDepthCubeTextureSampler"));
+		ShadowViewProjectionMatrices.Bind(ParameterMap, ("ShadowViewProjectionMatrices"));
+		InvShadowmapResolution.Bind(ParameterMap, ("InvShadowmapResolution"));
+	}
+
+	template<typename ShaderRHIParamRef>
+	void Set(const ShaderRHIParamRef ShaderRHI, const FProjectedShadowInfo* ShadowInfo) const
+	{
+		FD3D11Texture2D* ShadowDepthTextureValue = ShadowInfo
+			? ShadowInfo->RenderTargets.DepthTarget->ShaderResourceTexture.get()
+			: GBlackTextureDepthCube.get();
+		if (!ShadowDepthTextureValue)
+		{
+			ShadowDepthTextureValue = GBlackTextureDepthCube.get();
+		}
+
+		SetTextureParameter(
+			ShaderRHI,
+			ShadowDepthTexture,
+			ShadowDepthTextureValue->GetShaderResourceView()
+		);
+
+		SetTextureParameter(
+			ShaderRHI,
+			ShadowDepthTexture2,
+			ShadowDepthTextureValue->GetShaderResourceView()
+		);
+
+		if (ShadowDepthCubeComparisonSampler.IsBound())
+		{
+			SetShaderSampler(
+				ShaderRHI,
+				ShadowDepthCubeComparisonSampler.GetBaseIndex(),
+				// Use a comparison sampler to do hardware PCF
+				TStaticSamplerState<D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT, D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_CLAMP, 0, 0, 0, D3D11_COMPARISON_LESS>::GetRHI()
+			);
+		}
+
+		if (ShadowInfo)
+		{
+			SetShaderValueArray<ShaderRHIParamRef, FMatrix>(
+				ShaderRHI,
+				ShadowViewProjectionMatrices,
+				ShadowInfo->OnePassShadowViewProjectionMatrices.data(),
+				ShadowInfo->OnePassShadowViewProjectionMatrices.size()
+				);
+
+			SetShaderValue(ShaderRHI, InvShadowmapResolution, 1.0f / ShadowInfo->ResolutionX);
+		}
+		else
+		{
+			std::vector<FMatrix> ZeroMatrices;
+			ZeroMatrices.resize(FMath::DivideAndRoundUp<int32>(ShadowViewProjectionMatrices.GetNumBytes(), sizeof(FMatrix)));
+
+			SetShaderValueArray<ShaderRHIParamRef, FMatrix>(
+				ShaderRHI,
+				ShadowViewProjectionMatrices,
+				ZeroMatrices.data(),
+				ZeroMatrices.size()
+				);
+
+			SetShaderValue(ShaderRHI, InvShadowmapResolution, 0);
+		}
+	}
+
+private:
+	FShaderResourceParameter ShadowDepthTexture;
+	FShaderResourceParameter ShadowDepthTexture2;
+	FShaderResourceParameter ShadowDepthCubeComparisonSampler;
+	FShaderParameter ShadowViewProjectionMatrices;
+	FShaderParameter InvShadowmapResolution;
+};
+
+/**
+* Pixel shader used to project one pass point light shadows.
+*/
+// Quality = 0 / 1
+template <uint32 Quality, bool bUseTransmission = false>
+class TOnePassPointShadowProjectionPS : public FGlobalShader
+{
+	DECLARE_SHADER_TYPE(TOnePassPointShadowProjectionPS, Global);
+public:
+
+	TOnePassPointShadowProjectionPS() {}
+
+	TOnePassPointShadowProjectionPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) :
+		FGlobalShader(Initializer)
+	{
+		SceneTextureParameters.Bind(Initializer);
+		OnePassShadowParameters.Bind(Initializer.ParameterMap);
+		ShadowDepthTextureSampler.Bind(Initializer.ParameterMap, ("ShadowDepthTextureSampler"));
+		LightPosition.Bind(Initializer.ParameterMap, ("LightPositionAndInvRadius"));
+		ShadowFadeFraction.Bind(Initializer.ParameterMap, ("ShadowFadeFraction"));
+		ShadowSharpen.Bind(Initializer.ParameterMap, ("ShadowSharpen"));
+		PointLightDepthBiasAndProjParameters.Bind(Initializer.ParameterMap, ("PointLightDepthBiasAndProjParameters"));
+		TransmissionProfilesTexture.Bind(Initializer.ParameterMap, ("SSProfilesTexture"));
+	}
+
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
+		OutEnvironment.SetDefine(("SHADOW_QUALITY"), Quality);
+		OutEnvironment.SetDefine(("USE_TRANSMISSION"), (uint32)(bUseTransmission ? 1 : 0));
+	}
+
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
+	{
+		return true;// IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
+	}
+
+	void SetParameters(
+		int32 ViewIndex,
+		const FSceneView& View,
+		const FProjectedShadowInfo* ShadowInfo
+	)
+	{
+		ID3D11PixelShader* const ShaderRHI = GetPixelShader();
+
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(ShaderRHI, View.ViewUniformBuffer.get());
+
+		SceneTextureParameters.Set(ShaderRHI, ESceneTextureSetupMode::All);
+		OnePassShadowParameters.Set(ShaderRHI, ShadowInfo);
+
+		const FLightSceneProxy& LightProxy = *(ShadowInfo->GetLightSceneInfo().Proxy);
+
+		SetShaderValue(ShaderRHI, LightPosition, Vector4(LightProxy.GetPosition(), 1.0f / LightProxy.GetRadius()));
+
+		SetShaderValue(ShaderRHI, ShadowFadeFraction, ShadowInfo->FadeAlphas[ViewIndex]);
+		SetShaderValue(ShaderRHI, ShadowSharpen, LightProxy.GetShadowSharpen() * 7.0f + 1.0f);
+		//Near is always 1? // TODO: validate
+		float Near = 1;
+		float Far = LightProxy.GetRadius();
+		Vector2 param = Vector2(Far / (Far - Near), -Near * Far / (Far - Near));
+		Vector2 projParam = Vector2(1.0f / param.Y, param.X / param.Y);
+		SetShaderValue(ShaderRHI, PointLightDepthBiasAndProjParameters, Vector4(ShadowInfo->GetShaderDepthBias(), 0.0f, projParam.X, projParam.Y));
+
+		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get();
+		{
+			const PooledRenderTarget* PooledRT = nullptr;// GetSubsufaceProfileTexture_RT((FRHICommandListImmediate&)RHICmdList);
+
+			if (!PooledRT)
+			{
+				// no subsurface profile was used yet
+				PooledRT = GSystemTextures.BlackDummy.Get();
+			}
+
+			ID3D11ShaderResourceView* const Item = PooledRT->ShaderResourceTexture->GetShaderResourceView();
+
+			SetTextureParameter(ShaderRHI, TransmissionProfilesTexture, Item);
+		}
+
+		FScene* Scene = nullptr;
+
+		if (View.Family->Scene)
+		{
+			Scene = View.Family->Scene;
+		}
+
+		SetSamplerParameter(ShaderRHI, ShadowDepthTextureSampler, TStaticSamplerState<D3D11_FILTER_MIN_MAG_MIP_POINT, D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_CLAMP>::GetRHI());
+
+		auto DeferredLightParameter = GetUniformBufferParameter<FDeferredLightUniformStruct>();
+
+		if (DeferredLightParameter.IsBound())
+		{
+			SetDeferredLightParameters(ShaderRHI, DeferredLightParameter, &ShadowInfo->GetLightSceneInfo(), View);
+		}
+	}
+
+private:
+	FSceneTextureShaderParameters SceneTextureParameters;
+	FOnePassPointShadowProjectionShaderParameters OnePassShadowParameters;
+	FShaderResourceParameter ShadowDepthTextureSampler;
+	FShaderParameter LightPosition;
+	FShaderParameter ShadowFadeFraction;
+	FShaderParameter ShadowSharpen;
+	FShaderParameter PointLightDepthBiasAndProjParameters;
+	FShaderResourceParameter TransmissionProfilesTexture;
 };

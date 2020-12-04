@@ -203,18 +203,9 @@ void CommitGraphicsPipelineState(const DrawingPolicyType& DrawingPolicy, const F
 	//check(DrawRenderState.GetDepthStencilState());
 	//check(DrawRenderState.GetBlendState());
 	//DrawRenderState.ApplyToPSO(GraphicsPSOInit);
-	auto It = InputLayoutCache.find(BoundShaderStateInput.VertexDeclarationRHI.get());
-	if (It != InputLayoutCache.end())
-	{
-		D3D11DeviceContext->IASetInputLayout(It->second.Get());
-	}
-	else
-	{
-		ComPtr<ID3D11InputLayout> InputLayout;
-		D3D11Device->CreateInputLayout(BoundShaderStateInput.VertexDeclarationRHI->data(), BoundShaderStateInput.VertexDeclarationRHI->size(), BoundShaderStateInput.VSCode->GetBufferPointer(), BoundShaderStateInput.VSCode->GetBufferSize(), InputLayout.GetAddressOf());
-		InputLayoutCache[BoundShaderStateInput.VertexDeclarationRHI.get()] = InputLayout;
-		D3D11DeviceContext->IASetInputLayout(InputLayout.Get());
-	}
+
+	ID3D11InputLayout* InputLayout = GetInputLayout(BoundShaderStateInput.VertexDeclarationRHI.get(), BoundShaderStateInput.VSCode);
+	D3D11DeviceContext->IASetInputLayout(InputLayout);
 	D3D11DeviceContext->OMSetBlendState((ID3D11BlendState*)DrawRenderState.GetBlendState(),NULL,0xffffffff);
 	D3D11DeviceContext->OMSetDepthStencilState((ID3D11DepthStencilState*)DrawRenderState.GetDepthStencilState(),0);
 
