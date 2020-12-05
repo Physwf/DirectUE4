@@ -72,6 +72,7 @@ struct FSceneTexturesUniformParameters
 		ADD_RES(SceneTexturesStruct, SceneColorTexture);
 		ADD_RES(SceneTexturesStruct, SceneDepthTexture);
 		ADD_RES(SceneTexturesStruct, GBufferATexture);
+		ADD_RES(SceneTexturesStruct, GBufferBTexture);
 		ADD_RES(SceneTexturesStruct, GBufferCTexture);
 		ADD_RES(SceneTexturesStruct, GBufferDTexture);
 		ADD_RES(SceneTexturesStruct, GBufferETexture);

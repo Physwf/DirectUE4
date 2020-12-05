@@ -1,0 +1,73 @@
+//DeferredLightUniform
+#ifndef __UniformBuffer_DeferredLightUniform_Definition__
+#define __UniformBuffer_DeferredLightUniform_Definition__
+
+cbuffer DeferredLightUniforms
+{
+    float3 DeferredLightUniforms_LightPosition;
+    float DeferredLightUniforms_LightInvRadius;
+    float3 DeferredLightUniforms_LightColor;
+    float DeferredLightUniforms_LightFalloffExponent;
+    float3 DeferredLightUniforms_NormalizedLightDirection;
+    float DeferredLightUniformsPading01;
+    float3 DeferredLightUniforms_NormalizedLightTangent;
+    float DeferredLightUniformssPading02;
+    float2 DeferredLightUniforms_SpotAngles;
+    float DeferredLightUniforms_SpecularScale;
+    float DeferredLightUniforms_SourceRadius;
+    float DeferredLightUniforms_SoftSourceRadius;
+    float DeferredLightUniforms_SourceLength;
+    float DeferredLightUniforms_ContactShadowLength;
+    float DeferredLightUniformsPading03;
+    float2 DeferredLightUniforms_DistanceFadeMAD;
+    float DeferredLightUniformsPading04;
+	float DeferredLightUniformsPading05;
+    float4 DeferredLightUniforms_ShadowMapChannelMask;
+    uint DeferredLightUniforms_ShadowedBits;
+    uint DeferredLightUniforms_LightingChannelMask;
+    float DeferredLightUniforms_VolumetricScatteringIntensity;
+    float DeferredLightUniformssPading06;
+};
+Texture2D DeferredLightUniforms_VSourceTexture;
+static const struct
+{
+    float3 LightPosition;
+    float LightInvRadius;
+    float3 LightColor;
+    float LightFalloffExponent;
+    float3 NormalizedLightDirection;
+    float3 NormalizedLightTangent;
+    float2 SpotAngles;
+    float SpecularScale;
+    float SourceRadius;
+    float SoftSourceRadius;
+    float SourceLength;
+    float ContactShadowLength;
+    float2 DistanceFadeMAD;
+    float4 ShadowMapChannelMask;
+    uint ShadowedBits;
+    uint LightingChannelMask;
+    float VolumetricScatteringIntensity;
+    Texture2D VSourceTexture;
+} DeferredLightUniforms =
+{
+    DeferredLightUniforms_LightPosition,
+    DeferredLightUniforms_LightInvRadius,
+    DeferredLightUniforms_LightColor,
+    DeferredLightUniforms_LightFalloffExponent,
+    DeferredLightUniforms_NormalizedLightDirection,
+    DeferredLightUniforms_NormalizedLightTangent,
+    DeferredLightUniforms_SpotAngles,
+    DeferredLightUniforms_SpecularScale,
+    DeferredLightUniforms_SourceRadius,
+    DeferredLightUniforms_SoftSourceRadius,
+    DeferredLightUniforms_SourceLength,
+    DeferredLightUniforms_ContactShadowLength,
+    DeferredLightUniforms_DistanceFadeMAD,
+    DeferredLightUniforms_ShadowMapChannelMask,
+    DeferredLightUniforms_ShadowedBits,
+    DeferredLightUniforms_LightingChannelMask,
+    DeferredLightUniforms_VolumetricScatteringIntensity,
+    DeferredLightUniforms_VSourceTexture
+};
+#endif

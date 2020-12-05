@@ -1029,21 +1029,104 @@ std::shared_ptr<FUniformBuffer> RHICreateUniformBuffer(
 	Result->UAVs = UAVs;
 	return Result;
 }
+ID3D11ShaderResourceView* CurrentShaderResourceViews[SF_NumFrequencies][D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT];
+int32 MaxBoundShaderResourcesIndex[SF_NumFrequencies];
 
-void SetRenderTarget(FD3D11Texture2D* NewRenderTarget, FD3D11Texture2D* NewDepthStencilTarget)
+template <EShaderFrequency ShaderFrequency>
+void InternalSetShaderResourceView(ID3D11ShaderResourceView* SRV, int32 ResourceIndex)
 {
-	ID3D11RenderTargetView* RTV = NewRenderTarget->GetRenderTargetView(0, 0);
+	assert(ResourceIndex < D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT);
+
+	int32& MaxResourceIndex = MaxBoundShaderResourcesIndex[ShaderFrequency];
+
+	if (SRV)
+	{
+		// We are binding a new SRV.
+		// Update the max resource index to the highest bound resource index.
+		MaxResourceIndex = FMath::Max(MaxResourceIndex, ResourceIndex);
+	}
+	else 
+	{
+		// If this was the highest bound resource...
+		if (MaxResourceIndex == ResourceIndex)
+		{
+			// Adjust the max resource index downwards until we
+			// hit the next non-null slot, or we've run out of slots.
+			do
+			{
+				MaxResourceIndex--;
+			} while (MaxResourceIndex >= 0 && CurrentShaderResourceViews[ShaderFrequency][MaxResourceIndex] == nullptr);
+		}
+	}
+
+	if ((CurrentShaderResourceViews[ShaderFrequency][ResourceIndex] != SRV) /*|| GD3D11SkipStateCaching*/)
+	{
+		if (SRV)
+		{
+			SRV->AddRef();
+		}
+		if (CurrentShaderResourceViews[ShaderFrequency][ResourceIndex])
+		{
+			CurrentShaderResourceViews[ShaderFrequency][ResourceIndex]->Release();
+		}
+		CurrentShaderResourceViews[ShaderFrequency][ResourceIndex] = SRV;
+		switch (ShaderFrequency)
+		{
+		case SF_Vertex:		D3D11DeviceContext->VSSetShaderResources(ResourceIndex, 1, &SRV); break;
+		case SF_Hull:		D3D11DeviceContext->HSSetShaderResources(ResourceIndex, 1, &SRV); break;
+		case SF_Domain:		D3D11DeviceContext->DSSetShaderResources(ResourceIndex, 1, &SRV); break;
+		case SF_Geometry:	D3D11DeviceContext->GSSetShaderResources(ResourceIndex, 1, &SRV); break;
+		case SF_Pixel:		D3D11DeviceContext->PSSetShaderResources(ResourceIndex, 1, &SRV); break;
+		case SF_Compute:	D3D11DeviceContext->CSSetShaderResources(ResourceIndex, 1, &SRV); break;
+		}
+	}
+}
+
+template <EShaderFrequency ShaderFrequency>
+void ClearShaderResourceViews(ID3D11ShaderResourceView* Resource)
+{
+	int32 MaxIndex = MaxBoundShaderResourcesIndex[ShaderFrequency];
+	for (int32 ResourceIndex = MaxIndex; ResourceIndex >= 0; --ResourceIndex)
+	{
+		if (CurrentShaderResourceViews[ShaderFrequency][ResourceIndex] == Resource)
+		{
+			// Unset the SRV from the device context
+			InternalSetShaderResourceView<ShaderFrequency>(nullptr, ResourceIndex);
+		}
+	}
+}
+
+void ConditionalClearShaderResource(ID3D11ShaderResourceView* Resource)
+{
+	assert(Resource);
+	ClearShaderResourceViews<SF_Vertex>(Resource);
+	ClearShaderResourceViews<SF_Hull>(Resource);
+	ClearShaderResourceViews<SF_Domain>(Resource);
+	ClearShaderResourceViews<SF_Pixel>(Resource);
+	ClearShaderResourceViews<SF_Geometry>(Resource);
+	ClearShaderResourceViews<SF_Compute>(Resource);
+}
+
+void SetRenderTarget(FD3D11Texture2D* NewRenderTarget, FD3D11Texture2D* NewDepthStencilTarget, int32 MipIndex/* = 0*/, int32 ArraySliceIndex /*= 0*/)
+{
+	ID3D11RenderTargetView* RTV = NewRenderTarget->GetRenderTargetView(MipIndex, ArraySliceIndex);
 	ID3D11DepthStencilView* DSV = NewDepthStencilTarget ? NewDepthStencilTarget->GetDepthStencilView(FExclusiveDepthStencil::DepthWrite_StencilWrite) : NULL;
+	if (RTV) ConditionalClearShaderResource(NewRenderTarget->GetShaderResourceView());
+	if (DSV) ConditionalClearShaderResource(NewDepthStencilTarget->GetShaderResourceView());
 	D3D11DeviceContext->OMSetRenderTargets(1, &RTV, DSV);
 }
 
-void SetRenderTarget(FD3D11Texture2D* NewRenderTarget, FD3D11Texture2D* NewDepthStencilTarget, bool bClearColor/*=false*/, bool bClearDepth /*= false*/, bool bClearStencil /*= false*/)
+void SetRenderTarget(FD3D11Texture2D* NewRenderTarget, FD3D11Texture2D* NewDepthStencilTarget, bool bClearColor/*=false*/, bool bClearDepth /*= false*/, bool bClearStencil /*= false*/, int32 MipIndex/* = 0*/, int32 ArraySliceIndex /*= 0*/)
 {
-	ID3D11RenderTargetView* RTV = NewRenderTarget ? NewRenderTarget->GetRenderTargetView(0, 0) : NULL;
+	ID3D11RenderTargetView* RTV = NewRenderTarget ? NewRenderTarget->GetRenderTargetView(MipIndex, ArraySliceIndex) : NULL;
 	FExclusiveDepthStencil AccessType = FExclusiveDepthStencil::DepthWrite_StencilWrite;
 	if (bClearDepth && !bClearStencil) AccessType = FExclusiveDepthStencil::DepthWrite_StencilRead;
 	if (!bClearDepth && bClearStencil) AccessType = FExclusiveDepthStencil::DepthRead_StencilWrite;
 	ID3D11DepthStencilView* DSV = NewDepthStencilTarget ? NewDepthStencilTarget->GetDepthStencilView(AccessType) : NULL;
+
+	if (RTV) ConditionalClearShaderResource(NewRenderTarget->GetShaderResourceView());
+	if (DSV) ConditionalClearShaderResource(NewDepthStencilTarget->GetShaderResourceView());
+
 	D3D11DeviceContext->OMSetRenderTargets(1, &RTV, DSV);
 	if (bClearColor)
 	{
@@ -1073,18 +1156,21 @@ void SetRenderTargets(uint32 NumRTV, FD3D11Texture2D** NewRenderTarget, FD3D11Te
 	{
 		ID3D11RenderTargetView* RTV = NewRenderTarget[i] ? NewRenderTarget[i]->GetRenderTargetView(0, 0) : NULL;
 		RTVs.push_back(RTV);
+		if (RTV) ConditionalClearShaderResource(NewRenderTarget[i]->GetShaderResourceView());
 		if (bClearColor)
 		{
 			assert(RTV);
+			ConditionalClearShaderResource(NewRenderTarget[i]->GetShaderResourceView());
 			FLinearColor ClearColor = NewRenderTarget[i]->GetClearColor();
 			D3D11DeviceContext->ClearRenderTargetView(RTV, (float*)&ClearColor);
 		}
 	}
 
 	FExclusiveDepthStencil AccessType = FExclusiveDepthStencil::DepthWrite_StencilWrite;
-	if (bClearDepth && !bClearStencil) AccessType = FExclusiveDepthStencil::DepthWrite_StencilNop;
-	if (!bClearDepth && bClearStencil) AccessType = FExclusiveDepthStencil::DepthNop_StencilWrite;
+	if (bClearDepth && !bClearStencil) AccessType = FExclusiveDepthStencil::DepthWrite_StencilRead;
+	if (!bClearDepth && bClearStencil) AccessType = FExclusiveDepthStencil::DepthRead_StencilWrite;
 	ID3D11DepthStencilView* DSV = NewDepthStencilTarget ? NewDepthStencilTarget->GetDepthStencilView(AccessType) : NULL;
+	if (DSV) ConditionalClearShaderResource(NewDepthStencilTarget->GetShaderResourceView());
 	D3D11DeviceContext->OMSetRenderTargets(NumRTV, RTVs.data(), DSV);
 	if (bClearDepth || bClearStencil)
 	{
@@ -1936,17 +2022,24 @@ inline void DrawPrimitiveUP(D3D11_PRIMITIVE_TOPOLOGY PrimitiveType, uint32 NumPr
 
 ID3D11InputLayout* GetInputLayout(const std::vector<D3D11_INPUT_ELEMENT_DESC>* InputDecl, ID3DBlob* VSCode)
 {
-	static std::map<const std::vector<D3D11_INPUT_ELEMENT_DESC>*, ComPtr<ID3D11InputLayout>> InputLayoutCache;
-	auto It = InputLayoutCache.find(InputDecl);
-	if (It != InputLayoutCache.end())
+	assert(VSCode && InputDecl);
+
+	static std::map<const std::vector<D3D11_INPUT_ELEMENT_DESC>*, std::map<ID3DBlob*, ComPtr<ID3D11InputLayout>>> InputLayoutCache;
+	auto InternalMapIt = InputLayoutCache.find(InputDecl);
+	if (InternalMapIt != InputLayoutCache.end())
 	{
-		return It->second.Get();
+		std::map<ID3DBlob*, ComPtr<ID3D11InputLayout>>& InternalMap = InternalMapIt->second;
+		auto It = InternalMap.find(VSCode);
+		if (It != InternalMap.end())
+		{
+			return It->second.Get();
+		}
 	}
-	else
+	
 	{
 		ComPtr<ID3D11InputLayout> InputLayout;
 		D3D11Device->CreateInputLayout(InputDecl->data(), InputDecl->size(), VSCode->GetBufferPointer(), VSCode->GetBufferSize(), InputLayout.GetAddressOf());
-		InputLayoutCache[InputDecl] = InputLayout;
+		InputLayoutCache[InputDecl][VSCode] = InputLayout;
 		return InputLayout.Get();
 	}
 }

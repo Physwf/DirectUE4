@@ -17,6 +17,7 @@ FLightSceneProxy::FLightSceneProxy(const ULightComponent* InLightComponent)
 	, bCastStaticShadow(InLightComponent->CastShadows && InLightComponent->CastStaticShadows)
 	, bCastTranslucentShadows(InLightComponent->CastTranslucentShadows)
 	, LightType(InLightComponent->GetLightType())
+	, bTransmission(false)
 {
 
 }

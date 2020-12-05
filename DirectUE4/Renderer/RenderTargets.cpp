@@ -17,19 +17,7 @@ void FSceneRenderTargets::BeginRenderingSceneColor(bool bClearColor, bool bClear
 
 void FSceneRenderTargets::BeginRenderingPrePass(bool bClear)
 {
-	ID3D11DepthStencilView* DVS = GetSceneDepthSurface()->GetDepthStencilView(FExclusiveDepthStencil::DepthWrite);
-	if (bClear)
-	{
-		float fClearDepth;
-		UINT StencialClearValue;
-		GetSceneDepthSurface()->GetDepthStencilClearValue(fClearDepth, StencialClearValue);
-		D3D11DeviceContext->OMSetRenderTargets(0, NULL, DVS);
-		D3D11DeviceContext->ClearDepthStencilView(DVS, D3D11_CLEAR_DEPTH, fClearDepth, StencialClearValue);
-	}
-	else
-	{
-		D3D11DeviceContext->OMSetRenderTargets(0, NULL, DVS);
-	}
+	SetRenderTarget(NULL, GetSceneDepthSurface().get(), false, true, true);
 }
 
 void FSceneRenderTargets::FinishRenderingPrePass()
@@ -532,22 +520,22 @@ void SetupSceneTextureUniformParameters(FSceneRenderTargets& SceneContext, EScen
 		const ComPtr<PooledRenderTarget> GBufferAToUse = bCanReadGBufferUniforms && SceneContext.GBufferA ? SceneContext.GBufferA : GSystemTextures.BlackDummy;
 		const ComPtr<PooledRenderTarget> GBufferBToUse = bCanReadGBufferUniforms && SceneContext.GBufferB ? SceneContext.GBufferB : GSystemTextures.BlackDummy;
 		const ComPtr<PooledRenderTarget> GBufferCToUse = bCanReadGBufferUniforms && SceneContext.GBufferC ? SceneContext.GBufferC : GSystemTextures.BlackDummy;
-		//const ComPtr<PooledRenderTarget> GBufferDToUse = bCanReadGBufferUniforms && SceneContext.GBufferD ? SceneContext.GBufferD : GSystemTextures.BlackDummy;
-		//const ComPtr<PooledRenderTarget> GBufferEToUse = bCanReadGBufferUniforms && SceneContext.GBufferE ? SceneContext.GBufferE : GSystemTextures.BlackDummy;
+		const ComPtr<PooledRenderTarget> GBufferDToUse = bCanReadGBufferUniforms && SceneContext.GBufferD ? SceneContext.GBufferD : GSystemTextures.BlackDummy;
+		const ComPtr<PooledRenderTarget> GBufferEToUse = bCanReadGBufferUniforms && SceneContext.GBufferE ? SceneContext.GBufferE : GSystemTextures.BlackDummy;
 		//const ComPtr<PooledRenderTarget> GBufferVelocityToUse = bCanReadGBufferUniforms && SceneContext.GBufferVelocity ? SceneContext.GBufferVelocity : GSystemTextures.BlackDummy;
 
 		SceneTextureParameters.GBufferATexture = GBufferAToUse->ShaderResourceTexture->GetShaderResourceView();
 		SceneTextureParameters.GBufferBTexture = GBufferBToUse->ShaderResourceTexture->GetShaderResourceView();
 		SceneTextureParameters.GBufferCTexture = GBufferCToUse->ShaderResourceTexture->GetShaderResourceView();
-		//SceneTextureParameters.GBufferDTexture = GBufferDToUse->ShaderResourceTexture->GetShaderResourceView();
-		//SceneTextureParameters.GBufferETexture = GBufferEToUse->ShaderResourceTexture->GetShaderResourceView();
+		SceneTextureParameters.GBufferDTexture = GBufferDToUse->ShaderResourceTexture->GetShaderResourceView();
+		SceneTextureParameters.GBufferETexture = GBufferEToUse->ShaderResourceTexture->GetShaderResourceView();
 		//SceneTextureParameters.GBufferVelocityTexture = GBufferVelocityToUse->ShaderResourceTexture->GetShaderResourceView();
 
 		SceneTextureParameters.GBufferATextureNonMS = GBufferAToUse->ShaderResourceTexture->GetShaderResourceView();
 		SceneTextureParameters.GBufferBTextureNonMS = GBufferBToUse->ShaderResourceTexture->GetShaderResourceView();
 		SceneTextureParameters.GBufferCTextureNonMS = GBufferCToUse->ShaderResourceTexture->GetShaderResourceView();
-		//SceneTextureParameters.GBufferDTextureNonMS = GBufferDToUse->ShaderResourceTexture->GetShaderResourceView();
-		//SceneTextureParameters.GBufferETextureNonMS = GBufferEToUse->ShaderResourceTexture->GetShaderResourceView();
+		SceneTextureParameters.GBufferDTextureNonMS = GBufferDToUse->ShaderResourceTexture->GetShaderResourceView();
+		SceneTextureParameters.GBufferETextureNonMS = GBufferEToUse->ShaderResourceTexture->GetShaderResourceView();
 		//SceneTextureParameters.GBufferVelocityTextureNonMS = GBufferVelocityToUse->ShaderResourceTexture->GetShaderResourceView();
 
 		SceneTextureParameters.GBufferATextureSampler = TStaticSamplerState<>::GetRHI();

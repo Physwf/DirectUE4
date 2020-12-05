@@ -10,7 +10,7 @@
 #define SUBSURFACE_CHANNEL_MODE 1
 
 
-struct LightAccumulator
+struct FLightAccumulator
 {
     float3 TotalLight;
 
@@ -21,7 +21,7 @@ struct LightAccumulator
     float EstimatedCost;
 };
 
-void LightAccumulator_Add(inout LightAccumulator In, float3 TotalLight, float3 ScatterableLight, float3 CommonMultiplier, const bool bNeedsSeparateSubsurfaceLightAccumulation)
+void LightAccumulator_Add(inout FLightAccumulator In, float3 TotalLight, float3 ScatterableLight, float3 CommonMultiplier, const bool bNeedsSeparateSubsurfaceLightAccumulation)
 {
     In.TotalLight += TotalLight * CommonMultiplier;
 
@@ -42,7 +42,7 @@ void LightAccumulator_Add(inout LightAccumulator In, float3 TotalLight, float3 S
     }
 }
 
-float4 LightAccumulator_GetResult(LightAccumulator In)
+float4 LightAccumulator_GetResult(FLightAccumulator In)
 {
     float4 Ret;
 

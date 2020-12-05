@@ -7,7 +7,7 @@
 #include "ShadingModels.dusf"
 #include "CapsuleLight.dusf"
 
-float IntegrateLight(CapsuleLight Capsule, bool bInverseSquared)
+float IntegrateLight(FCapsuleLight Capsule, bool bInverseSquared)
 {
     float Falloff;
 
@@ -26,9 +26,9 @@ float IntegrateLight(CapsuleLight Capsule, bool bInverseSquared)
     return Falloff;
 }
 
-DirectLighting IntegrateBxDF(GBufferData GBuffer, half3 N, half3 V, CapsuleLight Capsule, ShadowTerms Shadow, bool bInverseSquared)
+FDirectLighting IntegrateBxDF(FGBufferData GBuffer, half3 N, half3 V, FCapsuleLight Capsule, FShadowTerms Shadow, bool bInverseSquared)
 {
-    DirectLighting DL = (DirectLighting)0;
+    FDirectLighting DL = (FDirectLighting)0;
 
     float NoL;
     float Falloff;
@@ -72,12 +72,12 @@ DirectLighting IntegrateBxDF(GBufferData GBuffer, half3 N, half3 V, CapsuleLight
     GBuffer.Roughness = max(GBuffer.Roughness,0.02);
     float a = Pow2(GBuffer.Roughness);
 
-    AreaLight AL;
+    FAreaLight AL;
     AL.SphereSinAlpha = saturate( Capsule.Radius * InvDist * (1 - a) );
 	AL.SphereSinAlphaSoft = saturate( Capsule.SoftRadius * InvDist );
 	AL.LineCosSubtended = LineCosSubtended;
 	AL.FalloffColor = 1;
-	AL.Rect = (RectLight)0;
+	AL.Rect = (FRectLight)0;
 	AL.bIsRect = false;
 
     return IntegrateBxDF( GBuffer, N, V, L, Falloff, NoL, AL, Shadow );

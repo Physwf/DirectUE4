@@ -381,7 +381,7 @@ using FShaderPermutationNone = TShaderPermutationDomain<>;
 #define DECLARE_SHADER_PERMUTATION_IMPL(InDefineName,PermutationMetaType,...) \
 	public PermutationMetaType<__VA_ARGS__> { \
 	public: \
-		static constexpr const wchar_t* DefineName = TEXT(InDefineName); \
+		static constexpr const char* DefineName = (InDefineName); \
 	}
 
 
@@ -392,7 +392,7 @@ using FShaderPermutationNone = TShaderPermutationDomain<>;
 #define SHADER_PERMUTATION_BOOL(InDefineName) \
 	public FShaderPermutationBool { \
 	public: \
-		static constexpr const wchar_t* DefineName = TEXT(InDefineName); \
+		static constexpr const char* DefineName = (InDefineName); \
 	}
 
 /** Implements an integer shader permutation dimensions with N permutation values from [[0; N[[. Meant to be used like so:

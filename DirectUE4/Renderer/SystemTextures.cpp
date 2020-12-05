@@ -1,5 +1,8 @@
 #include "SystemTextures.h"
 #include "RenderTargets.h"
+#include "UnrealTemplates.h"
+#include "LTC.h"
+#include "UnrealTemplates.h"
 
 void FSystemTextures::ReleaseDynamicRHI()
 {
@@ -286,6 +289,7 @@ void FSystemTextures::InternalInitializeTextures()
 			Desc.Extent.X * Desc.Extent.Y * sizeof(uint32),
 			(const uint8*)DestBuffer.GetData());
 	}
+#endif
 
 	// Create the SSAO randomization texture
 	//if (InFeatureLevel >= ERHIFeatureLevel::SM4)
@@ -318,11 +322,11 @@ void FSystemTextures::InternalInitializeTextures()
 			// could be PF_V8U8 to save shader instructions but that doesn't work on all hardware
 			PooledRenderTargetDesc Desc(PooledRenderTargetDesc::Create2DDesc(FIntPoint(64, 64), PF_R8G8, FClearValueBinding::None, TexCreate_HideInVisualizeTexture, TexCreate_None | TexCreate_NoFastClear, false));
 			Desc.AutoWritable = false;
-			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SSAORandomization, TEXT("SSAORandomization"), true);
+			GRenderTargetPool.FindFreeElement(Desc, SSAORandomization, TEXT("SSAORandomization"));
 			// Write the contents of the texture.
-			uint32 DestStride;
-			uint8* DestBuffer = (uint8*)RHICmdList.LockTexture2D((FTexture2DRHIRef&)SSAORandomization->ShaderResourceTexture, 0, RLM_WriteOnly, DestStride, false);
-
+			uint32 DestStride = Desc.Extent.X * GPixelFormats[PF_R8G8].BlockBytes;
+			//uint8* DestBuffer = (uint8*)RHICmdList.LockTexture2D((FTexture2DRHIRef&)SSAORandomization->ShaderResourceTexture, 0, RLM_WriteOnly, DestStride, false);
+			uint8* DestBuffer = new uint8[Desc.Extent.X * Desc.Extent.Y * GPixelFormats[PF_R8G8].BlockBytes];
 			for (int32 y = 0; y < Desc.Extent.Y; ++y)
 			{
 				for (int32 x = 0; x < Desc.Extent.X; ++x)
@@ -335,8 +339,11 @@ void FSystemTextures::InternalInitializeTextures()
 					Dest[1] = Bases[Index].G;
 				}
 			}
+			D3D11DeviceContext->UpdateSubresource(SSAORandomization->ShaderResourceTexture->GetResource(), 0, NULL, DestBuffer, DestStride, 0);
+			delete DestBuffer;
 		}
-		RHICmdList.UnlockTexture2D((FTexture2DRHIRef&)SSAORandomization->ShaderResourceTexture, 0, false);
+	
+		//RHICmdList.UnlockTexture2D((FTexture2DRHIRef&)SSAORandomization->ShaderResourceTexture, 0, false);
 
 		{
 			// for testing, with 128x128 R8G8 we are very close to the reference (if lower res is needed we might have to add an offset to counter the 0.5f texel shift)
@@ -357,10 +364,11 @@ void FSystemTextures::InternalInitializeTextures()
 				Desc.Extent.Y = 128;
 			}
 
-			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, PreintegratedGF, TEXT("PreintegratedGF"), true);
+			GRenderTargetPool.FindFreeElement(Desc, PreintegratedGF, TEXT("PreintegratedGF"));
 			// Write the contents of the texture.
-			uint32 DestStride;
-			uint8* DestBuffer = (uint8*)RHICmdList.LockTexture2D((FTexture2DRHIRef&)PreintegratedGF->ShaderResourceTexture, 0, RLM_WriteOnly, DestStride, false);
+			uint32 DestStride = Desc.Extent.X * GPixelFormats[Format].BlockBytes;
+			//uint8* DestBuffer = (uint8*)RHICmdList.LockTexture2D((FTexture2DRHIRef&)PreintegratedGF->ShaderResourceTexture, 0, RLM_WriteOnly, DestStride, false);
+			uint8* DestBuffer = new uint8[Desc.Extent.X * Desc.Extent.Y * GPixelFormats[Format].BlockBytes];
 
 			// x is NoV, y is roughness
 			for (int32 y = 0; y < Desc.Extent.Y; y++)
@@ -455,7 +463,7 @@ void FSystemTextures::InternalInitializeTextures()
 					}
 					else
 					{
-						check(Desc.Format == PF_R8G8);
+						assert(Desc.Format == PF_R8G8);
 
 						uint8* Dest = (uint8*)(DestBuffer + x * 2 + y * DestStride);
 						Dest[0] = (int32)(FMath::Clamp(A, 0.0f, 1.0f) * 255.9999f);
@@ -463,18 +471,20 @@ void FSystemTextures::InternalInitializeTextures()
 					}
 				}
 			}
-			RHICmdList.UnlockTexture2D((FTexture2DRHIRef&)PreintegratedGF->ShaderResourceTexture, 0, false);
+			D3D11DeviceContext->UpdateSubresource(PreintegratedGF->ShaderResourceTexture->GetResource(), 0, NULL, DestBuffer, DestStride, 0);
+			delete DestBuffer;
+			//RHICmdList.UnlockTexture2D((FTexture2DRHIRef&)PreintegratedGF->ShaderResourceTexture, 0, false);
 		}
 
 		{
-		PooledRenderTargetDesc Desc(PooledRenderTargetDesc::Create2DDesc(FIntPoint(LTC_Size, LTC_Size), PF_FloatRGBA, FClearValueBinding::None, TexCreate_FastVRAM, TexCreate_None, false));
+			PooledRenderTargetDesc Desc(PooledRenderTargetDesc::Create2DDesc(FIntPoint(LTC_Size, LTC_Size), PF_FloatRGBA, FClearValueBinding::None, TexCreate_FastVRAM, TexCreate_None, false));
 			Desc.AutoWritable = false;
 
-			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, LTCMat, TEXT("LTCMat"));
+			GRenderTargetPool.FindFreeElement(Desc, LTCMat, TEXT("LTCMat"));
 			// Write the contents of the texture.
-			uint32 DestStride;
-			uint8* DestBuffer = (uint8*)RHICmdList.LockTexture2D((FTexture2DRHIRef&)LTCMat->ShaderResourceTexture, 0, RLM_WriteOnly, DestStride, false);
-
+			int32 DestStride = Desc.Extent.X * GPixelFormats[PF_FloatRGBA].BlockBytes;
+			//uint8* DestBuffer = (uint8*)RHICmdList.LockTexture2D((FTexture2DRHIRef&)LTCMat->ShaderResourceTexture, 0, RLM_WriteOnly, DestStride, false);
+			uint8* DestBuffer = new uint8[Desc.Extent.X * Desc.Extent.Y * GPixelFormats[PF_FloatRGBA].BlockBytes];
 			for (int32 y = 0; y < Desc.Extent.Y; ++y)
 			{
 				for (int32 x = 0; x < Desc.Extent.X; ++x)
@@ -485,18 +495,19 @@ void FSystemTextures::InternalInitializeTextures()
 						Dest[k] = FFloat16(LTC_Mat[4 * (x + y * LTC_Size) + k]).Encoded;
 				}
 			}
-			RHICmdList.UnlockTexture2D((FTexture2DRHIRef&)LTCMat->ShaderResourceTexture, 0, false);
+			D3D11DeviceContext->UpdateSubresource(LTCMat->ShaderResourceTexture->GetResource(), 0, NULL, DestBuffer, DestStride, 0);
+			//RHICmdList.UnlockTexture2D((FTexture2DRHIRef&)LTCMat->ShaderResourceTexture, 0, false);
 		}
 
 		{
 			PooledRenderTargetDesc Desc(PooledRenderTargetDesc::Create2DDesc(FIntPoint(LTC_Size, LTC_Size), PF_G16R16F, FClearValueBinding::None, TexCreate_FastVRAM, TexCreate_None, false));
 			Desc.AutoWritable = false;
 
-			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, LTCAmp, TEXT("LTCAmp"));
+			GRenderTargetPool.FindFreeElement(Desc, LTCAmp, TEXT("LTCAmp"));
 			// Write the contents of the texture.
-			uint32 DestStride;
-			uint8* DestBuffer = (uint8*)RHICmdList.LockTexture2D((FTexture2DRHIRef&)LTCAmp->ShaderResourceTexture, 0, RLM_WriteOnly, DestStride, false);
-
+			int32 DestStride = Desc.Extent.X * GPixelFormats[PF_G16R16F].BlockBytes;
+			//uint8* DestBuffer = (uint8*)RHICmdList.LockTexture2D((FTexture2DRHIRef&)LTCAmp->ShaderResourceTexture, 0, RLM_WriteOnly, DestStride, false);
+			uint8* DestBuffer = new uint8[Desc.Extent.X * Desc.Extent.Y * GPixelFormats[PF_G16R16F].BlockBytes];
 			for (int32 y = 0; y < Desc.Extent.Y; ++y)
 			{
 				for (int32 x = 0; x < Desc.Extent.X; ++x)
@@ -507,10 +518,10 @@ void FSystemTextures::InternalInitializeTextures()
 						Dest[k] = FFloat16(LTC_Amp[4 * (x + y * LTC_Size) + k]).Encoded;
 				}
 			}
-			RHICmdList.UnlockTexture2D((FTexture2DRHIRef&)LTCAmp->ShaderResourceTexture, 0, false);
+			D3D11DeviceContext->UpdateSubresource(LTCAmp->ShaderResourceTexture->GetResource(), 0, NULL, DestBuffer, DestStride, 0);
+			//RHICmdList.UnlockTexture2D((FTexture2DRHIRef&)LTCAmp->ShaderResourceTexture, 0, false);
 		}
 	}
-#endif
 	// Initialize textures only once.
 	bTexturesInitialized = true;
 }

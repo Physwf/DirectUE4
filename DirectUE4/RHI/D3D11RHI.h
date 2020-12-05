@@ -1474,8 +1474,8 @@ private:
 	uint8* Contents;
 };
 
-void SetRenderTarget(FD3D11Texture2D* NewRenderTarget, FD3D11Texture2D* NewDepthStencilTarget);
-void SetRenderTarget(FD3D11Texture2D* NewRenderTarget, FD3D11Texture2D* NewDepthStencilTarget, bool bClearColor = false, bool bClearDepth = false, bool bClearStencil = false);
+void SetRenderTarget(FD3D11Texture2D* NewRenderTarget, FD3D11Texture2D* NewDepthStencilTarget, int32 MipIndex=0, int32 ArraySliceIndex=0);
+void SetRenderTarget(FD3D11Texture2D* NewRenderTarget, FD3D11Texture2D* NewDepthStencilTarget, bool bClearColor = false, bool bClearDepth = false, bool bClearStencil = false, int32 MipIndex = 0, int32 ArraySliceIndex = 0);
 void SetRenderTargets(uint32 NumRTV, FD3D11Texture2D** NewRenderTarget, FD3D11Texture2D* NewDepthStencilTarget, bool bClearColor = false, bool bClearDepth = false, bool bClearStencil = false);
 void SetRenderTargetAndClear(FD3D11Texture2D* NewRenderTarget, FD3D11Texture2D* NewDepthStencilTarget);
 enum ECubeFace
@@ -1599,30 +1599,32 @@ inline void SetShaderUniformBuffer(ID3D11ComputeShader*, uint32 BaseIndex, ID3D1
 	BoundUniformBuffers[5][BaseIndex] = ConstantBuffer;
 	D3D11DeviceContext->CSSetConstantBuffers(BaseIndex, 1, &ConstantBuffer);
 }
+template <EShaderFrequency ShaderFrequency>
+void InternalSetShaderResourceView(ID3D11ShaderResourceView* SRV, int32 ResourceIndex);
 //srv
 inline void SetShaderSRV(ID3D11VertexShader*, uint32 BaseIndex, ID3D11ShaderResourceView* SRV)
 {
-	D3D11DeviceContext->VSSetShaderResources(BaseIndex, 1, &SRV);
+	InternalSetShaderResourceView<SF_Vertex>(SRV, BaseIndex);
 }
 inline void SetShaderSRV(ID3D11PixelShader*, uint32 BaseIndex, ID3D11ShaderResourceView* SRV)
 {
-	D3D11DeviceContext->PSSetShaderResources(BaseIndex, 1, &SRV);
+	InternalSetShaderResourceView<SF_Pixel>(SRV, BaseIndex);
 }
 inline void SetShaderSRV(ID3D11HullShader*, uint32 BaseIndex, ID3D11ShaderResourceView* SRV)
 {
-	D3D11DeviceContext->HSSetShaderResources(BaseIndex, 1, &SRV);
+	InternalSetShaderResourceView<SF_Hull>(SRV, BaseIndex);
 }
 inline void SetShaderSRV(ID3D11DomainShader*, uint32 BaseIndex, ID3D11ShaderResourceView* SRV)
 {
-	D3D11DeviceContext->DSSetShaderResources(BaseIndex, 1, &SRV);
+	InternalSetShaderResourceView<SF_Domain>(SRV, BaseIndex);
 }
 inline void SetShaderSRV(ID3D11GeometryShader*, uint32 BaseIndex, ID3D11ShaderResourceView* SRV)
 {
-	D3D11DeviceContext->GSSetShaderResources(BaseIndex, 1, &SRV);
+	InternalSetShaderResourceView<SF_Geometry>(SRV, BaseIndex);
 }
 inline void SetShaderSRV(ID3D11ComputeShader*, uint32 BaseIndex, ID3D11ShaderResourceView* SRV)
 {
-	D3D11DeviceContext->CSSetShaderResources(BaseIndex, 1, &SRV);
+	InternalSetShaderResourceView<SF_Compute>(SRV, BaseIndex);
 }
 //sampler
 inline void SetShaderSampler(ID3D11VertexShader*, uint32 BaseIndex, ID3D11SamplerState* Sampler)

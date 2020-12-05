@@ -1191,8 +1191,127 @@ float FPlane::PlaneDot(const FVector &P) const
 {
 	return X * P.X + Y * P.Y + Z * P.Z - W;
 }
-
 FPlane FPlane::Flip() const
 {
 	return FPlane(-X, -Y, -Z, -W);
 }
+FFloat32::FFloat32(float InValue) : FloatValue(InValue)
+{
+}
+FFloat16::FFloat16()
+	: Encoded(0)
+{ }
+FFloat16::FFloat16(const FFloat16& FP16Value)
+{
+	Encoded = FP16Value.Encoded;
+}
+FFloat16::FFloat16(float FP32Value)
+{
+	Set(FP32Value);
+}
+FFloat16& FFloat16::operator=(float FP32Value)
+{
+	Set(FP32Value);
+	return *this;
+}
+FFloat16& FFloat16::operator=(const FFloat16& FP16Value)
+{
+	Encoded = FP16Value.Encoded;
+	return *this;
+}
+FFloat16::operator float() const
+{
+	return GetFloat();
+}
+void FFloat16::Set(float FP32Value)
+{
+	FFloat32 FP32(FP32Value);
+
+	// Copy sign-bit
+	Components.Sign = FP32.Components.Sign;
+
+	// Check for zero, denormal or too small value.
+	if (FP32.Components.Exponent <= 112)			// Too small exponent? (0+127-15)
+	{
+		// Set to 0.
+		Components.Exponent = 0;
+		Components.Mantissa = 0;
+
+		// Exponent unbias the single, then bias the halfp
+		const int32 NewExp = FP32.Components.Exponent - 127 + 15;
+
+		if ((14 - NewExp) <= 24) // Mantissa might be non-zero
+		{
+			uint32 Mantissa = FP32.Components.Mantissa | 0x800000; // Hidden 1 bit
+			Components.Mantissa = Mantissa >> (14 - NewExp);
+			// Check for rounding
+			if ((Mantissa >> (13 - NewExp)) & 1)
+			{
+				Encoded++; // Round, might overflow into exp bit, but this is OK
+			}
+		}
+	}
+	// Check for INF or NaN, or too high value
+	else if (FP32.Components.Exponent >= 143)		// Too large exponent? (31+127-15)
+	{
+		// Set to 65504.0 (max value)
+		Components.Exponent = 30;
+		Components.Mantissa = 1023;
+	}
+	// Handle normal number.
+	else
+	{
+		Components.Exponent = int32(FP32.Components.Exponent) - 127 + 15;
+		Components.Mantissa = uint16(FP32.Components.Mantissa >> 13);
+	}
+}
+void FFloat16::SetWithoutBoundsChecks(const float FP32Value)
+{
+	const FFloat32 FP32(FP32Value);
+
+	// Make absolutely sure that you never pass in a single precision floating
+	// point value that may actually need the checks. If you are not 100% sure
+	// of that just use Set().
+
+	Components.Sign = FP32.Components.Sign;
+	Components.Exponent = int32(FP32.Components.Exponent) - 127 + 15;
+	Components.Mantissa = uint16(FP32.Components.Mantissa >> 13);
+}
+float FFloat16::GetFloat() const
+{
+	FFloat32	Result;
+
+	Result.Components.Sign = Components.Sign;
+	if (Components.Exponent == 0)
+	{
+		uint32 Mantissa = Components.Mantissa;
+		if (Mantissa == 0)
+		{
+			// Zero.
+			Result.Components.Exponent = 0;
+			Result.Components.Mantissa = 0;
+		}
+		else
+		{
+			// Denormal.
+			uint32 MantissaShift = 10 - (uint32)FMath::TruncToInt(FMath::Log2(Mantissa));
+			Result.Components.Exponent = 127 - (15 - 1) - MantissaShift;
+			Result.Components.Mantissa = Mantissa << (MantissaShift + 23 - 10);
+		}
+	}
+	else if (Components.Exponent == 31)		// 2^5 - 1
+	{
+		// Infinity or NaN. Set to 65504.0
+		Result.Components.Exponent = 142;
+		Result.Components.Mantissa = 8380416;
+	}
+	else
+	{
+		// Normal number.
+		Result.Components.Exponent = int32(Components.Exponent) - 15 + 127; // Stored exponents are biased by half their range.
+		Result.Components.Mantissa = uint32(Components.Mantissa) << 13;
+	}
+
+	return Result.FloatValue;
+}
+

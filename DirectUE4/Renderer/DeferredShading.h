@@ -450,7 +450,7 @@ public:
 	//uint32 bDisableDistanceBasedFadeTransitions : 1;
 	/** Whether the view has any materials that use the global distance field. */
 	//uint32 bUsesGlobalDistanceField : 1;
-	//uint32 bUsesLightingChannels : 1;
+	uint32 bUsesLightingChannels : 1;
 	//uint32 bTranslucentSurfaceLighting : 1;
 	/** Whether the view has any materials that read from scene depth. */
 	//uint32 bUsesSceneDepth : 1;

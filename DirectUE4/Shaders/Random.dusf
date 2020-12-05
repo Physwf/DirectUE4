@@ -12,12 +12,14 @@ float PseudoRandom(float2 xy)
 	return frac(dot(pos.xyx * pos.xyy, float3(20.390625f, 60.703125f, 2.4281209f)));
 }
 
-float InterleaveGradientNosie(float2 uv, float FrameId)
+float InterleavedGradientNoise(float2 uv, float FrameId)
 {
-	uv += FrameId * (float2(47,17)* 0.695f);
+	// magic values are found by experimentation
+	uv += FrameId * (float2(47, 17) * 0.695f);
 
-	const float3 magic = float3( 0.06711056f, 0.00583715f, 52.9829189f );
-    return frac(magic.z * frac(dot(uv, magic.xy)));
+	const float3 magic = float3(0.06711056f, 0.00583715f, 52.9829189f);
+	return frac(magic.z * frac(dot(uv, magic.xy)));
 }
+
 
 #endif

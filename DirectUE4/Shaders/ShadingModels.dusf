@@ -1,3 +1,5 @@
+#pragma once
+
 #include "DeferredShadingCommon.dusf"
 #include "BSDF.dusf"
 #include "FastMath.dusf"
@@ -6,7 +8,7 @@
 //#include "TransmissionCommon.ush"
 
 
-struct AreaLight
+struct FAreaLight
 {
     float       SphereSinAlpha;
     float		SphereSinAlphaSoft;
@@ -14,12 +16,12 @@ struct AreaLight
 
 	float3		FalloffColor;
 
-    RectLight	Rect;
+    FRectLight	Rect;
 	Texture2D	Texture;
 	bool		bIsRect;
 };
 
-struct ShadowTerms
+struct FShadowTerms
 {
     float SurfaceShadow;
     float TransmissionShadow;
@@ -33,7 +35,7 @@ float New_a2( float a2, float SinAlpha, float VoH )
 	//return a2 + 0.25 * SinAlpha * ( a2 * 2 + 1 + SinAlpha ) / ( VoH + 0.001 );
 }
 
-float EnergyNormalization( inout float a2, float VoH, AreaLight AL )
+float EnergyNormalization( inout float a2, float VoH, FAreaLight AL )
 {
 	if( AL.SphereSinAlphaSoft > 0 )
 	{
@@ -68,7 +70,7 @@ float EnergyNormalization( inout float a2, float VoH, AreaLight AL )
 }
 
 
-float3 SpecularGGX( float Roughness, float3 SpecularColor, BxDFContext Context, float NoL, AreaLight AL )
+float3 SpecularGGX( float Roughness, float3 SpecularColor, BxDFContext Context, float NoL, FAreaLight AL )
 {
 	float a2 = Pow4( Roughness );
 	float Energy = EnergyNormalization( a2, Context.VoH, AL );
@@ -81,21 +83,21 @@ float3 SpecularGGX( float Roughness, float3 SpecularColor, BxDFContext Context, 
 	return (D * Vis) * F;
 }
 
-struct DirectLighting
+struct FDirectLighting
 {
     float3 Diffuse;
     float3 Specular;
     float3 Transmission;
 };
 
-DirectLighting DefaultLitBxDF( GBufferData GBuffer, half3 N, half3 V, half3 L, float Falloff, float NoL, AreaLight AL, ShadowTerms Shadow )
+FDirectLighting DefaultLitBxDF( FGBufferData GBuffer, half3 N, half3 V, half3 L, float Falloff, float NoL, FAreaLight AL, FShadowTerms Shadow )
 {
     BxDFContext Context;
 	Init( Context, N, V, L );
 	SphereMaxNoH( Context, AL.SphereSinAlpha, true );
 	Context.NoV = saturate( abs( Context.NoV ) + 1e-5 );
 
-    DirectLighting Lighting;
+    FDirectLighting Lighting;
 	Lighting.Diffuse  = AL.FalloffColor * (Falloff * NoL) * Diffuse_Lambert( GBuffer.DiffuseColor );
 
     if( AL.bIsRect )
@@ -108,13 +110,13 @@ DirectLighting DefaultLitBxDF( GBufferData GBuffer, half3 N, half3 V, half3 L, f
 }
 
 
-DirectLighting IntegrateBxDF(GBufferData GBuffer, half3 N, half3 V,  half3 L, float Falloff, float NoL, AreaLight AL, ShadowTerms Shadow)
+FDirectLighting IntegrateBxDF(FGBufferData GBuffer, half3 N, half3 V,  half3 L, float Falloff, float NoL, FAreaLight AL, FShadowTerms Shadow)
 {
     switch(GBuffer.ShadingModelID)
     {
         case SHADINGMODELID_DEFAULT_LIT:
             return DefaultLitBxDF(GBuffer,N,V,L,Falloff,NoL,AL,Shadow);
         default:
-            return (DirectLighting)0;
+            return (FDirectLighting)0;
     }
 }

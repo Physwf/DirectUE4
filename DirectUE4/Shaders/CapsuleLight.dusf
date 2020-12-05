@@ -2,7 +2,24 @@
 #ifndef __CapsuleLight_H__
 #define __CapsuleLight_H__
 
-struct CapsuleLight
+float SmoothMin(float a, float b, float k)
+{
+	float h = saturate(0.5 + (0.5 / k) * (b - a));
+	return lerp(b, a, h) - k * (h - h * h);
+}
+
+float SmoothMax(float a, float b, float k)
+{
+	return SmoothMin(a, b, -k);
+}
+
+float SmoothClamp(float x, float Min, float Max, float k)
+{
+	return SmoothMin(SmoothMax(x, Min, k), Max, k);
+	//return min( max( x, Min ), Max );
+}
+
+struct FCapsuleLight
 {
 	float3	LightPos[2];
 	float	Length;

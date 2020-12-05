@@ -743,10 +743,11 @@ public:
 	{
 		return Vector2(0, 0);
 	}
-
+	inline bool Transmission() const { return bTransmission; }
 protected:
 	friend class FScene;
 
+	const uint32 bTransmission : 1;
 	/** The light component. */
 	const ULightComponent* LightComponent;
 

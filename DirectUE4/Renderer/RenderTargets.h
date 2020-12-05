@@ -185,8 +185,8 @@ public:
 	ComPtr<PooledRenderTarget> GBufferA;
 	ComPtr<PooledRenderTarget> GBufferB;
 	ComPtr<PooledRenderTarget> GBufferC;
-	//ComPtr<PooledRenderTarget> GBufferD;
-	//ComPtr<PooledRenderTarget> GBufferE;
+	ComPtr<PooledRenderTarget> GBufferD;
+	ComPtr<PooledRenderTarget> GBufferE;
 
 	//ComPtr<PooledRenderTarget> GBufferVelocity;
 

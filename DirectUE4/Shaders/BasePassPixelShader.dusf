@@ -288,7 +288,7 @@ void FPixelShaderInOut_PS_Main(
 	float SubsurfaceProfile = 0;
 	float3 SubsurfaceColor = 0;
 
-    GBufferData GBuffer = (GBufferData)0;
+    FGBufferData GBuffer = (FGBufferData)0;
 
     GBuffer.GBufferAO = MaterialAO;
 	GBuffer.PerObjectGBufferData = Primitive.PerObjectGBufferData;
@@ -415,7 +415,7 @@ void FPixelShaderInOut_PS_Main(
 	#elif MATERIALBLENDING_MODULATE
 	#else
 
-	LightAccumulator LA = (LightAccumulator)0;
+	FLightAccumulator LA = (FLightAccumulator)0;
 
 	// Apply vertex fog
 	Color = Color * Fogging.a + Fogging.rgb;

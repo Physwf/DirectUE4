@@ -175,8 +175,7 @@ void BuildHZB(FViewInfo& View)
 	{
 		SCOPED_DRAW_EVENT_FORMAT(BuildHZB, TEXT("HZB SetupMip 0 %dx%d"), HZBSize.X, HZBSize.Y);
 
-		ID3D11RenderTargetView* RTV = HZBRenderTargetRef->GetRenderTargetView(0, 0);
-		D3D11DeviceContext->OMSetRenderTargets(1,&RTV,NULL);
+		SetRenderTarget(HZBRenderTargetRef, NULL, 0);
 
 		TShaderMapRef<FPostProcessVS> VertexShader(View.ShaderMap);
 		TShaderMapRef<THZBBuildPS<0>> PixelShader(View.ShaderMap);
@@ -217,8 +216,7 @@ void BuildHZB(FViewInfo& View)
 		DstSize.X = FMath::Max(DstSize.X, 1);
 		DstSize.Y = FMath::Max(DstSize.Y, 1);
 
-		ID3D11RenderTargetView* RTV = View.HZB->TargetableTexture->GetRenderTargetView(MipIndex, 0);
-		D3D11DeviceContext->OMSetRenderTargets(1, &RTV, NULL);
+		SetRenderTarget(View.HZB->TargetableTexture.get(), NULL, false, false, false, MipIndex);
 
 		D3D11DeviceContext->IASetInputLayout(GFilterInputLayout);
 		D3D11DeviceContext->VSSetShader(VertexShader->GetVertexShader(), 0, 0);
@@ -246,104 +244,6 @@ void BuildHZB(FViewInfo& View)
 
 		CopyToResolveTarget(View.HZB->TargetableTexture.get(), View.HZB->ShaderResourceTexture.get(),FResolveParams());
 	}
-	/*
-	D3D11DeviceContext->OMSetRenderTargets(1, &HZBRTVs[0], NULL);
-	D3D11DeviceContext->IASetInputLayout(GFilterInputLayout);
-	D3D11DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	UINT Stride = sizeof(FilterVertex);
-	UINT Offset = 0;
-	D3D11DeviceContext->IASetVertexBuffers(0, 1, &GScreenRectangleVertexBuffer, &Stride, &Offset);
-	D3D11DeviceContext->IASetIndexBuffer(GScreenRectangleIndexBuffer, DXGI_FORMAT_R16_UINT, 0);
-
-	D3D11DeviceContext->VSSetShader(GCommonPostProcessVS, 0, 0);
-	D3D11DeviceContext->PSSetShader(PS0, 0, 0);
-
-	View.HZBMipmap0Size = HZBSize;
-
-	const ParameterAllocation& InvSizeParam = PSParams0["InvSize"];
-	const ParameterAllocation& InputUvFactorAndOffsetParam = PSParams0["InputUvFactorAndOffset"];
-	const ParameterAllocation& InputViewportMaxBoundParam = PSParams0["InputViewportMaxBound"];
-	const ParameterAllocation& SceneDepthTextureParam = PSParams0["SceneTexturesStruct_SceneDepthTexture"];
-	const ParameterAllocation& SceneDepthTextureSamplerParam = PSParams0["SceneTexturesStruct_SceneDepthTextureSampler"];
-
-	RenderTargets& SceneContext = RenderTargets::Get();
-	const IntPoint GBufferSize = SceneContext.GetBufferSizeXY();
-	const Vector2 InvSize(1.0f / float(GBufferSize.X), 1.0f / float(GBufferSize.Y));
-	const Vector4 InputUvFactorAndOffset(
-		float(2 * View.HZBMipmap0Size.X) / float(GBufferSize.X),
-		float(2 * View.HZBMipmap0Size.Y) / float(GBufferSize.Y),
-		float(View.ViewRect.Min.X) / float(GBufferSize.X),
-		float(View.ViewRect.Min.Y) / float(GBufferSize.Y)
-		//float(2 * HZBSize.X) / float(GBufferSize.X),
-		//float(2 * HZBSize.Y) / float(GBufferSize.Y),
-		//float(GViewport.TopLeftX) / float(GBufferSize.X),
-		//float(GViewport.TopLeftY) / float(GBufferSize.Y)
-	);
-	const Vector2 InputViewportMaxBound(
-		float(View.ViewRect.Max.X) / float(GBufferSize.X) - 0.5f * InvSize.X,
-		float(View.ViewRect.Max.Y) / float(GBufferSize.Y) - 0.5f * InvSize.Y
-// 		float(GViewport.TopLeftX + GViewport.Width) / float(GBufferSize.X) - 0.5f * InvSize.X,
-// 		float(GViewport.TopLeftY + GViewport.Height) / float(GBufferSize.Y) - 0.5f * InvSize.Y
-	);
-
-	memcpy(GlobalConstantBufferData + InvSizeParam.BaseIndex, &InvSize, InvSizeParam.Size);
-	memcpy(GlobalConstantBufferData + InputUvFactorAndOffsetParam.BaseIndex, &InputUvFactorAndOffset, InputUvFactorAndOffsetParam.Size);
-	memcpy(GlobalConstantBufferData + InputViewportMaxBoundParam.BaseIndex, &InputViewportMaxBound, InputViewportMaxBoundParam.Size);
-	D3D11DeviceContext->UpdateSubresource(GlobalConstantBuffer, 0, NULL, GlobalConstantBufferData, 0, 0);
-	D3D11DeviceContext->PSSetConstantBuffers(InvSizeParam.BufferIndex, 1, &GlobalConstantBuffer);
-	D3D11DeviceContext->PSSetShaderResources(SceneDepthTextureParam.BaseIndex, SceneDepthTextureParam.Size, &SceneDepthSRV);
-	D3D11DeviceContext->PSSetSamplers(SceneDepthTextureSamplerParam.BaseIndex, SceneDepthTextureSamplerParam.Size, &SceneDepthSampler);
-
-	D3D11DeviceContext->RSSetState(RasterizerState);
-	D3D11_VIEWPORT Viewport = { 0,0,(float)HZBSize.X,(float)HZBSize.Y,0.f,1.f };
-	D3D11DeviceContext->RSSetViewports(1, &Viewport);
-	D3D11DeviceContext->OMSetDepthStencilState(DepthStencilState, 0);
-	D3D11DeviceContext->OMSetBlendState(BlendState, NULL, 0xffffffff);
-
-	D3D11DeviceContext->DrawIndexed(6, 0, 0);
-
-	D3D11DeviceContext->CopyResource(HZBSRVTexture, HZBRTVTexture);
-
-	IntPoint SrcSize = HZBSize;
-	IntPoint DstSize = SrcSize / 2;
-
-	for (uint32 i = 1; i < NumMips; ++i)
-	{
-		DstSize.X = Math::Max(DstSize.X, 1);
-		DstSize.Y = Math::Max(DstSize.Y, 1);
-
-		D3D11DeviceContext->OMSetRenderTargets(1, &HZBRTVs[i], NULL);
-
-		D3D11DeviceContext->PSSetShader(PS1, 0, 0);
-
-		const ParameterAllocation& InvSizeParam = PSParams1["InvSize"];
-		const ParameterAllocation& TextureParam = PSParams1["Texture"];
-		const ParameterAllocation& TextureSamplerParam = PSParams1["TextureSampler"];
-
-		memcpy(GlobalConstantBufferData + InvSizeParam.BaseIndex, &InvSize, InvSizeParam.Size);
-		D3D11DeviceContext->UpdateSubresource(GlobalConstantBuffer, 0, NULL, GlobalConstantBufferData, 0, 0);
-		D3D11DeviceContext->PSSetConstantBuffers(InvSizeParam.BufferIndex, 1, &GlobalConstantBuffer);
-
-		D3D11DeviceContext->PSSetShaderResources(TextureParam.BufferIndex, TextureParam.Size, &HZBSRVs[i-1]);
-		ID3D11SamplerState* TextureSampler = TStaticSamplerState<D3D11_FILTER_MIN_MAG_MIP_POINT, D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_CLAMP>::GetRHI();
-		D3D11DeviceContext->PSSetSamplers(TextureSamplerParam.BufferIndex, TextureSamplerParam.Size, &TextureSampler);
-
-		D3D11_VIEWPORT Viewport = { 0,0,(float)DstSize.X,(float)DstSize.Y,0.f,1.f };
-		D3D11DeviceContext->RSSetViewports(1, &Viewport);
-
-		D3D11DeviceContext->DrawIndexed(6, 0, 0);
-
-		D3D11DeviceContext->CopyResource(HZBSRVTexture, HZBRTVTexture);
-
-		SrcSize /= 2;
-		DstSize /= 2;
-	}
-
-	ID3D11ShaderResourceView* SRV = NULL;
-	ID3D11SamplerState* Sampler = NULL;
-	D3D11DeviceContext->PSSetShaderResources(SceneDepthTextureParam.BaseIndex, SceneDepthTextureParam.Size, &SRV);
-	D3D11DeviceContext->PSSetSamplers(SceneDepthTextureSamplerParam.BaseIndex, SceneDepthTextureSamplerParam.Size, &Sampler);
-	*/
 }
 
 void FSceneRenderer::RenderHzb()

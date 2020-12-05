@@ -1,3 +1,5 @@
+#pragma once
+
 // Relative error : < 0.7% over full
 // Precise format : ~small float
 // 1 ALU

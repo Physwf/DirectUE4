@@ -297,7 +297,7 @@ float3 GetWorldSpaceNormalFromAOInput(float2 UV, float4 SvPosition)
 		// full resolution 
 		WorldNormal = GetGBufferData(UV, false).WorldNormal;
 
-		GBufferData GBuffer = GetGBufferData(UV);
+		FGBufferData GBuffer = GetGBufferData(UV);
 		if( GBuffer.ShadingModelID == SHADINGMODELID_HAIR )
 		{
 			WorldNormal = 0;
@@ -827,7 +827,7 @@ void BasePassAOPS(in noperspective float4 UVAndScreenPos : TEXCOORD0, out float4
 {
 	float2 UV = UVAndScreenPos.xy;
 
-	ScreenSpaceData ScreenSpaceData = GetScreenSpaceData(UV);
+	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(UV);
 
 	float StaticFraction = ScreenSpaceAOParams[3].z;
 

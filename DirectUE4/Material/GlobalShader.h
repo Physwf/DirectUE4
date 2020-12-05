@@ -57,3 +57,64 @@ public:
 };
 
 extern TShaderMap<FGlobalShaderType>* GetGlobalShaderMap();
+
+/** DECLARE_GLOBAL_SHADER and IMPLEMENT_GLOBAL_SHADER setup a global shader class's boiler plate. They are meant to be used like so:
+*
+* class FMyGlobalShaderPS : public FGlobalShader
+* {
+*		// Setup the shader's boiler plate.
+*		DECLARE_GLOBAL_SHADER(FMyGlobalShaderPS);
+*
+*		// Setup the shader's permutation domain. If no dimensions, can do FPermutationDomain = FShaderPermutationNone.
+*		using FPermutationDomain = TShaderPermutationDomain<DIMENSIONS...>;
+*
+*		// ...
+* };
+*
+* // Instantiates global shader's global variable that will take care of compilation process of the shader. This needs imperatively to be
+* done in a .cpp file regardless of whether FMyGlobalShaderPS is in a header or not.
+* IMPLEMENT_GLOBAL_SHADER(FMyGlobalShaderPS, "/Engine/Private/MyShaderFile.usf", "MainPS", SF_Pixel);
+*/
+#define DECLARE_GLOBAL_SHADER(ShaderClass) \
+	public: \
+	\
+	using ShaderMetaType = FGlobalShaderType; \
+	\
+	static ShaderMetaType StaticType; \
+	\
+	static FShader* ConstructSerializedInstance() { return new ShaderClass(); } \
+	static FShader* ConstructCompiledInstance(const ShaderMetaType::CompiledShaderInitializerType& Initializer) \
+	{ return new ShaderClass(Initializer); } \
+	\
+	static bool ShouldCompilePermutationImpl(const FGlobalShaderPermutationParameters& Parameters) \
+	{ \
+		return ShaderClass::ShouldCompilePermutation(Parameters); \
+	} \
+	\
+	static bool ValidateCompiledResultImpl(const FShaderParameterMap& ParameterMap, std::vector<std::string>& OutErrors) \
+	{ \
+		return ShaderClass::ValidateCompiledResult(ParameterMap, OutErrors); \
+	} \
+	static void ModifyCompilationEnvironmentImpl( \
+		const FGlobalShaderPermutationParameters& Parameters, \
+		FShaderCompilerEnvironment& OutEnvironment) \
+	{ \
+		FPermutationDomain PermutationVector(Parameters.PermutationId); \
+		PermutationVector.ModifyCompilationEnvironment(OutEnvironment); \
+		ShaderClass::ModifyCompilationEnvironment(Parameters, OutEnvironment); \
+	}
+
+#define IMPLEMENT_GLOBAL_SHADER(ShaderClass,SourceFilename,FunctionName,Frequency) \
+	ShaderClass::ShaderMetaType ShaderClass::StaticType( \
+		(#ShaderClass), \
+		(SourceFilename), \
+		(FunctionName), \
+		Frequency, \
+		ShaderClass::FPermutationDomain::PermutationCount, \
+		ShaderClass::ConstructSerializedInstance, \
+		ShaderClass::ConstructCompiledInstance, \
+		ShaderClass::ModifyCompilationEnvironmentImpl, \
+		ShaderClass::ShouldCompilePermutationImpl, \
+		ShaderClass::ValidateCompiledResultImpl, \
+		ShaderClass::GetStreamOutElements \
+		)

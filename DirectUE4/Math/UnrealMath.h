@@ -15,6 +15,9 @@ typedef unsigned short		uint16;
 typedef unsigned int		uint32;
 typedef unsigned long long	uint64;
 
+
+#define PLATFORM_LITTLE_ENDIAN 1
+
 #define INDEX_NONE -1
 
 #undef  PI
@@ -388,6 +391,25 @@ public:
 	static inline float Exp(float Value) { return expf(Value); }
 	static inline float Exp2(float Value) { return powf(2.f, Value); /*exp2f(Value);*/ }
 	static uint32 ComputeProjectedSphereScissorRect(FIntRect& InOutScissorRect, FVector SphereOrigin, float Radius, FVector ViewOrigin, const FMatrix& ViewMatrix, const FMatrix& ProjMatrix);
+	// @param x assumed to be in this range: 0..1
+	// @return 0..255
+	static uint8 Quantize8UnsignedByte(float x)
+	{
+		// 0..1 -> 0..255
+		int32 Ret = (int32)(x * 255.999f);
+
+		assert(Ret >= 0);
+		assert(Ret <= 255);
+
+		return Ret;
+	}
+	static uint8 Quantize8SignedByte(float x)
+	{
+		// -1..1 -> 0..1
+		float y = x * 0.5f + 0.5f;
+
+		return Quantize8UnsignedByte(y);
+	}
 };
 
 
@@ -3907,3 +3929,59 @@ inline constexpr T Align(T Val, uint64 Alignment)
 
 	return (T)(((uint64)Val + Alignment - 1) & ~(Alignment - 1));
 }
+/**
+* 32 bit float components
+*/
+class FFloat32
+{
+public:
+
+	union
+	{
+		struct
+		{
+#if PLATFORM_LITTLE_ENDIAN
+			uint32	Mantissa : 23;
+			uint32	Exponent : 8;
+			uint32	Sign : 1;
+#else
+			uint32	Sign : 1;
+			uint32	Exponent : 8;
+			uint32	Mantissa : 23;
+#endif
+		} Components;
+
+		float	FloatValue;
+	};
+	FFloat32(float InValue = 0.0f);
+};
+class FFloat16
+{
+public:
+	union
+	{
+		struct
+		{
+#if PLATFORM_LITTLE_ENDIAN
+			uint16	Mantissa : 10;
+			uint16	Exponent : 5;
+			uint16	Sign : 1;
+#else
+			uint16	Sign : 1;
+			uint16	Exponent : 5;
+			uint16	Mantissa : 10;
+#endif
+		} Components;
+
+		uint16	Encoded;
+	};
+	FFloat16();
+	FFloat16(const FFloat16& FP16Value);
+	FFloat16(float FP32Value);
+	FFloat16& operator=(float FP32Value);
+	FFloat16& operator=(const FFloat16& FP16Value);
+	operator float() const;
+	void Set(float FP32Value);
+	void SetWithoutBoundsChecks(const float FP32Value);
+	float GetFloat() const;
+};

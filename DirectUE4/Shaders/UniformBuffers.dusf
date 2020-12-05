@@ -4,7 +4,7 @@
 #include "View.dusf"
 #include "Primitive.dusf"
 #include "DrawRectangleParameters.dusf"
-#include "DeferredLightUniform.dusf"
+#include "DeferredLightUniforms.dusf"
 #include "SceneTexturesStruct.dusf"
 
 /*

@@ -21,18 +21,24 @@ struct alignas(16) FDeferredLightUniformStruct
 		FVector LightColor;
 		float LightFalloffExponent;
 		FVector NormalizedLightDirection;
+		float Pading01;
 		FVector NormalizedLightTangent;
+		float Pading02;
 		Vector2 SpotAngles;
 		float SpecularScale;
 		float SourceRadius;
 		float SoftSourceRadius;
 		float SourceLength;
 		float ContactShadowLength;
+		float Pading03;
 		Vector2 DistanceFadeMAD;
+		float Pading04;
+		float Pading05;
 		Vector4 ShadowMapChannelMask;
 		uint32 ShadowedBits;
 		uint32 LightingChannelMask;
 		float VolumetricScatteringIntensity;
+		float Pading06;
 	} Constants;
 
 	ID3D11ShaderResourceView*  SourceTexture;// Texture2D
@@ -461,4 +467,48 @@ private:
 	FShaderParameter StencilConeParameters;
 	FShaderParameter StencilConeTransform;
 	FShaderParameter StencilPreViewTranslation;
+};
+
+/** A vertex shader for rendering the light in a deferred pass. */
+template<bool bRadialLight>
+class TDeferredLightVS : public FGlobalShader
+{
+	DECLARE_SHADER_TYPE(TDeferredLightVS, Global);
+public:
+
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
+	{
+		return bRadialLight ? /*IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4)*/true : true;
+	}
+
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
+	}
+
+	TDeferredLightVS() {}
+	TDeferredLightVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) :
+		FGlobalShader(Initializer)
+	{
+		StencilingGeometryParameters.Bind(Initializer.ParameterMap);
+	}
+
+	void SetParameters(const FViewInfo& View, const FLightSceneInfo* LightSceneInfo)
+	{
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(GetVertexShader(), View.ViewUniformBuffer.get());
+		StencilingGeometryParameters.Set(this, View, LightSceneInfo);
+	}
+
+	void SetSimpleLightParameters(const FViewInfo& View, const FSphere& LightBounds)
+	{
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(GetVertexShader(), View.ViewUniformBuffer);
+
+		Vector4 StencilingSpherePosAndScale;
+		StencilingGeometry::GStencilSphereVertexBuffer.CalcTransform(StencilingSpherePosAndScale, LightBounds, View.ViewMatrices.GetPreViewTranslation());
+		StencilingGeometryParameters.Set(this, StencilingSpherePosAndScale);
+	}
+
+private:
+
+	FStencilingGeometryShaderParameters StencilingGeometryParameters;
 };

@@ -44,7 +44,7 @@ bool UseSubsurfaceProfile(int ShadingModel)
 	return ShadingModel == SHADINGMODELID_SUBSURFACE_PROFILE || ShadingModel == SHADINGMODELID_EYE;
 }
 
-struct GBufferData
+struct FGBufferData
 {
     float3 WorldNormal;
     float3 DiffuseColor;
@@ -87,7 +87,7 @@ float3 EncodeBaseColor(float3 BaseColor)
 	return BaseColor;
 }
 
-GBufferData DecodeGBufferData(
+FGBufferData DecodeGBufferData(
     float4 InGBufferA,
 	float4 InGBufferB,
 	float4 InGBufferC,
@@ -100,7 +100,7 @@ GBufferData DecodeGBufferData(
 	bool bGetNormalizedNormal,
 	bool bChecker)
 {
-    GBufferData GBuffer = (GBufferData)0;
+    FGBufferData GBuffer = (FGBufferData)0;
     GBuffer.WorldNormal = DecodeNormal(InGBufferA.xyz);
     if(bGetNormalizedNormal)
     {
@@ -155,7 +155,7 @@ GBufferData DecodeGBufferData(
 
 
 
-GBufferData GetGBufferData(float2 UV, bool bGetNormalizedNormal = true)
+FGBufferData GetGBufferData(float2 UV, bool bGetNormalizedNormal = true)
 {
     float4 GBufferA = Texture2DSampleLevel(SceneTexturesStruct.GBufferATexture, SceneTexturesStruct.GBufferATextureSampler,UV,0);
 	float4 GBufferB = Texture2DSampleLevel(SceneTexturesStruct.GBufferBTexture, SceneTexturesStruct.GBufferBTextureSampler,UV,0);
@@ -185,15 +185,15 @@ GBufferData GetGBufferData(float2 UV, bool bGetNormalizedNormal = true)
 }
 
 
-struct ScreenSpaceData
+struct FScreenSpaceData
 {
-    GBufferData GBuffer;
+    FGBufferData GBuffer;
     float AmbientOcclusion;
 };
 
-ScreenSpaceData GetScreenSpaceData(float2 UV, bool bGetNormalizedNormal = true)
+FScreenSpaceData GetScreenSpaceData(float2 UV, bool bGetNormalizedNormal = true)
 {
-    ScreenSpaceData Out;
+	FScreenSpaceData Out;
     Out.GBuffer = GetGBufferData(UV, bGetNormalizedNormal);
 
     float4 ScreenSpaceAO = Texture2DSampleLevel(SceneTexturesStruct.ScreenSpaceAOTexture, SceneTexturesStruct.ScreenSpaceAOTextureSampler, UV, 0);
@@ -206,7 +206,7 @@ ScreenSpaceData GetScreenSpaceData(float2 UV, bool bGetNormalizedNormal = true)
 
 /** Populates OutGBufferA, B and C */
 void EncodeGBuffer(
-	GBufferData GBuffer,
+	FGBufferData GBuffer,
 	out float4 OutGBufferA,
 	out float4 OutGBufferB,
 	out float4 OutGBufferC,
