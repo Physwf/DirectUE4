@@ -111,6 +111,7 @@ public:
 		return DynamicShadowMapChannel;
 	}
 	bool IsPrecomputedLightingValid() const;
+
 protected:
 	int32 DynamicShadowMapChannel;
 	uint32 bPrecomputedLightingIsValid : 1;

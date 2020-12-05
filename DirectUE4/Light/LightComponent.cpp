@@ -44,9 +44,10 @@ ULightComponent::ULightComponent(class AActor* InOwner)
 	bAffectTranslucentLighting = false;
 
 	bMoveable = true;
-	ShadowBias;
+	ShadowBias = 0.25f;
 	ShadowSharpen = 1.f;
 	CastTranslucentShadows = false;
+	SpecularScale = 1.f;
 }
 
 ULightComponent::~ULightComponent()

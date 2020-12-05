@@ -284,7 +284,60 @@ void FProjectedShadowInfo::SetupWholeSceneProjection(
 
 void FProjectedShadowInfo::UpdateShaderDepthBias()
 {
-	ShaderDepthBias = 0.f;
+	float DepthBias = 0;
+
+	if (IsWholeScenePointLightShadow())
+	{
+		DepthBias = /*CVarPointLightShadowDepthBias.GetValueOnRenderThread()*/ 0.05f * 512.0f / FMath::Max(ResolutionX, ResolutionY);
+		// * 2.0f to be compatible with the system we had before ShadowBias
+		DepthBias *= 2.0f * LightSceneInfo->Proxy->GetUserShadowBias();
+	}
+	else if (IsWholeSceneDirectionalShadow())
+	{
+		assert(CascadeSettings.ShadowSplitIndex >= 0);
+
+		// the z range is adjusted to we need to adjust here as well
+		DepthBias =/* CVarCSMShadowDepthBias.GetValueOnRenderThread()*/ 20.0f / (MaxSubjectZ - MinSubjectZ);
+
+		float WorldSpaceTexelScale = ShadowBounds.W / ResolutionX;
+
+		DepthBias *= WorldSpaceTexelScale;
+		DepthBias *= LightSceneInfo->Proxy->GetUserShadowBias();
+	}
+	else if (bPreShadow)
+	{
+		// Preshadows don't need a depth bias since there is no self shadowing
+		DepthBias = 0;
+	}
+	else
+	{
+		// per object shadows
+		if (bDirectionalLight)
+		{
+			// we use CSMShadowDepthBias cvar but this is per object shadows, maybe we want to use different settings
+
+			// the z range is adjusted to we need to adjust here as well
+			DepthBias = /*CVarPerObjectDirectionalShadowDepthBias.GetValueOnRenderThread()*/ 20.0f / (MaxSubjectZ - MinSubjectZ);
+
+			float WorldSpaceTexelScale = ShadowBounds.W / FMath::Max(ResolutionX, ResolutionY);
+
+			DepthBias *= WorldSpaceTexelScale;
+			DepthBias *= 0.5f;	// avg GetUserShadowBias, in that case we don't want this adjustable
+		}
+		else
+		{
+			// spot lights (old code, might need to be improved)
+			const float LightTypeDepthBias = /*CVarSpotLightShadowDepthBias.GetValueOnRenderThread()*/5.0f;
+			DepthBias = LightTypeDepthBias * 512.0f / ((MaxSubjectZ - MinSubjectZ) * FMath::Max(ResolutionX, ResolutionY));
+			// * 2.0f to be compatible with the system we had before ShadowBias
+			DepthBias *= 2.0f * LightSceneInfo->Proxy->GetUserShadowBias();
+		}
+
+		// Prevent a large depth bias due to low resolution from causing near plane clipping
+		DepthBias = FMath::Min(DepthBias, .1f);
+	}
+
+	ShaderDepthBias = FMath::Max(DepthBias, 0.0f);
 }
 
 static float GMinScreenRadiusForShadowCaster = 0.01f;

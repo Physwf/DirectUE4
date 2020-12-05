@@ -1903,7 +1903,7 @@ void RHIEndDrawPrimitiveUP()
 	D3D11DeviceContext->Unmap(DynamicVB.Get(),0);
 	D3D11DeviceContext->IASetVertexBuffers(0, 1, DynamicVB.GetAddressOf(), &Stride, &Offset);
 	D3D11DeviceContext->IASetPrimitiveTopology(PendingPrimitiveType);
-	D3D11DeviceContext->Draw(PendingNumPrimitives, 0);
+	D3D11DeviceContext->Draw(PendingNumVertices, 0);
 
 	PendingPrimitiveType = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
 	PendingNumPrimitives = 0;
@@ -2122,7 +2122,7 @@ void DrawClearQuadMRT(bool bClearColor, int32 NumClearColors, const FLinearColor
 	Vertices[2].Set(-1.0f, -1.0f, Depth, 1.0f);
 	Vertices[3].Set(1.0f, -1.0f, Depth, 1.0f);
 
-	DrawPrimitiveUP(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, 2, Vertices, sizeof(Vertices[0]));
+	DrawPrimitiveUP(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP, 2, Vertices, sizeof(Vertices[0]));
 }
 
 void DrawClearQuadMRT(bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntPoint ViewSize, FIntRect ExcludeRect)

@@ -673,6 +673,8 @@ public:
 	virtual bool ShouldCreatePerObjectShadowsForDynamicObjects() const;
 	inline uint8 GetLightingChannelMask() const { return LightingChannelMask; }
 
+	float GetUserShadowBias() const { return ShadowBias; }
+
 	/** Whether this light should create CSM for dynamic objects only (forward renderer) */
 	virtual bool UseCSMForDynamicObjects() const;
 

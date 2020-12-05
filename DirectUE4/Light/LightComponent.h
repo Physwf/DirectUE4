@@ -76,6 +76,7 @@ public:
 	float MaxDrawDistance;
 	float MaxDistanceFadeRange;
 
+	float SpecularScale;
 	uint32 bMoveable : 1;
 	/**
 	* Controls how accurate self shadowing of whole scene shadows from this light are.
@@ -88,6 +89,8 @@ public:
 	float ShadowSharpen;
 	/** Whether the light is allowed to cast dynamic shadows from translucency. */
 	uint32 CastTranslucentShadows : 1;
+	float ContactShadowLength;
+	uint32 ContactShadowLengthInWS : 1;
 	bool AffectsPrimitive(const UPrimitiveComponent* Primitive) const;
 	virtual bool AffectsBounds(const FBoxSphereBounds& InBounds) const;
 	/**
