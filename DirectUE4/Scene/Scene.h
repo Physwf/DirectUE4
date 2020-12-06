@@ -26,6 +26,7 @@ class FSceneRenderTargets;
 class UPrimitiveComponent;
 class FLightSceneInfo;
 class FLightSceneInfoCompact;
+class UAtmosphericFogComponent;
 
 class FCachedShadowMapData
 {
@@ -75,7 +76,8 @@ public:
 	void UpdateLightTransform(ULightComponent* Light);
 	void AddLight(class ULightComponent* Light);
 	void RemoveLight(class ULightComponent* Light);
-
+	void AddAtmosphericFog(UAtmosphericFogComponent* FogComponent);
+	void RemoveAtmosphericFog(UAtmosphericFogComponent* FogComponent);
 
 	void AddLightSceneInfo(FLightSceneInfo* LightSceneInfo);
 	void AddPrimitiveSceneInfo(FPrimitiveSceneInfo* PrimitiveSceneInfo);
@@ -124,7 +126,7 @@ public:
 
 	std::vector<FPrimitiveSceneInfoCompact> PrimitiveOctree;
 
-	class AtmosphericFogSceneInfo* AtmosphericFog;
+	class FAtmosphericFogSceneInfo* AtmosphericFog;
 
 	FSkyLightSceneProxy* SkyLight;
 

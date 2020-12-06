@@ -32,6 +32,9 @@ void FSceneRenderer::ComputeViewVisibility()
 void FSceneRenderer::PostVisibilityFrameSetup()
 {
 	Scene->IndirectLightingCache.UpdateCache(Scene, *this, true);
+
+
+	InitFogConstants();
 }
 
 

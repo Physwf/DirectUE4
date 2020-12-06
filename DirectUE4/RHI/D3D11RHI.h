@@ -1985,3 +1985,13 @@ inline void DrawClearQuad(const FLinearColor& Color)
 {
 	DrawClearQuadMRT(true, 1, &Color, false, 0, false, 0);
 }
+
+void DrawIndexedPrimitiveUP(
+	D3D11_PRIMITIVE_TOPOLOGY PrimitiveType,
+	uint32 MinVertexIndex,
+	uint32 NumVertices,
+	uint32 NumPrimitives,
+	const void* IndexData,
+	uint32 IndexDataStride,
+	const void* VertexData,
+	uint32 VertexDataStride);

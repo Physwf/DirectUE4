@@ -21,9 +21,6 @@ public:
 	UPrimitiveComponent(AActor* InOwner);
 	virtual ~UPrimitiveComponent() {}
 
-	virtual void Register() override;
-	virtual void Unregister() override;
-
 	virtual FMatrix GetRenderMatrix() const;
 
 	virtual FPrimitiveSceneProxy* CreateSceneProxy()
@@ -32,8 +29,9 @@ public:
 	}
 	virtual class UMaterial* GetMaterial(int32 ElementIndex) const = 0;
 
-	virtual void SendRenderTransform_Concurrent() override;
-
 	FPrimitiveSceneProxy* SceneProxy;
-private:
+protected:
+	virtual void CreateRenderState_Concurrent() override;
+	virtual void SendRenderTransform_Concurrent() override;
+	virtual void DestroyRenderState_Concurrent() override;
 };

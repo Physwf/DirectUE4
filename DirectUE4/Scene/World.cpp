@@ -8,6 +8,7 @@
 #include "LightMap.h"
 #include "ShadowMap.h"
 #include "MeshComponent.h"
+#include "AtmosphereFog.h"
 
 class FloorActor : public StaticMeshActor
 {
@@ -51,6 +52,8 @@ void UWorld::InitWorld()
 
 	PointLightActor* l1 = SpawnActor<PointLightActor>();
 	l1->SetActorLocation(FVector(0, 0 , 500));
+
+	AAtmosphericFog* Atmosphere = SpawnActor<AAtmosphericFog>();
 
 	Camera* C = SpawnActor<Camera>();
 	C->SetActorLocation(FVector(-400, 0,  0));

@@ -115,6 +115,26 @@ void FScene::RemoveLight(class ULightComponent* Light)
 
 }
 
+void FScene::AddAtmosphericFog(UAtmosphericFogComponent* FogComponent)
+{
+	FAtmosphericFogSceneInfo* FogSceneInfo = new FAtmosphericFogSceneInfo(FogComponent, this);
+	if (AtmosphericFog)
+	{
+		delete AtmosphericFog;
+		AtmosphericFog = NULL;
+	}
+	AtmosphericFog = FogSceneInfo;
+}
+
+void FScene::RemoveAtmosphericFog(UAtmosphericFogComponent* FogComponent)
+{
+	if (AtmosphericFog && AtmosphericFog->Component == FogComponent)
+	{
+		delete AtmosphericFog;
+		AtmosphericFog = NULL;
+	}
+}
+
 void FScene::AddLightSceneInfo(FLightSceneInfo* LightSceneInfo)
 {
 	LightSceneInfo->Id = Lights.size();

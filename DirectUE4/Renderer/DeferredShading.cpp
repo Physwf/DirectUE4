@@ -123,9 +123,9 @@ void FViewInfo::SetupUniformBufferParameters(
 			ViewUniformParameters.Constants.AtmosphericFogStartDistance = Scene->AtmosphericFog->StartDistance;
 			ViewUniformParameters.Constants.AtmosphericFogDistanceOffset = Scene->AtmosphericFog->DistanceOffset;
 			ViewUniformParameters.Constants.AtmosphericFogSunDiscScale = Scene->AtmosphericFog->SunDiscScale;
-			ViewUniformParameters.Constants.AtmosphericFogSunColor = /*Scene->SunLight ? Scene->SunLight->Proxy->GetColor() :*/ Scene->AtmosphericFog->DefaultSunColor;
-			ViewUniformParameters.Constants.AtmosphericFogSunDirection = /*Scene->SunLight ? -Scene->SunLight->Proxy->GetDirection() :*/ -Scene->AtmosphericFog->DefaultSunDirection;
-			ViewUniformParameters.Constants.AtmosphericFogRenderMask = Scene->AtmosphericFog->RenderFlag /*& (EAtmosphereRenderFlag::E_DisableGroundScattering | EAtmosphereRenderFlag::E_DisableSunDisk)*/;
+			ViewUniformParameters.Constants.AtmosphericFogSunColor = Scene->SunLight ? Scene->SunLight->Proxy->GetColor() : Scene->AtmosphericFog->DefaultSunColor;
+			ViewUniformParameters.Constants.AtmosphericFogSunDirection = Scene->SunLight ? -Scene->SunLight->Proxy->GetDirection() : -Scene->AtmosphericFog->DefaultSunDirection;
+			ViewUniformParameters.Constants.AtmosphericFogRenderMask = Scene->AtmosphericFog->RenderFlag & (EAtmosphereRenderFlag::E_DisableGroundScattering | EAtmosphereRenderFlag::E_DisableSunDisk);
 			ViewUniformParameters.Constants.AtmosphericFogInscatterAltitudeSampleNum = Scene->AtmosphericFog->InscatterAltitudeSampleNum;
 		}
 		else
@@ -168,13 +168,13 @@ void FViewInfo::SetupUniformBufferParameters(
 		// 		ViewUniformParameters.AtmosphericFogInscatterAltitudeSampleNum = 0;
 	}
 
-	//ViewUniformParameters.AtmosphereTransmittanceTexture = OrBlack2DIfNull(AtmosphereTransmittanceTexture);
-	//ViewUniformParameters.AtmosphereIrradianceTexture = OrBlack2DIfNull(AtmosphereIrradianceTexture);
-	//ViewUniformParameters.AtmosphereInscatterTexture = OrBlack3DIfNull(AtmosphereInscatterTexture);
+	ViewUniformParameters.AtmosphereTransmittanceTexture = /*OrBlack2DIfNull*/(AtmosphereTransmittanceTexture);
+	ViewUniformParameters.AtmosphereIrradianceTexture = /*OrBlack2DIfNull*/(AtmosphereIrradianceTexture);
+	ViewUniformParameters.AtmosphereInscatterTexture = /*OrBlack3DIfNull*/(AtmosphereInscatterTexture);
 
-	//ViewUniformParameters.AtmosphereTransmittanceTextureSampler = TStaticSamplerState<SF_Bilinear>::GetRHI();
-	//ViewUniformParameters.AtmosphereIrradianceTextureSampler = TStaticSamplerState<SF_Bilinear>::GetRHI();
-	//ViewUniformParameters.AtmosphereInscatterTextureSampler = TStaticSamplerState<SF_Bilinear>::GetRHI();
+	ViewUniformParameters.AtmosphereTransmittanceTextureSampler = TStaticSamplerState<D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT>::GetRHI();
+	ViewUniformParameters.AtmosphereIrradianceTextureSampler = TStaticSamplerState<D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT>::GetRHI();
+	ViewUniformParameters.AtmosphereInscatterTextureSampler = TStaticSamplerState<D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT>::GetRHI();
 
 	// This should probably be in SetupCommonViewUniformBufferParameters, but drags in too many dependencies
 	UpdateNoiseTextureParameters(ViewUniformParameters);
@@ -630,6 +630,8 @@ void FSceneRenderer::PrepareViewRectsForRendering()
 	}
 }
 
+
+
 void FSceneRenderer::Render()
 {
 	PrepareViewRectsForRendering();
@@ -662,7 +664,10 @@ void FSceneRenderer::Render()
 		GCompositionLighting.ProcessAfterBasePass(Views[ViewIndex]);
 	}
 	RenderLights();
-	RenderAtmosphereFog();
+
+	FLightShaftsOutput LightShaftOutput;
+	//RenderLightShaftOcclusion(RHICmdList, LightShaftOutput);
+	RenderAtmosphere(LightShaftOutput);
 
 	FSceneRenderTargets& SceneContex = FSceneRenderTargets::Get();
 	SceneContex.FinishRendering();

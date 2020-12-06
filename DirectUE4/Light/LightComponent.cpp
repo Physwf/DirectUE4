@@ -71,10 +71,22 @@ FVector ULightComponent::GetDirection() const
 	return GetComponentTransform().GetUnitAxis(EAxis::X);
 }
 
+void ULightComponent::CreateRenderState_Concurrent()
+{
+	GetWorld()->Scene->AddLight(this);
+	OnRegister();
+}
+
 void ULightComponent::SendRenderTransform_Concurrent()
 {
 	GetWorld()->Scene->UpdateLightTransform(this);
 	UActorComponent::SendRenderTransform_Concurrent();
+}
+
+void ULightComponent::DestroyRenderState_Concurrent()
+{
+	OnUnregister();
+	GetWorld()->Scene->RemoveLight(this);
 }
 
 float ULightComponent::ComputeLightBrightness() const
@@ -94,17 +106,6 @@ float ULightComponent::ComputeLightBrightness() const
 	return LightBrightness;
 }
 
-void ULightComponent::Register()
-{
-	GetWorld()->Scene->AddLight(this);
-	OnRegister();
-}
-
-void ULightComponent::Unregister()
-{
-	GetWorld()->Scene->RemoveLight(this);
-	OnUnregister();
-}
 static float GMaxCSMRadiusToAllowPerObjectShadows = 8000;
 class FDirectionalLightSceneProxy : public FLightSceneProxy
 {

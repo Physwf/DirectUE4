@@ -23,6 +23,26 @@ void UActorComponent::OnUnregister()
 	GetWorld()->UnregisterComponent(this);
 }
 
+void UActorComponent::Register()
+{
+	CreateRenderState_Concurrent();
+}
+
+void UActorComponent::Unregister()
+{
+	DestroyRenderState_Concurrent();
+}
+
+void UActorComponent::CreateRenderState_Concurrent()
+{
+
+}
+
+void UActorComponent::DestroyRenderState_Concurrent()
+{
+
+}
+
 void UActorComponent::DoDeferredRenderUpdates_Concurrent()
 {
 	if (bRenderTransformDirty)

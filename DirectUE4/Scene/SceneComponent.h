@@ -24,10 +24,15 @@ protected:
 	uint8 bRenderDynamicDataDirty : 1;
 
 public:
-	virtual void Register() = 0;
-	virtual void Unregister() = 0;
+	void Register();
+	void Unregister();
 
 	void DoDeferredRenderUpdates_Concurrent();
+
+	AActor* GetOwner() const { return Owner; }
+	UWorld* GetWorld() { return WorldPrivite; }
+protected:
+	virtual void CreateRenderState_Concurrent();
 
 	virtual void SendRenderTransform_Concurrent() 
 	{
@@ -39,8 +44,7 @@ public:
 		bRenderDynamicDataDirty = false;
 	};
 
-	AActor* GetOwner() const { return Owner; }
-	UWorld* GetWorld() { return WorldPrivite; }
+	virtual void DestroyRenderState_Concurrent();
 private:
 	UWorld * WorldPrivite;
 	mutable AActor* Owner;

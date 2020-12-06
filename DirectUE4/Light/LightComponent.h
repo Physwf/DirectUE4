@@ -117,12 +117,11 @@ public:
 		return NULL;
 	}
 
-	virtual void SendRenderTransform_Concurrent() override;
-
 	virtual float ComputeLightBrightness() const;
-
-	virtual void Register() override;
-	virtual void Unregister() override;
+protected:
+	virtual void CreateRenderState_Concurrent() override;
+	virtual void SendRenderTransform_Concurrent() override;
+	virtual void DestroyRenderState_Concurrent() override;
 };
 
 class UDirectionalLightComponent : public ULightComponent

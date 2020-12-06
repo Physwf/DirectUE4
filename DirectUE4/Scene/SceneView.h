@@ -855,9 +855,10 @@ public:
 	//EPrimaryScreenPercentageMethod PrimaryScreenPercentageMethod;
 
 	/** Parameters for atmospheric fog. */
-	//FTextureRHIRef AtmosphereTransmittanceTexture;
-	//FTextureRHIRef AtmosphereIrradianceTexture;
-	//FTextureRHIRef AtmosphereInscatterTexture;
+	ID3D11ShaderResourceView* AtmosphereTransmittanceTexture;
+	ID3D11ShaderResourceView* AtmosphereIrradianceTexture;
+	ID3D11ShaderResourceView* AtmosphereInscatterTexture;
+
 	bool bStaticSceneOnly;
 
 	/** Sets up the view rect parameters in the view's uniform shader parameters */

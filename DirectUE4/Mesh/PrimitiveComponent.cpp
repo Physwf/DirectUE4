@@ -10,21 +10,15 @@ UPrimitiveComponent::UPrimitiveComponent(AActor* InOwner)
 
 }
 
-void UPrimitiveComponent::Register()
-{
-	GetWorld()->Scene->AddPrimitive(this);
-	OnRegister();
-}
-
-void UPrimitiveComponent::Unregister()
-{
-	GetWorld()->Scene->RemovePrimitive(this);
-	OnUnregister();
-}
-
 FMatrix UPrimitiveComponent::GetRenderMatrix() const
 {
 	return GetComponentTransform().ToMatrixWithScale();
+}
+
+void UPrimitiveComponent::CreateRenderState_Concurrent()
+{
+	GetWorld()->Scene->AddPrimitive(this);
+	OnRegister();
 }
 
 void UPrimitiveComponent::SendRenderTransform_Concurrent()
@@ -32,4 +26,10 @@ void UPrimitiveComponent::SendRenderTransform_Concurrent()
 	//UpdateBounds();
 
 	GetWorld()->Scene->UpdatePrimitiveTransform(this);
+}
+
+void UPrimitiveComponent::DestroyRenderState_Concurrent()
+{
+	OnUnregister();
+	GetWorld()->Scene->RemovePrimitive(this);
 }
