@@ -28,10 +28,20 @@ struct FCapsuleLight
 	float	DistBiasSqr;
 };
 
-
-float3 LineIrradiace(float3 N, float3 Line0, float3 Line1, float DistanceBiasSqr, out float CosSubtended, out float BaseIrradiance, out float NoL)
+float3 LineIrradiance(float3 N, float3 Line0, float3 Line1, float DistanceBiasSqr, out float CosSubtended, out float BaseIrradiance, out float NoL)
 {
-    return float3(0,0,0);
+	float LengthSqr0 = dot(Line0, Line0);
+	float LengthSqr1 = dot(Line1, Line1);
+	float InvLength0 = rsqrt(LengthSqr0);
+	float InvLength1 = rsqrt(LengthSqr1);
+	float InvLength01 = InvLength0 * InvLength1;
+
+	CosSubtended = dot(Line0, Line1) * InvLength01;
+	BaseIrradiance = InvLength01 / (CosSubtended * 0.5 + 0.5 + DistanceBiasSqr * InvLength01);
+	NoL = 0.5 * (dot(N, Line0) * InvLength0 + dot(N, Line1) * InvLength1);
+
+	float3 VectorIrradiance = (BaseIrradiance * 0.5) * (Line0 * InvLength0 + Line1 * InvLength1);
+	return VectorIrradiance;
 }
 
 float SphereHorizonCosWrap(float NoL, float SinAlphaSqr)

@@ -18,6 +18,8 @@ struct ViewInitOptions
 
 	const class AActor* ViewActor;
 
+	float LODDistanceFactor;
+
 	/** Actual field of view and that desired by the camera originally */
 	float FOV;
 	float DesiredFOV;
@@ -44,6 +46,7 @@ struct ViewInitOptions
 		, OverrideFarClippingPlaneDistance(-1.0f)
 		, FOV(90.f)
 		, DesiredFOV(90.f)
+		, LODDistanceFactor(1.0f)
 	{
 	}
 };
@@ -814,6 +817,7 @@ public:
 	int32 MaxShadowCascades;
 
 	float LODDistanceFactor;
+	float LODDistanceFactorSquared;
 	/** Actual field of view and that desired by the camera originally */
 	float FOV;
 	float DesiredFOV;
@@ -856,7 +860,6 @@ public:
 	//FTextureRHIRef AtmosphereInscatterTexture;
 	bool bStaticSceneOnly;
 
-	float LODDistanceFactorSquared;
 	/** Sets up the view rect parameters in the view's uniform shader parameters */
 	void SetupViewRectUniformBufferParameters(FViewUniformShaderParameters& ViewUniformParameters,
 		const FIntPoint& InBufferSize,

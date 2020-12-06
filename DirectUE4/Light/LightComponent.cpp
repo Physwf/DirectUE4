@@ -34,7 +34,7 @@ ULightComponent::ULightComponent(class AActor* InOwner)
 {
 	bMoveable = true;
 
-	MaxDrawDistance = 1000.f;
+	MaxDrawDistance = 0.f;
 	MaxDistanceFadeRange = 0.f;
 	Intensity = 100.f;
 	LightColor = FColor::White;
@@ -75,6 +75,23 @@ void ULightComponent::SendRenderTransform_Concurrent()
 {
 	GetWorld()->Scene->UpdateLightTransform(this);
 	UActorComponent::SendRenderTransform_Concurrent();
+}
+
+float ULightComponent::ComputeLightBrightness() const
+{
+	float LightBrightness = Intensity;
+
+// 	if (IESTexture)
+// 	{
+// 		if (bUseIESBrightness)
+// 		{
+// 			LightBrightness = IESTexture->Brightness * IESBrightnessScale;
+// 		}
+// 
+// 		LightBrightness *= IESTexture->TextureMultiplier;
+// 	}
+
+	return LightBrightness;
 }
 
 void ULightComponent::Register()
@@ -143,6 +160,7 @@ ULocalLightComponent::ULocalLightComponent(AActor* InOwner)
 	: ULightComponent(InOwner)
 {
 	AttenuationRadius = 1000.f;
+	IntensityUnits = ELightUnits::Lumens;
 }
 
 ULocalLightComponent::~ULocalLightComponent()
@@ -193,6 +211,8 @@ UPointLightComponent::UPointLightComponent(AActor* InOwner)
 	SourceRadius = 1000.f;
 	SoftSourceRadius = 100.f;
 	SourceLength = 10.f;
+	LightColor = FColor::White;
+
 }
 
 UPointLightComponent::~UPointLightComponent()
@@ -208,6 +228,28 @@ ELightComponentType UPointLightComponent::GetLightType() const
 FLightSceneProxy* UPointLightComponent::CreateSceneProxy() const
 {
 	return new FPointLightSceneProxy(this);
+}
+
+float UPointLightComponent::ComputeLightBrightness() const
+{
+	float LightBrightness = ULocalLightComponent::ComputeLightBrightness();
+
+	if (bUseInverseSquaredFalloff)
+	{
+		if (IntensityUnits == ELightUnits::Candelas)
+		{
+			LightBrightness *= (100.f * 100.f); // Conversion from cm2 to m2
+		}
+		else if (IntensityUnits == ELightUnits::Lumens)
+		{
+			LightBrightness *= (100.f * 100.f / 4 / PI); // Conversion from cm2 to m2 and 4PI from the sphere area in the 1/r2 attenuation
+		}
+		else
+		{
+			LightBrightness *= 16; // Legacy scale of 16
+		}
+	}
+	return LightBrightness;
 }
 
 bool FPointLightSceneProxy::GetWholeSceneProjectedShadowInitializer(const FSceneViewFamily& ViewFamily, std::vector<FWholeSceneProjectedShadowInitializer>& OutInitializers) const

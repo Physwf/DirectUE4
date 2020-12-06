@@ -119,6 +119,8 @@ public:
 
 	virtual void SendRenderTransform_Concurrent() override;
 
+	virtual float ComputeLightBrightness() const;
+
 	virtual void Register() override;
 	virtual void Unregister() override;
 };
@@ -164,6 +166,8 @@ class ULocalLightComponent : public ULightComponent
 public:
 	ULocalLightComponent(AActor* InOwner);
 	~ULocalLightComponent();
+
+	ELightUnits IntensityUnits;
 
 	float AttenuationRadius;
 	virtual bool AffectsBounds(const FBoxSphereBounds& InBounds) const override;
@@ -212,6 +216,7 @@ public:
 
 	virtual FLightSceneProxy* CreateSceneProxy() const override;
 
+	virtual float ComputeLightBrightness() const override;
 };
 
 /** The parts of the point light scene info that aren't dependent on the light policy type. */
@@ -267,7 +272,6 @@ public:
 	{
 		return GetOrigin();
 	}
-
 	virtual bool GetPerObjectProjectedShadowInitializer(const FBoxSphereBounds& SubjectBounds, class FPerObjectProjectedShadowInitializer& OutInitializer) const override
 	{
 		// Use a perspective projection looking at the primitive from the light position.

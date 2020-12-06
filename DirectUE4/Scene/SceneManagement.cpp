@@ -19,6 +19,15 @@ FLightSceneProxy::FLightSceneProxy(const ULightComponent* InLightComponent)
 	, LightType(InLightComponent->GetLightType())
 	, bTransmission(false)
 {
+	ShadowMapChannel = -1;
+
+	float LightBrightness = InLightComponent->ComputeLightBrightness();
+
+	Color = FLinearColor(InLightComponent->LightColor) * LightBrightness;
+// 	if (InLightComponent->bUseTemperature)
+// 	{
+// 		Color *= FLinearColor::MakeFromColorTemperature(InLightComponent->Temperature);
+// 	}
 
 }
 

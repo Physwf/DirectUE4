@@ -16,12 +16,16 @@ float IntegrateLight(FCapsuleLight Capsule, bool bInverseSquared)
     {
         float NoL;
         float LineCosSubtended = 1;
-        LineIrradiace(0,Capsule.LightPos[0],Capsule.LightPos[1],Capsule.DistBiasSqr,LineCosSubtended,Falloff,NoL);
+		LineIrradiance(0,Capsule.LightPos[0],Capsule.LightPos[1],Capsule.DistBiasSqr,LineCosSubtended,Falloff,NoL);
     }
     else
     {
-
+		float3 ToLight = Capsule.LightPos[0];
+		float DistSqr = dot(ToLight, ToLight);
+		Falloff = rcp(DistSqr + Capsule.DistBiasSqr);
     }
+
+	Falloff = bInverseSquared ? Falloff : 1;
 
     return Falloff;
 }
@@ -37,7 +41,7 @@ FDirectLighting IntegrateBxDF(FGBufferData GBuffer, half3 N, half3 V, FCapsuleLi
     [branch]
     if(Capsule.Length > 0)
     {
-
+		LineIrradiance(N, Capsule.LightPos[0], Capsule.LightPos[1], Capsule.DistBiasSqr, LineCosSubtended, Falloff, NoL);
     }
     else
     {

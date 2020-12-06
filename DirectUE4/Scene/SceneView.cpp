@@ -151,6 +151,8 @@ FSceneView::FSceneView(const ViewInitOptions& InitOptions)
 	UnconstrainedViewRect(InitOptions.GetViewRect()),
 	ProjectionMatrixUnadjustedForRHI(InitOptions.ProjectionMatrix), 
 	bStaticSceneOnly(false)
+	, LODDistanceFactor(InitOptions.LODDistanceFactor)
+	, LODDistanceFactorSquared(InitOptions.LODDistanceFactor*InitOptions.LODDistanceFactor)
 {
 	ShadowViewMatrices = ViewMatrices;
 
