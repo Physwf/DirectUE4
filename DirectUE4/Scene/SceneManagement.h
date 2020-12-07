@@ -4,7 +4,7 @@
 #include "ConvexVolume.h"
 #include "MeshBach.h"
 #include "PrimitiveSceneProxy.h"
-
+#include "SHMath.h"
 
 #define WORLD_MAX					2097152.0				/* Maximum size of the world */
 #define HALF_WORLD_MAX				(WORLD_MAX * 0.5)		/* Half the maximum size of the world */
@@ -599,22 +599,22 @@ public:
 
 	void Initialize(
 		float InBlendFraction,
-		//const FSHVectorRGB3* InIrradianceEnvironmentMap,
-		//const FSHVectorRGB3* BlendDestinationIrradianceEnvironmentMap,
+		const FSHVectorRGB3* InIrradianceEnvironmentMap,
+		const FSHVectorRGB3* BlendDestinationIrradianceEnvironmentMap,
 		const float* InAverageBrightness,
 		const float* BlendDestinationAverageBrightness);
 
 	const USkyLightComponent* LightComponent;
-	//FTexture* ProcessedTexture;
+	ID3D11ShaderResourceView* ProcessedTexture;
 	float BlendFraction;
-	//FTexture* BlendDestinationProcessedTexture;
+	ID3D11ShaderResourceView* BlendDestinationProcessedTexture;
 	float SkyDistanceThreshold;
 	bool bCastShadows;
 	bool bWantsStaticShadowing;
 	bool bHasStaticLighting;
 	bool bCastVolumetricShadow;
 	FLinearColor LightColor;
-	//FSHVectorRGB3 IrradianceEnvironmentMap;
+	FSHVectorRGB3 IrradianceEnvironmentMap;
 	float AverageBrightness;
 	float IndirectLightingIntensity;
 	float VolumetricScatteringIntensity;

@@ -78,7 +78,8 @@ public:
 	void RemoveLight(class ULightComponent* Light);
 	void AddAtmosphericFog(UAtmosphericFogComponent* FogComponent);
 	void RemoveAtmosphericFog(UAtmosphericFogComponent* FogComponent);
-
+	void SetSkyLight(FSkyLightSceneProxy* Light);
+	void DisableSkyLight(FSkyLightSceneProxy* Light);
 	void AddLightSceneInfo(FLightSceneInfo* LightSceneInfo);
 	void AddPrimitiveSceneInfo(FPrimitiveSceneInfo* PrimitiveSceneInfo);
 
@@ -129,6 +130,8 @@ public:
 	class FAtmosphericFogSceneInfo* AtmosphericFog;
 
 	FSkyLightSceneProxy* SkyLight;
+
+	std::vector<FSkyLightSceneProxy*> SkyLightStack;
 
 	FLightSceneInfo* SimpleDirectionalLight;
 	/** The sun light for atmospheric effect, if any. */

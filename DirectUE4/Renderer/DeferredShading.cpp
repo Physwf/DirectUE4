@@ -362,24 +362,22 @@ void FViewInfo::SetupUniformBufferParameters(
 
 	// 	ERHIFeatureLevel::Type RHIFeatureLevel = Scene == nullptr ? GMaxRHIFeatureLevel : Scene->GetFeatureLevel();
 
-	//if (GScene && GScene->SkyLight)
+	if (Scene && Scene->SkyLight)
 	{
-		// 		FSkyLightSceneProxy* SkyLight = Scene->SkyLight;
-		// 
-		// 		ViewUniformParameters.SkyLightColor = SkyLight->LightColor;
-		// 
-		// 		bool bApplyPrecomputedBentNormalShadowing =
-		// 			SkyLight->bCastShadows
-		// 			&& SkyLight->bWantsStaticShadowing;
-		// 
-		// 		ViewUniformParameters.SkyLightParameters = bApplyPrecomputedBentNormalShadowing ? 1 : 0;
+		FSkyLightSceneProxy* SkyLight = Scene->SkyLight;
+
+		ViewUniformParameters.Constants.SkyLightColor = SkyLight->LightColor;
+
+		bool bApplyPrecomputedBentNormalShadowing = SkyLight->bCastShadows && SkyLight->bWantsStaticShadowing;
+
+		ViewUniformParameters.Constants.SkyLightParameters = bApplyPrecomputedBentNormalShadowing ? 1.f : 0;
 		ViewUniformParameters.Constants.SkyLightColor = { 1.0f,1.0f, 1.0f };
 		ViewUniformParameters.Constants.SkyLightParameters = 1.f;
 	}
-	//else
+	else
 	{
-		//ViewUniformParameters.SkyLightColor = FLinearColor::Black;
-		//ViewUniformParameters.SkyLightParameters = 0;
+		ViewUniformParameters.Constants.SkyLightColor = FLinearColor::Black;
+		ViewUniformParameters.Constants.SkyLightParameters = 0;
 	}
 
 	// Make sure there's no padding since we're going to cast to FVector4*
@@ -598,13 +596,70 @@ void FViewInfo::Init()
 
 void FViewInfo::SetupSkyIrradianceEnvironmentMapConstants(Vector4* OutSkyIrradianceEnvironmentMap) const
 {
-	OutSkyIrradianceEnvironmentMap[0] = { 0.00155f, -0.0033f,  0.06505f,  0.14057f };
-	OutSkyIrradianceEnvironmentMap[1] = { 0.00003f, -0.00304f,  0.09185f, 0.17386f };
-	OutSkyIrradianceEnvironmentMap[2] = { -0.00289f, -0.00268f, 0.1612f,  0.25372f };
-	OutSkyIrradianceEnvironmentMap[3] = { 0.00864f, -0.0024f,  -0.05994f, -0.00767f };
-	OutSkyIrradianceEnvironmentMap[4] = { 0.00792f, -0.00237f, -0.06537f, -0.00857f };
-	OutSkyIrradianceEnvironmentMap[5] = { 0.00666f, -0.00231f, -0.07398f, -0.01038f };
-	OutSkyIrradianceEnvironmentMap[6] = { -0.00346f, -0.00294f, -0.00201f, 1.00f };
+	FScene* Scene = nullptr;
+
+	if (Family->Scene)
+	{
+		Scene = Family->Scene;
+	}
+
+	if (Scene
+		&& Scene->SkyLight
+		// Skylights with static lighting already had their diffuse contribution baked into lightmaps
+		&& !Scene->SkyLight->bHasStaticLighting
+		/*&& Family->EngineShowFlags.SkyLighting*/)
+	{
+		const FSHVectorRGB3& SkyIrradiance = Scene->SkyLight->IrradianceEnvironmentMap;
+
+		const float SqrtPI = FMath::Sqrt(PI);
+		const float Coefficient0 = 1.0f / (2 * SqrtPI);
+		const float Coefficient1 = FMath::Sqrt(3) / (3 * SqrtPI);
+		const float Coefficient2 = FMath::Sqrt(15) / (8 * SqrtPI);
+		const float Coefficient3 = FMath::Sqrt(5) / (16 * SqrtPI);
+		const float Coefficient4 = .5f * Coefficient2;
+
+		// Pack the SH coefficients in a way that makes applying the lighting use the least shader instructions
+		// This has the diffuse convolution coefficients baked in
+		// See "Stupid Spherical Harmonics (SH) Tricks"
+		OutSkyIrradianceEnvironmentMap[0].X = -Coefficient1 * SkyIrradiance.R.V[3];
+		OutSkyIrradianceEnvironmentMap[0].Y = -Coefficient1 * SkyIrradiance.R.V[1];
+		OutSkyIrradianceEnvironmentMap[0].Z = Coefficient1 * SkyIrradiance.R.V[2];
+		OutSkyIrradianceEnvironmentMap[0].W = Coefficient0 * SkyIrradiance.R.V[0] - Coefficient3 * SkyIrradiance.R.V[6];
+
+		OutSkyIrradianceEnvironmentMap[1].X = -Coefficient1 * SkyIrradiance.G.V[3];
+		OutSkyIrradianceEnvironmentMap[1].Y = -Coefficient1 * SkyIrradiance.G.V[1];
+		OutSkyIrradianceEnvironmentMap[1].Z = Coefficient1 * SkyIrradiance.G.V[2];
+		OutSkyIrradianceEnvironmentMap[1].W = Coefficient0 * SkyIrradiance.G.V[0] - Coefficient3 * SkyIrradiance.G.V[6];
+
+		OutSkyIrradianceEnvironmentMap[2].X = -Coefficient1 * SkyIrradiance.B.V[3];
+		OutSkyIrradianceEnvironmentMap[2].Y = -Coefficient1 * SkyIrradiance.B.V[1];
+		OutSkyIrradianceEnvironmentMap[2].Z = Coefficient1 * SkyIrradiance.B.V[2];
+		OutSkyIrradianceEnvironmentMap[2].W = Coefficient0 * SkyIrradiance.B.V[0] - Coefficient3 * SkyIrradiance.B.V[6];
+
+		OutSkyIrradianceEnvironmentMap[3].X = Coefficient2 * SkyIrradiance.R.V[4];
+		OutSkyIrradianceEnvironmentMap[3].Y = -Coefficient2 * SkyIrradiance.R.V[5];
+		OutSkyIrradianceEnvironmentMap[3].Z = 3 * Coefficient3 * SkyIrradiance.R.V[6];
+		OutSkyIrradianceEnvironmentMap[3].W = -Coefficient2 * SkyIrradiance.R.V[7];
+
+		OutSkyIrradianceEnvironmentMap[4].X = Coefficient2 * SkyIrradiance.G.V[4];
+		OutSkyIrradianceEnvironmentMap[4].Y = -Coefficient2 * SkyIrradiance.G.V[5];
+		OutSkyIrradianceEnvironmentMap[4].Z = 3 * Coefficient3 * SkyIrradiance.G.V[6];
+		OutSkyIrradianceEnvironmentMap[4].W = -Coefficient2 * SkyIrradiance.G.V[7];
+
+		OutSkyIrradianceEnvironmentMap[5].X = Coefficient2 * SkyIrradiance.B.V[4];
+		OutSkyIrradianceEnvironmentMap[5].Y = -Coefficient2 * SkyIrradiance.B.V[5];
+		OutSkyIrradianceEnvironmentMap[5].Z = 3 * Coefficient3 * SkyIrradiance.B.V[6];
+		OutSkyIrradianceEnvironmentMap[5].W = -Coefficient2 * SkyIrradiance.B.V[7];
+
+		OutSkyIrradianceEnvironmentMap[6].X = Coefficient4 * SkyIrradiance.R.V[8];
+		OutSkyIrradianceEnvironmentMap[6].Y = Coefficient4 * SkyIrradiance.G.V[8];
+		OutSkyIrradianceEnvironmentMap[6].Z = Coefficient4 * SkyIrradiance.B.V[8];
+		OutSkyIrradianceEnvironmentMap[6].W = 1;
+	}
+	else
+	{
+		memset(OutSkyIrradianceEnvironmentMap,0, sizeof(Vector4) * 7);
+	}
 }
 
 

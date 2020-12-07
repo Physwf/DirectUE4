@@ -65,9 +65,10 @@ enum EOcclusionCombineMode
 	OCM_MAX,
 };
 
-enum class ELightUnits : uint8
+enum class ELightUnits : unsigned char
 {
 	Unitless,
 	Candelas,
 	Lumens,
 };
+

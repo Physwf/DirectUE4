@@ -135,6 +135,28 @@ void FScene::RemoveAtmosphericFog(UAtmosphericFogComponent* FogComponent)
 	}
 }
 
+void FScene::SetSkyLight(FSkyLightSceneProxy* LightProxy)
+{
+	SkyLightStack.push_back(LightProxy);
+	SkyLight = LightProxy;
+}
+
+void FScene::DisableSkyLight(FSkyLightSceneProxy* LightProxy)
+{
+	auto it = std::find(SkyLightStack.begin(), SkyLightStack.end(), LightProxy);
+	if(it != SkyLightStack.end()) SkyLightStack.erase(it);
+
+	if (SkyLightStack.size() > 0)
+	{
+		// Use the most recently enabled skylight
+		SkyLight = SkyLightStack.back();
+	}
+	else
+	{
+		SkyLight = NULL;
+	}
+}
+
 void FScene::AddLightSceneInfo(FLightSceneInfo* LightSceneInfo)
 {
 	LightSceneInfo->Id = Lights.size();
@@ -150,7 +172,6 @@ void FScene::AddLightSceneInfo(FLightSceneInfo* LightSceneInfo)
 	}
 
 	LightSceneInfo->AddToScene();
-	
 }
 
 void FScene::AddPrimitiveSceneInfo(FPrimitiveSceneInfo* PrimitiveSceneInfo)
