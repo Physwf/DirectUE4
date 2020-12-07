@@ -2055,12 +2055,19 @@ void RHIEndDrawIndexedPrimitiveUP()
 
 	CommitNonComputeShaderConstants();
 
-	UINT Stride = sizeof(Vector4);
 	UINT Offset = 0;
-	D3D11DeviceContext->IASetVertexBuffers(0, 1, DynamicVB.GetAddressOf(), &Stride, &Offset);
-	D3D11DeviceContext->IASetIndexBuffer(DynamicIB.Get(), DXGI_FORMAT_R32_UINT, 0);
+	D3D11DeviceContext->IASetVertexBuffers(0, 1, DynamicVB.GetAddressOf(), &PendingVertexDataStride, &Offset);
+	D3D11DeviceContext->IASetIndexBuffer(DynamicIB.Get(), PendingIndexDataStride == sizeof(uint16) ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT, 0);
 	D3D11DeviceContext->IASetPrimitiveTopology(PendingPrimitiveType);
 	D3D11DeviceContext->DrawIndexed(PendingNumIndices, 0, 0);
+
+	PendingPrimitiveType = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+	PendingNumPrimitives = 0;
+	PendingMinVertexIndex = 0;
+	PendingIndexDataStride = 0;
+	PendingNumVertices = 0;
+	PendingNumIndices = 0;
+	PendingVertexDataStride = 0;
 }
 
 void DrawIndexedPrimitiveUP(D3D11_PRIMITIVE_TOPOLOGY PrimitiveType, uint32 MinVertexIndex, uint32 NumVertices, uint32 NumPrimitives, const void* IndexData, uint32 IndexDataStride, const void* VertexData, uint32 VertexDataStride)

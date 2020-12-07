@@ -667,7 +667,23 @@ void FSceneRenderer::Render()
 
 	FLightShaftsOutput LightShaftOutput;
 	//RenderLightShaftOcclusion(RHICmdList, LightShaftOutput);
-	RenderAtmosphere(LightShaftOutput);
+
+	if (ShouldRenderAtmosphere(ViewFamily))
+	{
+		if (Scene->AtmosphericFog)
+		{
+			// Update RenderFlag based on LightShaftTexture is valid or not
+			if (LightShaftOutput.LightShaftOcclusion)
+			{
+				Scene->AtmosphericFog->RenderFlag &= EAtmosphereRenderFlag::E_LightShaftMask;
+			}
+			else
+			{
+				Scene->AtmosphericFog->RenderFlag |= EAtmosphereRenderFlag::E_DisableLightShaft;
+			}
+			RenderAtmosphere(LightShaftOutput);
+		}
+	}
 
 	FSceneRenderTargets& SceneContex = FSceneRenderTargets::Get();
 	SceneContex.FinishRendering();

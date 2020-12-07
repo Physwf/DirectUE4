@@ -102,6 +102,11 @@ AAtmosphericFog::AAtmosphericFog(UWorld* InOwner)
 
 }
 
+void AAtmosphericFog::Tick(float fDeltaSeconds)
+{
+
+}
+
 void AAtmosphericFog::PostLoad()
 {
 	AtmosphericFogComponent->Register();

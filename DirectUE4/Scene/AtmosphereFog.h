@@ -89,6 +89,8 @@ class AAtmosphericFog : public AActor
 public:
 	AAtmosphericFog(UWorld* InOwner);
 
+	virtual void Tick(float fDeltaSeconds) override;
+
 	virtual void PostLoad();
 private:
 	/** Main fog component */

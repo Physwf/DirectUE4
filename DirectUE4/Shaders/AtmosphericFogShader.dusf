@@ -16,7 +16,7 @@ static const float OcclusionMaskDarkness = 0.0;
 #endif
 
 
-void VS_Main(
+void VSMain(
     in float2 InPosition : ATTRIBUTE0, 
     out float2 OutTexCoord : TEXCOORD0,
     out float4 OutScreenVector : TEXCOORD1,
@@ -32,7 +32,7 @@ void VS_Main(
 }
 
 
-void PS_Main(
+void AtmosphericPixelMain(
     float2 TexCoord : TEXCOORD0,
     float4 ScreenVector : TEXCOORD1,
     out float4 OutColor : SV_Target0
