@@ -17,8 +17,8 @@ FMatrix UPrimitiveComponent::GetRenderMatrix() const
 
 void UPrimitiveComponent::CreateRenderState_Concurrent()
 {
+	USceneComponent::CreateRenderState_Concurrent();
 	GetWorld()->Scene->AddPrimitive(this);
-	OnRegister();
 }
 
 void UPrimitiveComponent::SendRenderTransform_Concurrent()
@@ -26,10 +26,14 @@ void UPrimitiveComponent::SendRenderTransform_Concurrent()
 	//UpdateBounds();
 
 	GetWorld()->Scene->UpdatePrimitiveTransform(this);
+
+	USceneComponent::SendRenderTransform_Concurrent();
 }
 
 void UPrimitiveComponent::DestroyRenderState_Concurrent()
 {
-	OnUnregister();
 	GetWorld()->Scene->RemovePrimitive(this);
+
+	USceneComponent::DestroyRenderState_Concurrent();
+
 }

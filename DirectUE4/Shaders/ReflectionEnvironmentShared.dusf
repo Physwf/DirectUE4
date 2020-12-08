@@ -1,3 +1,14 @@
+
+
+#define REFLECTION_CAPTURE_ROUGHEST_MIP 1
+#define REFLECTION_CAPTURE_ROUGHNESS_MIP_SCALE 1.2
+
+float ComputeReflectionCaptureRoughnessFromMip(float Mip, half CubemapMaxMip)
+{
+	float LevelFrom1x1 = CubemapMaxMip - 1 - Mip;
+	return exp2((REFLECTION_CAPTURE_ROUGHEST_MIP - LevelFrom1x1) / REFLECTION_CAPTURE_ROUGHNESS_MIP_SCALE);
+}
+
 /** 
  * Computes sky diffuse lighting from the SH irradiance map.  
  * This has the SH basis evaluation and diffuse convolution weights combined for minimal ALU's - see "Stupid Spherical Harmonics (SH) Tricks" 
@@ -22,3 +33,4 @@ float3 GetSkySHDiffuse(float3 Normal)
 	// max to not get negative colors
 	return max(0, Intermediate0 + Intermediate1 + Intermediate2);
 }
+

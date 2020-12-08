@@ -44,6 +44,15 @@ void FIndirectLightingCache::UpdateCache(FScene* Scene, FSceneRenderer& Renderer
 	}
 }
 
+FScene::FScene(UWorld* InWorld)
+: World(InWorld)
+, SkyLight(NULL)
+, SunLight(NULL)
+, AtmosphericFog(NULL)
+{
+	World = InWorld;
+}
+
 void FScene::AddPrimitive(UPrimitiveComponent* Primitive)
 {
 	FPrimitiveSceneProxy* PrimitiveSceneProxy = Primitive->CreateSceneProxy();

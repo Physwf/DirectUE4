@@ -283,9 +283,25 @@ MaterialFloat4 Texture3DSampleLevel(Texture3D Tex, SamplerState Sampler, float3 
 {
 	return Tex.SampleLevel(Sampler, UV, Mip);
 }
+MaterialFloat4 TextureCubeSampleLevel(TextureCube Tex, SamplerState Sampler, float3 UV, MaterialFloat Mip)
+{
+	return Tex.SampleLevel(Sampler, UV, Mip);
+}
 MaterialFloat TextureCubeSampleDepthLevel(TextureCube TexDepth, SamplerState Sampler, float3 UV, MaterialFloat Mip)
 {
 	return TexDepth.SampleLevel(Sampler, UV, Mip).r;
+}
+MaterialFloat4 TextureCubeSampleBias(TextureCube Tex, SamplerState Sampler, float3 UV, MaterialFloat MipBias)
+{
+#if COMPUTESHADER
+	return Tex.SampleLevel(Sampler, UV, 0);
+#else
+	return Tex.SampleBias(Sampler, UV, MipBias);
+#endif
+}
+MaterialFloat4 TextureCubeSampleGrad(TextureCube Tex, SamplerState Sampler, float3 UV, MaterialFloat3 DDX, MaterialFloat3 DDY)
+{
+	return Tex.SampleGrad(Sampler, UV, DDX, DDY);
 }
 // Used for vertex factory shaders which need to use the resolved view
 float3 SvPositionToResolvedTranslatedWorld(float4 SvPosition)

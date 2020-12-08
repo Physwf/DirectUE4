@@ -109,6 +109,8 @@ class ASkylight : public AActor
 public:
 	ASkylight(class UWorld* InOwner);
 
+	virtual void Tick(float fDeltaSeconds) override {};
+
 	virtual void PostLoad() override;
 private:
 	USkyLightComponent* SkylightComponent;

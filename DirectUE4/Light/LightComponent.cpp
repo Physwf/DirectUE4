@@ -73,6 +73,8 @@ FVector ULightComponent::GetDirection() const
 
 void ULightComponent::CreateRenderState_Concurrent()
 {
+	UActorComponent::CreateRenderState_Concurrent();
+
 	GetWorld()->Scene->AddLight(this);
 	OnRegister();
 }
@@ -85,6 +87,7 @@ void ULightComponent::SendRenderTransform_Concurrent()
 
 void ULightComponent::DestroyRenderState_Concurrent()
 {
+	UActorComponent::DestroyRenderState_Concurrent();
 	OnUnregister();
 	GetWorld()->Scene->RemoveLight(this);
 }

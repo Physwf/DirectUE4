@@ -6,7 +6,25 @@
 USkyLightComponent::USkyLightComponent(AActor* InOwner)
 	: ULightComponentBase(InOwner)
 {
+	SourceType = SLS_CapturedScene;
+	//Cubemap;
+	SourceCubemapAngle = 0;
+	CubemapResolution = 128;
+	SkyDistanceThreshold = 150000.000f;
+	bCaptureEmissiveOnly = false;
+	bLowerHemisphereIsBlack = true;
+	LowerHemisphereColor = FLinearColor::Black;
+	OcclusionMaxDistance = 1000.f;
+	Contrast = 0;
+	OcclusionExponent = 1.0f;
+	MinOcclusion = 0;
+	OcclusionTint = FColor(0,0,0);
+	OcclusionCombineMode = OCM_Minimum;
 
+	Intensity = 1;
+	IndirectLightingIntensity = 1.0f;
+	Mobility = EComponentMobility::Stationary;
+	bCastVolumetricShadow = true;
 }
 
 class FSkyLightSceneProxy* USkyLightComponent::CreateSceneProxy() const
@@ -85,7 +103,8 @@ void USkyLightComponent::UpdateSkyCaptureContents(UWorld* WorldToUpdate)
 // 	if (SkyCapturesToUpdateBlendDestinations.Num() > 0)
 // 	{
 // 		UpdateSkyCaptureContentsArray(WorldToUpdate, SkyCapturesToUpdateBlendDestinations, false);
-// 	}
+// 	}
+
 }
 
 void USkyLightComponent::UpdateSkyCaptureContentsArray(UWorld* WorldToUpdate, std::vector<USkyLightComponent*>& ComponentArray, bool bOperateOnBlendSource)
@@ -106,6 +125,7 @@ void USkyLightComponent::UpdateSkyCaptureContentsArray(UWorld* WorldToUpdate, st
 
 			}
 		}
+		CaptureComponent->MarkRenderStateDirty();
 	}
 }
 

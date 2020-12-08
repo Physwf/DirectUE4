@@ -13,6 +13,7 @@
 #include "ShaderCompiler.h"
 #include "GlobalShader.h"
 #include "PrimitiveSceneInfo.h"
+#include "GPUProfiler.h"
 
 #include <new>
 
@@ -493,7 +494,7 @@ void FViewInfo::DestroyAllSnapshots()
 	{
 		for (int32 Index = 0; Index < NumToRemove; Index++)
 		{
-			free(FreeViewInfoSnapshots[Index]);
+			_aligned_free(FreeViewInfoSnapshots[Index]);
 		}
 		FreeViewInfoSnapshots.erase(FreeViewInfoSnapshots.begin(), FreeViewInfoSnapshots.begin() + NumToRemove);
 	}
@@ -692,8 +693,13 @@ void FSceneRenderer::Render()
 	PrepareViewRectsForRendering();
 
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get();
+
+	SceneContext.ReleaseSceneColor();
+
 	SceneContext.Allocate(this);
 	SceneContext.AllocGBufferTargets();
+
+	SCOPED_DRAW_EVENT(Scene);
 
 	InitViews();
 	RenderPrePass();

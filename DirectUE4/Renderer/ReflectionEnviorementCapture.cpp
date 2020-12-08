@@ -280,6 +280,8 @@ void ClearScratchCubemaps(int32 TargetSize)
 
 void CaptureSceneToScratchCubemap(FSceneRenderer* SceneRenderer, ECubeFace CubeFace, int32 CubemapSize, bool bCapturingForSkyLight, bool bLowerHemisphereIsBlack, const FLinearColor& LowerHemisphereColor)
 {
+	SCOPED_DRAW_EVENT(CubeMapCapture);
+
 	SceneRenderer->Render();
 
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get();
@@ -434,7 +436,7 @@ void CaptureSceneIntoScratchCubemap(
 		//View->EndFinalPostprocessSettings(InitOptions);
 
 		ViewFamily.Views.push_back(View);
-
+		ViewFamily.Scene = Scene;
 
 		FSceneRenderer SceneRenderer(ViewFamily);
 
@@ -603,7 +605,7 @@ float ComputeSingleAverageBrightnessFromCubemap(int32 TargetSize, ComPtr<PooledR
 	GRenderTargetPool.FindFreeElement(Desc, ReflectionBrightnessTarget, TEXT("ReflectionBrightness"));
 
 	std::shared_ptr<FD3D11Texture2D>& BrightnessTarget = ReflectionBrightnessTarget->TargetableTexture;
-	SetRenderTarget(BrightnessTarget.get(), NULL, true);
+	SetRenderTarget(BrightnessTarget.get(), NULL, false);
 
 	//FGraphicsPipelineStateInitializer GraphicsPSOInit;
 	//RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);

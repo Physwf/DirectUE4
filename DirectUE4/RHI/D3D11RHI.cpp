@@ -1854,7 +1854,7 @@ void FD3D11ConstantBuffer::InitDynamicRHI()
 
 void FD3D11ConstantBuffer::ReleaseDynamicRHI()
 {
-	free(ShadowData);
+	_aligned_free(ShadowData);
 }
 
 bool FD3D11ConstantBuffer::CommitConstantsToDevice(bool bDiscardSharedConstants)

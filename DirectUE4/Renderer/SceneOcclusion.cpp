@@ -180,7 +180,8 @@ void BuildHZB(FViewInfo& View)
 		TShaderMapRef<FPostProcessVS> VertexShader(View.ShaderMap);
 		TShaderMapRef<THZBBuildPS<0>> PixelShader(View.ShaderMap);
 
-		D3D11DeviceContext->IASetInputLayout(GFilterInputLayout);
+		ID3D11InputLayout* InputLayout = GetInputLayout(GetFilterInputDelcaration().get(), VertexShader->GetCode().Get());
+		D3D11DeviceContext->IASetInputLayout(InputLayout);
 		D3D11DeviceContext->VSSetShader(VertexShader->GetVertexShader(), 0, 0);
 		D3D11DeviceContext->PSSetShader(PixelShader->GetPixelShader(), 0, 0);
 		D3D11DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -218,7 +219,8 @@ void BuildHZB(FViewInfo& View)
 
 		SetRenderTarget(View.HZB->TargetableTexture.get(), NULL, false, false, false, MipIndex);
 
-		D3D11DeviceContext->IASetInputLayout(GFilterInputLayout);
+		ID3D11InputLayout* InputLayout = GetInputLayout(GetFilterInputDelcaration().get(), VertexShader->GetCode().Get());
+		D3D11DeviceContext->IASetInputLayout(InputLayout);
 		D3D11DeviceContext->VSSetShader(VertexShader->GetVertexShader(), 0, 0);
 		D3D11DeviceContext->PSSetShader(PixelShader->GetPixelShader(), 0, 0);
 		D3D11DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);

@@ -150,9 +150,48 @@ void FSceneRenderTargets::Allocate(const FSceneRenderer* Renderer)
 	//CurrentMinShadowResolution = MinShadowResolution;
 	//bCurrentLightPropagationVolume = bLightPropagationVolume;
 
+	if ((BufferSize.X != DesiredBufferSize.X) ||
+		(BufferSize.Y != DesiredBufferSize.Y) ||
+		(CurrentGBufferFormat != GBufferFormat) ||
+		(CurrentSceneColorFormat != SceneColorFormat) ||
+		//(CurrentMobileSceneColorFormat != MobileSceneColorFormat) ||
+		(bAllowStaticLighting != bNewAllowStaticLighting) ||
+		//(bUseDownsizedOcclusionQueries != bDownsampledOcclusionQueries) ||
+		(CurrentMaxShadowResolution != MaxShadowResolution) ||
+		//(CurrentRSMResolution != RSMResolution) ||
+		//(CurrentTranslucencyLightingVolumeDim != TranslucencyLightingVolumeDim) ||
+		//(CurrentMobile32bpp != Mobile32bpp) ||
+		(CurrentMSAACount != MSAACount) /*||*/
+		//(bCurrentLightPropagationVolume != bLightPropagationVolume) ||
+		/*(CurrentMinShadowResolution != MinShadowResolution)*/)
+	{
+		CurrentGBufferFormat = GBufferFormat;
+		CurrentSceneColorFormat = SceneColorFormat;
+		//CurrentMobileSceneColorFormat = MobileSceneColorFormat;
+		bAllowStaticLighting = bNewAllowStaticLighting;
+		//bUseDownsizedOcclusionQueries = bDownsampledOcclusionQueries;
+		CurrentMaxShadowResolution = MaxShadowResolution;
+		//CurrentRSMResolution = RSMResolution;
+		//CurrentTranslucencyLightingVolumeDim = TranslucencyLightingVolumeDim;
+		//CurrentMobile32bpp = Mobile32bpp;
+		CurrentMSAACount = MSAACount;
+		//CurrentMinShadowResolution = MinShadowResolution;
+		//bCurrentLightPropagationVolume = bLightPropagationVolume;
+
+		// Reinitialize the render targets for the given size.
+		SetBufferSize(DesiredBufferSize.X, DesiredBufferSize.Y);
+
+		ReleaseGBufferTargets();
+		GRenderTargetPool.FreeUnusedResources();
+	}
 	SetBufferSize(DesiredBufferSize.X,DesiredBufferSize.Y);
 
 	AllocRenderTargets();
+}
+
+void FSceneRenderTargets::ReleaseSceneColor()
+{
+	SceneColor.Reset();
 }
 
 void FSceneRenderTargets::AllocRenderTargets()
@@ -504,6 +543,70 @@ const std::shared_ptr<FD3D11Texture2D>* FSceneRenderTargets::GetActualDepthTextu
 void FSceneRenderTargets::AllocLightAttenuation()
 {
 
+}
+
+void FSceneRenderTargets::ReleaseGBufferTargets()
+{
+	GBufferA.Reset();
+	GBufferB.Reset();
+	GBufferC.Reset();
+	GBufferD.Reset();
+	GBufferE.Reset();
+	//GBufferVelocity.SafeRelease();
+}
+
+void FSceneRenderTargets::ReleaseAllTargets()
+{
+	ReleaseGBufferTargets();
+
+	ReleaseSceneColor();
+
+	SceneAlphaCopy.Reset();
+	SceneDepthZ.Reset();
+	//SceneStencilSRV.SafeRelease();
+	LightingChannels.Reset();
+	AuxiliarySceneDepthZ.Reset();
+	SmallDepthZ.Reset();
+	//DBufferA.SafeRelease();
+	//DBufferB.SafeRelease();
+	//DBufferC.SafeRelease();
+	ScreenSpaceAO.Reset();
+	//QuadOverdrawBuffer.SafeRelease();
+	LightAttenuation.Reset();
+	LightAccumulation.Reset();
+	DirectionalOcclusion.Reset();
+	//CustomDepth.SafeRelease();
+	//MobileCustomStencil.SafeRelease();
+	//CustomStencilSRV.SafeRelease();
+
+// 	for (int32 i = 0; i < ARRAY_COUNT(OptionalShadowDepthColor); i++)
+// 	{
+// 		OptionalShadowDepthColor[i].SafeRelease();
+// 	}
+
+	for (int32 i = 0; i < 2; i++)
+	{
+		ReflectionColorScratchCubemap[i].Reset();
+	}
+
+	for (int32 i = 0; i < 2; i++)
+	{
+		DiffuseIrradianceScratchCubemap[i].Reset();
+	}
+
+	SkySHIrradianceMap.Reset();
+
+// 	for (int32 RTSetIndex = 0; RTSetIndex < NumTranslucentVolumeRenderTargetSets; RTSetIndex++)
+// 	{
+// 		TranslucencyLightingVolumeAmbient[RTSetIndex].SafeRelease();
+// 		TranslucencyLightingVolumeDirectional[RTSetIndex].SafeRelease();
+// 	}
+// 
+// 	MobileMultiViewSceneColor.SafeRelease();
+// 	MobileMultiViewSceneDepthZ.SafeRelease();
+// 
+// 	EditorPrimitivesColor.SafeRelease();
+// 	EditorPrimitivesDepth.SafeRelease();
 }
 
 FIntPoint FSceneRenderTargets::ComputeDesiredSize(const FSceneViewFamily& ViewFamily)

@@ -72,6 +72,8 @@ class FScene
 public:
 	class UWorld* World;
 
+	FScene(UWorld* InWorld);
+
 	void AddPrimitive(UPrimitiveComponent* Primitive);
 	void RemovePrimitive(UPrimitiveComponent* Primitive);
 	void UpdatePrimitiveTransform(UPrimitiveComponent* Component);
@@ -181,6 +183,7 @@ public:
 	{
 		return (AtmosphericFog != NULL); // Use default value when Sun Light is not existing
 	}
+
 	UWorld* GetWorld() const { return World; }
 };
 

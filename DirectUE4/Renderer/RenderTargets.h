@@ -148,12 +148,19 @@ public:
 	ComPtr<PooledRenderTarget>& GetSceneColor();
 
 	void Allocate(const FSceneRenderer* Renderer);
+
+	void ReleaseSceneColor();
 private:
 	void AllocRenderTargets();
 	void AllocateDeferredShadingPathRenderTargets();
 	void AllocSceneColor();
 	void AllocateCommonDepthTargets();
 	void AllocLightAttenuation();
+
+
+	void ReleaseGBufferTargets();
+
+	void ReleaseAllTargets();
 
 	const ComPtr<PooledRenderTarget>& GetSceneColorForCurrentShadingPath() const {  return SceneColor; }
 	ComPtr<PooledRenderTarget>& GetSceneColorForCurrentShadingPath() { return SceneColor; }

@@ -3,8 +3,6 @@
 
 ID3D11Buffer* GScreenRectangleVertexBuffer;
 ID3D11Buffer* GScreenRectangleIndexBuffer;
-ID3D11InputLayout* GFilterInputLayout;
-ID3D11VertexShader* GCommonPostProcessVS;
 
 FDrawRectangleParameters DrawRectangleParameters;
 
@@ -23,14 +21,6 @@ void InitScreenRectangleResources()
 	GScreenRectangleIndexBuffer = CreateIndexBuffer((void*)Indices, sizeof(Indices));
 
 	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
-	ID3DBlob* VSBytecode = VertexShader->GetCode().Get();
-	D3D11_INPUT_ELEMENT_DESC InputDesc[] =
-	{
-		{ "ATTRIBUTE",	0,	DXGI_FORMAT_R32G32B32A32_FLOAT,	0, 0,   D3D11_INPUT_PER_VERTEX_DATA,0 },
-		{ "ATTRIBUTE",	1,	DXGI_FORMAT_R32G32_FLOAT,		0, 16,  D3D11_INPUT_PER_VERTEX_DATA,0 },
-	};
-	GFilterInputLayout = CreateInputLayout(InputDesc, sizeof(InputDesc) / sizeof(D3D11_INPUT_ELEMENT_DESC), VSBytecode);
-	GCommonPostProcessVS = CreateVertexShader(VSBytecode);
 }
 
 std::shared_ptr<std::vector<D3D11_INPUT_ELEMENT_DESC>> GetFilterInputDelcaration()

@@ -285,6 +285,9 @@ public:
 
 	// @return -1 if not found
 	int32 FindIndex(PooledRenderTarget* In) const;
+
+	void FreeUnusedResources();
+
 private:
 	std::vector< ComPtr<PooledRenderTarget> > PooledRenderTargets;
 	std::vector< ComPtr<PooledRenderTarget> > DeferredDeleteArray;

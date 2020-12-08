@@ -1420,7 +1420,7 @@ public:
 	{
 		if (Contents)
 		{
-			free(Contents);
+			_aligned_free(Contents);
 		}
 	}
 

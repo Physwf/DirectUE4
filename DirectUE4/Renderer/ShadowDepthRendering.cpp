@@ -7,6 +7,7 @@
 #include "ShaderBaseClasses.h"
 #include "ScreenRendering.h"
 #include "GPUProfiler.h"
+#include "SceneFilterRendering.h"
 
 /**
 * A vertex shader for rendering the depth of a mesh.
@@ -984,9 +985,6 @@ void FProjectedShadowInfo::CopyCachedShadowMap(const FDrawingPolicyRenderState& 
 		ID3D11RasterizerState* RasterizerState = TStaticRasterizerState<D3D11_FILL_SOLID, D3D11_CULL_NONE>::GetRHI();
 		DepthStencilState = TStaticDepthStencilState<true, D3D11_COMPARISON_ALWAYS>::GetRHI();
 
-		//extern TGlobalResource<FFilterVertexDeclaration> GFilterVertexDeclaration;
-		extern ID3D11InputLayout* GFilterInputLayout;
-
 		if (bOnePassPointLightShadow)
 		{
 			//if (RHISupportsGeometryShaders(GShaderPlatformForFeatureLevel[SceneRenderer->FeatureLevel]))
@@ -1005,7 +1003,8 @@ void FProjectedShadowInfo::CopyCachedShadowMap(const FDrawingPolicyRenderState& 
 				//SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 				//RHICmdList.SetStencilRef(StencilRef);
 
-				D3D11DeviceContext->IASetInputLayout(GFilterInputLayout);
+				ID3D11InputLayout* InputLayout = GetInputLayout(GetFilterInputDelcaration().get(), ScreenVertexShader->GetCode().Get());
+				D3D11DeviceContext->IASetInputLayout(InputLayout);
 				D3D11DeviceContext->VSSetShader(ScreenVertexShader->GetVertexShader(),0,0);
 				D3D11DeviceContext->GSSetShader(GeometryShader->GetGeometryShader(), 0, 0);
 				D3D11DeviceContext->PSSetShader(PixelShader->GetPixelShader(), 0, 0);
@@ -1069,7 +1068,8 @@ void FProjectedShadowInfo::CopyCachedShadowMap(const FDrawingPolicyRenderState& 
 			//SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 			//RHICmdList.SetStencilRef(StencilRef);
 
-			D3D11DeviceContext->IASetInputLayout(GFilterInputLayout);
+			ID3D11InputLayout* InputLayout = GetInputLayout(GetFilterInputDelcaration().get(), ScreenVertexShader->GetCode().Get());
+			D3D11DeviceContext->IASetInputLayout(InputLayout);
 			D3D11DeviceContext->VSSetShader(ScreenVertexShader->GetVertexShader(), 0, 0);
 			D3D11DeviceContext->PSSetShader(PixelShader->GetPixelShader(), 0, 0);
 			D3D11DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);

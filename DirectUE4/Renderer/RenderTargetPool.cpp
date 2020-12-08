@@ -388,3 +388,21 @@ int32 RenderTargetPool::FindIndex(PooledRenderTarget* In) const
 	return -1;
 }
 
+void RenderTargetPool::FreeUnusedResources()
+{
+	for (uint32 i = 0, Num = PooledRenderTargets.size(); i < Num; ++i)
+	{
+		ComPtr<PooledRenderTarget> Element = PooledRenderTargets[i];
+
+		if (Element && Element->IsFree())
+		{
+			assert(!Element->IsSnapshot());
+			//AllocationLevelInKB -= ComputeSizeInKB(*Element);
+			// we assume because of reference counting the resource gets released when not needed any more
+			// we don't use Remove() to not shuffle around the elements for better transparency on RenderTargetPoolEvents
+			DeferredDeleteArray.push_back(PooledRenderTargets[i]);
+			PooledRenderTargets[i].Reset();
+		}
+	}
+}
+

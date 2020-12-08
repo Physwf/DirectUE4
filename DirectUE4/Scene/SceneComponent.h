@@ -17,6 +17,14 @@ protected:
 
 	virtual void OnRegister();
 	virtual void OnUnregister();
+
+	uint8 bRegistered : 1;
+
+	/** If the render state is currently created for this component */
+	uint8 bRenderStateCreated : 1;
+
+private:
+	uint8 bRenderStateDirty : 1;
 	/** Is this component's transform in need of sending to the renderer? */
 	uint8 bRenderTransformDirty : 1;
 
@@ -26,25 +34,34 @@ protected:
 public:
 	void Register();
 	void Unregister();
-
+	bool IsRegistered() const { return bRegistered; }
 	void DoDeferredRenderUpdates_Concurrent();
+
+	void MarkRenderStateDirty();
+	/** Indicate that dynamic data for this component needs to be sent at the end of the frame. */
+	void MarkRenderDynamicDataDirty();
+	/** Marks the transform as dirty - will be sent to the render thread at the end of the frame*/
+	void MarkRenderTransformDirty();
+	/** If we belong to a world, mark this for a deferred update, otherwise do it now. */
+	void MarkForNeededEndOfFrameUpdate();
+	/** If we belong to a world, mark this for a deferred update, otherwise do it now. */
+	void MarkForNeededEndOfFrameRecreate();
 
 	AActor* GetOwner() const { return Owner; }
 	UWorld* GetWorld() { return WorldPrivite; }
 protected:
+
+
 	virtual void CreateRenderState_Concurrent();
 
-	virtual void SendRenderTransform_Concurrent() 
-	{
-		bRenderTransformDirty = false;
-	};
+	virtual void SendRenderTransform_Concurrent();;
 
-	virtual void SendRenderDynamicData_Concurrent() 
-	{
-		bRenderDynamicDataDirty = false;
-	};
+	virtual void SendRenderDynamicData_Concurrent();;
 
 	virtual void DestroyRenderState_Concurrent();
+
+
+	void RecreateRenderState_Concurrent();
 private:
 	UWorld * WorldPrivite;
 	mutable AActor* Owner;
