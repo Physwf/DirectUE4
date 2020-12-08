@@ -25,7 +25,7 @@ public:
 	enum ESkyLightSourceType SourceType;
 
 	/** Cubemap to use for sky lighting if SourceType is set to SLS_SpecifiedCubemap. */
-	ID3D11ShaderResourceView* Cubemap;
+	std::shared_ptr<FD3D11Texture2D> Cubemap;
 
 	/** Angle to rotate the source cubemap when SourceType is set to SLS_SpecifiedCubemap. */
 	float SourceCubemapAngle;
@@ -85,13 +85,18 @@ public:
 protected:
 	FSkyLightSceneProxy * SceneProxy;
 
-	ComPtr<ID3D11ShaderResourceView> ProcessedSkyTexture;
+	std::shared_ptr<FD3D11Texture2D> ProcessedSkyTexture;
 	FSHVectorRGB3 IrradianceEnvironmentMap;
 	float AverageBrightness;
 
 	ID3D11ShaderResourceView* BlendDestinationCubemap;
 	ComPtr<ID3D11ShaderResourceView> BlendDestinationProcessedSkyTexture;
 	FSHVectorRGB3 BlendDestinationIrradianceEnvironmentMap;
+
+	static std::vector<USkyLightComponent*> SkyCapturesToUpdate;
+	static std::vector<USkyLightComponent*> SkyCapturesToUpdateBlendDestinations;
+
+	virtual void OnRegister() override;
 
 	virtual void CreateRenderState_Concurrent() override;
 	virtual void DestroyRenderState_Concurrent() override;

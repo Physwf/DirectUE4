@@ -6,7 +6,10 @@ file(GLOB_RECURSE DIR_SRC
 	"./*.dush"
     "./*.dusf"
 )
-
+if(WIN32)
+add_compile_options(/wd4244)
+else(WIN32)
+endif(WIN32)
 foreach(_source IN ITEMS ${DIR_SRC})
     get_filename_component(_source_path "${_source}" PATH)
 	file(RELATIVE_PATH _source_path_rel "${DIR_PROJECT}" "${_source_path}")
@@ -23,6 +26,7 @@ target_include_directories(DirectUE4 PRIVATE "")
 target_include_directories(DirectUE4 PRIVATE "CompositionLighting")
 target_include_directories(DirectUE4 PRIVATE "Light")
 target_include_directories(DirectUE4 PRIVATE "Material")
+target_include_directories(DirectUE4 PRIVATE "Texture")
 target_include_directories(DirectUE4 PRIVATE "Math")
 target_include_directories(DirectUE4 PRIVATE "Templates")
 target_include_directories(DirectUE4 PRIVATE "Mesh")

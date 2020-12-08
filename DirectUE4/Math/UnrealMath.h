@@ -79,6 +79,7 @@ struct FPlane;
 struct FLinearColor;
 struct FIntRect;
 struct FMatrix;
+class FFloat16Color;
 
 namespace EAxis
 {
@@ -1301,6 +1302,7 @@ struct FLinearColor
 	FLinearColor(struct FColor);
 
 	FLinearColor operator*(const FLinearColor& ColorB) const;
+	explicit FLinearColor(const FFloat16Color& C);
 	FLinearColor operator*(float Scalar) const;
 	FLinearColor& operator*=(float Scalar);
 	static const FLinearColor White;
@@ -3985,3 +3987,18 @@ public:
 	void SetWithoutBoundsChecks(const float FP32Value);
 	float GetFloat() const;
 };
+class FFloat16Color
+{
+public:
+	FFloat16 R;
+	FFloat16 G;
+	FFloat16 B;
+	FFloat16 A;
+	FFloat16Color();
+	FFloat16Color(const FFloat16Color& Src);
+	FFloat16Color(const FLinearColor& Src);
+	FFloat16Color& operator=(const FFloat16Color& Src);
+	bool operator==(const FFloat16Color& Src);
+	bool operator==(const FFloat16Color& Src) const;
+};
+

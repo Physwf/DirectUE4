@@ -107,7 +107,7 @@ public:
 	void GetGBufferADesc(PooledRenderTargetDesc& Desc) const;
 	void AllocGBufferTargets();
 
-	//void AllocateReflectionTargets(FRHICommandList& RHICmdList, int32 TargetSize);
+	void AllocateReflectionTargets(int32 TargetSize);
 
 	//void AllocateLightingChannelTexture(FRHICommandList& RHICmdList);
 
@@ -142,6 +142,10 @@ public:
 	const std::shared_ptr<FD3D11Texture2D>& GetLightAttenuationSurface() const { return LightAttenuation->TargetableTexture; }
 
 	const std::shared_ptr<FD3D11Texture2D>& GetScreenSpaceAO() { return ScreenSpaceAO->ShaderResourceTexture; }
+
+	const ComPtr<PooledRenderTarget>& GetSceneColor() const;
+
+	ComPtr<PooledRenderTarget>& GetSceneColor();
 
 	void Allocate(const FSceneRenderer* Renderer);
 private:
@@ -195,6 +199,13 @@ public:
 	//ComPtr<PooledRenderTarget> MobileCustomStencil;
 	//ComPtr<PooledRenderTarget> CustomStencilSRV;
 
+
+	ComPtr<PooledRenderTarget> ReflectionColorScratchCubemap[2];
+	/** Temporary storage during SH irradiance map generation. */
+	ComPtr<PooledRenderTarget> DiffuseIrradianceScratchCubemap[2];
+	/** Temporary storage during SH irradiance map generation. */
+	ComPtr<PooledRenderTarget> SkySHIrradianceMap;
+
 	/** To detect a change of the CVar r.MobileMSAA or r.MSAA */
 
 	FIntPoint BufferSize;
@@ -209,72 +220,3 @@ public:
 
 };
 
-struct FResolveRect
-{
-	int32 X1;
-	int32 Y1;
-	int32 X2;
-	int32 Y2;
-	// e.g. for a a full 256 x 256 area starting at (0, 0) it would be 
-	// the values would be 0, 0, 256, 256
-	inline FResolveRect(int32 InX1 = -1, int32 InY1 = -1, int32 InX2 = -1, int32 InY2 = -1)
-		: X1(InX1)
-		, Y1(InY1)
-		, X2(InX2)
-		, Y2(InY2)
-	{}
-
-	inline FResolveRect(const FResolveRect& Other)
-		: X1(Other.X1)
-		, Y1(Other.Y1)
-		, X2(Other.X2)
-		, Y2(Other.Y2)
-	{}
-
-	bool IsValid() const
-	{
-		return X1 >= 0 && Y1 >= 0 && X2 - X1 > 0 && Y2 - Y1 > 0;
-	}
-};
-
-struct FResolveParams
-{
-	/** used to specify face when resolving to a cube map texture */
-	ECubeFace CubeFace;
-	/** resolve RECT bounded by [X1,Y1]..[X2,Y2]. Or -1 for fullscreen */
-	FResolveRect Rect;
-	FResolveRect DestRect;
-	/** The mip index to resolve in both source and dest. */
-	int32 MipIndex;
-	/** Array index to resolve in the source. */
-	int32 SourceArrayIndex;
-	/** Array index to resolve in the dest. */
-	int32 DestArrayIndex;
-
-	/** constructor */
-	FResolveParams(
-		const FResolveRect& InRect = FResolveRect(),
-		ECubeFace InCubeFace = CubeFace_PosX,
-		int32 InMipIndex = 0,
-		int32 InSourceArrayIndex = 0,
-		int32 InDestArrayIndex = 0,
-		const FResolveRect& InDestRect = FResolveRect())
-		: CubeFace(InCubeFace)
-		, Rect(InRect)
-		, DestRect(InDestRect)
-		, MipIndex(InMipIndex)
-		, SourceArrayIndex(InSourceArrayIndex)
-		, DestArrayIndex(InDestArrayIndex)
-	{}
-
-	inline FResolveParams(const FResolveParams& Other)
-		: CubeFace(Other.CubeFace)
-		, Rect(Other.Rect)
-		, DestRect(Other.DestRect)
-		, MipIndex(Other.MipIndex)
-		, SourceArrayIndex(Other.SourceArrayIndex)
-		, DestArrayIndex(Other.DestArrayIndex)
-	{}
-};
-
-void CopyToResolveTarget(FD3D11Texture2D* SourceTextureRHI, FD3D11Texture2D* DestTextureRHI, const FResolveParams& ResolveParams);

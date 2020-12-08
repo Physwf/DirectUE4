@@ -619,7 +619,7 @@ void FSceneRenderer::RenderLights()
 
 				if (bUsedShadowMaskTexture)
 				{
-					CopyToResolveTarget(ScreenShadowMaskTexture->TargetableTexture.get(), ScreenShadowMaskTexture->ShaderResourceTexture.get(), FResolveParams(FResolveRect()));
+					RHICopyToResolveTarget(ScreenShadowMaskTexture->TargetableTexture.get(), ScreenShadowMaskTexture->ShaderResourceTexture.get(), FResolveParams(FResolveRect()));
 				}
 
 				SceneContext.BeginRenderingSceneColor(false, false, true);

@@ -199,7 +199,7 @@ void BuildHZB(FViewInfo& View)
 			*VertexShader,1
 			);
 
-		CopyToResolveTarget(View.HZB->TargetableTexture.get(), View.HZB->ShaderResourceTexture.get(),FResolveParams());
+		RHICopyToResolveTarget(View.HZB->TargetableTexture.get(), View.HZB->ShaderResourceTexture.get(),FResolveParams());
 	}
 
 	FIntPoint SrcSize = HZBSize;
@@ -242,7 +242,7 @@ void BuildHZB(FViewInfo& View)
 		SrcSize /= 2;
 		DstSize /= 2;
 
-		CopyToResolveTarget(View.HZB->TargetableTexture.get(), View.HZB->ShaderResourceTexture.get(),FResolveParams());
+		RHICopyToResolveTarget(View.HZB->TargetableTexture.get(), View.HZB->ShaderResourceTexture.get(),FResolveParams());
 	}
 }
 

@@ -33,3 +33,15 @@ void InitScreenRectangleResources()
 	GCommonPostProcessVS = CreateVertexShader(VSBytecode);
 }
 
+std::shared_ptr<std::vector<D3D11_INPUT_ELEMENT_DESC>> GetFilterInputDelcaration()
+{
+	static std::shared_ptr<std::vector<D3D11_INPUT_ELEMENT_DESC>> GFilterInputDeclaration = std::make_shared<std::vector<D3D11_INPUT_ELEMENT_DESC>, std::initializer_list<D3D11_INPUT_ELEMENT_DESC>>
+		(
+			{
+				{ "ATTRIBUTE",	0,	DXGI_FORMAT_R32G32B32A32_FLOAT,	0, 0,   D3D11_INPUT_PER_VERTEX_DATA,0 },
+				{ "ATTRIBUTE",	1,	DXGI_FORMAT_R32G32_FLOAT,		0, 16,  D3D11_INPUT_PER_VERTEX_DATA,0 },
+			}
+		);
+	return GFilterInputDeclaration;
+}
+

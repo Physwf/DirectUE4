@@ -22,7 +22,7 @@ void FSystemTextures::InternalInitializeTextures()
 			GRenderTargetPool.FindFreeElement(Desc, WhiteDummy, TEXT("WhiteDummy"));
 
 			SetRenderTarget(WhiteDummy->TargetableTexture.get(), NULL,true);
-			CopyToResolveTarget(WhiteDummy->TargetableTexture.get(), WhiteDummy->ShaderResourceTexture.get(),FResolveParams());
+			RHICopyToResolveTarget(WhiteDummy->TargetableTexture.get(), WhiteDummy->ShaderResourceTexture.get(),FResolveParams());
 		}
 
 		// Create a BlackDummy texture
@@ -32,7 +32,7 @@ void FSystemTextures::InternalInitializeTextures()
 			GRenderTargetPool.FindFreeElement(Desc, BlackDummy, TEXT("BlackDummy"));
 
 			SetRenderTarget(BlackDummy->TargetableTexture.get(), NULL, true);
-			CopyToResolveTarget(BlackDummy->TargetableTexture.get(), BlackDummy->ShaderResourceTexture.get(), FResolveParams());
+			RHICopyToResolveTarget(BlackDummy->TargetableTexture.get(), BlackDummy->ShaderResourceTexture.get(), FResolveParams());
 		}
 
 		// Create a BlackAlphaOneDummy texture
@@ -42,7 +42,7 @@ void FSystemTextures::InternalInitializeTextures()
 			GRenderTargetPool.FindFreeElement(Desc, BlackAlphaOneDummy, TEXT("BlackAlphaOneDummy"));
 
 			SetRenderTarget(BlackAlphaOneDummy->TargetableTexture.get(), NULL, true);
-			CopyToResolveTarget(BlackAlphaOneDummy->TargetableTexture.get(), BlackAlphaOneDummy->ShaderResourceTexture.get(), FResolveParams());
+			RHICopyToResolveTarget(BlackAlphaOneDummy->TargetableTexture.get(), BlackAlphaOneDummy->ShaderResourceTexture.get(), FResolveParams());
 		}
 
 		// Create a GreenDummy texture
@@ -51,7 +51,7 @@ void FSystemTextures::InternalInitializeTextures()
 			Desc.AutoWritable = false;
 			GRenderTargetPool.FindFreeElement(Desc, GreenDummy, TEXT("GreenDummy"));
 			SetRenderTarget(GreenDummy->TargetableTexture.get(), NULL, true);
-			CopyToResolveTarget(GreenDummy->TargetableTexture.get(), GreenDummy->ShaderResourceTexture.get(), FResolveParams());
+			RHICopyToResolveTarget(GreenDummy->TargetableTexture.get(), GreenDummy->ShaderResourceTexture.get(), FResolveParams());
 		}
 
 		// Create a DefaultNormal8Bit texture
@@ -60,7 +60,7 @@ void FSystemTextures::InternalInitializeTextures()
 			Desc.AutoWritable = false;
 			GRenderTargetPool.FindFreeElement(Desc, DefaultNormal8Bit, TEXT("DefaultNormal8Bit"));
 			SetRenderTarget(DefaultNormal8Bit->TargetableTexture.get(), NULL, true);
-			CopyToResolveTarget(DefaultNormal8Bit->TargetableTexture.get(), DefaultNormal8Bit->ShaderResourceTexture.get(), FResolveParams());
+			RHICopyToResolveTarget(DefaultNormal8Bit->TargetableTexture.get(), DefaultNormal8Bit->ShaderResourceTexture.get(), FResolveParams());
 		}
 		// Create the PerlinNoiseGradient texture
 		{
@@ -174,7 +174,7 @@ void FSystemTextures::InternalInitializeTextures()
 			//RHICmdList.SetRenderTargetsAndClear(Info);
 			//RHICmdList.CopyToResolveTarget(DepthDummy->TargetableTexture, DepthDummy->ShaderResourceTexture, FResolveParams());
 			SetRenderTarget(NULL, DepthDummy->TargetableTexture.get(),false, true);
-			CopyToResolveTarget(DepthDummy->TargetableTexture.get(), DepthDummy->ShaderResourceTexture.get(), FResolveParams());
+			RHICopyToResolveTarget(DepthDummy->TargetableTexture.get(), DepthDummy->ShaderResourceTexture.get(), FResolveParams());
 		}
 	}
 #if 0

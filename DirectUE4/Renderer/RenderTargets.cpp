@@ -99,6 +99,16 @@ void FSceneRenderTargets::SetBufferSize(int32 InBufferSizeX, int32 InBufferSizeY
 	QuantizeSceneBufferSize(FIntPoint(InBufferSizeX, InBufferSizeY), BufferSize);
 }
 
+const ComPtr<PooledRenderTarget>& FSceneRenderTargets::GetSceneColor() const
+{
+	return SceneColor;
+}
+
+ComPtr<PooledRenderTarget>& FSceneRenderTargets::GetSceneColor()
+{
+	return SceneColor;
+}
+
 void FSceneRenderTargets::Allocate(const FSceneRenderer* Renderer)
 {
 	FIntPoint DesiredBufferSize = ComputeDesiredSize(Renderer->ViewFamily);
@@ -329,6 +339,51 @@ void FSceneRenderTargets::AllocGBufferTargets()
 	}
 
 	//GBufferRefCount = 1;
+}
+
+void FSceneRenderTargets::AllocateReflectionTargets(int32 TargetSize)
+{
+	//if (GSupportsRenderTargetFormat_PF_FloatRGBA)
+	{
+		const int32 NumReflectionCaptureMips = FMath::CeilLogTwo(TargetSize) + 1;
+
+		if (ReflectionColorScratchCubemap[0] && ReflectionColorScratchCubemap[0]->TargetableTexture->GetNumMips() != NumReflectionCaptureMips)
+		{
+			ReflectionColorScratchCubemap[0].Reset();
+			ReflectionColorScratchCubemap[1].Reset();
+		}
+
+		// Reflection targets are shared between both mobile and deferred shading paths. If we have already allocated for one and are now allocating for the other,
+		// we can skip these targets.
+		bool bSharedReflectionTargetsAllocated = ReflectionColorScratchCubemap[0] != nullptr;
+
+		if (!bSharedReflectionTargetsAllocated)
+		{
+			// We write to these cubemap faces individually during filtering
+			uint32 CubeTexFlags = TexCreate_TargetArraySlicesIndependently;
+
+			{
+				// Create scratch cubemaps for filtering passes
+				PooledRenderTargetDesc Desc2(PooledRenderTargetDesc::CreateCubemapDesc(TargetSize, PF_FloatRGBA, FClearValueBinding(FLinearColor(0, 10000, 0, 0)), CubeTexFlags, TexCreate_RenderTargetable, false, 1, NumReflectionCaptureMips));
+				GRenderTargetPool.FindFreeElement(Desc2, ReflectionColorScratchCubemap[0], TEXT("ReflectionColorScratchCubemap0"));
+				GRenderTargetPool.FindFreeElement(Desc2, ReflectionColorScratchCubemap[1], TEXT("ReflectionColorScratchCubemap1"));
+			}
+
+			extern int32 GDiffuseIrradianceCubemapSize;
+			const int32 NumDiffuseIrradianceMips = FMath::CeilLogTwo(GDiffuseIrradianceCubemapSize) + 1;
+
+			{
+				PooledRenderTargetDesc Desc2(PooledRenderTargetDesc::CreateCubemapDesc(GDiffuseIrradianceCubemapSize, PF_FloatRGBA, FClearValueBinding(FLinearColor(0, 10000, 0, 0)), CubeTexFlags, TexCreate_RenderTargetable, false, 1, NumDiffuseIrradianceMips));
+				GRenderTargetPool.FindFreeElement(Desc2, DiffuseIrradianceScratchCubemap[0], TEXT("DiffuseIrradianceScratchCubemap0"));
+				GRenderTargetPool.FindFreeElement(Desc2, DiffuseIrradianceScratchCubemap[1], TEXT("DiffuseIrradianceScratchCubemap1"));
+			}
+
+			{
+				PooledRenderTargetDesc Desc(PooledRenderTargetDesc::Create2DDesc(FIntPoint(FSHVector3::MaxSHBasis, 1), PF_FloatRGBA, FClearValueBinding(FLinearColor(0, 10000, 0, 0)), TexCreate_None, TexCreate_RenderTargetable, false));
+				GRenderTargetPool.FindFreeElement( Desc, SkySHIrradianceMap, TEXT("SkySHIrradianceMap"));
+			}
+		}
+	}
 }
 
 void FSceneRenderTargets::AllocateScreenShadowMask(ComPtr<PooledRenderTarget>& ScreenShadowMaskTexture)
@@ -619,93 +674,5 @@ void BindSceneTextureUniformBufferDependentOnShadingPath(const FShader::Compiled
 // 		checkfSlow(!Initializer.ParameterMap.ContainsParameterAllocation(FSceneTexturesUniformParameters::StaticStruct.GetShaderVariableName()), TEXT("Shader for Mobile shading path tried to bind FSceneTexturesUniformParameters which is only available in the deferred shading path: %s"), Initializer.Type->GetName());
 // 	}
 }
-static inline DXGI_FORMAT ConvertTypelessToUnorm(DXGI_FORMAT Format)
-{
-	// required to prevent 
-	// D3D11: ERROR: ID3D11DeviceContext::ResolveSubresource: The Format (0x1b, R8G8B8A8_TYPELESS) is never able to resolve multisampled resources. [ RESOURCE_MANIPULATION ERROR #294: DEVICE_RESOLVESUBRESOURCE_FORMAT_INVALID ]
-	// D3D11: **BREAK** enabled for the previous D3D11 message, which was: [ RESOURCE_MANIPULATION ERROR #294: DEVICE_RESOLVESUBRESOURCE_FORMAT_INVALID ]
-	switch (Format)
-	{
-	case DXGI_FORMAT_R8G8B8A8_TYPELESS:
-		return DXGI_FORMAT_R8G8B8A8_UNORM;
-
-	case DXGI_FORMAT_B8G8R8A8_TYPELESS:
-		return DXGI_FORMAT_B8G8R8A8_UNORM;
-
-	default:
-		return Format;
-	}
-}
-void CopyToResolveTarget(FD3D11Texture2D* SourceTextureRHI, FD3D11Texture2D* DestTextureRHI, const FResolveParams& ResolveParams)
-{
-	if (!SourceTextureRHI || !DestTextureRHI)
-	{
-		// no need to do anything (sliently ignored)
-		return;
-	}
-
-
-	FD3D11Texture2D* SourceTexture2D = SourceTextureRHI;
-	FD3D11Texture2D* DestTexture2D = DestTextureRHI;
-
-	// 	FD3D11TextureCube* SourceTextureCube = static_cast<FD3D11TextureCube*>(SourceTextureRHI->GetTextureCube());
-	// 	FD3D11TextureCube* DestTextureCube = static_cast<FD3D11TextureCube*>(DestTextureRHI->GetTextureCube());
-	// 
-	// 	FD3D11Texture3D* SourceTexture3D = static_cast<FD3D11Texture3D*>(SourceTextureRHI->GetTexture3D());
-	// 	FD3D11Texture3D* DestTexture3D = static_cast<FD3D11Texture3D*>(DestTextureRHI->GetTexture3D());
-
-	if (SourceTexture2D && DestTexture2D)
-	{
-		//assert(!SourceTextureCube && !DestTextureCube);
-		if (SourceTexture2D != DestTexture2D)
-		{
-			if (DestTexture2D->GetDepthStencilView(FExclusiveDepthStencil::DepthWrite_StencilWrite)
-				&& SourceTextureRHI->IsMultisampled()
-				&& !DestTextureRHI->IsMultisampled())
-			{
-			}
-			else 
-			{
-				DXGI_FORMAT SrcFmt = (DXGI_FORMAT)GPixelFormats[SourceTextureRHI->GetFormat()].PlatformFormat;
-				DXGI_FORMAT DstFmt = (DXGI_FORMAT)GPixelFormats[DestTexture2D->GetFormat()].PlatformFormat;
-
-				DXGI_FORMAT Fmt = ConvertTypelessToUnorm((DXGI_FORMAT)GPixelFormats[DestTexture2D->GetFormat()].PlatformFormat);
-
-				// Determine whether a MSAA resolve is needed, or just a copy.
-				if (SourceTextureRHI->IsMultisampled() && !DestTexture2D->IsMultisampled())
-				{
-					D3D11DeviceContext->ResolveSubresource(
-						DestTexture2D->GetResource(),
-						ResolveParams.DestArrayIndex,
-						SourceTexture2D->GetResource(),
-						ResolveParams.SourceArrayIndex,
-						Fmt
-					);
-				}
-				else
-				{
-					if (ResolveParams.Rect.IsValid())
-					{
-						D3D11_BOX SrcBox;
-
-						SrcBox.left = ResolveParams.Rect.X1;
-						SrcBox.top = ResolveParams.Rect.Y1;
-						SrcBox.front = 0;
-						SrcBox.right = ResolveParams.Rect.X2;
-						SrcBox.bottom = ResolveParams.Rect.Y2;
-						SrcBox.back = 1;
-
-						D3D11DeviceContext->CopySubresourceRegion(DestTexture2D->GetResource(), ResolveParams.DestArrayIndex, ResolveParams.DestRect.X1, ResolveParams.DestRect.Y1, 0, SourceTexture2D->GetResource(), ResolveParams.SourceArrayIndex, &SrcBox);
-					}
-					else
-					{
-						D3D11DeviceContext->CopyResource(DestTexture2D->GetResource(), SourceTexture2D->GetResource());
-					}
-				}
-			}
-		}
-	}
-}
-
 
 FSceneTexturesUniformParameters SceneTexturesUniformParameters;

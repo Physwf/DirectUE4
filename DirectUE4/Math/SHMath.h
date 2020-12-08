@@ -1,7 +1,7 @@
 #pragma once
 
 #include "UnrealMath.h"
-#include "UnrealMath.h"
+#include "UnrealMathFPU.h"
 
 extern float NormalizationConstants[9];
 extern int32 BasisL[9];

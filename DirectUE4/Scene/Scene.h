@@ -70,6 +70,8 @@ struct FUpdateLightTransformParameters
 class FScene
 {
 public:
+	class UWorld* World;
+
 	void AddPrimitive(UPrimitiveComponent* Primitive);
 	void RemovePrimitive(UPrimitiveComponent* Primitive);
 	void UpdatePrimitiveTransform(UPrimitiveComponent* Component);
@@ -85,6 +87,9 @@ public:
 
 	void UpdateLightTransform_RenderThread(FLightSceneInfo* LightSceneInfo, const struct FUpdateLightTransformParameters& Parameters);
 	void UpdatePrimitiveTransform_RenderThread(FPrimitiveSceneProxy* PrimitiveSceneProxy, const FBoxSphereBounds& WorldBounds, const FBoxSphereBounds& LocalBounds, const FMatrix& LocalToWorld, const FVector& OwnerPosition);
+
+
+	void UpdateSkyCaptureContents(const USkyLightComponent* CaptureComponent, bool bCaptureEmissiveOnly, FD3D11Texture2D* SourceCubemap, FD3D11Texture2D* OutProcessedTexture, float& OutAverageBrightness, FSHVectorRGB3& OutIrradianceEnvironmentMap, std::vector<FFloat16Color>* OutRadianceMap);
 public:
 
 
@@ -176,7 +181,7 @@ public:
 	{
 		return (AtmosphericFog != NULL); // Use default value when Sun Light is not existing
 	}
-
+	UWorld* GetWorld() const { return World; }
 };
 
 inline bool ShouldIncludeDomainInMeshPass(EMaterialDomain Domain)

@@ -27,12 +27,34 @@ void FSkyLightSceneProxy::Initialize(
 	const float* InAverageBrightness,
 	const float* BlendDestinationAverageBrightness)
 {
+	BlendFraction = FMath::Clamp(InBlendFraction, 0.0f, 1.0f);
 
+	if (BlendFraction > 0 && BlendDestinationProcessedTexture != NULL)
+	{
+		if (BlendFraction < 1)
+		{
+			IrradianceEnvironmentMap = (*InIrradianceEnvironmentMap) * (1 - BlendFraction) + (*BlendDestinationIrradianceEnvironmentMap) * BlendFraction;
+			AverageBrightness = *InAverageBrightness * (1 - BlendFraction) + (*BlendDestinationAverageBrightness) * BlendFraction;
+		}
+		else
+		{
+			// Blend is full destination, treat as source to avoid blend overhead in shaders
+			IrradianceEnvironmentMap = *BlendDestinationIrradianceEnvironmentMap;
+			AverageBrightness = *BlendDestinationAverageBrightness;
+		}
+	}
+	else
+	{
+		// Blend is full source
+		IrradianceEnvironmentMap = *InIrradianceEnvironmentMap;
+		AverageBrightness = *InAverageBrightness;
+		BlendFraction = 0;
+	}
 }
 
 FSkyLightSceneProxy::FSkyLightSceneProxy(const class USkyLightComponent* InLightComponent)
 	: LightComponent(InLightComponent)
-	, ProcessedTexture(InLightComponent->ProcessedSkyTexture.Get())
+	, ProcessedTexture(InLightComponent->ProcessedSkyTexture->GetShaderResourceView())
 	, BlendDestinationProcessedTexture(InLightComponent->BlendDestinationProcessedSkyTexture.Get())
 	, SkyDistanceThreshold(InLightComponent->SkyDistanceThreshold)
 	, bCastShadows(InLightComponent->CastShadows)
@@ -55,12 +77,46 @@ FSkyLightSceneProxy::FSkyLightSceneProxy(const class USkyLightComponent* InLight
 
 void USkyLightComponent::UpdateSkyCaptureContents(UWorld* WorldToUpdate)
 {
+	if (SkyCapturesToUpdate.size() > 0)
+	{
+		UpdateSkyCaptureContentsArray(WorldToUpdate, SkyCapturesToUpdate, true);
+	}
 
+// 	if (SkyCapturesToUpdateBlendDestinations.Num() > 0)
+// 	{
+// 		UpdateSkyCaptureContentsArray(WorldToUpdate, SkyCapturesToUpdateBlendDestinations, false);
+// 	}
 }
 
-void USkyLightComponent::UpdateSkyCaptureContentsArray(UWorld* WorldToUpdate, std::vector<USkyLightComponent*>& ComponentArray, bool bBlendSources)
+void USkyLightComponent::UpdateSkyCaptureContentsArray(UWorld* WorldToUpdate, std::vector<USkyLightComponent*>& ComponentArray, bool bOperateOnBlendSource)
 {
+	for (int32 CaptureIndex = ComponentArray.size() - 1; CaptureIndex >= 0; CaptureIndex--)
+	{
+		USkyLightComponent* CaptureComponent = ComponentArray[CaptureIndex];
+		AActor* Owner = CaptureComponent->GetOwner();
+		if (CaptureComponent->SourceType != SLS_SpecifiedCubemap || CaptureComponent->Cubemap)
+		{
+			if (bOperateOnBlendSource)
+			{
+				CaptureComponent->ProcessedSkyTexture = RHICreateTextureCube(CaptureComponent->CubemapResolution, PF_FloatRGBA, FMath::CeilLogTwo(CaptureComponent->CubemapResolution) + 1, 0);
+				WorldToUpdate->Scene->UpdateSkyCaptureContents(CaptureComponent, CaptureComponent->bCaptureEmissiveOnly, CaptureComponent->Cubemap.get(), CaptureComponent->ProcessedSkyTexture.get(), CaptureComponent->AverageBrightness, CaptureComponent->IrradianceEnvironmentMap, NULL);
+			}
+			else
+			{
 
+			}
+		}
+	}
+}
+
+std::vector<USkyLightComponent*> USkyLightComponent::SkyCapturesToUpdate;
+
+std::vector<USkyLightComponent*> USkyLightComponent::SkyCapturesToUpdateBlendDestinations;
+
+void USkyLightComponent::OnRegister()
+{
+	ULightComponentBase::OnRegister();
+	SkyCapturesToUpdate.push_back(this);
 }
 
 void USkyLightComponent::CreateRenderState_Concurrent()

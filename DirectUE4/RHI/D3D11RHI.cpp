@@ -2048,6 +2048,8 @@ void RHIBeginDrawIndexedPrimitiveUP(
 	D3D11DeviceContext->Map(DynamicIB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &IBMapedSubresource);
 	OutIndexData = IBMapedSubresource.pData;
 }
+
+
 void RHIEndDrawIndexedPrimitiveUP()
 {
 	D3D11DeviceContext->Unmap(DynamicVB.Get(), 0);
@@ -2292,4 +2294,192 @@ void DrawClearQuadMRT(bool bClearColor, int32 NumClearColors, const FLinearColor
 void DrawClearQuadMRT(bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntPoint ViewSize, FIntRect ExcludeRect)
 {
 
+}
+
+
+void RHIReadSurfaceFloatData(FD3D11Texture2D* TextureRHI, FIntRect InRect, std::vector<FFloat16Color>& OutData, ECubeFace CubeFace, int32 ArrayIndex, int32 MipIndex)
+{
+	FD3D11Texture2D* Texture = /*GetD3D11TextureFromRHITexture*/(TextureRHI);
+
+	uint32 SizeX = InRect.Width();
+	uint32 SizeY = InRect.Height();
+
+	// Check the format of the surface
+	D3D11_TEXTURE2D_DESC TextureDesc;
+	((ID3D11Texture2D*)Texture->GetResource())->GetDesc(&TextureDesc);
+
+	assert(TextureDesc.Format == GPixelFormats[PF_FloatRGBA].PlatformFormat);
+
+	// Allocate the output buffer.
+	OutData.clear();
+	OutData.resize(SizeX * SizeY);
+
+	// Read back the surface data from defined rect
+	D3D11_BOX	Rect;
+	Rect.left = InRect.Min.X;
+	Rect.top = InRect.Min.Y;
+	Rect.right = InRect.Max.X;
+	Rect.bottom = InRect.Max.Y;
+	Rect.back = 1;
+	Rect.front = 0;
+
+	// create a temp 2d texture to copy render target to
+	D3D11_TEXTURE2D_DESC Desc;
+	ZeroMemory(&Desc, sizeof(D3D11_TEXTURE2D_DESC));
+	Desc.Width = SizeX;
+	Desc.Height = SizeY;
+	Desc.MipLevels = 1;
+	Desc.ArraySize = 1;
+	Desc.Format = TextureDesc.Format;
+	Desc.SampleDesc.Count = 1;
+	Desc.SampleDesc.Quality = 0;
+	Desc.Usage = D3D11_USAGE_STAGING;
+	Desc.BindFlags = 0;
+	Desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+	Desc.MiscFlags = 0;
+	ComPtr<ID3D11Texture2D> TempTexture2D;
+	assert(S_OK == D3D11Device->CreateTexture2D(&Desc, NULL, TempTexture2D.GetAddressOf()));
+
+	// Copy the data to a staging resource.
+	uint32 Subresource = 0;
+	if (TextureDesc.MiscFlags == D3D11_RESOURCE_MISC_TEXTURECUBE)
+	{
+		uint32 D3DFace = GetD3D11CubeFace(CubeFace);
+		Subresource = D3D11CalcSubresource(MipIndex, ArrayIndex * 6 + D3DFace, TextureDesc.MipLevels);
+	}
+	D3D11DeviceContext->CopySubresourceRegion(TempTexture2D.Get(), 0, 0, 0, 0, Texture->GetResource(), Subresource, &Rect);
+
+	// Lock the staging resource.
+	D3D11_MAPPED_SUBRESOURCE LockedRect;
+	assert(S_OK == D3D11DeviceContext->Map(TempTexture2D.Get(), 0, D3D11_MAP_READ, 0, &LockedRect));
+
+	// Presize the array
+	uint32 TotalCount = SizeX * SizeY;
+	if (TotalCount >= OutData.size())
+	{
+		OutData.resize(TotalCount);
+	}
+
+	for (int32 Y = InRect.Min.Y; Y < InRect.Max.Y; Y++)
+	{
+		FFloat16Color* SrcPtr = (FFloat16Color*)((uint8*)LockedRect.pData + (Y - InRect.Min.Y) * LockedRect.RowPitch);
+		int32 Index = (Y - InRect.Min.Y) * SizeX;
+		assert(Index + ((int32)SizeX - 1) < (int32)OutData.size());
+		FFloat16Color* DestColor = &OutData[Index];
+		FFloat16* DestPtr = (FFloat16*)(DestColor);
+		memcpy(DestPtr, SrcPtr, SizeX * sizeof(FFloat16) * 4);
+	}
+
+	D3D11DeviceContext->Unmap(TempTexture2D.Get(), 0);
+}
+static inline DXGI_FORMAT ConvertTypelessToUnorm(DXGI_FORMAT Format)
+{
+	// required to prevent 
+	// D3D11: ERROR: ID3D11DeviceContext::ResolveSubresource: The Format (0x1b, R8G8B8A8_TYPELESS) is never able to resolve multisampled resources. [ RESOURCE_MANIPULATION ERROR #294: DEVICE_RESOLVESUBRESOURCE_FORMAT_INVALID ]
+	// D3D11: **BREAK** enabled for the previous D3D11 message, which was: [ RESOURCE_MANIPULATION ERROR #294: DEVICE_RESOLVESUBRESOURCE_FORMAT_INVALID ]
+	switch (Format)
+	{
+	case DXGI_FORMAT_R8G8B8A8_TYPELESS:
+		return DXGI_FORMAT_R8G8B8A8_UNORM;
+
+	case DXGI_FORMAT_B8G8R8A8_TYPELESS:
+		return DXGI_FORMAT_B8G8R8A8_UNORM;
+
+	default:
+		return Format;
+	}
+}
+void RHICopyToResolveTarget(FD3D11Texture2D* SourceTextureRHI, FD3D11Texture2D* DestTextureRHI, const FResolveParams& ResolveParams)
+{
+	if (!SourceTextureRHI || !DestTextureRHI)
+	{
+		// no need to do anything (sliently ignored)
+		return;
+	}
+
+
+	FD3D11Texture2D* SourceTexture2D = SourceTextureRHI;
+	FD3D11Texture2D* DestTexture2D = DestTextureRHI;
+
+	// 	FD3D11TextureCube* SourceTextureCube = static_cast<FD3D11TextureCube*>(SourceTextureRHI->GetTextureCube());
+	// 	FD3D11TextureCube* DestTextureCube = static_cast<FD3D11TextureCube*>(DestTextureRHI->GetTextureCube());
+	// 
+	// 	FD3D11Texture3D* SourceTexture3D = static_cast<FD3D11Texture3D*>(SourceTextureRHI->GetTexture3D());
+	// 	FD3D11Texture3D* DestTexture3D = static_cast<FD3D11Texture3D*>(DestTextureRHI->GetTexture3D());
+
+	if (SourceTexture2D && DestTexture2D)
+	{
+		//assert(!SourceTextureCube && !DestTextureCube);
+		if (SourceTexture2D != DestTexture2D)
+		{
+			if (DestTexture2D->GetDepthStencilView(FExclusiveDepthStencil::DepthWrite_StencilWrite)
+				&& SourceTextureRHI->IsMultisampled()
+				&& !DestTextureRHI->IsMultisampled())
+			{
+			}
+			else
+			{
+				DXGI_FORMAT SrcFmt = (DXGI_FORMAT)GPixelFormats[SourceTextureRHI->GetFormat()].PlatformFormat;
+				DXGI_FORMAT DstFmt = (DXGI_FORMAT)GPixelFormats[DestTexture2D->GetFormat()].PlatformFormat;
+
+				DXGI_FORMAT Fmt = ConvertTypelessToUnorm((DXGI_FORMAT)GPixelFormats[DestTexture2D->GetFormat()].PlatformFormat);
+
+				// Determine whether a MSAA resolve is needed, or just a copy.
+				if (SourceTextureRHI->IsMultisampled() && !DestTexture2D->IsMultisampled())
+				{
+					D3D11DeviceContext->ResolveSubresource(
+						DestTexture2D->GetResource(),
+						ResolveParams.DestArrayIndex,
+						SourceTexture2D->GetResource(),
+						ResolveParams.SourceArrayIndex,
+						Fmt
+					);
+				}
+				else
+				{
+					if (ResolveParams.Rect.IsValid())
+					{
+						D3D11_BOX SrcBox;
+
+						SrcBox.left = ResolveParams.Rect.X1;
+						SrcBox.top = ResolveParams.Rect.Y1;
+						SrcBox.front = 0;
+						SrcBox.right = ResolveParams.Rect.X2;
+						SrcBox.bottom = ResolveParams.Rect.Y2;
+						SrcBox.back = 1;
+
+						D3D11DeviceContext->CopySubresourceRegion(DestTexture2D->GetResource(), ResolveParams.DestArrayIndex, ResolveParams.DestRect.X1, ResolveParams.DestRect.Y1, 0, SourceTexture2D->GetResource(), ResolveParams.SourceArrayIndex, &SrcBox);
+					}
+					else
+					{
+						D3D11DeviceContext->CopyResource(DestTexture2D->GetResource(), SourceTexture2D->GetResource());
+					}
+				}
+			}
+		}
+	}
+}
+
+
+void RHICopyTexture(FD3D11Texture2D* SourceTexture, FD3D11Texture2D* DestTexture, const FRHICopyTextureInfo& CopyInfo)
+{
+	const bool bIsCube = SourceTexture->IsCube();
+	const bool bAllCubeFaces = bIsCube && (CopyInfo.NumArraySlices % 6) == 0;
+	const int32 NumArraySlices = bAllCubeFaces ? CopyInfo.NumArraySlices / 6 : CopyInfo.NumArraySlices;
+	const int32 NumFaces = bAllCubeFaces ? 6 : 1;
+	for (int32 ArrayIndex = 0; ArrayIndex < NumArraySlices; ++ArrayIndex)
+	{
+		int32 SourceArrayIndex = CopyInfo.SourceArraySlice + ArrayIndex;
+		int32 DestArrayIndex = CopyInfo.DestArraySlice + ArrayIndex;
+		for (int32 FaceIndex = 0; FaceIndex < NumFaces; ++FaceIndex)
+		{
+			FResolveParams ResolveParams(FResolveRect(),
+				bIsCube ? (ECubeFace)FaceIndex : CubeFace_PosX,
+				CopyInfo.MipIndex,
+				SourceArrayIndex,
+				DestArrayIndex
+			);
+			RHICopyToResolveTarget(SourceTexture, DestTexture, ResolveParams);
+		}
+	}
 }

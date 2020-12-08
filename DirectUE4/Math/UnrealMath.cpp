@@ -509,6 +509,14 @@ FLinearColor::FLinearColor(struct FColor InColor)
 	A = float(InColor.A) * OneOver255;
 }
 
+FLinearColor::FLinearColor(const FFloat16Color& C)
+{
+	R = C.R.GetFloat();
+	G = C.G.GetFloat();
+	B = C.B.GetFloat();
+	A = C.A.GetFloat();
+}
+
 FLinearColor FLinearColor::operator*(const FLinearColor& ColorB) const
 {
 	return FLinearColor(
@@ -1314,4 +1322,43 @@ float FFloat16::GetFloat() const
 
 	return Result.FloatValue;
 }
-
+FFloat16Color::FFloat16Color() { }
+FFloat16Color::FFloat16Color(const FFloat16Color& Src)
+{
+	R = Src.R;
+	G = Src.G;
+	B = Src.B;
+	A = Src.A;
+}
+FFloat16Color::FFloat16Color(const FLinearColor& Src) :
+	R(Src.R),
+	G(Src.G),
+	B(Src.B),
+	A(Src.A)
+{ }
+FFloat16Color& FFloat16Color::operator=(const FFloat16Color& Src)
+{
+	R = Src.R;
+	G = Src.G;
+	B = Src.B;
+	A = Src.A;
+	return *this;
+}
+bool FFloat16Color::operator==(const FFloat16Color& Src)
+{
+	return (
+		(R == Src.R) &&
+		(G == Src.G) &&
+		(B == Src.B) &&
+		(A == Src.A)
+		);
+}
+bool FFloat16Color::operator==(const FFloat16Color& Src) const
+{
+	return (
+		(R == Src.R) &&
+		(G == Src.G) &&
+		(B == Src.B) &&
+		(A == Src.A)
+		);
+}

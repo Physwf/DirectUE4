@@ -887,12 +887,14 @@ public:
 	uint32 GetSizeY() const { return SizeY; }
 	uint32 GetSizeZ() const { return SizeZ; }
 	inline FIntPoint GetSizeXY() const { return FIntPoint(SizeX, SizeY); }
+	inline FIntVector GetSizeXYZ() const { return FIntVector(SizeX, SizeY, SizeZ); };
 	uint32 GetNumMips() const { return NumMips; }
 	EPixelFormat GetFormat() const { return Format; }
 	uint32 GetFlags() const { return Flags; }
 	uint32 GetNumSamples() const { return NumSamples; }
 	bool IsMultisampled() const { return NumSamples > 1; }
-	
+	bool IsCube() const { return bCubemap; }
+
 	ID3D11Texture2D* GetResource() const { return Resource.Get(); }
 	ID3D11ShaderResourceView* GetShaderResourceView() const { return ShaderResourceView.Get(); }
 	ID3D11RenderTargetView* GetRenderTargetView(int32 MipIndex, int32 ArraySliceIndex) const
@@ -1995,3 +1997,129 @@ void DrawIndexedPrimitiveUP(
 	uint32 IndexDataStride,
 	const void* VertexData,
 	uint32 VertexDataStride);
+
+inline uint32 GetD3D11CubeFace(ECubeFace Face)
+{
+	switch (Face)
+	{
+	case CubeFace_PosX:
+	default:
+		return 0;//D3DCUBEMAP_FACE_POSITIVE_X;
+	case CubeFace_NegX:
+		return 1;//D3DCUBEMAP_FACE_NEGATIVE_X;
+	case CubeFace_PosY:
+		return 2;//D3DCUBEMAP_FACE_POSITIVE_Y;
+	case CubeFace_NegY:
+		return 3;//D3DCUBEMAP_FACE_NEGATIVE_Y;
+	case CubeFace_PosZ:
+		return 4;//D3DCUBEMAP_FACE_POSITIVE_Z;
+	case CubeFace_NegZ:
+		return 5;//D3DCUBEMAP_FACE_NEGATIVE_Z;
+	};
+}
+void RHIReadSurfaceFloatData(FD3D11Texture2D* TextureRHI, FIntRect InRect, std::vector<FFloat16Color>& OutData, ECubeFace CubeFace, int32 ArrayIndex, int32 MipIndex);
+
+struct FResolveRect
+{
+	int32 X1;
+	int32 Y1;
+	int32 X2;
+	int32 Y2;
+	// e.g. for a a full 256 x 256 area starting at (0, 0) it would be 
+	// the values would be 0, 0, 256, 256
+	inline FResolveRect(int32 InX1 = -1, int32 InY1 = -1, int32 InX2 = -1, int32 InY2 = -1)
+		: X1(InX1)
+		, Y1(InY1)
+		, X2(InX2)
+		, Y2(InY2)
+	{}
+
+	inline FResolveRect(const FResolveRect& Other)
+		: X1(Other.X1)
+		, Y1(Other.Y1)
+		, X2(Other.X2)
+		, Y2(Other.Y2)
+	{}
+
+	bool IsValid() const
+	{
+		return X1 >= 0 && Y1 >= 0 && X2 - X1 > 0 && Y2 - Y1 > 0;
+	}
+};
+
+struct FResolveParams
+{
+	/** used to specify face when resolving to a cube map texture */
+	ECubeFace CubeFace;
+	/** resolve RECT bounded by [X1,Y1]..[X2,Y2]. Or -1 for fullscreen */
+	FResolveRect Rect;
+	FResolveRect DestRect;
+	/** The mip index to resolve in both source and dest. */
+	int32 MipIndex;
+	/** Array index to resolve in the source. */
+	int32 SourceArrayIndex;
+	/** Array index to resolve in the dest. */
+	int32 DestArrayIndex;
+
+	/** constructor */
+	FResolveParams(
+		const FResolveRect& InRect = FResolveRect(),
+		ECubeFace InCubeFace = CubeFace_PosX,
+		int32 InMipIndex = 0,
+		int32 InSourceArrayIndex = 0,
+		int32 InDestArrayIndex = 0,
+		const FResolveRect& InDestRect = FResolveRect())
+		: CubeFace(InCubeFace)
+		, Rect(InRect)
+		, DestRect(InDestRect)
+		, MipIndex(InMipIndex)
+		, SourceArrayIndex(InSourceArrayIndex)
+		, DestArrayIndex(InDestArrayIndex)
+	{}
+
+	inline FResolveParams(const FResolveParams& Other)
+		: CubeFace(Other.CubeFace)
+		, Rect(Other.Rect)
+		, DestRect(Other.DestRect)
+		, MipIndex(Other.MipIndex)
+		, SourceArrayIndex(Other.SourceArrayIndex)
+		, DestArrayIndex(Other.DestArrayIndex)
+	{}
+};
+
+
+void RHICopyToResolveTarget(FD3D11Texture2D* SourceTextureRHI, FD3D11Texture2D* DestTextureRHI, const FResolveParams& ResolveParams);
+struct FRHICopyTextureInfo
+{
+	// Number of texels to copy. Z Must be always be > 0.
+	FIntVector Size = { 0, 0, 1 };
+
+	/** The mip index to copy in both source and dest. */
+	int32 MipIndex = 0;
+
+	/** Array index or cube face to resolve in the source. For Cubemap arrays this would be ArraySlice * 6 + FaceIndex. */
+	int32 SourceArraySlice = 0;
+	/** Array index or cube face to resolve in the dest. */
+	int32 DestArraySlice = 0;
+	// How many slices or faces to copy.
+	int32 NumArraySlices = 1;
+
+	// 2D copy
+	FRHICopyTextureInfo(int32 InWidth, int32 InHeight)
+		: Size(InWidth, InHeight, 1)
+	{
+	}
+
+	FRHICopyTextureInfo(const FIntVector& InSize)
+		: Size(InSize)
+	{
+	}
+
+	void AdvanceMip()
+	{
+		++MipIndex;
+		Size.X = FMath::Max(Size.X / 2, 1);
+		Size.Y = FMath::Max(Size.Y / 2, 1);
+	}
+};
+void RHICopyTexture(FD3D11Texture2D* SourceTexture, FD3D11Texture2D* DestTexture, const FRHICopyTextureInfo& CopyInfo);

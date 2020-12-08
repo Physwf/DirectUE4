@@ -17,6 +17,8 @@ extern ID3D11VertexShader* GCommonPostProcessVS;
 
 void InitScreenRectangleResources();
 
+std::shared_ptr<std::vector<D3D11_INPUT_ELEMENT_DESC>> GetFilterInputDelcaration();
+
 struct alignas(16) FDrawRectangleParameters
 {
 	FDrawRectangleParameters()
