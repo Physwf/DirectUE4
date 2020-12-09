@@ -89,9 +89,12 @@ protected:
 	FSHVectorRGB3 IrradianceEnvironmentMap;
 	float AverageBrightness;
 
+	float BlendFraction;
+
 	ID3D11ShaderResourceView* BlendDestinationCubemap;
 	ComPtr<ID3D11ShaderResourceView> BlendDestinationProcessedSkyTexture;
 	FSHVectorRGB3 BlendDestinationIrradianceEnvironmentMap;
+	float BlendDestinationAverageBrightness;
 
 	static std::vector<USkyLightComponent*> SkyCapturesToUpdate;
 	static std::vector<USkyLightComponent*> SkyCapturesToUpdateBlendDestinations;

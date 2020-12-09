@@ -161,6 +161,8 @@ public:
 		Desc.BorderColor[2] = LC.B;
 		Desc.BorderColor[3] = LC.A;
 		Desc.ComparisonFunc = SamplerComparisonFunction;
+		Desc.MinLOD = 0;
+		Desc.MaxLOD = FLT_MAX;
 		ID3D11SamplerState* Result;
 		if (S_OK == D3D11Device->CreateSamplerState(&Desc, &Result))
 		{
@@ -262,7 +264,7 @@ public:
 
 template<
 	BOOL AlphaToCoverageEnable = FALSE,
-	BOOL IndependentBlendEnable = FALSE,
+	BOOL IndependentBlendEnable = TRUE,
 	UINT8 RT0ColorWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL,
 	D3D11_BLEND_OP RT0ColorBlendOp = D3D11_BLEND_OP_ADD,
 	D3D11_BLEND    RT0ColorSrcBlend = D3D11_BLEND_ONE,

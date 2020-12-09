@@ -1517,25 +1517,93 @@ std::shared_ptr<FD3D11Texture2D> CreateD3D11Texture2D(uint32 SizeX, uint32 SizeY
 
 ComPtr<ID3D11ShaderResourceView> RHICreateShaderResourceView(std::shared_ptr<FD3D11Texture2D> Texture2DRHI, uint16 MipLevel)
 {
-	std::shared_ptr<FD3D11Texture2D> Texture2D = Texture2DRHI;
+	//todo 2darray/3d
+	{
+// 		FD3D11Texture2DArray* Texture2DArray = ResourceCast(Texture2DArrayRHI);
+// 
+// 		D3D11_TEXTURE2D_DESC TextureDesc;
+// 		Texture2DArray->GetResource()->GetDesc(&TextureDesc);
+// 
+// 		bool bSRGB = (Texture2DArray->GetFlags() & TexCreate_SRGB) != 0;
+// 		const DXGI_FORMAT PlatformShaderResourceFormat = FindShaderResourceDXGIFormat(TextureDesc.Format, bSRGB);
+// 
+// 		// Create a Shader Resource View
+// 		D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc;
+// 		SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
+// 		SRVDesc.Texture2DArray.MostDetailedMip = MipLevel;
+// 		SRVDesc.Texture2DArray.MipLevels = 1;
+// 		SRVDesc.Texture2DArray.FirstArraySlice = 0;
+// 		SRVDesc.Texture2DArray.ArraySize = TextureDesc.ArraySize;
+// 
+// 		SRVDesc.Format = PlatformShaderResourceFormat;
+// 		TRefCountPtr<ID3D11ShaderResourceView> ShaderResourceView;
+// 		VERIFYD3D11RESULT_EX(Direct3DDevice->CreateShaderResourceView(Texture2DArray->GetResource(), &SRVDesc, (ID3D11ShaderResourceView**)ShaderResourceView.GetInitReference()), Direct3DDevice);
+// 
+// 		return new FD3D11ShaderResourceView(ShaderResourceView, Texture2DArray);
+// 
+// 		FD3D11Texture3D* Texture3D = ResourceCast(Texture3DRHI);
+// 
+// 		D3D11_TEXTURE3D_DESC TextureDesc;
+// 		Texture3D->GetResource()->GetDesc(&TextureDesc);
+// 
+// 		bool bSRGB = (Texture3D->GetFlags() & TexCreate_SRGB) != 0;
+// 		const DXGI_FORMAT PlatformShaderResourceFormat = FindShaderResourceDXGIFormat(TextureDesc.Format, bSRGB);
+// 
+// 		// Create a Shader Resource View
+// 		D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc;
+// 		SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE3D;
+// 		SRVDesc.Texture3D.MostDetailedMip = MipLevel;
+// 		SRVDesc.Texture3D.MipLevels = 1;
+// 
+// 		SRVDesc.Format = PlatformShaderResourceFormat;
+// 		TRefCountPtr<ID3D11ShaderResourceView> ShaderResourceView;
+// 		VERIFYD3D11RESULT_EX(Direct3DDevice->CreateShaderResourceView(Texture3D->GetResource(), &SRVDesc, (ID3D11ShaderResourceView**)ShaderResourceView.GetInitReference()), Direct3DDevice);
+// 
+// 		return new FD3D11ShaderResourceView(ShaderResourceView, Texture3D);
+	}
+	if (Texture2DRHI->IsCube())
+	{
+		std::shared_ptr<FD3D11Texture2D>  TextureCube = Texture2DRHI;
 
-	D3D11_TEXTURE2D_DESC TextureDesc;
-	Texture2D->GetResource()->GetDesc(&TextureDesc);
+		D3D11_TEXTURE2D_DESC TextureDesc;
+		TextureCube->GetResource()->GetDesc(&TextureDesc);
 
-	bool bSRGB = (Texture2D->GetFlags() & TexCreate_SRGB) != 0;
-	const DXGI_FORMAT PlatformShaderResourceFormat = FindShaderResourceDXGIFormat(TextureDesc.Format, bSRGB);
+		bool bSRGB = (TextureCube->GetFlags() & TexCreate_SRGB) != 0;
+		const DXGI_FORMAT PlatformShaderResourceFormat = FindShaderResourceDXGIFormat(TextureDesc.Format, bSRGB);
 
-	// Create a Shader Resource View
-	D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc;
-	SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-	SRVDesc.Texture2D.MostDetailedMip = MipLevel;
-	SRVDesc.Texture2D.MipLevels = 1;
+		// Create a Shader Resource View
+		D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc;
+		SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE;
+		SRVDesc.TextureCube.MostDetailedMip = MipLevel;
+		SRVDesc.TextureCube.MipLevels = 1;
 
-	SRVDesc.Format = PlatformShaderResourceFormat;
-	ComPtr<ID3D11ShaderResourceView> ShaderResourceView;
-	assert(S_OK == D3D11Device->CreateShaderResourceView(Texture2D->GetResource(), &SRVDesc, ShaderResourceView.GetAddressOf()));
+		SRVDesc.Format = PlatformShaderResourceFormat;
+		ComPtr<ID3D11ShaderResourceView> ShaderResourceView;
+		assert(S_OK == D3D11Device->CreateShaderResourceView(TextureCube->GetResource(), &SRVDesc, ShaderResourceView.GetAddressOf()));
+		return ShaderResourceView;
+	}
+	else
+	{
+		std::shared_ptr<FD3D11Texture2D> Texture2D = Texture2DRHI;
 
-	return ShaderResourceView;
+		D3D11_TEXTURE2D_DESC TextureDesc;
+		Texture2D->GetResource()->GetDesc(&TextureDesc);
+
+		bool bSRGB = (Texture2D->GetFlags() & TexCreate_SRGB) != 0;
+		const DXGI_FORMAT PlatformShaderResourceFormat = FindShaderResourceDXGIFormat(TextureDesc.Format, bSRGB);
+
+		// Create a Shader Resource View
+		D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc;
+		SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+		SRVDesc.Texture2D.MostDetailedMip = MipLevel;
+		SRVDesc.Texture2D.MipLevels = 1;
+
+		SRVDesc.Format = PlatformShaderResourceFormat;
+		ComPtr<ID3D11ShaderResourceView> ShaderResourceView;
+		assert(S_OK == D3D11Device->CreateShaderResourceView(Texture2D->GetResource(), &SRVDesc, ShaderResourceView.GetAddressOf()));
+
+		return ShaderResourceView;
+	}
 }
 
 ComPtr<ID3D11ShaderResourceView> RHICreateShaderResourceView(ID3D11Buffer* VertexBuffer, UINT Stride, DXGI_FORMAT Format)

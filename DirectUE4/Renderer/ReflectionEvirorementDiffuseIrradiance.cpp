@@ -3,6 +3,7 @@
 #include "RenderTargets.h"
 #include "ScreenRendering.h"
 #include "SceneFilterRendering.h"
+#include "GPUProfiler.h"
 
 extern int32 GDiffuseIrradianceCubemapSize;
 
@@ -194,6 +195,7 @@ void ComputeDiffuseIrradiance(FD3D11Texture2D* LightingSource, int32 LightingSou
 	{
 		// Copy the starting mip from the lighting texture, apply texel area weighting and appropriate SH coefficient
 		{
+			SCOPED_DRAW_EVENT(CopyDiffuseIrradiancePS);
 			const int32 MipIndex = 0;
 			const int32 MipSize = GDiffuseIrradianceCubemapSize;
 			PooledRenderTarget& EffectiveRT = GetEffectiveDiffuseIrradianceRenderTarget(SceneContext, MipIndex);
@@ -238,6 +240,7 @@ void ComputeDiffuseIrradiance(FD3D11Texture2D* LightingSource, int32 LightingSou
 		const int32 NumMips = FMath::CeilLogTwo(GDiffuseIrradianceCubemapSize) + 1;
 
 		{
+			SCOPED_DRAW_EVENT(AccumulateDiffuseIrradiancePS);
 			// Accumulate all the texel values through downsampling to 1x1 mip
 			for (int32 MipIndex = 1; MipIndex < NumMips; MipIndex++)
 			{
@@ -290,6 +293,7 @@ void ComputeDiffuseIrradiance(FD3D11Texture2D* LightingSource, int32 LightingSou
 		}
 
 		{
+			SCOPED_DRAW_EVENT(AccumulateCubeFacesPS);
 			// Gather the cubemap face results and normalize, copy this coefficient to FSceneRenderTargets::Get(RHICmdList).SkySHIrradianceMap
 			PooledRenderTarget& EffectiveRT = *FSceneRenderTargets::Get().SkySHIrradianceMap.Get();
 

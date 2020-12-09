@@ -25,6 +25,9 @@ USkyLightComponent::USkyLightComponent(AActor* InOwner)
 	IndirectLightingIntensity = 1.0f;
 	Mobility = EComponentMobility::Stationary;
 	bCastVolumetricShadow = true;
+
+	BlendFraction = 0;
+	BlendDestinationAverageBrightness = 0;
 }
 
 class FSkyLightSceneProxy* USkyLightComponent::CreateSceneProxy() const
@@ -89,7 +92,7 @@ FSkyLightSceneProxy::FSkyLightSceneProxy(const class USkyLightComponent* InLight
 	, OcclusionTint(InLightComponent->OcclusionTint)
 	, OcclusionCombineMode(InLightComponent->OcclusionCombineMode)
 {
-
+	Initialize(InLightComponent->BlendFraction, &InLightComponent->IrradianceEnvironmentMap, &InLightComponent->BlendDestinationIrradianceEnvironmentMap, &InLightComponent->AverageBrightness, &InLightComponent->BlendDestinationAverageBrightness);
 }
 
 

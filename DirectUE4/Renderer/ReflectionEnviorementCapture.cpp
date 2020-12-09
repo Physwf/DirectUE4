@@ -242,6 +242,7 @@ IMPLEMENT_SHADER_TYPE(, FCopyCubemapToCubeFacePS, ("ReflectionEnvironmentShaders
 
 void ClearScratchCubemaps(int32 TargetSize)
 {
+	SCOPED_DRAW_EVENT(ClearScratchCubemaps);
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get();
 	SceneContext.AllocateReflectionTargets(TargetSize);
 
@@ -249,6 +250,7 @@ void ClearScratchCubemaps(int32 TargetSize)
 	int32 NumMips = (int32)RT0->TargetableTexture->GetNumMips();
 
 	{
+		SCOPED_DRAW_EVENT(ClearScratchCubemapsRT0);
 		for (int32 MipIndex = 0; MipIndex < NumMips; MipIndex++)
 		{
 			for (int32 CubeFace = 0; CubeFace < CubeFace_MAX; CubeFace++)
@@ -264,7 +266,7 @@ void ClearScratchCubemaps(int32 TargetSize)
 	{
 		ComPtr<PooledRenderTarget>& RT1 = SceneContext.ReflectionColorScratchCubemap[1];
 		NumMips = (int32)RT1->TargetableTexture->GetNumMips();
-
+		SCOPED_DRAW_EVENT(ClearScratchCubemapsRT1);
 		for (int32 MipIndex = 0; MipIndex < NumMips; MipIndex++)
 		{
 			for (int32 CubeFace = 0; CubeFace < CubeFace_MAX; CubeFace++)
@@ -295,7 +297,7 @@ void CaptureSceneToScratchCubemap(FSceneRenderer* SceneRenderer, ECubeFace CubeF
 	{
 		//FRHIRenderPassInfo RPInfo(EffectiveColorRT.TargetableTexture, ERenderTargetActions::DontLoad_Store, nullptr, 0, CubeFace);
 		//RHICmdList.BeginRenderPass(RPInfo, TEXT("CubeMapCopySceneRP"));
-		SetRenderTarget(EffectiveColorRT->TargetableTexture.get(), nullptr, true, false, false, 0, CubeFace);
+		SetRenderTarget(EffectiveColorRT->TargetableTexture.get(), nullptr, false, false, false, 0, CubeFace);
 
 		const FIntRect ViewRect(0, 0, EffectiveSize, EffectiveSize);
 		RHISetViewport(0, 0, 0.0f, EffectiveSize, EffectiveSize, 1.0f);
@@ -303,6 +305,10 @@ void CaptureSceneToScratchCubemap(FSceneRenderer* SceneRenderer, ECubeFace CubeF
 		ID3D11RasterizerState* RasterizerState = TStaticRasterizerState<D3D11_FILL_SOLID, D3D11_CULL_NONE>::GetRHI();
 		ID3D11DepthStencilState* DepthStencilState = TStaticDepthStencilState<false, D3D11_COMPARISON_ALWAYS>::GetRHI();
 		ID3D11BlendState* BlendState = TStaticBlendState<>::GetRHI();
+
+		D3D11DeviceContext->RSSetState(RasterizerState);
+		D3D11DeviceContext->OMSetDepthStencilState(DepthStencilState, 0);
+		D3D11DeviceContext->OMSetBlendState(BlendState, NULL, 0xffffffff);
 
 		TShaderMapRef<FCopyToCubeFaceVS> VertexShader(GetGlobalShaderMap());
 		TShaderMapRef<FCopySceneColorToCubeFacePS> PixelShader(GetGlobalShaderMap());
@@ -471,6 +477,10 @@ void CopyCubemapToScratchCubemap(FD3D11Texture2D* SourceCubemap, int32 CubemapSi
 		ID3D11DepthStencilState* DepthStencilState = TStaticDepthStencilState<false, D3D11_COMPARISON_ALWAYS>::GetRHI();
 		ID3D11BlendState* BlendState = TStaticBlendState<>::GetRHI();
 
+		D3D11DeviceContext->RSSetState(RasterizerState);
+		D3D11DeviceContext->OMSetDepthStencilState(DepthStencilState, 0);
+		D3D11DeviceContext->OMSetBlendState(BlendState, NULL, 0xffffffff);
+
 		TShaderMapRef<FScreenVS> VertexShader(GetGlobalShaderMap());
 		TShaderMapRef<FCopyCubemapToCubeFacePS> PixelShader(GetGlobalShaderMap());
 
@@ -613,6 +623,10 @@ float ComputeSingleAverageBrightnessFromCubemap(int32 TargetSize, ComPtr<PooledR
 	ID3D11DepthStencilState* DepthStencilState = TStaticDepthStencilState<false, D3D11_COMPARISON_ALWAYS>::GetRHI();
 	ID3D11BlendState* BlendState = TStaticBlendState<>::GetRHI();
 
+	D3D11DeviceContext->RSSetState(RasterizerState);
+	D3D11DeviceContext->OMSetDepthStencilState(DepthStencilState, 0);
+	D3D11DeviceContext->OMSetBlendState(BlendState, NULL, 0xffffffff);
+
 	auto ShaderMap = GetGlobalShaderMap();
 	TShaderMapRef<FPostProcessVS> VertexShader(ShaderMap);
 	TShaderMapRef<FComputeBrightnessPS> PixelShader(ShaderMap);
@@ -656,6 +670,8 @@ float ComputeSingleAverageBrightnessFromCubemap(int32 TargetSize, ComPtr<PooledR
 
 void ComputeAverageBrightness(int32 CubmapSize, float& OutAverageBrightness)
 {
+	SCOPED_DRAW_EVENT(ComputeAverageBrightness);
+
 	const int32 EffectiveTopMipSize = CubmapSize;
 	const int32 NumMips = FMath::CeilLogTwo(EffectiveTopMipSize) + 1;
 
@@ -670,6 +686,8 @@ void ComputeAverageBrightness(int32 CubmapSize, float& OutAverageBrightness)
 
 void FilterReflectionEnvironment(int32 CubmapSize, FSHVectorRGB3* OutIrradianceEnvironmentMap)
 {
+	SCOPED_DRAW_EVENT(FilterReflectionEnvironment);
+
 	const int32 EffectiveTopMipSize = CubmapSize;
 	const int32 NumMips = FMath::CeilLogTwo(EffectiveTopMipSize) + 1;
 
