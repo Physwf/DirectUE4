@@ -109,6 +109,8 @@ public:
 
 	virtual void DrawStaticElements(FPrimitiveSceneInfo* PrimitiveSceneInfo) override;
 
+	virtual void GetDynamicMeshElements(const std::vector<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
+
 	//virtual void GetLightRelevance(const FLightSceneProxy* LightSceneProxy, bool& bDynamic, bool& bRelevant, bool& bLightMapped, bool& bShadowMapped) const override;
 
 	virtual void GetLCIs(std::vector<FLightCacheInterface*>& LCIs) override;
@@ -165,4 +167,3 @@ protected:
 	std::vector<FLODInfo*> LODs;
 private:
 };
-

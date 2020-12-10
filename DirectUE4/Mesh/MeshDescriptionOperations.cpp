@@ -1,21 +1,15 @@
 #include "MeshDescriptionOperations.h"
-#include <vector>
 #include "UnrealMath.h"
+#include "UnrealTemplates.h"
 #include "MeshDescription.h"
 #include "mikktspace.h"
 #include "LayoutUV.h"
 #include "Allocator2D.h"
+
+#include <vector>
 #include <algorithm>
 
-template <typename T>
-void AddUnique(std::vector<T>& container, const T& Value);
-template <typename T>
-bool IsValidIndex(std::vector<T>& container, int32 Index);
-template <typename T>
-bool Contains(std::vector<T>& container, const T& Value)
-{
-	return std::find(container.begin(), container.end(), Value) != container.end();
-}
+
 /** Helper struct for building acceleration structures. */
 namespace MeshDescriptionOperationNamespace
 {

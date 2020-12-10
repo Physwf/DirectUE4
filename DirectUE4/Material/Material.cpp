@@ -754,6 +754,12 @@ bool FMaterialResource::IsSpecialEngineMaterial() const
 	return true;
 }
 
+bool FMaterialResource::IsUsedWithSkeletalMesh() const
+{
+	//return Material->bUsedWithSkeletalMesh;
+	return true;
+}
+
 bool FMaterialResource::IsUsedWithStaticLighting() const
 {
 	//return Material->bUsedWithStaticLighting;

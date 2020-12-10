@@ -687,7 +687,6 @@ void FSceneRenderer::PrepareViewRectsForRendering()
 }
 
 
-
 void FSceneRenderer::Render()
 {
 	PrepareViewRectsForRendering();

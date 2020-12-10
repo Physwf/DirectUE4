@@ -206,6 +206,7 @@ public:
 	const std::shared_ptr<std::vector<D3D11_INPUT_ELEMENT_DESC>>& GetDeclaration() const { return Declaration; }
 	const std::shared_ptr<std::vector<D3D11_INPUT_ELEMENT_DESC>>& GetPositionDeclaration() const { return PositionDeclaration; }
 
+	static void ModifyCompilationEnvironment(const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment) {}
 	bool SupportsManualVertexFetch() const
 	{
 // 		check(InFeatureLevel != ERHIFeatureLevel::Num);
@@ -404,70 +405,7 @@ protected:
 	TUniformBufferPtr<FLocalVertexFactoryUniformShaderParameters> UniformBuffer;
 };
 
-class GPUSkinVertexFactory : public FVertexFactory
-{
-public:
-	struct FDataType : public FStaticMeshDataType
-	{
-		/** The stream to read the bone indices from */
-		FVertexStreamComponent BoneIndices;
 
-		/** The stream to read the extra bone indices from */
-		FVertexStreamComponent ExtraBoneIndices;
-
-		/** The stream to read the bone weights from */
-		FVertexStreamComponent BoneWeights;
-
-		/** The stream to read the extra bone weights from */
-		FVertexStreamComponent ExtraBoneWeights;
-	};
-
-	GPUSkinVertexFactory(uint32 InNumVertices):NumVertices(InNumVertices)
-	{}
-
-	void InitRHI();
-	void ReleaseRHI();
-
-	void SetData(const FDataType& InData)
-	{
-		Data = InData;
-		TangentStreamComponents[0] = InData.TangentBasisComponents[0];
-		TangentStreamComponents[1] = InData.TangentBasisComponents[1];
-		ReleaseRHI();
-		InitRHI();
-	}
-
-
-	const ComPtr<ID3D11ShaderResourceView> GetPositionsSRV() const
-	{
-		return Data.PositionComponentSRV;
-	}
-
-	const ComPtr<ID3D11ShaderResourceView> GetTangentsSRV() const
-	{
-		return Data.TangentsSRV;
-	}
-
-	const ComPtr<ID3D11ShaderResourceView> GetTextureCoordinatesSRV() const
-	{
-		return Data.TextureCoordinatesSRV;
-	}
-
-	uint32 GetNumTexCoords() const
-	{
-		return Data.NumTexCoords;
-	}
-
-	const ComPtr<ID3D11ShaderResourceView> GetColorComponentsSRV() const
-	{
-		return Data.ColorComponentsSRV;
-	}
-
-private:
-	FVertexStreamComponent TangentStreamComponents[2];
-	uint32 NumVertices;
-	FDataType Data;
-};
 
 /**
 * An encapsulation of the vertex factory parameters for a shader.

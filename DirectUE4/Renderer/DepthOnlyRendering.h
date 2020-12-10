@@ -136,33 +136,33 @@ class FDepthDrawingPolicyFactory
 {
 public:
 
-// 	enum { bAllowSimpleElements = false };
-// 	struct ContextType
-// 	{
-// 		EDepthDrawingMode DepthDrawingMode;
-// 		float MobileColorValue;
-// 
-// 		/** Uses of FDepthDrawingPolicyFactory that are not the depth pre-pass will not want the bUseAsOccluder flag to interfere. */
-// 		bool bRespectUseAsOccluderFlag;
-// 
-// 		ContextType(EDepthDrawingMode InDepthDrawingMode, bool bInRespectUseAsOccluderFlag) :
-// 			DepthDrawingMode(InDepthDrawingMode),
-// 			MobileColorValue(0.0f),
-// 			bRespectUseAsOccluderFlag(bInRespectUseAsOccluderFlag)
-// 		{}
-// 	};
+	enum { bAllowSimpleElements = false };
+	struct ContextType
+	{
+		EDepthDrawingMode DepthDrawingMode;
+		float MobileColorValue;
+
+		/** Uses of FDepthDrawingPolicyFactory that are not the depth pre-pass will not want the bUseAsOccluder flag to interfere. */
+		bool bRespectUseAsOccluderFlag;
+
+		ContextType(EDepthDrawingMode InDepthDrawingMode, bool bInRespectUseAsOccluderFlag) :
+			DepthDrawingMode(InDepthDrawingMode),
+			MobileColorValue(0.0f),
+			bRespectUseAsOccluderFlag(bInRespectUseAsOccluderFlag)
+		{}
+	};
 
 	static void AddStaticMesh(FScene* Scene, FStaticMesh* StaticMesh);
 	static bool DrawDynamicMesh(
 		ID3D11DeviceContext* Context,
 		const FViewInfo& View,
-		//ContextType DrawingContext,
+		ContextType DrawingContext,
 		const FMeshBatch& Mesh,
-		//bool bPreFog,
-		//const FDrawingPolicyRenderState& DrawRenderState,
-		//const FPrimitiveSceneProxy* PrimitiveSceneProxy,
+		bool bPreFog,
+		const FDrawingPolicyRenderState& DrawRenderState,
+		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		//FHitProxyId HitProxyId,
-		//const bool bIsInstancedStereo = false,
+		const bool bIsInstancedStereo = false,
 		const bool bIsInstancedStereoEmulated = false
 	);
 
@@ -188,12 +188,12 @@ private:
 	static bool DrawMesh(
 		ID3D11DeviceContext* Context,
 		const FViewInfo& View,
-		//ContextType DrawingContext,
+		ContextType DrawingContext,
 		const FMeshBatch& Mesh,
 		const uint64& BatchElementMask,
 		const FDrawingPolicyRenderState& DrawRenderState,
 		bool bPreFog,
-		//const FPrimitiveSceneProxy* PrimitiveSceneProxy,
+		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		//FHitProxyId HitProxyId,
 		const bool bIsInstancedStereo = false,
 		const bool bIsInstancedStereoEmulated = false

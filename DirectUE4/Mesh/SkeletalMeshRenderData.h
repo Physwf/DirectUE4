@@ -2,11 +2,12 @@
 
 #include "StaticMeshResources.h"
 #include "SkinWeightVertexBuffer.h"
+#include "MultiSizeIndexContainer.h"
 
 class SkeletalMeshLODModel;
 class USkeletalMesh;
 
-struct SkeletalMeshRenderSection
+struct FSkeletalMeshRenderSection
 {
 	uint16 MaterialIndex;
 	uint32 BaseIndex;
@@ -21,10 +22,10 @@ struct SkeletalMeshRenderSection
 	int32 MaxBoneInfluences;
 };
 
-class SkeletalMeshLODRenderData
+class FSkeletalMeshLODRenderData
 {
 public:
-	std::vector<SkeletalMeshRenderSection> RenderSections;
+	std::vector<FSkeletalMeshRenderSection> RenderSections;
 
 	/** static vertices from chunks for skinning on GPU */
 	FStaticMeshVertexBuffers	StaticVertexBuffers;
@@ -32,7 +33,7 @@ public:
 	/** Skin weights for skinning */
 	FSkinWeightVertexBuffer		SkinWeightVertexBuffer;
 
-	std::vector<uint32> IndexBuffer;
+	FMultiSizeIndexContainer	MultiSizeIndexContainer;
 
 	void InitResources();
 
@@ -47,12 +48,14 @@ public:
 	std::vector<FBoneIndexType> RequiredBones;
 };
 
-class SkeletalMeshRenderData
+class FSkeletalMeshRenderData
 {
 public:
-	std::vector<SkeletalMeshLODRenderData*> LODRenderData;
+	std::vector<FSkeletalMeshLODRenderData*> LODRenderData;
 
 	void InitResources(/*bool bNeedsVertexColors, TArray<UMorphTarget*>& InMorphTargets*/);
 
 	void Cache(USkeletalMesh* Owner);
+
+	int32 GetMaxBonesPerSection() const;
 };

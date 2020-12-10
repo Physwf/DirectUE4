@@ -14,14 +14,14 @@ struct ESkeletalMeshVertexFlags
 };
 
 
-void SkeletalMeshLODRenderData::InitResources()
+void FSkeletalMeshLODRenderData::InitResources()
 {
 	StaticVertexBuffers.PositionVertexBufferRHI = CreateVertexBuffer(false, StaticVertexBuffers.PositionVertexBuffer.size() * sizeof(FVector), StaticVertexBuffers.PositionVertexBuffer.data());
 	StaticVertexBuffers.TangentsVertexBufferRHI = CreateVertexBuffer(false, StaticVertexBuffers.TangentsVertexBuffer.size() * sizeof(Vector4), StaticVertexBuffers.TangentsVertexBuffer.data());
 	StaticVertexBuffers.TexCoordVertexBufferRHI = CreateVertexBuffer(false, StaticVertexBuffers.TexCoordVertexBuffer.size() * sizeof(Vector2), StaticVertexBuffers.TexCoordVertexBuffer.data());
 }
 
-void SkeletalMeshLODRenderData::BuildFromLODModel(const SkeletalMeshLODModel* ImportedModel,uint32 BuildFlags)
+void FSkeletalMeshLODRenderData::BuildFromLODModel(const SkeletalMeshLODModel* ImportedModel,uint32 BuildFlags)
 {
 	bool bUseFullPrecisionUVs = (BuildFlags & ESkeletalMeshVertexFlags::UseFullPrecisionUVs) != 0;
 	bool bUseHighPrecisionTangentBasis = (BuildFlags & ESkeletalMeshVertexFlags::UseHighPrecisionTangentBasis) != 0;
@@ -33,7 +33,7 @@ void SkeletalMeshLODRenderData::BuildFromLODModel(const SkeletalMeshLODModel* Im
 	{
 		const SkeletalMeshSection& ModelSection = ImportedModel->Sections[SectionIndex];
 
-		SkeletalMeshRenderSection NewRenderSection;
+		FSkeletalMeshRenderSection NewRenderSection;
 		NewRenderSection.MaterialIndex = ModelSection.MaterialIndex;
 		NewRenderSection.BaseIndex = ModelSection.BaseIndex;
 		NewRenderSection.NumTriangles = ModelSection.NumTriangles;
@@ -102,10 +102,7 @@ void SkeletalMeshLODRenderData::BuildFromLODModel(const SkeletalMeshLODModel* Im
 
 	//const uint8 DataTypeSize = (ImportedModel->NumVertices < MAX_uint16) ? sizeof(uint16) : sizeof(uint32);
 
-	//MultiSizeIndexContainer.RebuildIndexBuffer(DataTypeSize, ImportedModel->IndexBuffer);
-
-	IndexBuffer.resize(ImportedModel->IndexBuffer.size());
-	memcpy(IndexBuffer.data(), ImportedModel->IndexBuffer.data(), ImportedModel->IndexBuffer.size() * sizeof(uint32));
+	MultiSizeIndexContainer.RebuildIndexBuffer(sizeof(uint32), ImportedModel->IndexBuffer);
 
 	//TArray<uint32> BuiltAdjacencyIndices;
 	//IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
@@ -118,11 +115,11 @@ void SkeletalMeshLODRenderData::BuildFromLODModel(const SkeletalMeshLODModel* Im
 	RequiredBones = ImportedModel->RequiredBones;
 }
 
-void SkeletalMeshRenderData::InitResources(/*bool bNeedsVertexColors, TArray<UMorphTarget*>& InMorphTargets*/)
+void FSkeletalMeshRenderData::InitResources(/*bool bNeedsVertexColors, TArray<UMorphTarget*>& InMorphTargets*/)
 {
 	for (uint32 LODIndex = 0; LODIndex < LODRenderData.size(); LODIndex++)
 	{
-		SkeletalMeshLODRenderData& RenderData = *LODRenderData[LODIndex];
+		FSkeletalMeshLODRenderData& RenderData = *LODRenderData[LODIndex];
 
 		if (RenderData.GetNumVertices() > 0)
 		{
@@ -131,7 +128,7 @@ void SkeletalMeshRenderData::InitResources(/*bool bNeedsVertexColors, TArray<UMo
 	}
 }
 
-void SkeletalMeshRenderData::Cache(USkeletalMesh* Owner)
+void FSkeletalMeshRenderData::Cache(USkeletalMesh* Owner)
 {
 	SkeletalMeshModel* SkelMeshModel = Owner->GetImportedModel();
 
@@ -140,8 +137,22 @@ void SkeletalMeshRenderData::Cache(USkeletalMesh* Owner)
 	for (uint32 LODIndex = 0; LODIndex < SkelMeshModel->LODModels.size(); LODIndex++)
 	{
 		SkeletalMeshLODModel& LODModel = *SkelMeshModel->LODModels[LODIndex];
-		SkeletalMeshLODRenderData* LODData = new SkeletalMeshLODRenderData();
+		FSkeletalMeshLODRenderData* LODData = new FSkeletalMeshLODRenderData();
 		LODRenderData.push_back(LODData);
 		LODData->BuildFromLODModel(&LODModel, VertexBufferBuildFlags);
 	}
+}
+
+int32 FSkeletalMeshRenderData::GetMaxBonesPerSection() const
+{
+	int32 MaxBonesPerSection = 0;
+	for (uint32 LODIndex = 0; LODIndex < LODRenderData.size(); ++LODIndex)
+	{
+		const FSkeletalMeshLODRenderData& RenderData = *LODRenderData[LODIndex];
+		for (uint32 SectionIndex = 0; SectionIndex < RenderData.RenderSections.size(); ++SectionIndex)
+		{
+			MaxBonesPerSection = FMath::Max<int32>(MaxBonesPerSection, RenderData.RenderSections[SectionIndex].BoneMap.size());
+		}
+	}
+	return MaxBonesPerSection;
 }

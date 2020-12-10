@@ -15,6 +15,8 @@ struct FMeshBatch;
 class FScene;
 class AActor;
 class FSceneView;
+class FSceneViewFamily;
+class FMeshElementCollector;
 
 
 class FPrimitiveComponentId
@@ -69,7 +71,7 @@ public:
 	inline bool IsLocalToWorldDeterminantNegative() const { return bIsLocalToWorldDeterminantNegative; }
 	inline const FBoxSphereBounds& GetBounds() const { return Bounds; }
 	inline const FBoxSphereBounds& GetLocalBounds() const { return LocalBounds; }
-
+	inline bool ShouldUseAsOccluder() const { return bUseAsOccluder; }
 	inline bool IsMeshShapeOftenMoving() const
 	{
 		return Mobility == EComponentMobility::Movable /*|| !bGoodCandidateForCachedShadowmap*/;
@@ -103,6 +105,8 @@ public:
 
 	virtual void DrawStaticElements(FPrimitiveSceneInfo* PrimitiveSceneInfo/*FStaticPrimitiveDrawInterface* PDI*/) {};
 	
+	virtual void GetDynamicMeshElements(const std::vector<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, class FMeshElementCollector& Collector) const {}
+
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const;
 
 	virtual void GetLightRelevance(const FLightSceneProxy* LightSceneProxy, bool& bDynamic, bool& bRelevant, bool& bLightMapped, bool& bShadowMapped) const
@@ -120,6 +124,7 @@ public:
 	}
 	void UpdateUniformBuffer();
 private:
+	uint32 bUseAsOccluder : 1;
 	uint32 bStaticLighting : 1;
 
 protected:

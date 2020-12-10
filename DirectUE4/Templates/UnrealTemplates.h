@@ -2,6 +2,8 @@
 
 #include "UnrealMath.h"
 
+#include <vector>
+
 #include <type_traits>
 
 template <typename T>
@@ -14,3 +16,33 @@ inline typename std::enable_if<std::is_same<T, uint32>::value, T>::type ReverseB
 	Bits = ((Bits & 0x55555555) << 1) | ((Bits & 0xaaaaaaaa) >> 1);
 	return Bits;
 }
+
+template <typename T>
+inline void AddUnique(std::vector<T>& container, const T& Value)
+{
+	if (std::find(container.begin(), container.end(), Value) == container.end())
+	{
+		container.push_back(Value);
+	}
+}
+
+template <typename T>
+inline bool IsValidIndex(const std::vector<T>& container, int32 Index)
+{
+	return Index >= 0 && int32(container.size()) > Index;
+}
+
+template <typename T>
+inline bool Contains(const std::vector<T>& container, const T& Value)
+{
+	return std::find(container.begin(), container.end(), Value) != container.end();
+}
+
+template <typename T>
+ inline int32 Find(const std::vector<T>& container, const T& Value)
+{
+	auto it = std::find(container.begin(), container.end(), Value);
+	if (it == container.end()) return -1;
+	return int32(it - container.begin());
+}
+#define STRUCT_OFFSET( struc, member )	__builtin_offsetof(struc, member)

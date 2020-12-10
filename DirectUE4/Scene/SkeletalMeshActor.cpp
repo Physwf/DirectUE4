@@ -2,22 +2,26 @@
 #include "FBXImporter.h"
 #include "SkeletalMesh.h"
 #include "World.h"
+#include "MeshComponent.h"
 
 SkeletalMeshActor::SkeletalMeshActor(class UWorld* InOwner, const char* ResourcePath)
  : AActor(InOwner)
 {
-	//FBXImporter Importer;
-	//Mesh = Importer.ImportSkeletalMesh(this,ResourcePath);
+	FBXImporter Importer;
+	USkeletalMesh* Mesh = Importer.ImportSkeletalMesh(this,ResourcePath);
+
+	MeshComponent = new USkeletalMeshComponent(this);
+	MeshComponent->SetSkeletalMesh(Mesh);
 }
 
 SkeletalMeshActor::~SkeletalMeshActor()
 {
-	//Mesh->Unregister();
+	MeshComponent->Unregister();
 }
 
 void SkeletalMeshActor::PostLoad()
 {
-	//Mesh->Register();
+	MeshComponent->Register();
 }
 
 void SkeletalMeshActor::Tick(float fDeltaTime)

@@ -4,6 +4,8 @@
 #include "StaticMesh.h"
 #include "Skeleton.h"
 #include "mikktspace.h"
+#include "UnrealTemplates.h"
+
 #include <algorithm>
 
 // Get the geometry deformation local to a node. It is never inherited by the
@@ -2948,31 +2950,6 @@ inline bool UVsEqual(const Vector2& V1, const Vector2& V2, const FOverlappingThr
 }
 
 
-template <typename T>
-void AddUnique(std::vector<T>& container, const T& Value)
-{
-	if (std::find(container.begin(), container.end(), Value) == container.end())
-	{
-		container.push_back(Value);
-	}
-}
-template <typename T>
-bool IsValidIndex(std::vector<T>& container, int32 Index)
-{
-	return Index >= 0 && int32(container.size()) > Index;
-}
-template <typename T>
-bool Contains(std::vector<T>& container, const T& Value)
-{
-	return std::find(container.begin(), container.end(), Value) != container.end();
-}
-template <typename T>
-int32 Find(std::vector<T>& container, const T& Value)
-{
-	auto it = std::find(container.begin(), container.end(),Value);
-	if (it == container.end()) return -1;
-	return int32(it - container.begin());
-}
 /** Helper struct for building acceleration structures. */
 struct FIndexAndZ
 {

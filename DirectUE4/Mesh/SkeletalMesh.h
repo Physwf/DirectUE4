@@ -16,7 +16,7 @@ public:
 
 	SkeletalMeshModel* GetImportedModel() const { return ImportedModel.get(); }
 
-	SkeletalMeshRenderData* GetResourceForRendering() const { return RenderdData.get(); }
+	FSkeletalMeshRenderData* GetResourceForRendering() const { return RenderdData.get(); }
 
 	USkeleton* Skeleton;
 
@@ -32,7 +32,7 @@ public:
 private:
 	std::shared_ptr<SkeletalMeshModel> ImportedModel;
 
-	std::unique_ptr<SkeletalMeshRenderData> RenderdData;
+	std::unique_ptr<FSkeletalMeshRenderData> RenderdData;
 
 	void CacheDerivedData();
 };

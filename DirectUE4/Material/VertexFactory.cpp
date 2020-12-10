@@ -299,6 +299,8 @@ TUniformBufferPtr<FLocalVertexFactoryUniformShaderParameters>  CreateLocalVFUnif
 	return TUniformBufferPtr<FLocalVertexFactoryUniformShaderParameters>::CreateUniformBufferImmediate(UniformParameters);
 }
 
+
+
 FVertexFactoryParameterRef::FVertexFactoryParameterRef(FVertexFactoryType* InVertexFactoryType, const FShaderParameterMap& ParameterMap, EShaderFrequency InShaderFrequency)
 	: Parameters(NULL)
 	, VertexFactoryType(InVertexFactoryType)

@@ -400,7 +400,7 @@ public:
 	virtual bool IsWireframe() const = 0;
 // 	virtual bool IsUIMaterial() const { return false; }
 	virtual bool IsSpecialEngineMaterial() const = 0;
-// 	virtual bool IsUsedWithSkeletalMesh() const { return false; }
+	virtual bool IsUsedWithSkeletalMesh() const { return false; }
 // 	virtual bool IsUsedWithLandscape() const { return false; }
 // 	virtual bool IsUsedWithParticleSystem() const { return false; }
 // 	virtual bool IsUsedWithParticleSprites() const { return false; }
@@ -540,7 +540,7 @@ public:
 	virtual bool IsWireframe() const override;
 // 	virtual bool IsUIMaterial() const override;
 	virtual bool IsSpecialEngineMaterial() const override;
-// 	virtual bool IsUsedWithSkeletalMesh() const override;
+	virtual bool IsUsedWithSkeletalMesh() const override;
 // 	virtual bool IsUsedWithLandscape() const override;
 // 	virtual bool IsUsedWithParticleSystem() const override;
 // 	virtual bool IsUsedWithParticleSprites() const override;

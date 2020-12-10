@@ -305,6 +305,7 @@ public:
 	}
 };
 
+typedef std::vector<uint8> FPrimitiveViewMasks;
 
 class FViewInfo : public FSceneView
 {
@@ -395,10 +396,10 @@ public:
 	//TArray<FDynamicPrimitiveResource*> DynamicResources;
 
 	/** Gathered in initviews from all the primitives with dynamic view relevance, used in each mesh pass. */
-	//TArray<FMeshBatchAndRelevance, SceneRenderingAllocator> DynamicMeshElements;
+	std::vector<FMeshBatchAndRelevance> DynamicMeshElements;
 
 	// [PrimitiveIndex] = end index index in DynamicMeshElements[], to support GetDynamicMeshElementRange()
-	//TArray<uint32, SceneRenderingAllocator> DynamicMeshEndIndices;
+	std::vector<uint32> DynamicMeshEndIndices;
 
 	//TArray<FMeshBatchAndRelevance, SceneRenderingAllocator> DynamicEditorMeshElements;
 
@@ -657,8 +658,13 @@ class FSceneRenderer
 {
 public:
 	EDepthDrawingMode EarlyZPassMode;
-
+	bool bEarlyZPassMovable;
 	FScene* Scene;
+
+	FMeshElementCollector MeshCollector;
+
+	std::vector<FViewInfo> Views;
+
 	/** The view family being rendered.  This references the Views array. */
 	FSceneViewFamily ViewFamily;
 
@@ -667,8 +673,6 @@ public:
 	std::vector<FVisibleLightInfo> VisibleLightInfos;
 
 	FSortedShadowMaps SortedShadowsForShadowDepthPass;
-
-	std::vector<FViewInfo> Views;
 
 	void InitViewsPossiblyAfterPrepass();
 
@@ -702,6 +706,7 @@ public:
 
 	void PrepareViewRectsForRendering();
 	void InitViews();
+	bool RenderPrePassViewDynamic(const FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState);
 	void RenderPrePassView(FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState);
 	void RenderPrePass();
 	void RenderHzb();
@@ -716,6 +721,16 @@ public:
 	bool RenderShadowProjections(const FLightSceneInfo* LightSceneInfo, PooledRenderTarget* ScreenShadowMaskTexture, bool bProjectingForForwardShading, bool bMobileModulatedProjections);
 	bool RenderShadowProjections(const FLightSceneInfo* LightSceneInfo, PooledRenderTarget* ScreenShadowMaskTexture, bool& bInjectedTranslucentVolume);
 	void RenderLight(const FLightSceneInfo* LightSceneInfo, struct PooledRenderTarget* ScreenShadowMaskTexture, bool bRenderOverlap, bool bIssueDrawEvent);
+
+	void GatherDynamicMeshElements(
+		std::vector<FViewInfo>& InViews,
+		const FScene* InScene,
+		const FSceneViewFamily& InViewFamily,
+		const FPrimitiveViewMasks& HasDynamicMeshElementsMasks,
+		const FPrimitiveViewMasks& HasDynamicEditorMeshElementsMasks,
+		const FPrimitiveViewMasks& HasViewCustomDataMasks,
+		FMeshElementCollector& Collector);
+
 	void InitFogConstants();
 	void RenderAtmosphere(const FLightShaftsOutput& LightShaftsOutput);
 	void Render();

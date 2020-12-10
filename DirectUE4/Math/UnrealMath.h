@@ -67,6 +67,8 @@ typedef unsigned long long	uint64;
 
 #define ZERO_ANIMWEIGHT_THRESH (0.00001f)
 
+
+
 struct FRotator;
 struct FQuat;
 struct Vector4;

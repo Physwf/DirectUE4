@@ -139,59 +139,64 @@ public:
 
 IMPLEMENT_MATERIAL_SHADER_TYPE(, FDepthOnlyPS, ("DepthOnlyPixelShader.dusf"), "Main", SF_Pixel);
 
+
+bool FSceneRenderer::RenderPrePassViewDynamic(const FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState)
+{
+	FDepthDrawingPolicyFactory::ContextType Context(EarlyZPassMode, true);
+
+	for (uint32 MeshBatchIndex = 0; MeshBatchIndex < View.DynamicMeshElements.size(); MeshBatchIndex++)
+	{
+		const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicMeshElements[MeshBatchIndex];
+
+		if (MeshBatchAndRelevance.GetHasOpaqueOrMaskedMaterial() && MeshBatchAndRelevance.GetRenderInMainPass())
+		{
+			const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
+			const FPrimitiveSceneProxy* PrimitiveSceneProxy = MeshBatchAndRelevance.PrimitiveSceneProxy;
+			bool bShouldUseAsOccluder = true;
+
+			if (EarlyZPassMode < DDM_AllOpaque)
+			{
+				extern float GMinScreenRadiusForDepthPrepass;
+				//@todo - move these proxy properties into FMeshBatchAndRelevance so we don't have to dereference the proxy in order to reject a mesh
+				const float LODFactorDistanceSquared = (PrimitiveSceneProxy->GetBounds().Origin - View.ViewMatrices.GetViewOrigin()).SizeSquared() * FMath::Square(View.LODDistanceFactor);
+
+				// Only render primitives marked as occluders
+				bShouldUseAsOccluder = PrimitiveSceneProxy->ShouldUseAsOccluder()
+					// Only render static objects unless movable are requested
+					&& (!PrimitiveSceneProxy->IsMovable() || bEarlyZPassMovable)
+					&& (FMath::Square(PrimitiveSceneProxy->GetBounds().SphereRadius) > GMinScreenRadiusForDepthPrepass * GMinScreenRadiusForDepthPrepass * LODFactorDistanceSquared);
+			}
+
+			if (bShouldUseAsOccluder)
+			{
+				FDepthDrawingPolicyFactory::DrawDynamicMesh(D3D11DeviceContext, View, Context, MeshBatch, true, DrawRenderState, PrimitiveSceneProxy, /*MeshBatch.BatchHitProxyId,*/false/* View.IsInstancedStereoPass()*/);
+			}
+		}
+	}
+	return true;
+}
+
 void FSceneRenderer::RenderPrePassView(FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState)
 {
+	bool bDirty = false;
+
 	SCOPED_DRAW_EVENT_FORMAT(EventPrePass, TEXT("PrePass"));
 
 	FSceneRenderTargets& SceneContex = FSceneRenderTargets::Get();
 	SceneContex.BeginRenderingPrePass(true);
 
 	D3D11DeviceContext->RSSetScissorRects(0, NULL);
-	D3D11_VIEWPORT VP = { 
-		(float)View.ViewRect.Min.X, 
-		(float)View.ViewRect.Min.Y, 
-		(float)(View.ViewRect.Max.X - View.ViewRect.Min.X),
-		(float)(View.ViewRect.Max.Y - View.ViewRect.Min.Y),
-		0.f,1.f 
-	};
-	D3D11DeviceContext->RSSetViewports(1, &VP);
+	RHISetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 
-	Scene->PositionOnlyDepthDrawList.DrawVisible(D3D11DeviceContext, View, DrawRenderState);
-	//Scene->DepthDrawList.DrawVisible(D3D11DeviceContext, View, DrawRenderState);
-	/*
-	
-
-	const ParameterAllocation& ViewParams = PrePassVSParams.at("View");
-	const ParameterAllocation& PrimitiveParams = PrePassVSParams.at("Primitive");
-
-	D3D11DeviceContext->VSSetConstantBuffers(ViewParams.BufferIndex, 1, &View.ViewUniformBuffer);
-
-	D3D11DeviceContext->RSSetState(PrePassRasterizerState);
-	//D3D11DeviceContext->OMSetBlendState(PrePassBlendState,);
-	D3D11DeviceContext->RSSetViewports(1, &GViewport);
-	D3D11DeviceContext->OMSetDepthStencilState(PrePassDepthStencilState, 0);
-
-
-	for (MeshBatch& MB : GScene->AllBatches)
 	{
-		D3D11DeviceContext->IASetInputLayout(PositionOnlyMeshInputLayout);
-		D3D11DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-		UINT Stride = sizeof(PositionOnlyLocalVertex);
-		UINT Offset = 0;
-		D3D11DeviceContext->IASetVertexBuffers(0, 1, &MB.PositionOnlyVertexBuffer, &Stride, &Offset);
-		D3D11DeviceContext->IASetIndexBuffer(MB.IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
-
-		D3D11DeviceContext->VSSetShader(PrePassVS, 0, 0);
-		D3D11DeviceContext->PSSetShader(PrePassPS, 0, 0);
-
-		for (size_t Element = 0; Element < MB.Elements.size(); ++Element)
-		{
-			D3D11DeviceContext->VSSetConstantBuffers(PrimitiveParams.BufferIndex, 1, &MB.Elements[Element].PrimitiveUniformBuffer);
-			D3D11DeviceContext->DrawIndexed(MB.Elements[Element].NumTriangles * 3, MB.Elements[Element].FirstIndex, 0);
-		}
+		SCOPED_DRAW_EVENT(PosOnlyOpaque);
+		Scene->PositionOnlyDepthDrawList.DrawVisible(D3D11DeviceContext, View, DrawRenderState);
 	}
-	*/
+
+	{
+		SCOPED_DRAW_EVENT(Dynamic);
+		bDirty |= RenderPrePassViewDynamic(View, DrawRenderState);
+	}
 }
 
 void FSceneRenderer::RenderPrePass()
@@ -359,12 +364,118 @@ void FDepthDrawingPolicyFactory::AddStaticMesh(FScene* Scene, FStaticMesh* Stati
 	);
 }
 
-bool FDepthDrawingPolicyFactory::DrawDynamicMesh(ID3D11DeviceContext* Context, const FViewInfo& View, /*ContextType DrawingContext, */ const FMeshBatch& Mesh, /*bool bPreFog, */ /*const FDrawingPolicyRenderState& DrawRenderState, */ /*const FPrimitiveSceneProxy* PrimitiveSceneProxy, */ /*FHitProxyId HitProxyId, */ /*const bool bIsInstancedStereo = false, */ const bool bIsInstancedStereoEmulated /*= false */)
+bool FDepthDrawingPolicyFactory::DrawDynamicMesh(
+	ID3D11DeviceContext* Context, 
+	const FViewInfo& View, 
+	ContextType DrawingContext, 
+	const FMeshBatch& Mesh, 
+	bool bPreFog, 
+	const FDrawingPolicyRenderState& DrawRenderState, 
+	const FPrimitiveSceneProxy* PrimitiveSceneProxy, 
+	/*FHitProxyId HitProxyId, */ 
+	const bool bIsInstancedStereo /*= false*/, 
+	const bool bIsInstancedStereoEmulated /*= false */)
 {
-	return false;
+	return DrawMesh(
+		Context,
+		View,
+		DrawingContext,
+		Mesh,
+		Mesh.Elements.size() == 1 ? 1 : (1 << Mesh.Elements.size()) - 1,	// 1 bit set for each mesh element
+		DrawRenderState,
+		bPreFog,
+		PrimitiveSceneProxy,
+		//HitProxyId,
+		bIsInstancedStereo,
+		bIsInstancedStereoEmulated
+	);
 }
 
 bool FDepthDrawingPolicyFactory::DrawStaticMesh(ID3D11DeviceContext* Context, const FViewInfo& View, /*ContextType DrawingContext, */ const FStaticMesh& StaticMesh, const uint64& BatchElementMask, /*bool bPreFog, */ /*const FDrawingPolicyRenderState& DrawRenderState, */ /*const FPrimitiveSceneProxy* PrimitiveSceneProxy, */ /*FHitProxyId HitProxyId, */ /*const bool bIsInstancedStereo = false, */ const bool bIsInstancedStereoEmulated /*= false */)
 {
 	return false;
+}
+
+bool FDepthDrawingPolicyFactory::DrawMesh(
+	ID3D11DeviceContext* Context, 
+	const FViewInfo& View, 
+	ContextType DrawingContext, 
+	const FMeshBatch& Mesh, 
+	const uint64& BatchElementMask, 
+	const FDrawingPolicyRenderState& DrawRenderState, 
+	bool bPreFog, 
+	const FPrimitiveSceneProxy* PrimitiveSceneProxy, 
+	/*FHitProxyId HitProxyId, */ 
+	const bool bIsInstancedStereo /*= false*/, 
+	const bool bIsInstancedStereoEmulated /*= false */)
+{
+	const FMaterialRenderProxy* MaterialRenderProxy = Mesh.MaterialRenderProxy;
+	const FMaterial* Material = MaterialRenderProxy->GetMaterial();
+	bool bDirty = false;
+
+	if ((Mesh.bUseAsOccluder || !DrawingContext.bRespectUseAsOccluderFlag || DrawingContext.DepthDrawingMode == DDM_AllOpaque)
+		&& ShouldIncludeDomainInMeshPass(Material->GetMaterialDomain()))
+	{
+		const EBlendMode BlendMode = Material->GetBlendMode();
+		const bool bUsesMobileColorValue = (DrawingContext.MobileColorValue != 0.0f);
+
+		// Check to see if the primitive is currently fading in or out using the screen door effect.  If it is,
+		// then we can't assume the object is opaque as it may be forcibly masked.
+		//const FSceneViewState* SceneViewState = static_cast<const FSceneViewState*>(View.State);
+
+		FMeshDrawingPolicyOverrideSettings OverrideSettings = ComputeMeshOverrideSettings(Mesh);
+		OverrideSettings.MeshOverrideFlags |= Material->IsTwoSided() ? EDrawingPolicyOverrideFlags::TwoSided : EDrawingPolicyOverrideFlags::None;
+
+		if (BlendMode == BLEND_Opaque
+			&& Mesh.VertexFactory->SupportsPositionOnlyStream()
+			//&& !Material->MaterialModifiesMeshPosition_RenderThread()
+			&& Material->WritesEveryPixel()
+			&& !bUsesMobileColorValue
+			)
+		{
+			//render opaque primitives that support a separate position-only vertex buffer
+			const FMaterialRenderProxy* DefaultProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy(false);
+
+			OverrideSettings.MeshOverrideFlags |= Material->IsWireframe() ? EDrawingPolicyOverrideFlags::Wireframe : EDrawingPolicyOverrideFlags::None;
+
+			FPositionOnlyDepthDrawingPolicy DrawingPolicy(
+				Mesh.VertexFactory,
+				DefaultProxy,
+				*DefaultProxy->GetMaterial(),
+				OverrideSettings
+			);
+
+			FDrawingPolicyRenderState DrawRenderStateLocal(DrawRenderState);
+			DrawingPolicy.SetupPipelineState(DrawRenderStateLocal, View);
+			CommitGraphicsPipelineState(DrawingPolicy, DrawRenderStateLocal, DrawingPolicy.GetBoundShaderStateInput());
+			DrawingPolicy.SetSharedState(Context,DrawRenderStateLocal, &View, FPositionOnlyDepthDrawingPolicy::ContextDataType(bIsInstancedStereo, bIsInstancedStereoEmulated));
+
+			int32 BatchElementIndex = 0;
+			uint64 Mask = BatchElementMask;
+			do
+			{
+				if (Mask & 1)
+				{
+					// We draw instanced static meshes twice when rendering with instanced stereo. Once for each eye.
+					const bool bIsInstancedMesh = Mesh.Elements[BatchElementIndex].bIsInstancedMesh;
+					const uint32 InstancedStereoDrawCount = (bIsInstancedStereo && bIsInstancedMesh) ? 2 : 1;
+					for (uint32 DrawCountIter = 0; DrawCountIter < InstancedStereoDrawCount; ++DrawCountIter)
+					{
+						//DrawingPolicy.SetInstancedEyeIndex(DrawCountIter);
+
+						//TDrawEvent<FRHICommandList> MeshEvent;
+						//BeginMeshDrawEvent(RHICmdList, PrimitiveSceneProxy, Mesh, MeshEvent, EnumHasAnyFlags(EShowMaterialDrawEventTypes(GShowMaterialDrawEventTypes), EShowMaterialDrawEventTypes::DepthPositionOnly));
+
+						DrawingPolicy.SetMeshRenderState(Context, View, PrimitiveSceneProxy, Mesh, BatchElementIndex, DrawRenderStateLocal, FPositionOnlyDepthDrawingPolicy::ElementDataType(), FPositionOnlyDepthDrawingPolicy::ContextDataType());
+						DrawingPolicy.DrawMesh(Context, View, Mesh, BatchElementIndex, bIsInstancedStereo);
+					}
+				}
+				Mask >>= 1;
+				BatchElementIndex++;
+			} while (Mask);
+
+			bDirty = true;
+		}
+	}
+	return bDirty;
 }

@@ -834,3 +834,50 @@ public:
 	bool GetHasOpaqueOrMaskedMaterial() const { return bHasOpaqueMaterial || bHasMaskedMaterial; }
 	bool GetRenderInMainPass() const { return bRenderInMainPass; }
 };
+
+/**
+* Encapsulates the gathering of meshes from the various FPrimitiveSceneProxy classes.
+*/
+class FMeshElementCollector
+{
+public:
+	inline FMeshBatch& AllocateMesh()
+	{
+		const uint32 Index = MeshBatchStorage.size();
+		MeshBatchStorage.push_back(FMeshBatch());
+		return MeshBatchStorage[Index];
+	}
+
+	std::vector<FMeshBatch> MeshBatchStorage;
+	/** Meshes to render */
+	std::vector<std::vector<FMeshBatchAndRelevance>*> MeshBatches;
+
+	std::vector<FSceneView*> Views;
+private:
+	void ClearViewMeshArrays()
+	{
+		Views.clear();
+		MeshBatches.clear();
+		//SimpleElementCollectors.Empty();
+	}
+
+	void AddViewMeshArrays(
+		FSceneView* InView,
+		std::vector<FMeshBatchAndRelevance>* ViewMeshes//,
+		//FSimpleElementCollector* ViewSimpleElementCollector,
+		/*ERHIFeatureLevel::Type InFeatureLevel*/)
+	{
+		Views.push_back(InView);
+		MeshBatches.push_back(ViewMeshes);
+		//SimpleElementCollectors.Add(ViewSimpleElementCollector);
+	}
+
+	uint32 GetMeshBatchCount(uint32 ViewIndex) const
+	{
+		return MeshBatches[ViewIndex]->size();
+	}
+
+	friend class FSceneRenderer;
+	friend class FProjectedShadowInfo;
+	friend class FUniformMeshConverter;
+};

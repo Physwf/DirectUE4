@@ -4,6 +4,8 @@
 
 class AActor;
 class UMaterial;
+class FSkinWeightVertexBuffer;
+class FSkeletalMeshRenderData;
 
 class UMeshComponent : public UPrimitiveComponent
 {
@@ -34,4 +36,61 @@ public:
 	const class FMeshMapBuildData* GetMeshMapBuildData() const;
 private:
 	class UStaticMesh* StaticMesh;
+};
+
+struct FSkelMeshComponentLODInfo
+{
+	/** Material corresponds to section. To show/hide each section, use this. */
+	std::vector<bool> HiddenMaterials;
+	/** Vertex buffer used to override vertex colors */
+	//FColorVertexBuffer* OverrideVertexColors;
+	/** Vertex buffer used to override skin weights */
+	FSkinWeightVertexBuffer* OverrideSkinWeights;
+	FSkelMeshComponentLODInfo();
+	~FSkelMeshComponentLODInfo();
+
+	void ReleaseOverrideVertexColorsAndBlock();
+	void BeginReleaseOverrideVertexColors();
+private:
+	void CleanUpOverrideVertexColors();
+
+public:
+	void ReleaseOverrideSkinWeightsAndBlock();
+	void BeginReleaseOverrideSkinWeights();
+private:
+	void CleanUpOverrideSkinWeights();
+};
+
+class USkinnedMeshComponent : public UMeshComponent
+{
+public:
+	USkinnedMeshComponent(AActor* InOwner) : UMeshComponent(InOwner) {}
+
+	class USkeletalMesh* SkeletalMesh;
+
+	class FSkeletalMeshObject*	MeshObject;
+
+	FSkeletalMeshRenderData* GetSkeletalMeshRenderData() const;
+
+	virtual void SetSkeletalMesh(class USkeletalMesh* NewMesh, bool bReinitPose = true);
+protected:
+	virtual void OnRegister() override;
+	virtual void OnUnregister() override;
+	virtual void CreateRenderState_Concurrent() override;
+	virtual void SendRenderDynamicData_Concurrent() override;
+	virtual void DestroyRenderState_Concurrent() override;
+public:
+
+	std::vector<struct FSkelMeshComponentLODInfo> LODInfo;
+
+	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
+
+	virtual class UMaterial* GetMaterial(int32 ElementIndex) const override;
+};
+
+class USkeletalMeshComponent : public USkinnedMeshComponent
+{
+public:
+	USkeletalMeshComponent(AActor* InOwner) : USkinnedMeshComponent(InOwner) {}
+
 };
