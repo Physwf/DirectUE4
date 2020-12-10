@@ -9,7 +9,7 @@
 
 /** Entry point for the base pass vertex shader. */
 void Main(
-	VertexFactoryInput Input,
+	FVertexFactoryInput Input,
 	OPTIONAL_VertexID
 	out BasePassVSOutput Output
 #if USE_GLOBAL_CLIP_PLANE && !USING_TESSELLATION
@@ -20,13 +20,13 @@ void Main(
 	uint EyeIndex = 0;
 	ResolvedView = ResolveView();
 
-	VertexFactoryIntermediates VFIntermediates = GetVertexFactoryIntermediates(Input);
+	FVertexFactoryIntermediates VFIntermediates = GetVertexFactoryIntermediates(Input);
 	float4 WorldPositionExcludingWPO = VertexFactoryGetWorldPosition(Input, VFIntermediates);
 	float4 WorldPosition = WorldPositionExcludingWPO;
 	float4 ClipSpacePosition;
 
 	float3x3 TangentToLocal = VertexFactoryGetTangentToLocal(Input, VFIntermediates);
-	MaterialVertexParameters VertexParameters = GetMaterialVertexParameters(Input, VFIntermediates, WorldPosition.xyz, TangentToLocal);
+	FMaterialVertexParameters VertexParameters = GetMaterialVertexParameters(Input, VFIntermediates, WorldPosition.xyz, TangentToLocal);
 
 	// Isolate instructions used for world position offset
 	// As these cause the optimizer to generate different position calculating instructions in each pass, resulting in self-z-fighting.

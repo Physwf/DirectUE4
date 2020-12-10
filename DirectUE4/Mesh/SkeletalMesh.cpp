@@ -3,8 +3,10 @@
 #include "SkeletalMeshTypes.h"
 #include "MeshComponent.h"
 #include "SkeletalRenderGPUSkin.h"
+#include "UnrealTemplates.h"
 
 USkeletalMesh::USkeletalMesh(class AActor* InOwner)
+	:Skeleton(NULL)
 {
 	ImportedModel = std::make_unique<SkeletalMeshModel>();
 }
@@ -55,6 +57,26 @@ void USkeletalMesh::AllocateResourceForRendering()
 	RenderdData = std::make_unique<FSkeletalMeshRenderData>();
 }
 
+
+FSkeletalMeshLODInfo& USkeletalMesh::AddLODInfo()
+{
+	uint32 NewIndex = LODInfo.size();
+	LODInfo.push_back(FSkeletalMeshLODInfo());
+	return LODInfo[NewIndex];
+}
+
+void USkeletalMesh::RemoveLODInfo(int32 Index)
+{
+	if (IsValidIndex(LODInfo,Index))
+	{
+		LODInfo.erase(LODInfo.begin() + Index);
+	}
+}
+
+void USkeletalMesh::ResetLODInfo()
+{
+	LODInfo.clear();
+}
 
 void USkeletalMesh::CacheDerivedData()
 {

@@ -14,3 +14,13 @@ void FSkinWeightVertexBuffer::Init(const std::vector<SoftSkinVertex>& InVertices
 	}
 }
 
+void FSkinWeightVertexBuffer::InitResources()
+{
+	WeightVertexBufferRHI = CreateVertexBuffer(false, WeightData.size(), WeightData.data());
+}
+
+void FSkinWeightVertexBuffer::ReleaseResources()
+{
+	WeightVertexBufferRHI.Reset();
+}
+

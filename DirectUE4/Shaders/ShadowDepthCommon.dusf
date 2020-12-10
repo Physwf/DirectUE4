@@ -20,7 +20,7 @@ struct ShadowDepthVSToPS
 struct FShadowDepthVSToPS
 {
 #if INTERPOLATE_VF_ATTRIBUTES
-	VertexFactoryInterpolantsVSToPS FactoryInterpolants;
+	FVertexFactoryInterpolantsVSToPS FactoryInterpolants;
 #endif
 
 #if PERSPECTIVE_CORRECT_DEPTH

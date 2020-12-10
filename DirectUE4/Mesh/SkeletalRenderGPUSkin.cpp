@@ -7,8 +7,20 @@
 
 FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectGPUSkin(USkinnedMeshComponent* InMeshComponent, FSkeletalMeshRenderData* InSkelMeshRenderData)
 	: FSkeletalMeshObject(InMeshComponent, InSkelMeshRenderData)
+// 	, DynamicData(NULL)
+// 	, bNeedsUpdateDeferred(false)
+// 	, bMorphNeedsUpdateDeferred(false)
+// 	, bMorphResourcesInitialized(false)
+// 	, LastBoneTransformRevisionNumber(0)
 {
+	LODs.clear();
+	LODs.reserve(SkeletalMeshRenderData->LODRenderData.size());
+	for (uint32 LODIndex = 0; LODIndex < SkeletalMeshRenderData->LODRenderData.size(); LODIndex++)
+	{
+		LODs.push_back(FSkeletalMeshObjectLOD(SkeletalMeshRenderData, LODIndex));
+	}
 
+	InitResources(InMeshComponent);
 }
 
 FSkeletalMeshObjectGPUSkin::~FSkeletalMeshObjectGPUSkin()
@@ -54,7 +66,8 @@ const FVertexFactory* FSkeletalMeshObjectGPUSkin::GetSkinVertexFactory(const FSc
 // 	if (SkinCacheEntry && FGPUSkinCache::IsEntryValid(SkinCacheEntry, ChunkIdx))
 // 	{
 // 		return LOD.GPUSkinVertexFactories.PassthroughVertexFactories[ChunkIdx].Get();
-// 	}
+// 	}
+
 
 	return LOD.GPUSkinVertexFactories.VertexFactories[ChunkIdx].get();
 }

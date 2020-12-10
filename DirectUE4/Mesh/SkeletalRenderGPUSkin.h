@@ -38,9 +38,18 @@ private:
 	{
 	public:
 		FVertexFactoryData() {}
+// 		FVertexFactoryData(const FVertexFactoryData& rhs) 
+// 		{
+// 			VertexFactories.reserve(rhs.VertexFactories.size());
+// 			for (size_t i = 0; i < rhs.VertexFactories.size(); ++i)
+// 			{
+// 				VertexFactories.push_back(std::move(rhs.VertexFactories[i]));
+// 			}
+// 		}
 
 		/** one vertex factory for each chunk */
 		std::vector<std::unique_ptr<FGPUBaseSkinVertexFactory>> VertexFactories;
+
 
 		/** one passthrough vertex factory for each chunk */
 		//TArray<TUniquePtr<FGPUSkinPassthroughVertexFactory>> PassthroughVertexFactories;
@@ -96,8 +105,8 @@ private:
 		}
 
 	private:
-		FVertexFactoryData(const FVertexFactoryData&);
-		FVertexFactoryData& operator=(const FVertexFactoryData&);
+		//FVertexFactoryData(const FVertexFactoryData&);
+		//FVertexFactoryData& operator=(const FVertexFactoryData&);
 	};
 
 	/** vertex data for rendering a single LOD */

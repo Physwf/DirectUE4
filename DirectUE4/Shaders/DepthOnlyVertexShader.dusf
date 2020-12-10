@@ -5,7 +5,7 @@
 struct FDepthOnlyVSToPS
 {
 	#if !MATERIALBLENDING_SOLID || OUTPUT_PIXEL_DEPTH_OFFSET
-		VertexFactoryInterpolantsVSToPS FactoryInterpolants;
+		FVertexFactoryInterpolantsVSToPS FactoryInterpolants;
 		float4 PixelPosition : TEXCOORD6;
 	#endif
 
@@ -19,7 +19,7 @@ struct FDepthOnlyVSToPS
 #if VERTEXSHADER
 
 void Main(
-	VertexFactoryInput Input,
+	FVertexFactoryInput Input,
 	OPTIONAL_VertexID
 	out FDepthOnlyVSOutput Output
 #if USE_GLOBAL_CLIP_PLANE && !USING_TESSELLATION
@@ -29,11 +29,11 @@ void Main(
 {
 	ResolvedView = ResolveView();
 
-	VertexFactoryIntermediates VFIntermediates = GetVertexFactoryIntermediates(Input);
+	FVertexFactoryIntermediates VFIntermediates = GetVertexFactoryIntermediates(Input);
 	float4 WorldPos = VertexFactoryGetWorldPosition(Input, VFIntermediates);
 
 	float3x3 TangentToLocal = VertexFactoryGetTangentToLocal(Input, VFIntermediates);
-	MaterialVertexParameters VertexParameters = GetMaterialVertexParameters(Input, VFIntermediates, WorldPos.xyz, TangentToLocal);
+	FMaterialVertexParameters VertexParameters = GetMaterialVertexParameters(Input, VFIntermediates, WorldPos.xyz, TangentToLocal);
 
 	// Isolate instructions used for world position offset
 	// As these cause the optimizer to generate different position calculating instructions in each pass, resulting in self-z-fighting.

@@ -201,7 +201,7 @@ FShadowDepthDSToPS PassFinalizeTessellationOutput(FShadowDepthVSToDS Interpolant
 
 
 void Main(
-	VertexFactoryInput Input,
+	FVertexFactoryInput Input,
 #if USING_TESSELLATION
 	out FShadowDepthVSToDS OutParameters,
 #elif ONEPASS_POINTLIGHT_SHADOW
@@ -219,11 +219,11 @@ void Main(
 {
 	ResolvedView = ResolveView();
 
-	VertexFactoryIntermediates VFIntermediates = GetVertexFactoryIntermediates(Input);
+	FVertexFactoryIntermediates VFIntermediates = GetVertexFactoryIntermediates(Input);
 	float4 WorldPos = VertexFactoryGetWorldPosition(Input, VFIntermediates);
 	float3x3 TangentToLocal = VertexFactoryGetTangentToLocal(Input, VFIntermediates);
 
-	MaterialVertexParameters VertexParameters = GetMaterialVertexParameters(Input, VFIntermediates, WorldPos.xyz, TangentToLocal);
+	FMaterialVertexParameters VertexParameters = GetMaterialVertexParameters(Input, VFIntermediates, WorldPos.xyz, TangentToLocal);
 	WorldPos.xyz += GetMaterialWorldPositionOffset(VertexParameters);
 
 #if USING_TESSELLATION
@@ -290,7 +290,7 @@ void Main(
 }
 
 void MainForGS(
-	VertexFactoryInput Input,
+	FVertexFactoryInput Input,
 #if USING_TESSELLATION
 	out FShadowDepthVSToDS OutParameters,
 #elif ONEPASS_POINTLIGHT_SHADOW

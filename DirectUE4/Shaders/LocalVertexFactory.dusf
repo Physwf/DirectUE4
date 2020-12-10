@@ -20,7 +20,7 @@
 	#define FV_LightMapIndex_Index 2
 #endif
 
-struct VertexFactoryInput
+struct FVertexFactoryInput
 {
     float4 Position 	        : ATTRIBUTE0;
 #if !MANUAL_VERTEX_FETCH
@@ -94,7 +94,7 @@ struct PositionOnlyVertexFactoryInput
 #endif
 };
 
-struct VertexFactoryIntermediates
+struct FVertexFactoryIntermediates
 {
     half3x3 TangentToLocal;
 	half3x3 TangentToWorld;
@@ -103,7 +103,7 @@ struct VertexFactoryIntermediates
     half4 Color;
 };
 
-half3x3 CalcTangentToLocal(VertexFactoryInput Input,out float TangentSign)
+half3x3 CalcTangentToLocal(FVertexFactoryInput Input,out float TangentSign)
 {
     half3x3 Result;
 
@@ -142,16 +142,16 @@ half3x3 CalcTangentToWorldNoScale(in half3x3 TangentToLocal)
     return mul(TangentToLocal,LocalToWorld);
 }
 
-half3x3 CalcTangentToWorld(VertexFactoryIntermediates Intermediates, half3x3 TangentToLocal)
+half3x3 CalcTangentToWorld(FVertexFactoryIntermediates Intermediates, half3x3 TangentToLocal)
 {
     half3x3 TangentToWorld = CalcTangentToWorldNoScale(TangentToLocal);
     return TangentToWorld;
 }
 //颜色,切线空间坐标系
-VertexFactoryIntermediates GetVertexFactoryIntermediates(VertexFactoryInput Input)
+FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput Input)
 {
-    VertexFactoryIntermediates Intermediates;
-    Intermediates = (VertexFactoryIntermediates)0;
+    FVertexFactoryIntermediates Intermediates;
+    Intermediates = (FVertexFactoryIntermediates)0;
 
 #if MANUAL_VERTEX_FETCH
 	Intermediates.Color = LocalVF.VertexFetch_ColorComponentsBuffer[(VertexOffset + Input.VertexId) & LocalVF.VertexFetch_Parameters[VF_ColorIndexMask_Index]] FMANUALFETCH_COLOR_COMPONENT_SWIZZLE; // Swizzle vertex color.
@@ -172,7 +172,7 @@ float4 CalcWorldPosition(float4 Position)
 }
 
 // @return translated world position
-float4 VertexFactoryGetWorldPosition(VertexFactoryInput Input, VertexFactoryIntermediates Intermediates)
+float4 VertexFactoryGetWorldPosition(FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates)
 {
     return CalcWorldPosition(Input.Position);
 }
@@ -192,15 +192,15 @@ float4 VertexFactoryGetWorldPosition(PositionOnlyVertexFactoryInput Input)
 * @param Input - vertex input stream structure
 * @return 3x3 matrix
 */
-half3x3 VertexFactoryGetTangentToLocal(VertexFactoryInput Input, VertexFactoryIntermediates Intermediates )
+half3x3 VertexFactoryGetTangentToLocal(FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates )
 {
 	return Intermediates.TangentToLocal;
 }
 
 /** Converts from vertex factory specific input to a FMaterialVertexParameters, which is used by vertex shader material inputs. */
-MaterialVertexParameters GetMaterialVertexParameters(VertexFactoryInput Input, VertexFactoryIntermediates Intermediates, float3 WorldPosition, half3x3 TangentToLocal)
+FMaterialVertexParameters GetMaterialVertexParameters(FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates, float3 WorldPosition, half3x3 TangentToLocal)
 {
-	MaterialVertexParameters Result = (MaterialVertexParameters)0;
+	FMaterialVertexParameters Result = (FMaterialVertexParameters)0;
 	Result.WorldPosition = WorldPosition;
 	Result.VertexColor = Intermediates.Color;
 
@@ -246,15 +246,15 @@ MaterialVertexParameters GetMaterialVertexParameters(VertexFactoryInput Input, V
     return Result;
 }
 
-float4 VertexFactoryGetRasterizedWorldPosition(VertexFactoryInput Input, VertexFactoryIntermediates Intermediates, float4 InWorldPosition)
+float4 VertexFactoryGetRasterizedWorldPosition(FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates, float4 InWorldPosition)
 {
 	return InWorldPosition;
 }
 
-VertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(VertexFactoryInput Input, VertexFactoryIntermediates Intermediates, MaterialVertexParameters VertexParameters)
+FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates, FMaterialVertexParameters VertexParameters)
 {
-	VertexFactoryInterpolantsVSToPS Interpolants;
-    Interpolants = (VertexFactoryInterpolantsVSToPS)0;
+	FVertexFactoryInterpolantsVSToPS Interpolants;
+    Interpolants = (FVertexFactoryInterpolantsVSToPS)0;
 
 #if NUM_TEX_COORD_INTERPOLATORS
     float2 CustomizedUVs[NUM_TEX_COORD_INTERPOLATORS];
@@ -302,9 +302,9 @@ VertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(VertexFactory
     return Interpolants;
 }
 
-MaterialPixelParameters GetMaterialPixelParameters(VertexFactoryInterpolantsVSToPS Interpolants, float4 SvPosition)
+FMaterialPixelParameters GetMaterialPixelParameters(FVertexFactoryInterpolantsVSToPS Interpolants, float4 SvPosition)
 {
-    MaterialPixelParameters Result = MakeInitializedMaterialPixelParameters();
+    FMaterialPixelParameters Result = MakeInitializedMaterialPixelParameters();
 
     #if NUM_TEX_COORD_INTERPOLATORS
 	[unroll]//UNROLL
@@ -331,10 +331,10 @@ MaterialPixelParameters GetMaterialPixelParameters(VertexFactoryInterpolantsVSTo
 #if USING_TESSELLATION
 struct FVertexFactoryInterpolantsVSToDS
 {
-	VertexFactoryInterpolantsVSToPS InterpolantsVSToPS;
+	FVertexFactoryInterpolantsVSToPS InterpolantsVSToPS;
 };
 
-FVertexFactoryInterpolantsVSToDS VertexFactoryGetInterpolantsVSToDS(VertexFactoryInput Input, VertexFactoryIntermediates Intermediates, MaterialVertexParameters VertexParameters)
+FVertexFactoryInterpolantsVSToDS VertexFactoryGetInterpolantsVSToDS(FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates, FMaterialVertexParameters VertexParameters)
 {
 	FVertexFactoryInterpolantsVSToDS Interpolants;
 	Interpolants.InterpolantsVSToPS = VertexFactoryGetInterpolantsVSToPS(Input, Intermediates, VertexParameters);

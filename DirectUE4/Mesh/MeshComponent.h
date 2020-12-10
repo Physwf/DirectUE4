@@ -74,8 +74,6 @@ public:
 
 	virtual void SetSkeletalMesh(class USkeletalMesh* NewMesh, bool bReinitPose = true);
 protected:
-	virtual void OnRegister() override;
-	virtual void OnUnregister() override;
 	virtual void CreateRenderState_Concurrent() override;
 	virtual void SendRenderDynamicData_Concurrent() override;
 	virtual void DestroyRenderState_Concurrent() override;
@@ -86,6 +84,8 @@ public:
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 
 	virtual class UMaterial* GetMaterial(int32 ElementIndex) const override;
+
+	void InitLODInfos();
 };
 
 class USkeletalMeshComponent : public USkinnedMeshComponent

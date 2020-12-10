@@ -1,6 +1,6 @@
 
 
-struct VertexFactoryInterpolantsVSToPS
+struct FVertexFactoryInterpolantsVSToPS
 {
     TANGENTTOWORLD_INTERPOLATOR_BLOCK
 
@@ -21,13 +21,13 @@ struct VertexFactoryInterpolantsVSToPS
 };
 
 #if NUM_TEX_COORD_INTERPOLATORS /*|| USE_PARTICLE_SUBUVS*/
-float2 GetUV(VertexFactoryInterpolantsVSToPS Interpolants, int UVIndex)
+float2 GetUV(FVertexFactoryInterpolantsVSToPS Interpolants, int UVIndex)
 {
 	float4 UVVector = Interpolants.TexCoords[UVIndex / 2];
 	return UVIndex % 2 ? UVVector.zw : UVVector.xy;
 }
 
-void SetUV(inout VertexFactoryInterpolantsVSToPS Interpolants, int UVIndex, float2 InValue)
+void SetUV(inout FVertexFactoryInterpolantsVSToPS Interpolants, int UVIndex, float2 InValue)
 {
 	[flatten]//FLATTEN
 	if (UVIndex % 2)
@@ -41,22 +41,22 @@ void SetUV(inout VertexFactoryInterpolantsVSToPS Interpolants, int UVIndex, floa
 }
 #endif
 
-float4 GetTangentToWorld2(VertexFactoryInterpolantsVSToPS Interpolants)
+float4 GetTangentToWorld2(FVertexFactoryInterpolantsVSToPS Interpolants)
 {
 	return Interpolants.TangentToWorld2;
 }
 
-float4 GetTangentToWorld0(VertexFactoryInterpolantsVSToPS Interpolants)
+float4 GetTangentToWorld0(FVertexFactoryInterpolantsVSToPS Interpolants)
 {
 	return Interpolants.TangentToWorld0;
 }
 
-float4 GetColor(VertexFactoryInterpolantsVSToPS Interpolants)
+float4 GetColor(FVertexFactoryInterpolantsVSToPS Interpolants)
 {
     return 0;
 }
 
-void SetTangents(inout VertexFactoryInterpolantsVSToPS Interpolants, float3 InTangentToWorld0, float3 InTangentToWorld2, float InTangentToWorldSign)
+void SetTangents(inout FVertexFactoryInterpolantsVSToPS Interpolants, float3 InTangentToWorld0, float3 InTangentToWorld2, float InTangentToWorldSign)
 {
 	Interpolants.TangentToWorld0 = float4(InTangentToWorld0,0);
 	Interpolants.TangentToWorld2 = float4(InTangentToWorld2,InTangentToWorldSign);
@@ -65,7 +65,7 @@ void SetTangents(inout VertexFactoryInterpolantsVSToPS Interpolants, float3 InTa
 #endif
 }
 
-void SetColor(inout VertexFactoryInterpolantsVSToPS Interpolants, float4 InValue)
+void SetColor(inout FVertexFactoryInterpolantsVSToPS Interpolants, float4 InValue)
 {
 #if INTERPOLATE_VERTEX_COLOR
 	Interpolants.Color = InValue;
@@ -73,18 +73,18 @@ void SetColor(inout VertexFactoryInterpolantsVSToPS Interpolants, float4 InValue
 }
 
 #if NEEDS_LIGHTMAP_COORDINATE
-void GetLightMapCoordinates(VertexFactoryInterpolantsVSToPS Interpolants, out float2 LightmapUV0, out float2 LightmapUV1)
+void GetLightMapCoordinates(FVertexFactoryInterpolantsVSToPS Interpolants, out float2 LightmapUV0, out float2 LightmapUV1)
 {
 	LightmapUV0 = Interpolants.LightMapCoordinate.xy * float2( 1, 0.5 );
 	LightmapUV1 = LightmapUV0 + float2( 0, 0.5 );
 }
 
-float2 GetShadowMapCoordinate(VertexFactoryInterpolantsVSToPS Interpolants)
+float2 GetShadowMapCoordinate(FVertexFactoryInterpolantsVSToPS Interpolants)
 {
 	return Interpolants.LightMapCoordinate.zw;
 }
 
-void SetLightMapCoordinate(inout VertexFactoryInterpolantsVSToPS Interpolants, float2 InLightMapCoordinate, float2 InShadowMapCoordinate)
+void SetLightMapCoordinate(inout FVertexFactoryInterpolantsVSToPS Interpolants, float2 InLightMapCoordinate, float2 InShadowMapCoordinate)
 {
 	Interpolants.LightMapCoordinate.xy = InLightMapCoordinate;
 	Interpolants.LightMapCoordinate.zw = InShadowMapCoordinate;

@@ -975,6 +975,9 @@ USkeletalMesh* FBXImporter::ImportSkeletalMesh(class AActor* InOwner, const char
 	ImportedResource->LODModels.clear();
 	ImportedResource->LODModels.push_back(new SkeletalMeshLODModel());
 
+	NewSekeletalMesh->ResetLODInfo();
+	FSkeletalMeshLODInfo& NewLODInfo = NewSekeletalMesh->AddLODInfo();
+
 	SkeletalMeshLODModel& LODModel = *ImportedResource->LODModels[0];
 
 	LODModel.NumTexCoords = FMath::Max<uint32>(1, SkelMeshImportDataPtr->NumTexCoords);

@@ -32,7 +32,7 @@ struct PixelMaterialInputs
  * Parameters needed by pixel shader material inputs, related to Geometry.
  * These are independent of vertex factory.
  */
-struct MaterialPixelParameters
+struct FMaterialPixelParameters
 {
 #if NUM_TEX_COORD_INTERPOLATORS
 	float2 TexCoords[NUM_TEX_COORD_INTERPOLATORS];
@@ -140,10 +140,10 @@ struct MaterialPixelParameters
 };
 
 // @todo compat hack
-MaterialPixelParameters MakeInitializedMaterialPixelParameters()
+FMaterialPixelParameters MakeInitializedMaterialPixelParameters()
 {
-	MaterialPixelParameters MPP;
-	MPP = (MaterialPixelParameters)0;
+	FMaterialPixelParameters MPP;
+	MPP = (FMaterialPixelParameters)0;
 	MPP.TangentToWorld = float3x3(1,0,0,0,1,0,0,0,1);
 	return MPP;
 }
@@ -152,7 +152,7 @@ MaterialPixelParameters MakeInitializedMaterialPixelParameters()
  * Parameters needed by vertex shader material inputs.
  * These are independent of vertex factory.
  */
-struct MaterialVertexParameters
+struct FMaterialVertexParameters
 {
 	// Position in the translated world (VertexFactoryGetWorldPosition).
 	// Previous position in the translated world (VertexFactoryGetPreviousWorldPosition) if
@@ -176,12 +176,12 @@ struct MaterialVertexParameters
 };
 
 #if NUM_TEX_COORD_INTERPOLATORS
-void GetMaterialCustomizedUVs(MaterialVertexParameters Parameters, inout float2 OutTexCoords[NUM_TEX_COORD_INTERPOLATORS])
+void GetMaterialCustomizedUVs(FMaterialVertexParameters Parameters, inout float2 OutTexCoords[NUM_TEX_COORD_INTERPOLATORS])
 {
 	OutTexCoords[0] = Parameters.TexCoords[0].xy;
 }
 
-void GetCustomInterpolators(MaterialVertexParameters Parameters, inout float2 OutTexCoords[NUM_TEX_COORD_INTERPOLATORS])
+void GetCustomInterpolators(FMaterialVertexParameters Parameters, inout float2 OutTexCoords[NUM_TEX_COORD_INTERPOLATORS])
 {
 
 }
@@ -243,7 +243,7 @@ half GetMaterialAmbientOcclusion(PixelMaterialInputs Inputs)
 	return saturate(GetMaterialAmbientOcclusionRaw(Inputs));
 }
 
-half3 GetMaterialNormal(MaterialPixelParameters Parameters, PixelMaterialInputs Inputs)
+half3 GetMaterialNormal(FMaterialPixelParameters Parameters, PixelMaterialInputs Inputs)
 {
 	half3 RetNormal;
 
@@ -293,7 +293,7 @@ half3 GetMaterialEmissive(PixelMaterialInputs Inputs)
 	return EmissiveColor;
 }
 
-void CalcPixelMaterialInputs(in out MaterialPixelParameters Parameters, in out PixelMaterialInputs Inputs)
+void CalcPixelMaterialInputs(in out FMaterialPixelParameters Parameters, in out PixelMaterialInputs Inputs)
 {
     Inputs.Normal = MaterialFloat3(0,0,1);
 
@@ -338,7 +338,7 @@ void CalcPixelMaterialInputs(in out MaterialPixelParameters Parameters, in out P
 }
 
 void CalcMaterialParametersEx(
-	in out MaterialPixelParameters Parameters,
+	in out FMaterialPixelParameters Parameters,
 	in out PixelMaterialInputs Inputs,
 	float4 SvPosition,
 	float4 ScreenPosition,
@@ -371,7 +371,7 @@ void CalcMaterialParametersEx(
 // convenience function to setup CalcMaterialParameters assuming we don't support TranslatedWorldPositionExcludingShaderOffsets
 // @param SvPosition from SV_Position when rendering the view, for other projections e.g. shadowmaps this function cannot be used and you need to call CalcMaterialParametersEx()
 void CalcMaterialParameters(
-	in out MaterialPixelParameters Parameters,
+	in out FMaterialPixelParameters Parameters,
 	in out PixelMaterialInputs Inputs,
 	float4 SvPosition,
 	bool bIsFrontFace)
@@ -394,7 +394,7 @@ half3x3 AssembleTangentToWorld( half3 TangentToWorld0, half4 TangentToWorld2 )
 	// Transform from tangent space to world space
 	return half3x3(TangentToWorld0, TangentToWorld1, TangentToWorld2.xyz);
 }
-float3 GetMaterialWorldPositionOffset(MaterialVertexParameters Parameters)
+float3 GetMaterialWorldPositionOffset(FMaterialVertexParameters Parameters)
 {
 #if USE_INSTANCING
 	// skip if this instance is hidden

@@ -19,6 +19,9 @@ void FSkeletalMeshLODRenderData::InitResources()
 	StaticVertexBuffers.PositionVertexBufferRHI = CreateVertexBuffer(false, StaticVertexBuffers.PositionVertexBuffer.size() * sizeof(FVector), StaticVertexBuffers.PositionVertexBuffer.data());
 	StaticVertexBuffers.TangentsVertexBufferRHI = CreateVertexBuffer(false, StaticVertexBuffers.TangentsVertexBuffer.size() * sizeof(Vector4), StaticVertexBuffers.TangentsVertexBuffer.data());
 	StaticVertexBuffers.TexCoordVertexBufferRHI = CreateVertexBuffer(false, StaticVertexBuffers.TexCoordVertexBuffer.size() * sizeof(Vector2), StaticVertexBuffers.TexCoordVertexBuffer.data());
+
+	SkinWeightVertexBuffer.InitResources();
+	MultiSizeIndexContainer.InitResources();
 }
 
 void FSkeletalMeshLODRenderData::BuildFromLODModel(const SkeletalMeshLODModel* ImportedModel,uint32 BuildFlags)

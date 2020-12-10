@@ -6,7 +6,7 @@
 
 struct BasePassVSToPS
 {
-	VertexFactoryInterpolantsVSToPS FactoryInterpolants;
+	FVertexFactoryInterpolantsVSToPS FactoryInterpolants;
 	BasePassInterpolantsVSToPS BasePassInterpolants;
 	float4 Position : SV_POSITION;
 };

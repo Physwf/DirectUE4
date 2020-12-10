@@ -112,3 +112,8 @@
 
 	#define FCOLOR_COMPONENT_SWIZZLE .bgra
 	#define FMANUALFETCH_COLOR_COMPONENT_SWIZZLE .bgra
+
+
+#ifndef STRONG_TYPE
+#define STRONG_TYPE
+#endif

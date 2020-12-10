@@ -8,6 +8,7 @@ class USkinnedMeshComponent;
 class FSkeletalMeshRenderData;
 class FVertexFactory;
 class FSceneView;
+struct FSkeletalMeshLODInfo;
 
 class FSkeletalMeshObject
 {
@@ -32,6 +33,8 @@ public:
 
 	FSkeletalMeshRenderData& GetSkeletalMeshRenderData() const { return *SkeletalMeshRenderData; }
 
+	void InitLODInfos(const USkinnedMeshComponent* InMeshComponent);
+
 	struct FSkelMeshObjectLODInfo
 	{
 		/** Hidden Material Section Flags for rendering - That is Material Index, not Section Index  */
@@ -40,7 +43,11 @@ public:
 
 	std::vector<FSkelMeshObjectLODInfo> LODInfo;
 
+
+	int32 MinDesiredLODLevel;
 protected:
 	FSkeletalMeshRenderData * SkeletalMeshRenderData;
+
+	std::vector<FSkeletalMeshLODInfo> SkeletalMeshLODInfo;
 };
 

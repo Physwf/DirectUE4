@@ -59,18 +59,10 @@ void USkinnedMeshComponent::SetSkeletalMesh(class USkeletalMesh* InSkelMesh, boo
 	SkeletalMesh = InSkelMesh;
 }
 
-void USkinnedMeshComponent::OnRegister()
-{
-
-}
-
-void USkinnedMeshComponent::OnUnregister()
-{
-
-}
-
 void USkinnedMeshComponent::CreateRenderState_Concurrent()
 {
+	InitLODInfos();
+
 	FSkeletalMeshRenderData* SkelMeshRenderData = SkeletalMesh->GetResourceForRendering();
 
 	const bool bIsCPUSkinned = false;// SkelMeshRenderData->RequiresCPUSkinning(SceneFeatureLevel) || ShouldCPUSkin();
@@ -161,5 +153,21 @@ class UMaterial* USkinnedMeshComponent::GetMaterial(int32 ElementIndex) const
 	}
 	*/
 	return nullptr;
+}
+
+void USkinnedMeshComponent::InitLODInfos()
+{
+	if (SkeletalMesh != NULL)
+	{
+		if (SkeletalMesh->GetLODNum() != LODInfo.size())
+		{
+			LODInfo.clear();
+			LODInfo.reserve(SkeletalMesh->GetLODNum());
+			for (uint32 Idx = 0; Idx < SkeletalMesh->GetLODNum(); Idx++)
+			{
+				LODInfo.push_back(FSkelMeshComponentLODInfo());
+			}
+		}
+	}
 }
 

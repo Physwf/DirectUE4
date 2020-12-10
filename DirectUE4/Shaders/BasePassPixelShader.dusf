@@ -112,8 +112,8 @@ void GetSkyLighting(float3 WorldNormal, float2 LightmapUV, float3 SkyOcclusionUV
 
 /** Calculates indirect lighting contribution on this object from precomputed data. */
 void GetPrecomputedIndirectLightingAndSkyLight(
-	MaterialPixelParameters MaterialParameters, 
-	VertexFactoryInterpolantsVSToPS Interpolants,
+	FMaterialPixelParameters MaterialParameters, 
+	FVertexFactoryInterpolantsVSToPS Interpolants,
 	BasePassInterpolantsVSToPS BasePassInterpolants,
 	float3 DiffuseDir,
 	float3 VolumetricLightmapBrickTextureUVs,
@@ -171,7 +171,7 @@ float3 AOMultiBounce( float3 BaseColor, float AO )
 	return max( AO, ( ( AO * a + b ) * AO + c ) * AO );
 }
 
-void ApplyBentNormal( in MaterialPixelParameters MaterialParameters, in float Roughness, inout float3 BentNormal, inout float DiffOcclusion, inout float SpecOcclusion )
+void ApplyBentNormal( in FMaterialPixelParameters MaterialParameters, in float Roughness, inout float3 BentNormal, inout float DiffOcclusion, inout float SpecOcclusion )
 {
 #if NUM_MATERIAL_OUTPUTS_GETBENTNORMAL > 0
 	#if MATERIAL_TANGENTSPACENORMAL
@@ -224,7 +224,7 @@ uint GetSelectiveOutputMask()
 #endif // USES_GBUFFER
 
 void FPixelShaderInOut_PS_Main(
-	VertexFactoryInterpolantsVSToPS Interpolants,
+	FVertexFactoryInterpolantsVSToPS Interpolants,
 	BasePassInterpolantsVSToPS BasePassInterpolants,
 	in PixelShaderIn In, 
 	inout PixelShaderOut Out)
@@ -238,7 +238,7 @@ void FPixelShaderInOut_PS_Main(
 	// PreShadowFactor
 	float4 OutGBufferE = 0;
 
-    MaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Interpolants, In.SvPosition);
+    FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Interpolants, In.SvPosition);
     PixelMaterialInputs PMInputs;
 
 #if HQ_TEXTURE_LIGHTMAP && USES_AO_MATERIAL_MASK && !MATERIAL_SHADINGMODEL_UNLIT
@@ -482,7 +482,7 @@ void FPixelShaderInOut_PS_Main(
 
 //[earlydepthstencil]
 void MainPS(
-    VertexFactoryInterpolantsVSToPS Interpolants, 
+    FVertexFactoryInterpolantsVSToPS Interpolants, 
     BasePassInterpolantsVSToPS BasePassInterpolants,
     in INPUT_POSITION_QUALIFIERS float4 SvPosition : SV_Position
 

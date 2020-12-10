@@ -122,7 +122,7 @@ float GetAOMaterialMask(float2 LightmapUV)
 #endif
 
 // Used by deferred renderer only
-half4 GetPrecomputedShadowMasks(VertexFactoryInterpolantsVSToPS Interpolants, float3 WorldPosition, float3 VolumetricLightmapBrickTextureUVs)
+half4 GetPrecomputedShadowMasks(FVertexFactoryInterpolantsVSToPS Interpolants, float3 WorldPosition, float3 VolumetricLightmapBrickTextureUVs)
 {
 	// Note: WRITES_PRECSHADOWFACTOR_ZERO have to match the logic here
 	#if STATICLIGHTING_TEXTUREMASK && STATICLIGHTING_SIGNEDDISTANCEFIELD
