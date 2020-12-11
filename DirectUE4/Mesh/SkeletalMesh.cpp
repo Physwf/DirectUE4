@@ -144,6 +144,8 @@ void USkeletalMesh::CacheDerivedData()
 
 FSkeletalMeshSceneProxy::FSkeletalMeshSceneProxy(const USkinnedMeshComponent* Component, FSkeletalMeshRenderData* InSkelMeshRenderData)
 	: FPrimitiveSceneProxy(Component)
+	, MeshObject(Component->MeshObject)
+	, SkeletalMeshRenderData(InSkelMeshRenderData)
 {
 
 }
@@ -155,7 +157,18 @@ void FSkeletalMeshSceneProxy::GetDynamicMeshElements(const std::vector<const FSc
 
 FPrimitiveViewRelevance FSkeletalMeshSceneProxy::GetViewRelevance(const FSceneView* View) const
 {
-	return FPrimitiveViewRelevance();
+	FPrimitiveViewRelevance Result;
+	Result.bDrawRelevance = true;// IsShown(View) && View->Family->EngineShowFlags.SkeletalMeshes;
+	Result.bShadowRelevance = true;//IsShadowCast(View);
+	Result.bStaticRelevance = false;//bRenderStatic && !IsRichView(*View->Family);
+	Result.bDynamicRelevance = true;//!Result.bStaticRelevance;
+	Result.bRenderCustomDepth = true;//ShouldRenderCustomDepth();
+	Result.bRenderInMainPass = true;//ShouldRenderInMainPass();
+	Result.bUsesLightingChannels = true;//GetLightingChannelMask() != GetDefaultLightingChannelMask();
+
+	//MaterialRelevance.SetPrimitiveViewRelevance(Result);
+
+	return Result;
 }
 
 void FSkeletalMeshSceneProxy::GetMeshElementsConditionallySelectable(const std::vector<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, bool bInSelectable, uint32 VisibilityMap, FMeshElementCollector& Collector) const

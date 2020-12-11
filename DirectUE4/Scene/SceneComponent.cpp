@@ -215,6 +215,11 @@ FBoxSphereBounds USceneComponent::CalcBounds(const FTransform& LocalToWorld) con
 	return NewBounds;
 }
 
+void USceneComponent::UpdateBounds()
+{
+	Bounds = CalcBounds(GetComponentTransform());
+}
+
 AActor* USceneComponent::GetAttachmentRootActor() const
 {
 	return GetOwner();

@@ -18,6 +18,13 @@ UMeshComponent::~UMeshComponent()
 
 }
 
+bool UStaticMeshComponent::SetStaticMesh(class UStaticMesh* NewMesh)
+{
+	StaticMesh = NewMesh;
+	UpdateBounds();
+	return true;
+}
+
 UMaterial* UStaticMeshComponent::GetMaterial(int32 MaterialIndex) const
 {
 	return GetStaticMesh() ? GetStaticMesh()->GetMaterial(MaterialIndex) : nullptr;

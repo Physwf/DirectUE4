@@ -320,7 +320,7 @@ public:
 	FViewUniformShaderParameters* CachedViewUniformShaderParameters;
 
 	/** A map from primitive ID to a boolean visibility value. */
-	//FSceneBitArray PrimitiveVisibilityMap;
+	std::vector<bool> PrimitiveVisibilityMap;
 
 	/** Bit set when a primitive is known to be unoccluded. */
 	//FSceneBitArray PrimitiveDefinitelyUnoccludedMap;
@@ -329,13 +329,13 @@ public:
 	//FSceneBitArray PotentiallyFadingPrimitiveMap;
 
 	/** Primitive fade uniform buffers, indexed by packed primitive index. */
-	//TArray<FUniformBufferRHIParamRef, SceneRenderingAllocator> PrimitiveFadeUniformBuffers;
+	std::vector<FUniformBuffer*> PrimitiveFadeUniformBuffers;
 
 	/** A map from primitive ID to the primitive's view relevance. */
-	//TArray<FPrimitiveViewRelevance, SceneRenderingAllocator> PrimitiveViewRelevanceMap;
+	std::vector<FPrimitiveViewRelevance> PrimitiveViewRelevanceMap;
 
 	/** A map from static mesh ID to a boolean visibility value. */
-	//FSceneBitArray StaticMeshVisibilityMap;
+	std::vector<bool> StaticMeshVisibilityMap;
 
 	/** A map from static mesh ID to a boolean occluder value. */
 	//FSceneBitArray StaticMeshOccluderMap;

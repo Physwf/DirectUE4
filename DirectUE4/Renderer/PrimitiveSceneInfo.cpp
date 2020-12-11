@@ -23,8 +23,8 @@ FPrimitiveSceneInfoCompact::FPrimitiveSceneInfoCompact(FPrimitiveSceneInfo* InPr
 FPrimitiveSceneInfo::FPrimitiveSceneInfo(UPrimitiveComponent* InComponent, FScene* InScene)
 	: Proxy(InComponent->SceneProxy)
 	,Scene(InScene)
+	, PackedIndex(INDEX_NONE)
 	,LightList(NULL)
-
 {
 
 }
@@ -46,6 +46,13 @@ void FPrimitiveSceneInfo::AddToScene(bool bUpdateStaticDrawLists, bool bAddToSta
 	FPrimitiveSceneInfoCompact CompactPrimitiveSceneInfo(this);
 
 	Scene->PrimitiveOctree.push_back(CompactPrimitiveSceneInfo);
+
+	FPrimitiveBounds& PrimitiveBounds = Scene->PrimitiveBounds[PackedIndex];
+	FBoxSphereBounds BoxSphereBounds = Proxy->GetBounds();
+	PrimitiveBounds.BoxSphereBounds = BoxSphereBounds;
+	PrimitiveBounds.MinDrawDistanceSq = FMath::Square(Proxy->GetMinDrawDistance());
+	PrimitiveBounds.MaxDrawDistance = Proxy->GetMaxDrawDistance();
+	PrimitiveBounds.MaxCullDistance = PrimitiveBounds.MaxDrawDistance;
 
 	for (auto LightIt = Scene->Lights.begin(); LightIt != Scene->Lights.end();++LightIt)
 	{

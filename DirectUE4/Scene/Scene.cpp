@@ -73,7 +73,7 @@ void FScene::AddPrimitive(UPrimitiveComponent* Primitive)
 
 	PrimitiveSceneProxy->SetTransform(RenderMatrix, Primitive->Bounds, Primitive->CalcBounds(FTransform::Identity),  AttachmentRootPosition);
 	
-	AddPrimitiveSceneInfo(PrimitiveSceneInfo);
+	AddPrimitiveSceneInfo_RenderThread(PrimitiveSceneInfo);
 }
 
 void FScene::RemovePrimitive(UPrimitiveComponent* Primitive)
@@ -183,16 +183,19 @@ void FScene::AddLightSceneInfo(FLightSceneInfo* LightSceneInfo)
 	LightSceneInfo->AddToScene();
 }
 
-void FScene::AddPrimitiveSceneInfo(FPrimitiveSceneInfo* PrimitiveSceneInfo)
+void FScene::AddPrimitiveSceneInfo_RenderThread(FPrimitiveSceneInfo* PrimitiveSceneInfo)
 {
 	Primitives.push_back(PrimitiveSceneInfo);
 	PrimitiveSceneProxies.push_back(PrimitiveSceneInfo->Proxy);
-	//PrimitiveBounds.AddUninitialized();
+	PrimitiveBounds.push_back(FPrimitiveBounds());
 	//PrimitiveFlagsCompact.AddUninitialized();
 	//PrimitiveVisibilityIds.AddUninitialized();
 	//PrimitiveOcclusionFlags.AddUninitialized();
 	//PrimitiveComponentIds.AddUninitialized();
 	//PrimitiveOcclusionBounds.AddUninitialized();
+
+	const int32 SourceIndex = PrimitiveSceneProxies.size() - 1;
+	PrimitiveSceneInfo->PackedIndex = SourceIndex;
 
 	PrimitiveSceneInfo->AddToScene(true, true);
 }

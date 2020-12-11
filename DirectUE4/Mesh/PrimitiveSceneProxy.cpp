@@ -18,6 +18,9 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 	//, PrimitiveComponentId(0)
 	, PrimitiveSceneInfo(NULL)
 {
+	MinDrawDistance = 0;
+	MaxDrawDistance = FLT_MAX;
+
 	UniformBuffer.InitDynamicRHI();
 }
 

@@ -85,7 +85,7 @@ public:
 	void SetSkyLight(FSkyLightSceneProxy* Light);
 	void DisableSkyLight(FSkyLightSceneProxy* Light);
 	void AddLightSceneInfo(FLightSceneInfo* LightSceneInfo);
-	void AddPrimitiveSceneInfo(FPrimitiveSceneInfo* PrimitiveSceneInfo);
+	void AddPrimitiveSceneInfo_RenderThread(FPrimitiveSceneInfo* PrimitiveSceneInfo);
 
 	void UpdateLightTransform_RenderThread(FLightSceneInfo* LightSceneInfo, const struct FUpdateLightTransformParameters& Parameters);
 	void UpdatePrimitiveTransform_RenderThread(FPrimitiveSceneProxy* PrimitiveSceneProxy, const FBoxSphereBounds& WorldBounds, const FBoxSphereBounds& LocalBounds, const FMatrix& LocalToWorld, const FVector& OwnerPosition);
@@ -152,6 +152,8 @@ public:
 	//TSparseArray<FDeferredDecalProxy*> Decals;
 
 	//TArray<const FPrecomputedLightVolume*> PrecomputedLightVolumes;
+
+	std::vector<FStaticMesh*> StaticMeshes;
 
 	/** Interpolates and caches indirect lighting for dynamic objects. */
 	FIndirectLightingCache IndirectLightingCache;

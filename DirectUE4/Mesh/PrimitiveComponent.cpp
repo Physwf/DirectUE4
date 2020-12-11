@@ -18,12 +18,15 @@ FMatrix UPrimitiveComponent::GetRenderMatrix() const
 void UPrimitiveComponent::CreateRenderState_Concurrent()
 {
 	USceneComponent::CreateRenderState_Concurrent();
+
+	UpdateBounds();
+
 	GetWorld()->Scene->AddPrimitive(this);
 }
 
 void UPrimitiveComponent::SendRenderTransform_Concurrent()
 {
-	//UpdateBounds();
+	UpdateBounds();
 
 	GetWorld()->Scene->UpdatePrimitiveTransform(this);
 

@@ -103,6 +103,8 @@ public:
 	}
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const;
 
+	virtual void UpdateBounds();
+
 	AActor* GetAttachmentRootActor() const;
 
 	bool MoveComponent(const FVector& Delta, const FQuat& NewRotation);

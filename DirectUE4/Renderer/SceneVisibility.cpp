@@ -5,9 +5,185 @@ float GLightMaxDrawDistanceScale = 1.0f;
 float GMinScreenRadiusForLights = 0.03f;
 float GMinScreenRadiusForDepthPrepass = 0.03f;
 
+template<bool UseCustomCulling, bool bAlsoUseSphereTest>
+static int32 FrustumCull(const FScene* Scene, FViewInfo& View)
+{
+	const uint32 NumPrimiteves = View.PrimitiveVisibilityMap.size();
+
+	FVector ViewOriginForDistanceCulling = View.ViewMatrices.GetViewOrigin();
+	float FadeRadius = 0;// GDisableLODFade ? 0.0f : GDistanceFadeMaxTravel;
+
+	for (uint32 PrimitiveIndex = 0; PrimitiveIndex < NumPrimiteves; PrimitiveIndex++)
+	{
+		int32 Index = PrimitiveIndex /** NumBitsPerDWORD + BitSubIndex*/;
+		const FPrimitiveBounds& Bounds = Scene->PrimitiveBounds[Index];
+		float DistanceSquared = (Bounds.BoxSphereBounds.Origin - ViewOriginForDistanceCulling).SizeSquared();
+		int32 VisibilityId = INDEX_NONE;
+
+		float MaxDrawDistance = Bounds.MaxCullDistance < FLT_MAX ? Bounds.MaxCullDistance /** MaxDrawDistanceScale*/ : FLT_MAX;
+		float MinDrawDistanceSq = Bounds.MinDrawDistanceSq;
+
+		if (DistanceSquared > FMath::Square(MaxDrawDistance + FadeRadius) ||
+			(DistanceSquared < MinDrawDistanceSq) ||
+			//(UseCustomCulling && !View.CustomVisibilityQuery->IsVisible(VisibilityId, FBoxSphereBounds(Bounds.BoxSphereBounds.Origin, Bounds.BoxSphereBounds.BoxExtent, Bounds.BoxSphereBounds.SphereRadius))) ||
+			(bAlsoUseSphereTest && View.ViewFrustum.IntersectSphere(Bounds.BoxSphereBounds.Origin, Bounds.BoxSphereBounds.SphereRadius) == false) ||
+			View.ViewFrustum.IntersectBox(Bounds.BoxSphereBounds.Origin, Bounds.BoxSphereBounds.BoxExtent) == false
+			)
+		{
+
+		}
+		else
+		{
+			if (DistanceSquared > FMath::Square(MaxDrawDistance))
+			{
+				//FadingBits |= Mask;
+			}
+			else
+			{
+				View.PrimitiveVisibilityMap[Index] = true;
+			}
+		}
+	}
+	return 0;
+}
+
 void FSceneRenderer::PreVisibilityFrameSetup()
 {
 
+}
+template<class T, int TAmplifyFactor = 1>
+struct FRelevancePrimSet
+{
+	enum
+	{
+		MaxInputPrims = 127, //like 128, but we leave space for NumPrims
+		MaxOutputPrims = MaxInputPrims * TAmplifyFactor
+	};
+	int32 NumPrims;
+
+	T Prims[MaxOutputPrims];
+
+	inline FRelevancePrimSet()
+		: NumPrims(0)
+	{
+		//FMemory::Memzero(Prims, sizeof(T) * GetMaxOutputPrim());
+	}
+	inline void AddPrim(T Prim)
+	{
+		assert(NumPrims < MaxOutputPrims);
+		Prims[NumPrims++] = Prim;
+	}
+	inline bool IsFull() const
+	{
+		return NumPrims >= MaxOutputPrims;
+	}
+	template<class TARRAY>
+	inline void AppendTo(TARRAY& DestArray)
+	{
+		DestArray.Append(Prims, NumPrims);
+	}
+};
+struct FRelevancePacket
+{
+	const FScene* Scene;
+	const FViewInfo& View;
+	const uint8 ViewBit;
+	FPrimitiveViewMasks& OutHasDynamicMeshElementsMasks;
+	FPrimitiveViewMasks& OutHasDynamicEditorMeshElementsMasks;
+	/*uint8* __restrict MarkMasks;*/
+
+	FRelevancePrimSet<int32> Input;
+	FRelevancePrimSet<int32> RelevantStaticPrimitives;
+	FRelevancePrimSet<int32> NotDrawRelevant;
+	FRelevancePrimSet<FPrimitiveSceneInfo*> VisibleDynamicPrimitives;
+
+	FRelevancePacket(
+		const FScene* InScene,
+		const FViewInfo& InView,
+		uint8 InViewBit,
+		FPrimitiveViewMasks& InOutHasDynamicMeshElementsMasks,
+		FPrimitiveViewMasks& InOutHasDynamicEditorMeshElementsMasks,
+		/*uint8* InMarkMasks,*/
+		FPrimitiveViewMasks& InOutHasViewCustomDataMasks)
+		: Scene(InScene)
+		, View(InView)
+		, ViewBit(InViewBit)
+		, OutHasDynamicMeshElementsMasks(InOutHasDynamicMeshElementsMasks)
+		, OutHasDynamicEditorMeshElementsMasks(InOutHasDynamicEditorMeshElementsMasks)
+		/*, MarkMasks(InMarkMasks)*/
+	{
+
+	}
+	void AnyThreadTask()
+	{
+		ComputeRelevance();
+		MarkRelevant();
+	}
+
+	void ComputeRelevance()
+	{
+		for (int32 Index = 0; Index < Input.NumPrims; Index++)
+		{
+			int32 BitIndex = Input.Prims[Index];
+			FPrimitiveSceneInfo* PrimitiveSceneInfo = Scene->Primitives[BitIndex];
+			FPrimitiveViewRelevance& ViewRelevance = const_cast<FPrimitiveViewRelevance&>(View.PrimitiveViewRelevanceMap[BitIndex]);
+			ViewRelevance = PrimitiveSceneInfo->Proxy->GetViewRelevance(&View);
+
+			const bool bStaticRelevance = ViewRelevance.bStaticRelevance;
+			const bool bDrawRelevance = ViewRelevance.bDrawRelevance;
+			const bool bDynamicRelevance = ViewRelevance.bDynamicRelevance;
+			const bool bShadowRelevance = ViewRelevance.bShadowRelevance;
+			const bool bEditorRelevance = ViewRelevance.bEditorPrimitiveRelevance;
+			const bool bEditorSelectionRelevance = ViewRelevance.bEditorStaticSelectionRelevance;
+			const bool bTranslucentRelevance = ViewRelevance.HasTranslucency();
+
+
+			if (bDynamicRelevance)
+			{
+				// Keep track of visible dynamic primitives.
+				VisibleDynamicPrimitives.AddPrim(PrimitiveSceneInfo);
+				OutHasDynamicMeshElementsMasks[BitIndex] |= ViewBit;
+			}
+		}
+	}
+
+	void MarkRelevant()
+	{
+	}
+
+};
+static void ComputeAndMarkRelevanceForViewParallel(
+	const FScene* Scene,
+	FViewInfo& View,
+	uint8 ViewBit,
+	FPrimitiveViewMasks& OutHasDynamicMeshElementsMasks,
+	FPrimitiveViewMasks& OutHasDynamicEditorMeshElementsMasks,
+	FPrimitiveViewMasks& HasViewCustomDataMasks
+)
+{
+	std::vector<FRelevancePacket*> Packets;
+
+	FRelevancePacket* Packet = new FRelevancePacket(
+		Scene,
+		View,
+		ViewBit,
+		/*ViewData,*/
+		OutHasDynamicMeshElementsMasks,
+		OutHasDynamicEditorMeshElementsMasks,
+		/*MarkMasks,*/
+		/*WillExecuteInParallel ? View.AllocateCustomDataMemStack() : View.GetCustomDataGlobalMemStack(),*/
+		HasViewCustomDataMasks);
+	Packets.push_back(Packet);
+
+	for (size_t i = 0; i < View.PrimitiveVisibilityMap.size(); ++i)
+	{
+		Packet->Input.AddPrim(i);
+	}
+	
+	for (FRelevancePacket* Packet : Packets)
+	{
+		Packet->AnyThreadTask();
+	}
 }
 
 void FSceneRenderer::ComputeViewVisibility()
@@ -27,9 +203,16 @@ void FSceneRenderer::ComputeViewVisibility()
 		VisibleLightInfos.resize(Scene->Lights.size());
 	}
 
+	uint8 ViewBit = 0x1;
 	for (uint32 ViewIndex = 0; ViewIndex < Views.size(); ++ViewIndex)
 	{
 		FViewInfo& View = Views[ViewIndex];
+
+		View.PrimitiveVisibilityMap.resize(Scene->Primitives.size(), false);
+		View.DynamicMeshEndIndices.resize(Scene->Primitives.size(), 0);
+		View.PrimitiveFadeUniformBuffers.resize(Scene->Primitives.size(),0);
+		//View.StaticMeshVisibilityMap.resize(Scene->StaticMeshes.size(), false);
+
 
 		View.VisibleLightInfos.reserve(Scene->Lights.size());
 
@@ -37,6 +220,16 @@ void FSceneRenderer::ComputeViewVisibility()
 		{
 			View.VisibleLightInfos.push_back(FVisibleLightViewInfo());
 		}
+
+		View.PrimitiveViewRelevanceMap.clear();
+		View.PrimitiveViewRelevanceMap.reserve(Scene->Primitives.size());
+		View.PrimitiveViewRelevanceMap.resize(Scene->Primitives.size());
+
+		bool bNeedsFrustumCulling = true;
+
+		FrustumCull<true, true>(Scene, View);
+
+		ComputeAndMarkRelevanceForViewParallel(Scene, View, ViewBit, HasDynamicMeshElementsMasks, HasDynamicEditorMeshElementsMasks, HasViewCustomDataMasks);
 	}
 
 	GatherDynamicMeshElements(Views, Scene, ViewFamily, HasDynamicMeshElementsMasks, HasDynamicEditorMeshElementsMasks, HasViewCustomDataMasks, MeshCollector);

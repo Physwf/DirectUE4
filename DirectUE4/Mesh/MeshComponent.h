@@ -21,11 +21,7 @@ public:
 	UStaticMeshComponent(AActor* InOwner) : UMeshComponent(InOwner) {}
 	virtual ~UStaticMeshComponent() { }
 
-	bool SetStaticMesh(class UStaticMesh* NewMesh)
-	{
-		StaticMesh = NewMesh;
-		return true;
-	}
+	bool SetStaticMesh(class UStaticMesh* NewMesh);
 	UStaticMesh* GetStaticMesh() const
 	{
 		return StaticMesh;
@@ -75,6 +71,8 @@ class USkinnedMeshComponent : public UMeshComponent
 public:
 	USkinnedMeshComponent(AActor* InOwner) : UMeshComponent(InOwner) 
 	{
+		CurrentReadComponentTransforms = 1;
+
 		CurrentBoneTransformRevisionNumber = 0;
 	}
 

@@ -228,6 +228,25 @@ FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponen
 	}
 }
 
+FPrimitiveViewRelevance FStaticMeshSceneProxy::GetViewRelevance(const FSceneView* View) const
+{
+	FPrimitiveViewRelevance Result;
+	Result.bDrawRelevance = true;// IsShown(View) && View->Family->EngineShowFlags.StaticMeshes;
+	Result.bRenderCustomDepth = true;//ShouldRenderCustomDepth();
+	Result.bRenderInMainPass = true;//ShouldRenderInMainPass();
+	Result.bUsesLightingChannels = true;//GetLightingChannelMask() != GetDefaultLightingChannelMask();
+
+	Result.bStaticRelevance = true;
+
+	Result.bShadowRelevance = true; //IsShadowCast(View);
+
+	Result.bOpaqueRelevance = true;
+
+	//MaterialRelevance.SetPrimitiveViewRelevance(Result);
+
+	return Result;
+}
+
 FLightInteraction FStaticMeshSceneProxy::FLODInfo::GetInteraction(const FLightSceneProxy* LightSceneProxy) const
 {
 	// ask base class

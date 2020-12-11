@@ -100,7 +100,8 @@ public:
 	inline bool CastsInsetShadow() const { return bCastInsetShadow; }
 	inline bool CastsFarShadow() const { return bCastFarShadow; }
 	inline bool HasValidSettingsForStaticLighting() const { return bHasValidSettingsForStaticLighting; }
-
+	inline float GetMinDrawDistance() const { return MinDrawDistance; }
+	inline float GetMaxDrawDistance() const { return MaxDrawDistance; }
 	inline const bool ReceivesDecals() const { return bReceivesDecals; }
 
 	virtual void DrawStaticElements(FPrimitiveSceneInfo* PrimitiveSceneInfo/*FStaticPrimitiveDrawInterface* PDI*/) {};
@@ -148,6 +149,12 @@ protected:
 	EComponentMobility::Type Mobility;
 
 	EIndirectLightingCacheQuality IndirectLightingCacheQuality;
+
+	/** The primitive's cull distance. */
+	float MaxDrawDistance;
+
+	/** The primitive's minimum cull distance. */
+	float MinDrawDistance;
 
 private:
 	/** The primitive's local to world transform. */
