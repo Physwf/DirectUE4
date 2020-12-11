@@ -194,6 +194,10 @@ private:
 class FVertexFactory
 {
 public:
+	FVertexFactory()
+	{
+	}
+
 	virtual FVertexFactoryType* GetType() const { return NULL; }
 
 	void SetStreams(ID3D11DeviceContext* Context) const;
@@ -211,7 +215,7 @@ public:
 	{
 // 		check(InFeatureLevel != ERHIFeatureLevel::Num);
 // 		return bSupportsManualVertexFetch && (InFeatureLevel > ERHIFeatureLevel::ES3_1) && RHISupportsManualVertexFetch(GMaxRHIShaderPlatform);
-		return true;
+		return bSupportsManualVertexFetch;
 	}
 	virtual bool SupportsPositionOnlyStream() const { return !!PositionStream.size(); }
 	virtual bool SupportsNullPixelShader() const { return true; }
@@ -237,6 +241,10 @@ protected:
 	};
 	/** The vertex streams used to render the factory. */
 	std::vector<FVertexStream> Streams;
+
+	bool bNeedsDeclaration = true;
+
+	bool bSupportsManualVertexFetch = false;
 private:
 	static uint32 NextHashIndex;
 
@@ -329,6 +337,7 @@ public:
 	FLocalVertexFactory(const FStaticMeshDataType* InStaticMeshDataType = nullptr)
 	{
 		StaticMeshDataType = InStaticMeshDataType ? InStaticMeshDataType : &Data;
+		bSupportsManualVertexFetch = true;
 	}
 
 	struct FDataType : public FStaticMeshDataType

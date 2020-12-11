@@ -121,11 +121,12 @@ uint32 FVertexFactoryType::NextHashIndex = 2;
 
 void FVertexFactory::SetStreams(ID3D11DeviceContext* Context) const
 {
+	bool bSupportsVertexFetch = SupportsManualVertexFetch();
 	for (uint32 StreamIndex = 0; StreamIndex < Streams.size(); StreamIndex++)
 	{
 		const FVertexStream& Stream = Streams[StreamIndex];
 		//EVertexStreamUsage::ManualFetch == 4
-		if (!(Stream.VertexStreamUsage & 4))
+		if (!((Stream.VertexStreamUsage & 4) && bSupportsVertexFetch))
 		{
 			if (!Stream.VertexBuffer)
 			{

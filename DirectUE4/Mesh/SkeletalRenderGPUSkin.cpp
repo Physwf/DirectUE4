@@ -112,19 +112,21 @@ void InitGPUSkinVertexFactoryComponents(typename VertexFactoryType::FDataType* V
 		VertexBuffers.StaticVertexBuffers->TangentsVertexBufferRHI.Get(),
 		sizeof(Vector4),
 		sizeof(Vector4),
-		DXGI_FORMAT_R32G32B32A32_FLOAT
+		DXGI_FORMAT_R32G32B32A32_FLOAT,
+		4
 	);
 	VertexFactoryData->TextureCoordinates = FVertexStreamComponent(
 		VertexBuffers.StaticVertexBuffers->TexCoordVertexBufferRHI.Get(),
 		0,
 		sizeof(Vector2),
-		DXGI_FORMAT_R32G32_FLOAT
+		DXGI_FORMAT_R32G32_FLOAT,
+		4
 	);
 	// bone indices
 	VertexFactoryData->BoneIndices = FVertexStreamComponent(
 		VertexBuffers.SkinWeightVertexBuffer->WeightVertexBufferRHI.Get(), 
 		/*STRUCT_OFFSET(WeightInfoType, InfluenceBones)*/0, 
-		/*VertexBuffers.SkinWeightVertexBuffer->GetStride()*/4, 
+		/*VertexBuffers.SkinWeightVertexBuffer->GetStride()*/4,
 		DXGI_FORMAT_R8G8B8A8_UINT);
 	// bone weights
 	VertexFactoryData->BoneWeights = FVertexStreamComponent(

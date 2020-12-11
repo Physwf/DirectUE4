@@ -8,6 +8,8 @@
 #include "LightSceneInfo.h"
 #include "DepthOnlyRendering.h"
 
+extern uint32 GFrameNumberRenderThread;
+
 void InitShading();
 
 class FProjectedShadowInfo;

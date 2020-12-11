@@ -50,6 +50,12 @@ struct ParameterAllocation
 	UINT Size;
 };
 
+template <typename T>
+inline bool IsValidRef(const ComPtr<T>& InReference)
+{
+	return InReference.Get() != nullptr;
+}
+
 ID3D11Buffer* CreateVertexBuffer(bool bDynamic,unsigned int Size, void* Data = NULL);
 ID3D11Buffer* CreateIndexBuffer(void* Data, unsigned int Size);
 ID3D11Buffer* CreateConstantBuffer(bool bDynamic, unsigned int Size,const void* Data = NULL);
@@ -2125,3 +2131,6 @@ struct FRHICopyTextureInfo
 	}
 };
 void RHICopyTexture(FD3D11Texture2D* SourceTexture, FD3D11Texture2D* DestTexture, const FRHICopyTextureInfo& CopyInfo);
+
+typedef uint16 FBoneIndexType;
+void RHIUpdateBoneBuffer(ID3D11Buffer* InVertexBuffer, uint32 InBufferSize, const std::vector<FMatrix>& InReferenceToLocalMatrices, const std::vector<FBoneIndexType>& InBoneMap);

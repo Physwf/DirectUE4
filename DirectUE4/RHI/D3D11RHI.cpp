@@ -2528,7 +2528,6 @@ void RHICopyToResolveTarget(FD3D11Texture2D* SourceTextureRHI, FD3D11Texture2D* 
 	}
 }
 
-
 void RHICopyTexture(FD3D11Texture2D* SourceTexture, FD3D11Texture2D* DestTexture, const FRHICopyTextureInfo& CopyInfo)
 {
 	const bool bIsCube = SourceTexture->IsCube();
@@ -2551,3 +2550,4 @@ void RHICopyTexture(FD3D11Texture2D* SourceTexture, FD3D11Texture2D* DestTexture
 		}
 	}
 }
+

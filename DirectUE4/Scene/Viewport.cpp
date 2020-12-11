@@ -82,6 +82,7 @@ void Viewport::Draw(bool bShouldPresent /*= true*/)
 	}
 	GWorld.SendAllEndOfFrameUpdates();
 	FSceneRenderer Renderer(ViewFamily);
+	GFrameNumberRenderThread++;
 	Renderer.Render();
 	if (bShouldPresent)
 	{

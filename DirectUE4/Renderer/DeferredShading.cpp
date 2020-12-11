@@ -17,11 +17,11 @@
 
 #include <new>
 
-ID3D11Buffer* GlobalConstantBuffer;
-char GlobalConstantBufferData[4096];
+uint32 GFrameNumberRenderThread;
 
 void InitShading()
 {
+	GFrameNumberRenderThread = 0;
 	GSystemTextures.InitializeTextures();
 	InitializeShaderTypes();
 	InitConstantBuffers();

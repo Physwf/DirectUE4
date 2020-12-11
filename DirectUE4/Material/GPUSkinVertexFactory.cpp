@@ -1,7 +1,6 @@
 #include "GPUSkinVertexFactory.h"
 #include "Material.h"
-
-FBoneMatricesUniformShaderParameters Bones;
+#include "UnrealTemplates.h"
 
 #define IMPLEMENT_GPUSKINNING_VERTEX_FACTORY_TYPE_INTERNAL(FactoryClass, ShaderFilename,bUsedWithMaterials,bSupportsStaticLighting,bSupportsDynamicLighting,bPrecisePrevWorldPos,bSupportsPositionOnly) \
 	template <bool bExtraBoneInfluencesT> FVertexFactoryType FactoryClass<bExtraBoneInfluencesT>::StaticType( \
@@ -26,6 +25,141 @@ FBoneMatricesUniformShaderParameters Bones;
 	template class FactoryClass<false>;	\
 	template class FactoryClass<true>;
 
+uint32 FSharedPoolPolicyData::GetPoolBucketIndex(uint32 Size)
+{
+	unsigned long Lower = 0;
+	unsigned long Upper = NumPoolBucketSizes;
+	unsigned long Middle;
+
+	do
+	{
+		Middle = (Upper + Lower) >> 1;
+		if (Size <= BucketSizes[Middle - 1])
+		{
+			Upper = Middle;
+		}
+		else
+		{
+			Lower = Middle;
+		}
+	} while (Upper - Lower > 1);
+
+	assert(Size <= BucketSizes[Lower]);
+	assert((Lower == 0) || (Size > BucketSizes[Lower - 1]));
+
+	return Lower;
+}
+
+uint32 FSharedPoolPolicyData::GetPoolBucketSize(uint32 Bucket)
+{
+	assert(Bucket < NumPoolBucketSizes);
+	return BucketSizes[Bucket];
+}
+
+uint32 FSharedPoolPolicyData::BucketSizes[NumPoolBucketSizes] = {
+	16, 48, 96, 192, 384, 768, 1536,
+	3072, 4608, 6144, 7680, 9216, 12288,
+	65536, 131072, 262144, 1048576 // these 4 numbers are added for large cloth simulation vertices, supports up to 65,536 verts
+};
+
+FVertexBufferAndSRV FBoneBufferPoolPolicy::CreateResource(FSharedPoolPolicyData::CreationArguments Args)
+{
+	uint32 BufferSize = GetPoolBucketSize(GetPoolBucketIndex(Args));
+	// in VisualStudio the copy constructor call on the return argument can be optimized out
+	// see https://msdn.microsoft.com/en-us/library/ms364057.aspx#nrvo_cpp05_topic3
+	FVertexBufferAndSRV Buffer;
+	//FRHIResourceCreateInfo CreateInfo;
+	Buffer.VertexBufferRHI = RHICreateVertexBuffer(BufferSize, D3D11_USAGE_DYNAMIC , D3D11_BIND_SHADER_RESOURCE, 0, NULL);
+	Buffer.VertexBufferSRV = RHICreateShaderResourceView(Buffer.VertexBufferRHI.Get(), sizeof(Vector4), DXGI_FORMAT_R32G32B32A32_FLOAT);
+	return Buffer;
+}
+
+FSharedPoolPolicyData::CreationArguments FBoneBufferPoolPolicy::GetCreationArguments(const FVertexBufferAndSRV& Resource)
+{
+	D3D11_BUFFER_DESC Desc;
+	Resource.VertexBufferRHI->GetDesc(&Desc);
+	return Desc.ByteWidth;
+}
+
+void FBoneBufferPoolPolicy::FreeResource(FVertexBufferAndSRV Resource)
+{
+
+}
+
+FBoneBufferPool::~FBoneBufferPool()
+{
+
+}
+
+void RHIUpdateBoneBuffer(ID3D11Buffer* InVertexBuffer, uint32 InBufferSize, const std::vector<FMatrix>& InReferenceToLocalMatrices, const std::vector<FBoneIndexType>& InBoneMap)
+{
+	D3D11_MAPPED_SUBRESOURCE MapedSubresource;
+	assert(S_OK == D3D11DeviceContext->Map(InVertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MapedSubresource));
+	FSkinMatrix3x4* ChunkMatrices = (FSkinMatrix3x4*)MapedSubresource.pData;
+	const uint32 NumBones = InBoneMap.size();
+	for (uint32 BoneIdx = 0; BoneIdx < NumBones; BoneIdx++)
+	{
+		const FBoneIndexType RefToLocalIdx = InBoneMap[BoneIdx];
+		assert(IsValidIndex(InReferenceToLocalMatrices, RefToLocalIdx)); // otherwise maybe some bad threading on BoneMap, maybe we need to copy that
+
+		FSkinMatrix3x4& BoneMat = ChunkMatrices[BoneIdx];
+		const FMatrix& RefToLocal = InReferenceToLocalMatrices[RefToLocalIdx];
+		RefToLocal.To3x4MatrixTranspose((float*)BoneMat.M);
+	}
+	D3D11DeviceContext->Unmap(InVertexBuffer, 0);
+}
+
+bool FGPUBaseSkinVertexFactory::FShaderDataType::UpdateBoneData(const std::vector<FMatrix>& ReferenceToLocalMatrices, const std::vector<FBoneIndexType>& BoneMap, uint32 RevisionNumber, bool bPrevious, bool bUseSkinCache)
+{
+	const uint32 NumBones = BoneMap.size();
+	assert(NumBones <= MaxGPUSkinBones);
+	FSkinMatrix3x4* ChunkMatrices = nullptr;
+
+	FVertexBufferAndSRV* CurrentBoneBuffer = 0;
+
+	// make sure current revision is up-to-date
+	SetCurrentRevisionNumber(RevisionNumber);
+
+	CurrentBoneBuffer = &GetBoneBufferForWriting(bPrevious);
+
+	static FSharedPoolPolicyData PoolPolicy;
+	uint32 NumVectors = NumBones * 3;
+	assert(NumVectors <= (MaxGPUSkinBones * 3));
+	uint32 VectorArraySize = NumVectors * sizeof(Vector4);
+	uint32 PooledArraySize = BoneBufferPool.PooledSizeForCreationArguments(VectorArraySize);
+
+	D3D11_BUFFER_DESC Desc;
+	CurrentBoneBuffer->VertexBufferRHI->GetDesc(&Desc);
+	if (!IsValidRef(*CurrentBoneBuffer) || PooledArraySize != Desc.ByteWidth)
+	{
+		if (IsValidRef(*CurrentBoneBuffer))
+		{
+			BoneBufferPool.ReleasePooledResource(*CurrentBoneBuffer);
+		}
+		*CurrentBoneBuffer = BoneBufferPool.CreatePooledResource(VectorArraySize);
+		assert(IsValidRef(*CurrentBoneBuffer));
+	}
+	if (NumBones)
+	{
+		if (!bUseSkinCache/* && DeferSkeletalLockAndFillToRHIThread()*/)
+		{
+			//new (RHICmdList.AllocCommand<FRHICommandUpdateBoneBuffer>()) FRHICommandUpdateBoneBuffer(CurrentBoneBuffer->VertexBufferRHI, VectorArraySize, ReferenceToLocalMatrices, BoneMap);
+			RHIUpdateBoneBuffer(CurrentBoneBuffer->VertexBufferRHI.Get(), VectorArraySize, ReferenceToLocalMatrices, BoneMap);
+			return true;
+		}
+		//ChunkMatrices = (FSkinMatrix3x4*)RHILockVertexBuffer(CurrentBoneBuffer->VertexBufferRHI, 0, VectorArraySize, RLM_WriteOnly);
+	}
+	return false;
+}
+
+uint32 FGPUBaseSkinVertexFactory::FShaderDataType::MaxGPUSkinBones = 0;
+
+int32 FGPUBaseSkinVertexFactory::GetMaxGPUSkinBones()
+{
+	return GHardwareMaxGPUSkinBones;
+}
+
+FBoneBufferPool FGPUBaseSkinVertexFactory::BoneBufferPool;
 
 template<bool bExtraBoneInfluencesT>
 bool TGPUSkinVertexFactory<bExtraBoneInfluencesT>::ShouldCompilePermutation(const class FMaterial* Material, const FShaderType* ShaderType)
@@ -117,3 +251,4 @@ FVertexFactoryShaderParameters* TGPUSkinVertexFactory<bExtraBoneInfluencesT>::Co
 }
 
 IMPLEMENT_GPUSKINNING_VERTEX_FACTORY_TYPE(TGPUSkinVertexFactory, "GpuSkinVertexFactory.dusf", true, false, true, false, false);
+

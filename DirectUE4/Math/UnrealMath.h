@@ -68,7 +68,6 @@ typedef unsigned long long	uint64;
 #define ZERO_ANIMWEIGHT_THRESH (0.00001f)
 
 
-
 struct FRotator;
 struct FQuat;
 struct Vector4;
@@ -1441,6 +1440,8 @@ struct FMatrix
 	bool GetFrustumTopPlane(FPlane& OutPlane) const;
 	bool GetFrustumBottomPlane(FPlane& OutPlane) const;
 	FVector GetColumn(int32 i) const;
+
+	void To3x4MatrixTranspose(float* Out) const;
 
 	static FMatrix	FromScale(float Scale);
 	static FMatrix	DXFromPitch(float fPitch);
