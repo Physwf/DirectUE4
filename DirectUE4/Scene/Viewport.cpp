@@ -3,6 +3,7 @@
 #include "Actor.h"
 #include "World.h"
 #include "DeferredShading.h"
+#include "Scene.h"
 
 void Viewport::OnKeyDown(unsigned int KeyCode)
 {
@@ -81,8 +82,13 @@ void Viewport::Draw(bool bShouldPresent /*= true*/)
 		FSceneView* View = C->CalcSceneView(ViewFamily,*this);
 	}
 	GWorld.SendAllEndOfFrameUpdates();
+
+	ViewFamily.Scene->IncrementFrameNumber();
+	ViewFamily.FrameNumber = ViewFamily.Scene->GetFrameNumber();
+
 	FSceneRenderer Renderer(ViewFamily);
 	GFrameNumberRenderThread++;
+	GFrameNumber++;
 	Renderer.Render();
 	if (bShouldPresent)
 	{

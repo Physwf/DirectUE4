@@ -809,4 +809,5 @@ class FSceneViewFamily
 public:
 	class FScene* Scene;
 	std::vector<const FSceneView*> Views;
+	uint32 FrameNumber;
 };

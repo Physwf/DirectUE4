@@ -191,6 +191,24 @@ void FMatrix::SetAxis(int32 i, const FVector& Axis)
 	M[i][2] = Axis.Z;
 }
 
+void FMatrix::GetScaledAxes(FVector &X, FVector &Y, FVector &Z) const
+{
+	X.X = M[0][0]; X.Y = M[0][1]; X.Z = M[0][2];
+	Y.X = M[1][0]; Y.Y = M[1][1]; Y.Z = M[1][2];
+	Z.X = M[2][0]; Z.Y = M[2][1]; Z.Z = M[2][2];
+}
+
+FMatrix FMatrix::ApplyScale(float Scale)
+{
+	FMatrix ScaleMatrix(
+		FPlane(Scale, 0.0f, 0.0f, 0.0f),
+		FPlane(0.0f, Scale, 0.0f, 0.0f),
+		FPlane(0.0f, 0.0f, Scale, 0.0f),
+		FPlane(0.0f, 0.0f, 0.0f, 1.0f)
+	);
+	return ScaleMatrix * (*this);
+}
+
 FMatrix FMatrix::DXLookToLH(const FVector& To)
 {
 	srand(unsigned int(To.SizeSquared()));

@@ -18,10 +18,11 @@
 #include <new>
 
 uint32 GFrameNumberRenderThread;
+uint32 GFrameNumber = 1;
 
 void InitShading()
 {
-	GFrameNumberRenderThread = 0;
+	GFrameNumberRenderThread = 1;
 	GSystemTextures.InitializeTextures();
 	InitializeShaderTypes();
 	InitConstantBuffers();

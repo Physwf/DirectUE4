@@ -92,6 +92,11 @@ public:
 
 
 	void UpdateSkyCaptureContents(const USkyLightComponent* CaptureComponent, bool bCaptureEmissiveOnly, FD3D11Texture2D* SourceCubemap, FD3D11Texture2D* OutProcessedTexture, float& OutAverageBrightness, FSHVectorRGB3& OutIrradianceEnvironmentMap, std::vector<FFloat16Color>* OutRadianceMap);
+
+	class FGPUSkinCache* GetGPUSkinCache()
+	{
+		return nullptr;
+	}
 public:
 
 
@@ -183,8 +188,17 @@ public:
 	{
 		return (AtmosphericFog != NULL); // Use default value when Sun Light is not existing
 	}
-
+	uint32 GetFrameNumber() const
+	{
+		return SceneFrameNumber;
+	}
+	void IncrementFrameNumber()
+	{
+		++SceneFrameNumber;
+	}
 	UWorld* GetWorld() const { return World; }
+private:
+	uint32 SceneFrameNumber;
 };
 
 inline bool ShouldIncludeDomainInMeshPass(EMaterialDomain Domain)

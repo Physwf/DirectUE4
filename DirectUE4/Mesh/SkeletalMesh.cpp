@@ -4,6 +4,7 @@
 #include "MeshComponent.h"
 #include "SkeletalRenderGPUSkin.h"
 #include "UnrealTemplates.h"
+#include "log.h"
 
 USkeletalMesh::USkeletalMesh(class AActor* InOwner)
 	:Skeleton(NULL)
@@ -33,6 +34,8 @@ void USkeletalMesh::PostLoad()
 {
 	CacheDerivedData();
 	InitResources();
+
+	CalculateInvRefMatrices();
 }
 
 void USkeletalMesh::InitResources()
@@ -57,6 +60,60 @@ void USkeletalMesh::AllocateResourceForRendering()
 	RenderdData = std::make_unique<FSkeletalMeshRenderData>();
 }
 
+
+void USkeletalMesh::CalculateInvRefMatrices()
+{
+	const int32 NumRealBones = RefSkeleton.GetRawBoneNum();
+
+	if (RefBasesInvMatrix.size() != NumRealBones)
+	{
+		RefBasesInvMatrix.clear();
+		RefBasesInvMatrix.reserve(NumRealBones);
+		RefBasesInvMatrix.resize(NumRealBones);
+
+		// Reset cached mesh-space ref pose
+		CachedComposedRefPoseMatrices.clear();
+		CachedComposedRefPoseMatrices.reserve(NumRealBones);
+		CachedComposedRefPoseMatrices.resize(NumRealBones);
+
+		// Precompute the Mesh.RefBasesInverse.
+		for (int32 b = 0; b < NumRealBones; b++)
+		{
+			// Render the default pose.
+			CachedComposedRefPoseMatrices[b] = GetRefPoseMatrix(b);
+
+			// Construct mesh-space skeletal hierarchy.
+			if (b > 0)
+			{
+				int32 Parent = RefSkeleton.GetRawParentIndex(b);
+				CachedComposedRefPoseMatrices[b] = CachedComposedRefPoseMatrices[b] * CachedComposedRefPoseMatrices[Parent];
+			}
+
+			FVector XAxis, YAxis, ZAxis;
+
+			CachedComposedRefPoseMatrices[b].GetScaledAxes(XAxis, YAxis, ZAxis);
+			if (XAxis.IsNearlyZero(SMALL_NUMBER) &&
+				YAxis.IsNearlyZero(SMALL_NUMBER) &&
+				ZAxis.IsNearlyZero(SMALL_NUMBER))
+			{
+				// this is not allowed, warn them 
+				X_LOG("Reference Pose for joint (%s) includes NIL matrix. Zero scale isn't allowed on ref pose. ", *RefSkeleton.GetBoneName(b).c_str());
+			}
+
+			// Precompute inverse so we can use from-refpose-skin vertices.
+			RefBasesInvMatrix[b] = CachedComposedRefPoseMatrices[b].Inverse();
+		}
+	}
+}
+
+FMatrix USkeletalMesh::GetRefPoseMatrix(int32 BoneIndex) const
+{
+	assert(BoneIndex >= 0 && BoneIndex < RefSkeleton.GetRawBoneNum());
+	FTransform BoneTransform = RefSkeleton.GetRawRefBonePose()[BoneIndex];
+	// Make sure quaternion is normalized!
+	BoneTransform.NormalizeRotation();
+	return BoneTransform.ToMatrixWithScale();
+}
 
 FSkeletalMeshLODInfo& USkeletalMesh::AddLODInfo()
 {

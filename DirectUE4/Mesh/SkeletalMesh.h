@@ -35,6 +35,10 @@ public:
 	virtual void ReleaseResources();
 	void AllocateResourceForRendering();
 
+	void CalculateInvRefMatrices();
+
+	FMatrix GetRefPoseMatrix(int32 BoneIndex) const;
+
 	FSkeletalMeshLODInfo& AddLODInfo();
 	void AddLODInfo(const FSkeletalMeshLODInfo& NewLODInfo) { LODInfo.push_back(NewLODInfo); }
 	void RemoveLODInfo(int32 Index);
@@ -44,6 +48,8 @@ public:
 	const FSkeletalMeshLODInfo* GetLODInfo(int32 Index) const { return IsValidIndex(LODInfo,Index) ? &LODInfo[Index] : nullptr; }
 	bool IsValidLODIndex(int32 Index) const { return IsValidIndex(LODInfo, Index); }
 	uint32 GetLODNum() const { return LODInfo.size(); }
+
+	std::vector<FMatrix> RefBasesInvMatrix;
 private:
 	std::shared_ptr<SkeletalMeshModel> ImportedModel;
 
@@ -52,4 +58,7 @@ private:
 	std::vector<struct FSkeletalMeshLODInfo> LODInfo;
 
 	void CacheDerivedData();
+
+	std::vector<FMatrix> CachedComposedRefPoseMatrices;
+
 };

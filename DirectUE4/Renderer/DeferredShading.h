@@ -9,6 +9,7 @@
 #include "DepthOnlyRendering.h"
 
 extern uint32 GFrameNumberRenderThread;
+extern uint32 GFrameNumber;
 
 void InitShading();
 

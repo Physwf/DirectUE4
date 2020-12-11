@@ -57,6 +57,44 @@ FSkeletalMeshRenderData* USkinnedMeshComponent::GetSkeletalMeshRenderData() cons
 void USkinnedMeshComponent::SetSkeletalMesh(class USkeletalMesh* InSkelMesh, bool bReinitPose /*= true*/)
 {
 	SkeletalMesh = InSkelMesh;
+
+	if (IsRegistered())
+	{
+		AllocateTransformData();
+		UpdateMasterBoneMap();
+		//InvalidateCachedBounds();
+		// clear morphtarget cache
+		//ActiveMorphTargets.Empty();
+		//MorphTargetWeights.Empty();
+	}
+}
+
+void USkinnedMeshComponent::SetMasterPoseComponent(USkinnedMeshComponent* NewMasterBoneComponent, bool bForceUpdate /*= false*/)
+{
+
+}
+
+void USkinnedMeshComponent::OnRegister()
+{
+	if (!MasterPoseComponent.expired())
+	{
+		// we have to make sure it updates the mastesr pose
+		SetMasterPoseComponent(MasterPoseComponent.lock().get(), true);
+	}
+	else
+	{
+		AllocateTransformData();
+	}
+
+	UMeshComponent::OnRegister();
+
+	//UpdateLODStatus();
+}
+
+void USkinnedMeshComponent::OnUnregister()
+{
+	DeallocateTransformData();
+	UMeshComponent::OnUnregister();
 }
 
 void USkinnedMeshComponent::CreateRenderState_Concurrent()
@@ -90,7 +128,7 @@ void USkinnedMeshComponent::SendRenderDynamicData_Concurrent()
 // 		}
 
 		//check(UseLOD < MeshObject->GetSkeletalMeshRenderData().LODRenderData.Num());
-		//MeshObject->Update(UseLOD, this, ActiveMorphTargets, MorphTargetWeights, false);  // send to rendering thread
+		MeshObject->Update(UseLOD, this, /*ActiveMorphTargets, MorphTargetWeights,*/ false);  // send to rendering thread
 		//MeshObject->bHasBeenUpdatedAtLeastOnce = true;
 
 		// scene proxy update of material usage based on active morphs
@@ -117,6 +155,11 @@ void USkinnedMeshComponent::DestroyRenderState_Concurrent()
 		//BeginCleanup(MeshObject);
 		MeshObject = NULL;
 	}
+}
+
+void USkinnedMeshComponent::UpdateMasterBoneMap()
+{
+	MasterBoneMap.clear();
 }
 
 FPrimitiveSceneProxy* USkinnedMeshComponent::CreateSceneProxy()
@@ -169,5 +212,56 @@ void USkinnedMeshComponent::InitLODInfos()
 			}
 		}
 	}
+}
+
+bool USkinnedMeshComponent::AllocateTransformData()
+{
+	if (SkeletalMesh != NULL && MasterPoseComponent.lock() == NULL)
+	{
+		if (GetNumComponentSpaceTransforms() != SkeletalMesh->RefSkeleton.GetNum())
+		{
+			for (int32 BaseIndex = 0; BaseIndex < 2; ++BaseIndex)
+			{
+				ComponentSpaceTransformsArray[BaseIndex].clear();
+				ComponentSpaceTransformsArray[BaseIndex].reserve(SkeletalMesh->RefSkeleton.GetNum());
+				ComponentSpaceTransformsArray[BaseIndex].resize(SkeletalMesh->RefSkeleton.GetNum());
+
+				for (int32 I = 0; I < SkeletalMesh->RefSkeleton.GetNum(); ++I)
+				{
+					ComponentSpaceTransformsArray[BaseIndex][I].SetIdentity();
+				}
+			}
+			BoneVisibilityStates.clear();
+			BoneVisibilityStates.reserve(SkeletalMesh->RefSkeleton.GetNum());
+			if (SkeletalMesh->RefSkeleton.GetNum())
+			{
+				BoneVisibilityStates.resize(SkeletalMesh->RefSkeleton.GetNum());
+				for (int32 BoneIndex = 0; BoneIndex < SkeletalMesh->RefSkeleton.GetNum(); BoneIndex++)
+				{
+					BoneVisibilityStates[BoneIndex] = BVS_Visible;
+				}
+			}
+
+			// when initialize bone transform first time
+			// it is invalid
+			bHasValidBoneTransform = false;
+			PreviousComponentSpaceTransformsArray = ComponentSpaceTransformsArray[0];
+			PreviousBoneVisibilityStates = BoneVisibilityStates;
+		}
+
+		// if it's same, do not touch, and return
+		return true;
+	}
+
+	// Reset the animation stuff when changing mesh.
+	ComponentSpaceTransformsArray[0].clear();
+	ComponentSpaceTransformsArray[1].clear();
+	PreviousComponentSpaceTransformsArray.clear();
+	return false;
+}
+
+void USkinnedMeshComponent::DeallocateTransformData()
+{
+
 }
 

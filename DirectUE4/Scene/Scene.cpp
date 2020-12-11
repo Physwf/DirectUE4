@@ -49,8 +49,8 @@ FScene::FScene(UWorld* InWorld)
 , SkyLight(NULL)
 , SunLight(NULL)
 , AtmosphericFog(NULL)
+, SceneFrameNumber(0)
 {
-	World = InWorld;
 }
 
 void FScene::AddPrimitive(UPrimitiveComponent* Primitive)

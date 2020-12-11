@@ -9,6 +9,59 @@ class FSceneView;
 struct FStaticMeshVertexBuffers;
 class FSkinWeightVertexBuffer;
 
+class FGPUSkinCache;
+
+/**
+* Stores the updated matrices needed to skin the verts.
+* Created by the game thread and sent to the rendering thread as an update
+*/
+class FDynamicSkelMeshObjectDataGPUSkin
+{
+	/**
+	* Constructor, these are recycled, so you never use a constructor
+	*/
+	FDynamicSkelMeshObjectDataGPUSkin()
+	{
+		Clear();
+	}
+
+	virtual ~FDynamicSkelMeshObjectDataGPUSkin()
+	{
+	}
+
+	void Clear();
+
+public:
+
+	static FDynamicSkelMeshObjectDataGPUSkin* AllocDynamicSkelMeshObjectDataGPUSkin();
+	static void FreeDynamicSkelMeshObjectDataGPUSkin(FDynamicSkelMeshObjectDataGPUSkin* Who);
+
+	/**
+	* Constructor
+	* Updates the ReferenceToLocal matrices using the new dynamic data.
+	* @param	InSkelMeshComponent - parent skel mesh component
+	* @param	InLODIndex - each lod has its own bone map
+	* @param	InActiveMorphTargets - morph targets active for the mesh
+	* @param	InMorphTargetWeights - All morph target weights for the mesh
+	*/
+	void InitDynamicSkelMeshObjectDataGPUSkin(
+		USkinnedMeshComponent* InMeshComponent,
+		FSkeletalMeshRenderData* InSkeletalMeshRenderData,
+		int32 InLODIndex,
+		/*const TArray<FActiveMorphTarget>& InActiveMorphTargets,*/
+		/*const TArray<float>& InMorphTargetWeights,*/
+		bool bUpdatePreviousBoneTransform
+	);
+
+	/** ref pose to local space transforms */
+	std::vector<FMatrix> ReferenceToLocal;
+
+	/** Previous ref pose to local space transform */
+	std::vector<FMatrix> PreviousReferenceToLocal;
+
+	int32 LODIndex;
+};
+
 class FSkeletalMeshObjectGPUSkin : public FSkeletalMeshObject
 {
 public:
@@ -19,6 +72,9 @@ public:
 	virtual void InitResources(USkinnedMeshComponent* InMeshComponent) override;
 	virtual void ReleaseResources() override;
 
+	virtual void Update(int32 LODIndex, USkinnedMeshComponent* InMeshComponent, /*const TArray<FActiveMorphTarget>& ActiveMorphTargets, const TArray<float>& MorphTargetWeights,*/ bool bUpdatePreviousBoneTransform) override;
+	void UpdateDynamicData_RenderThread(FGPUSkinCache* GPUSkinCache, FDynamicSkelMeshObjectDataGPUSkin* InDynamicData, FScene* Scene, uint32 FrameNumberToPrepare, uint32 RevisionNumber);
+	void ProcessUpdatedDynamicData(FGPUSkinCache* GPUSkinCache, uint32 FrameNumberToPrepare, uint32 RevisionNumber, bool bMorphNeedsUpdate);
 	virtual const FVertexFactory* GetSkinVertexFactory(const FSceneView* View, int32 LODIndex, int32 ChunkIdx) const override;
 	virtual void CacheVertices(int32 LODIndex, bool bForce) const override {}
 	virtual bool IsCPUSkinned() const override { return false; }
@@ -184,4 +240,9 @@ private:
 
 
 	std::vector<struct FSkeletalMeshObjectLOD> LODs;
+
+	FDynamicSkelMeshObjectDataGPUSkin* DynamicData;
+
+	/** last updated bone transform revision number */
+	uint32 LastBoneTransformRevisionNumber;
 };

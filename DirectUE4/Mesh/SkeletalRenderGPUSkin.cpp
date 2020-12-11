@@ -4,6 +4,50 @@
 #include "SkeletalMeshRenderData.h"
 #include "MeshComponent.h"
 #include "UnrealTemplates.h"
+#include "SkeletalMeshTypes.h"
+#include "SkeletalRender.h"
+#include "Scene.h"
+
+void FDynamicSkelMeshObjectDataGPUSkin::Clear()
+{
+	ReferenceToLocal.clear();
+}
+
+FDynamicSkelMeshObjectDataGPUSkin* FDynamicSkelMeshObjectDataGPUSkin::AllocDynamicSkelMeshObjectDataGPUSkin()
+{
+	return new FDynamicSkelMeshObjectDataGPUSkin;
+}
+
+void FDynamicSkelMeshObjectDataGPUSkin::FreeDynamicSkelMeshObjectDataGPUSkin(FDynamicSkelMeshObjectDataGPUSkin* Who)
+{
+	delete Who;
+}
+
+void FDynamicSkelMeshObjectDataGPUSkin::InitDynamicSkelMeshObjectDataGPUSkin(
+	USkinnedMeshComponent* InMeshComponent, 
+	FSkeletalMeshRenderData* InSkeletalMeshRenderData, 
+	int32 InLODIndex, 
+	/*const TArray<FActiveMorphTarget>& InActiveMorphTargets,*/ 
+	/*const TArray<float>& InMorphTargetWeights,*/ 
+	bool bUpdatePreviousBoneTransform)
+{
+	LODIndex = InLODIndex;
+
+	FSkeletalMeshSceneProxy* SkeletalMeshProxy = (FSkeletalMeshSceneProxy*)InMeshComponent->SceneProxy;
+	const std::vector<FBoneIndexType>* ExtraRequiredBoneIndices = /*SkeletalMeshProxy ? &SkeletalMeshProxy->GetSortedShadowBoneIndices() : */nullptr;
+
+	// update ReferenceToLocal
+	UpdateRefToLocalMatrices(ReferenceToLocal, InMeshComponent, InSkeletalMeshRenderData, LODIndex, ExtraRequiredBoneIndices);
+	if (bUpdatePreviousBoneTransform)
+	{
+		UpdatePreviousRefToLocalMatrices(PreviousReferenceToLocal, InMeshComponent, InSkeletalMeshRenderData, LODIndex, ExtraRequiredBoneIndices);
+	}
+	else
+	{
+		// otherwise, clear it, it will use previous buffer
+		PreviousReferenceToLocal.clear();
+	}
+}
 
 FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectGPUSkin(USkinnedMeshComponent* InMeshComponent, FSkeletalMeshRenderData* InSkelMeshRenderData)
 	: FSkeletalMeshObject(InMeshComponent, InSkelMeshRenderData)
@@ -51,6 +95,77 @@ void FSkeletalMeshObjectGPUSkin::ReleaseResources()
 	{
 		FSkeletalMeshObjectLOD& SkelLOD = LODs[LODIndex];
 		SkelLOD.ReleaseResources();
+	}
+}
+
+void FSkeletalMeshObjectGPUSkin::Update(int32 LODIndex, USkinnedMeshComponent* InMeshComponent, /*const TArray<FActiveMorphTarget>& ActiveMorphTargets, const TArray<float>& MorphTargetWeights,*/ bool bUpdatePreviousBoneTransform)
+{
+	FDynamicSkelMeshObjectDataGPUSkin* NewDynamicData = FDynamicSkelMeshObjectDataGPUSkin::AllocDynamicSkelMeshObjectDataGPUSkin();
+	NewDynamicData->InitDynamicSkelMeshObjectDataGPUSkin(InMeshComponent, SkeletalMeshRenderData, LODIndex, /*ActiveMorphTargets, MorphTargetWeights,*/ bUpdatePreviousBoneTransform);
+	extern uint32 GFrameNumber;
+	uint32 FrameNumberToPrepare = GFrameNumber + 1;
+	uint32 RevisionNumber = 0;
+
+	FGPUSkinCache* GPUSkinCache = nullptr;
+	if (InMeshComponent && InMeshComponent->SceneProxy)
+	{
+		// We allow caching of per-frame, per-scene data
+		FrameNumberToPrepare = InMeshComponent->SceneProxy->GetScene().GetFrameNumber() + 1;
+		GPUSkinCache = InMeshComponent->SceneProxy->GetScene().GetGPUSkinCache();
+		RevisionNumber = InMeshComponent->GetBoneTransformRevisionNumber();
+	}
+
+	UpdateDynamicData_RenderThread(GPUSkinCache, NewDynamicData, nullptr, FrameNumberToPrepare, RevisionNumber);
+}
+
+void FSkeletalMeshObjectGPUSkin::UpdateDynamicData_RenderThread(FGPUSkinCache* GPUSkinCache, FDynamicSkelMeshObjectDataGPUSkin* InDynamicData, FScene* Scene, uint32 FrameNumberToPrepare, uint32 RevisionNumber)
+{
+
+	DynamicData = InDynamicData;
+	LastBoneTransformRevisionNumber = RevisionNumber;
+
+	bool bMorphNeedsUpdate = false;
+	ProcessUpdatedDynamicData(GPUSkinCache, FrameNumberToPrepare, RevisionNumber, bMorphNeedsUpdate);
+}
+
+void FSkeletalMeshObjectGPUSkin::ProcessUpdatedDynamicData(FGPUSkinCache* GPUSkinCache, uint32 FrameNumberToPrepare, uint32 RevisionNumber, bool bMorphNeedsUpdate)
+{
+	FSkeletalMeshObjectLOD& LOD = LODs[DynamicData->LODIndex];
+
+	const FSkeletalMeshLODRenderData& LODData = *SkeletalMeshRenderData->LODRenderData[DynamicData->LODIndex];
+	const std::vector<FSkeletalMeshRenderSection>& Sections = GetRenderSections(DynamicData->LODIndex);
+
+	FVertexFactoryData& VertexFactoryData = LOD.GPUSkinVertexFactories;
+
+	bool bDataPresent = false;
+
+	bDataPresent = VertexFactoryData.VertexFactories.size() > 0;
+
+	if (bDataPresent)
+	{
+		for (uint32 SectionIdx = 0; SectionIdx < Sections.size(); SectionIdx++)
+		{
+			const FSkeletalMeshRenderSection& Section = Sections[SectionIdx];
+
+			bool bUseSkinCache = false;
+
+			FGPUBaseSkinVertexFactory* VertexFactory;
+
+			VertexFactory = VertexFactoryData.VertexFactories[SectionIdx].get();
+
+			FGPUBaseSkinVertexFactory::FShaderDataType& ShaderData = VertexFactory->GetShaderData();
+
+			if (DynamicData->PreviousReferenceToLocal.size() > 0)
+			{
+				std::vector<FMatrix>& PreviousReferenceToLocalMatrices = DynamicData->PreviousReferenceToLocal;
+				ShaderData.UpdateBoneData(PreviousReferenceToLocalMatrices, Section.BoneMap, RevisionNumber, true, bUseSkinCache);
+			}
+
+			// Create a uniform buffer from the bone transforms.
+			std::vector<FMatrix>& ReferenceToLocalMatrices = DynamicData->ReferenceToLocal;
+			bool bNeedFence = ShaderData.UpdateBoneData(ReferenceToLocalMatrices, Section.BoneMap, RevisionNumber, false, bUseSkinCache);
+		}
+
 	}
 }
 

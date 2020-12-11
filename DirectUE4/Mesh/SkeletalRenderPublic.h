@@ -1,6 +1,7 @@
 #pragma once
 
 #include "UnrealMath.h"
+#include "SkeletalMeshRenderData.h"
 
 #include <vector>
 
@@ -23,6 +24,8 @@ public:
 	*/
 	virtual void ReleaseResources() = 0;
 
+	virtual void Update(int32 LODIndex, USkinnedMeshComponent* InMeshComponent, /*const TArray<FActiveMorphTarget>& ActiveMorphTargets, const TArray<float>& MorphTargetWeights,*/ bool bUpdatePreviousBoneTransform) = 0;
+
 	virtual int32 GetLOD() const = 0;
 
 	virtual const FVertexFactory* GetSkinVertexFactory(const FSceneView* View, int32 LODIndex, int32 ChunkIdx) const = 0;
@@ -32,6 +35,8 @@ public:
 	virtual bool IsCPUSkinned() const = 0;
 
 	FSkeletalMeshRenderData& GetSkeletalMeshRenderData() const { return *SkeletalMeshRenderData; }
+
+	const std::vector<FSkeletalMeshRenderSection>& GetRenderSections(int32 InLODIndex) const;
 
 	void InitLODInfos(const USkinnedMeshComponent* InMeshComponent);
 
@@ -50,4 +55,5 @@ protected:
 
 	std::vector<FSkeletalMeshLODInfo> SkeletalMeshLODInfo;
 };
+
 

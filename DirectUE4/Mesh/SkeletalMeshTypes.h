@@ -15,6 +15,11 @@ public:
 
 	virtual void GetDynamicMeshElements(const std::vector<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override;
+
+	const std::vector<uint16>& GetSortedShadowBoneIndices() const
+	{
+		return ShadowCapsuleBoneIndices;
+	}
 protected:
 	class FSkeletalMeshObject* MeshObject;
 	FSkeletalMeshRenderData* SkeletalMeshRenderData;
@@ -46,6 +51,8 @@ protected:
 	};
 
 	std::vector<FLODSectionElements> LODSections;
+
+	std::vector<uint16> ShadowCapsuleBoneIndices;
 
 	void GetDynamicElementsSection(const std::vector<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap,
 		const FSkeletalMeshLODRenderData& LODData, const int32 LODIndex, const int32 SectionIndex, bool bSectionSelected,

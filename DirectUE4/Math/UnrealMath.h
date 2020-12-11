@@ -1433,6 +1433,9 @@ struct FMatrix
 	inline FVector	ExtractScaling(float Tolerance = SMALL_NUMBER);
 	void			SetAxis(int32 i, const FVector& Axis);
 
+	void GetScaledAxes(FVector &X, FVector &Y, FVector &Z) const;
+	FMatrix ApplyScale(float Scale);
+
 	bool GetFrustumNearPlane(FPlane& OutPlane) const;
 	bool GetFrustumFarPlane(FPlane& OutPlane) const;
 	bool GetFrustumLeftPlane(FPlane& OutPlane) const;

@@ -236,7 +236,31 @@ public:
 	}
 	virtual void SetMesh(FShader* Shader, const FVertexFactory* VertexFactory, const FSceneView& View, const FMeshBatchElement& BatchElement, uint32 DataFlags) const override
 	{
+		ID3D11VertexShader* ShaderRHI = Shader->GetVertexShader();
 
+		if (ShaderRHI)
+		{
+			const FGPUBaseSkinVertexFactory::FShaderDataType& ShaderData = ((const FGPUBaseSkinVertexFactory*)VertexFactory)->GetShaderData();
+
+			bool bLocalPerBoneMotionBlur = false;
+
+			if (BoneMatrices.IsBound())
+			{
+				ID3D11ShaderResourceView* CurrentData = ShaderData.GetBoneBufferForReading(false).VertexBufferSRV.Get();
+
+				SetShaderSRV(ShaderRHI, BoneMatrices.GetBaseIndex(), CurrentData);
+				//RHICmdList.SetShaderResourceViewParameter(ShaderRHI, BoneMatrices.GetBaseIndex(), CurrentData);
+			}
+			if (PreviousBoneMatrices.IsBound())
+			{
+				// todo: Maybe a check for PreviousData!=CurrentData would save some performance (when objects don't have velocty yet) but removing the bool also might save performance
+				bLocalPerBoneMotionBlur = true;
+
+				ID3D11ShaderResourceView* PreviousData = ShaderData.GetBoneBufferForReading(true).VertexBufferSRV.Get();
+				SetShaderSRV(ShaderRHI, PreviousBoneMatrices.GetBaseIndex(), PreviousData);
+				//RHICmdList.SetShaderResourceViewParameter(ShaderRHI, PreviousBoneMatrices.GetBaseIndex(), PreviousData);
+			}
+		}
 	}
 private:
 	FShaderParameter PerBoneMotionBlur;
