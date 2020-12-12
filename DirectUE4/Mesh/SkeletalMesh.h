@@ -14,6 +14,28 @@ struct FSkeletalMeshLODInfo
 {
 };
 
+struct FSkeletalMaterial
+{
+	FSkeletalMaterial() : MaterialInterface(NULL)
+	{
+
+	}
+
+	FSkeletalMaterial(class UMaterial* InMaterialInterface, std::string InMaterialSlotName = "")
+		: MaterialInterface(InMaterialInterface)
+		, MaterialSlotName(InMaterialSlotName)
+	{
+
+	}
+
+	class UMaterial* MaterialInterface;
+
+	/*This name should be use by the gameplay to avoid error if the skeletal mesh Materials array topology change*/
+	std::string						MaterialSlotName;
+	/** Data used for texture streaming relative to each UV channels. */
+	//FMeshUVChannelInfo			UVChannelData;
+};
+
 class USkeletalMesh
 {
 public:
@@ -27,7 +49,7 @@ public:
 
 	FReferenceSkeleton RefSkeleton;
 
-	static void CalculateRequiredBones(SkeletalMeshLODModel& LODModel, const struct FReferenceSkeleton& RefSkeleton, const std::map<FBoneIndexType, FBoneIndexType>* BonesToRemove);
+	static void CalculateRequiredBones(FSkeletalMeshLODModel& LODModel, const struct FReferenceSkeleton& RefSkeleton, const std::map<FBoneIndexType, FBoneIndexType>* BonesToRemove);
 
 	void PostLoad();
 
@@ -50,6 +72,8 @@ public:
 	uint32 GetLODNum() const { return LODInfo.size(); }
 
 	std::vector<FMatrix> RefBasesInvMatrix;
+
+	std::vector<FSkeletalMaterial> Materials;
 private:
 	std::shared_ptr<SkeletalMeshModel> ImportedModel;
 

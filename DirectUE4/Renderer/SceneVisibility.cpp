@@ -284,7 +284,7 @@ void FSceneRenderer::GatherDynamicMeshElements(
 				const uint8 ViewMaskFinal = (bIsInstancedStereo) ? ViewMask | 0x3 : ViewMask;
 
 				FPrimitiveSceneInfo* PrimitiveSceneInfo = InScene->Primitives[PrimitiveIndex];
-				//Collector.SetPrimitive(PrimitiveSceneInfo->Proxy, PrimitiveSceneInfo->DefaultDynamicHitProxyId);
+				Collector.SetPrimitive(PrimitiveSceneInfo->Proxy/*, PrimitiveSceneInfo->DefaultDynamicHitProxyId*/);
 
 				//SetDynamicMeshElementViewCustomData(InViews, HasViewCustomDataMasks, PrimitiveSceneInfo);
 

@@ -7,7 +7,7 @@ extern UWorld GWorld;
 UPrimitiveComponent::UPrimitiveComponent(AActor* InOwner)
 	: USceneComponent(InOwner)
 {
-
+	CastShadow = true;
 }
 
 FMatrix UPrimitiveComponent::GetRenderMatrix() const

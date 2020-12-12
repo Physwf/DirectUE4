@@ -24,7 +24,7 @@ void FSkeletalMeshLODRenderData::InitResources()
 	MultiSizeIndexContainer.InitResources();
 }
 
-void FSkeletalMeshLODRenderData::BuildFromLODModel(const SkeletalMeshLODModel* ImportedModel,uint32 BuildFlags)
+void FSkeletalMeshLODRenderData::BuildFromLODModel(const FSkeletalMeshLODModel* ImportedModel,uint32 BuildFlags)
 {
 	bool bUseFullPrecisionUVs = (BuildFlags & ESkeletalMeshVertexFlags::UseFullPrecisionUVs) != 0;
 	bool bUseHighPrecisionTangentBasis = (BuildFlags & ESkeletalMeshVertexFlags::UseHighPrecisionTangentBasis) != 0;
@@ -34,14 +34,14 @@ void FSkeletalMeshLODRenderData::BuildFromLODModel(const SkeletalMeshLODModel* I
 	RenderSections.clear();
 	for (uint32 SectionIndex = 0; SectionIndex < ImportedModel->Sections.size(); SectionIndex++)
 	{
-		const SkeletalMeshSection& ModelSection = ImportedModel->Sections[SectionIndex];
+		const FSkeletalMeshSection& ModelSection = ImportedModel->Sections[SectionIndex];
 
 		FSkeletalMeshRenderSection NewRenderSection;
 		NewRenderSection.MaterialIndex = ModelSection.MaterialIndex;
 		NewRenderSection.BaseIndex = ModelSection.BaseIndex;
 		NewRenderSection.NumTriangles = ModelSection.NumTriangles;
 		//NewRenderSection.bRecomputeTangent = ModelSection.bRecomputeTangent;
-		//NewRenderSection.bCastShadow = ModelSection.bCastShadow;
+		NewRenderSection.bCastShadow = ModelSection.bCastShadow;
 		NewRenderSection.BaseVertexIndex = ModelSection.BaseVertexIndex;
 		//NewRenderSection.ClothMappingData = ModelSection.ClothMappingData;
 		NewRenderSection.BoneMap = ModelSection.BoneMap;
@@ -54,7 +54,7 @@ void FSkeletalMeshLODRenderData::BuildFromLODModel(const SkeletalMeshLODModel* I
 		RenderSections.push_back(NewRenderSection);
 	}
 
-	std::vector<SoftSkinVertex> Vertices;
+	std::vector<FSoftSkinVertex> Vertices;
 	ImportedModel->GetVertices(Vertices);
 
 	// match UV and tangent precision for mesh vertex buffer to setting from parent mesh
@@ -139,7 +139,7 @@ void FSkeletalMeshRenderData::Cache(USkeletalMesh* Owner)
 	uint32 VertexBufferBuildFlags = 0;
 	for (uint32 LODIndex = 0; LODIndex < SkelMeshModel->LODModels.size(); LODIndex++)
 	{
-		SkeletalMeshLODModel& LODModel = *SkelMeshModel->LODModels[LODIndex];
+		FSkeletalMeshLODModel& LODModel = *SkelMeshModel->LODModels[LODIndex];
 		FSkeletalMeshLODRenderData* LODData = new FSkeletalMeshLODRenderData();
 		LODRenderData.push_back(LODData);
 		LODData->BuildFromLODModel(&LODModel, VertexBufferBuildFlags);

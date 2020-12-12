@@ -9,7 +9,7 @@
 class FSkinWeightVertexBuffer
 {
 public:
-	void Init(const std::vector<SoftSkinVertex>& InVertices);
+	void Init(const std::vector<FSoftSkinVertex>& InVertices);
 
 	void SetHasExtraBoneInfluences(bool bInHasExtraBoneInfluences)
 	{

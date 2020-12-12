@@ -156,3 +156,21 @@ FLightMapInteraction FLightMapInteraction::Texture(
 	Result.CoordinateBias = InCoordinateBias;
 	return Result;
 }
+
+FMeshBatchAndRelevance::FMeshBatchAndRelevance(const FMeshBatch& InMesh, const FPrimitiveSceneProxy* InPrimitiveSceneProxy)
+	: Mesh(&InMesh)
+	, PrimitiveSceneProxy(InPrimitiveSceneProxy)
+{
+	const FMaterial* Material = InMesh.MaterialRenderProxy->GetMaterial();
+	EBlendMode BlendMode = Material->GetBlendMode();
+	bHasOpaqueMaterial = (BlendMode == BLEND_Opaque);
+	bHasMaskedMaterial = (BlendMode == BLEND_Masked);
+	bRenderInMainPass = true;// PrimitiveSceneProxy->ShouldRenderInMainPass();
+}
+
+void FMeshElementCollector::AddMesh(int32 ViewIndex, FMeshBatch& MeshBatch)
+{
+	std::vector<FMeshBatchAndRelevance>& ViewMeshBatches = *MeshBatches[ViewIndex];
+	ViewMeshBatches.push_back(FMeshBatchAndRelevance(MeshBatch, PrimitiveSceneProxy)) ;
+}
+

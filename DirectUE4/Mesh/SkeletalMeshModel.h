@@ -12,7 +12,7 @@ typedef uint16 FBoneIndexType;
 /** Max number of bone influences that a single skinned vert can have per vertex stream. */
 #define MAX_INFLUENCES_PER_STREAM	4
 
-struct SoftSkinVertex
+struct FSoftSkinVertex
 {
 	FVector Position;
 	FVector TangentX;//Tangent
@@ -26,7 +26,7 @@ struct SoftSkinVertex
 	uint8		InfluenceWeights[MAX_TOTAL_INFLUENCES];
 };
 
-struct SkeletalMeshSection
+struct FSkeletalMeshSection
 {
 	uint16 MaterialIndex;
 	uint32 BaseIndex;
@@ -34,7 +34,9 @@ struct SkeletalMeshSection
 
 	uint32 BaseVertexIndex;
 
-	std::vector<SoftSkinVertex> SoftVertices;
+	bool bCastShadow;
+
+	std::vector<FSoftSkinVertex> SoftVertices;
 
 	//TArray<FMeshToMeshVertData> ClothMappingData;
 
@@ -47,6 +49,23 @@ struct SkeletalMeshSection
 
 	std::map<int32, std::vector<int32>> OverlappingVertices;
 
+	FSkeletalMeshSection()
+		: MaterialIndex(0)
+		, BaseIndex(0)
+		, NumTriangles(0)
+		//, bSelected(false)
+		//, bRecomputeTangent(false)
+		, bCastShadow(true)
+		//, bLegacyClothingSection_DEPRECATED(false)
+		//, CorrespondClothSectionIndex_DEPRECATED(-1)
+		, BaseVertexIndex(0)
+		, NumVertices(0)
+		, MaxBoneInfluences(4)
+		//, CorrespondClothAssetIndex(INDEX_NONE)
+		//, bDisabled(false)
+		//, GenerateUpToLodIndex(-1)
+	{}
+
 	void CalcMaxBoneInfluences();
 
 	inline bool HasExtraBoneInfluences() const
@@ -55,10 +74,10 @@ struct SkeletalMeshSection
 	}
 };
 
-class SkeletalMeshLODModel
+class FSkeletalMeshLODModel
 {
 public:
-	std::vector<SkeletalMeshSection> Sections;
+	std::vector<FSkeletalMeshSection> Sections;
 	uint32 NumVertices;
 	uint32 NumTexCoords;
 
@@ -69,7 +88,7 @@ public:
 	std::vector<int32>			MeshToImportVertexMap;
 	int32						MaxImportVertex;
 
-	void GetVertices(std::vector<SoftSkinVertex>& Vertices) const;
+	void GetVertices(std::vector<FSoftSkinVertex>& Vertices) const;
 
 	bool DoSectionsNeedExtraBoneInfluences() const;
 };
@@ -78,7 +97,7 @@ public:
 class SkeletalMeshModel
 {
 public:
-	std::vector<SkeletalMeshLODModel*> LODModels;
+	std::vector<FSkeletalMeshLODModel*> LODModels;
 
 
 };

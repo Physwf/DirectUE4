@@ -843,22 +843,42 @@ class FMeshElementCollector
 public:
 	inline FMeshBatch& AllocateMesh()
 	{
-		const uint32 Index = MeshBatchStorage.size();
 		MeshBatchStorage.push_back(FMeshBatch());
-		return MeshBatchStorage[Index];
+		return MeshBatchStorage.back();
 	}
 
-	std::vector<FMeshBatch> MeshBatchStorage;
-	/** Meshes to render */
-	std::vector<std::vector<FMeshBatchAndRelevance>*> MeshBatches;
+	uint32 GetMeshBatchCount(uint32 ViewIndex) const
+	{
+		return MeshBatches[ViewIndex]->size();
+	}
 
-	std::vector<FSceneView*> Views;
+	void AddMesh(int32 ViewIndex, FMeshBatch& MeshBatch);
+
+	
 private:
+	FMeshElementCollector() :PrimitiveSceneProxy(NULL) 
+	{
+		MeshBatchStorage.reserve(1000);//UE4用的TChunkedArray避免了realloc引起的指针失效,这里用reserve临时处理
+	}
+
+	void SetPrimitive(const FPrimitiveSceneProxy* InPrimitiveSceneProxy/*, FHitProxyId DefaultHitProxyId*/)
+	{
+		assert(InPrimitiveSceneProxy);
+		PrimitiveSceneProxy = InPrimitiveSceneProxy;
+
+// 		for (int32 ViewIndex = 0; ViewIndex < SimpleElementCollectors.Num(); ViewIndex++)
+// 		{
+// 			SimpleElementCollectors[ViewIndex]->HitProxyId = DefaultHitProxyId;
+// 		}
+	}
+
 	void ClearViewMeshArrays()
 	{
 		Views.clear();
 		MeshBatches.clear();
 		//SimpleElementCollectors.Empty();
+
+		MeshBatchStorage.reserve(1000);//UE4用的TChunkedArray避免了realloc引起的指针失效,这里用reserve临时处理
 	}
 
 	void AddViewMeshArrays(
@@ -872,10 +892,15 @@ private:
 		//SimpleElementCollectors.Add(ViewSimpleElementCollector);
 	}
 
-	uint32 GetMeshBatchCount(uint32 ViewIndex) const
-	{
-		return MeshBatches[ViewIndex]->size();
-	}
+	/** Meshes to render */
+	std::vector<std::vector<FMeshBatchAndRelevance>*> MeshBatches;
+
+	std::vector<FMeshBatch> MeshBatchStorage;
+
+	std::vector<FSceneView*> Views;
+
+	const FPrimitiveSceneProxy* PrimitiveSceneProxy;
+
 
 	friend class FSceneRenderer;
 	friend class FProjectedShadowInfo;

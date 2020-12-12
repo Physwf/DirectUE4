@@ -4,7 +4,7 @@
 #include "SkinWeightVertexBuffer.h"
 #include "MultiSizeIndexContainer.h"
 
-class SkeletalMeshLODModel;
+class FSkeletalMeshLODModel;
 class USkeletalMesh;
 
 struct FSkeletalMeshRenderSection
@@ -14,6 +14,8 @@ struct FSkeletalMeshRenderSection
 	uint32 NumTriangles;
 
 	uint32 BaseVertexIndex;
+
+	bool bCastShadow;
 
 	std::vector<FBoneIndexType> BoneMap;
 
@@ -37,7 +39,7 @@ public:
 
 	void InitResources();
 
-	void BuildFromLODModel(const SkeletalMeshLODModel* LODModel,uint32 BuildFlags);
+	void BuildFromLODModel(const FSkeletalMeshLODModel* LODModel,uint32 BuildFlags);
 
 	uint32 GetNumVertices() const
 	{

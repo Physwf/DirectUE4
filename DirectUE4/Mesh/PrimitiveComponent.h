@@ -30,6 +30,8 @@ public:
 	virtual class UMaterial* GetMaterial(int32 ElementIndex) const = 0;
 
 	FPrimitiveSceneProxy* SceneProxy;
+
+	uint8 CastShadow : 1;
 protected:
 	virtual void CreateRenderState_Concurrent() override;
 	virtual void SendRenderTransform_Concurrent() override;

@@ -1,6 +1,6 @@
 #include "SkinWeightVertexBuffer.h"
 
-void FSkinWeightVertexBuffer::Init(const std::vector<SoftSkinVertex>& InVertices)
+void FSkinWeightVertexBuffer::Init(const std::vector<FSoftSkinVertex>& InVertices)
 {
 	uint32 HalfStride = bExtraBoneInfluences ? MAX_TOTAL_INFLUENCES : MAX_INFLUENCES_PER_STREAM;
 	uint32 Stride = 2 * HalfStride;

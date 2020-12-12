@@ -12,7 +12,7 @@ USkeletalMesh::USkeletalMesh(class AActor* InOwner)
 	ImportedModel = std::make_unique<SkeletalMeshModel>();
 }
 
-void USkeletalMesh::CalculateRequiredBones(SkeletalMeshLODModel& LODModel, const struct FReferenceSkeleton& RefSkeleton, const std::map<FBoneIndexType, FBoneIndexType>* BonesToRemove)
+void USkeletalMesh::CalculateRequiredBones(FSkeletalMeshLODModel& LODModel, const struct FReferenceSkeleton& RefSkeleton, const std::map<FBoneIndexType, FBoneIndexType>* BonesToRemove)
 {
 	// RequiredBones for base model includes all raw bones.
 	int32 RequiredBoneCount = RefSkeleton.GetRawBoneNum();
@@ -147,7 +147,45 @@ FSkeletalMeshSceneProxy::FSkeletalMeshSceneProxy(const USkinnedMeshComponent* Co
 	, MeshObject(Component->MeshObject)
 	, SkeletalMeshRenderData(InSkelMeshRenderData)
 {
+	bool bCastShadow = Component->CastShadow;
+	bool bAnySectionCastsShadow = false;
+	LODSections.reserve(SkeletalMeshRenderData->LODRenderData.size());
+	LODSections.resize(SkeletalMeshRenderData->LODRenderData.size());
+	for (uint32 LODIdx = 0; LODIdx < SkeletalMeshRenderData->LODRenderData.size(); LODIdx++)
+	{
+		const FSkeletalMeshLODRenderData& LODData = *SkeletalMeshRenderData->LODRenderData[LODIdx];
+		const FSkeletalMeshLODInfo& Info = *(Component->SkeletalMesh->GetLODInfo(LODIdx));
 
+		FLODSectionElements& LODSection = LODSections[LODIdx];
+
+		LODSection.SectionElements.clear();
+		LODSection.SectionElements.reserve(LODData.RenderSections.size());
+
+		for (uint32 SectionIndex = 0; SectionIndex < LODData.RenderSections.size(); SectionIndex++)
+		{
+			const FSkeletalMeshRenderSection& Section = LODData.RenderSections[SectionIndex];
+
+			int32 UseMaterialIndex = Section.MaterialIndex;
+
+			bool bSectionHidden = false;// MeshObject->IsMaterialHidden(LODIdx, UseMaterialIndex);
+
+										// If the material is NULL, or isn't flagged for use with skeletal meshes, it will be replaced by the default material.
+			UMaterial* Material = Component->GetMaterial(UseMaterialIndex);
+
+			bool bSectionCastsShadow = !bSectionHidden && bCastShadow &&
+				(IsValidIndex(Component->SkeletalMesh->Materials,UseMaterialIndex) == false || Section.bCastShadow);
+
+			bAnySectionCastsShadow |= bSectionCastsShadow;
+			LODSection.SectionElements.push_back(
+				FSectionElementInfo(
+					Material,
+					bSectionCastsShadow,
+					UseMaterialIndex
+				));
+		}
+	}
+
+	bCastDynamicShadow = bCastDynamicShadow && bAnySectionCastsShadow;
 }
 
 void FSkeletalMeshSceneProxy::GetDynamicMeshElements(const std::vector<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const
@@ -278,6 +316,8 @@ void FSkeletalMeshSceneProxy::GetDynamicElementsSection(
 
 			Mesh.bCanApplyViewModeOverrides = true;
 			Mesh.bUseWireframeSelectionColoring = bIsSelected;
+
+			Collector.AddMesh(ViewIndex, Mesh);
 		}
 	}
 }

@@ -1,13 +1,13 @@
 #include "SkeletalMeshModel.h"
 
-void SkeletalMeshSection::CalcMaxBoneInfluences()
+void FSkeletalMeshSection::CalcMaxBoneInfluences()
 {
 	// if we only have rigid verts then there is only one bone
 	MaxBoneInfluences = 1;
 	// iterate over all the soft vertices for this chunk and find max # of bones used
 	for (uint32 VertIdx = 0; VertIdx < SoftVertices.size(); VertIdx++)
 	{
-		SoftSkinVertex& SoftVert = SoftVertices[VertIdx];
+		FSoftSkinVertex& SoftVert = SoftVertices[VertIdx];
 
 		// calc # of bones used by this soft skinned vertex
 		int32 BonesUsed = 0;
@@ -40,23 +40,23 @@ void SkeletalMeshSection::CalcMaxBoneInfluences()
 	}
 }
 
-void SkeletalMeshLODModel::GetVertices(std::vector<SoftSkinVertex>& Vertices) const
+void FSkeletalMeshLODModel::GetVertices(std::vector<FSoftSkinVertex>& Vertices) const
 {
 	Vertices.clear();
 	Vertices.resize(NumVertices);
 
 	// Initialize the vertex data
 	// All chunks are combined into one (rigid first, soft next)
-	SoftSkinVertex* DestVertex = (SoftSkinVertex*)Vertices.data();
+	FSoftSkinVertex* DestVertex = (FSoftSkinVertex*)Vertices.data();
 	for (uint32 SectionIndex = 0; SectionIndex < Sections.size(); SectionIndex++)
 	{
-		const SkeletalMeshSection& Section = Sections[SectionIndex];
-		memcpy(DestVertex, Section.SoftVertices.data(), Section.SoftVertices.size() * sizeof(SoftSkinVertex));
+		const FSkeletalMeshSection& Section = Sections[SectionIndex];
+		memcpy(DestVertex, Section.SoftVertices.data(), Section.SoftVertices.size() * sizeof(FSoftSkinVertex));
 		DestVertex += Section.SoftVertices.size();
 	}
 }
 
-bool SkeletalMeshLODModel::DoSectionsNeedExtraBoneInfluences() const
+bool FSkeletalMeshLODModel::DoSectionsNeedExtraBoneInfluences() const
 {
 	for (uint32 SectionIdx = 0; SectionIdx < Sections.size(); ++SectionIdx)
 	{

@@ -190,18 +190,17 @@ FPrimitiveSceneProxy* USkinnedMeshComponent::CreateSceneProxy()
 	return Result;
 }
 
-class UMaterial* USkinnedMeshComponent::GetMaterial(int32 ElementIndex) const
+class UMaterial* USkinnedMeshComponent::GetMaterial(int32 MaterialIndex) const
 {
-	/*
-	if (OverrideMaterials.IsValidIndex(MaterialIndex) && OverrideMaterials[MaterialIndex])
-	{
-		return OverrideMaterials[MaterialIndex];
-	}
-	else if (SkeletalMesh && IsValidIndex(SkeletalMesh->Materials, MaterialIndex) && SkeletalMesh->Materials[MaterialIndex].MaterialInterface)
+// 	if (OverrideMaterials.IsValidIndex(MaterialIndex) && OverrideMaterials[MaterialIndex])
+// 	{
+// 		return OverrideMaterials[MaterialIndex];
+// 	}
+	/*else*/ if (SkeletalMesh && IsValidIndex(SkeletalMesh->Materials, MaterialIndex) && SkeletalMesh->Materials[MaterialIndex].MaterialInterface)
 	{
 		return SkeletalMesh->Materials[MaterialIndex].MaterialInterface;
 	}
-	*/
+	
 	return nullptr;
 }
 

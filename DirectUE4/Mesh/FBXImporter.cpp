@@ -880,6 +880,49 @@ UStaticMesh* FBXImporter::ImportStaticMesh(class AActor* InOwner, const char* pF
 
 	return Mesh;
 }
+void ProcessImportMeshMaterials(std::vector<FSkeletalMaterial>& Materials, FSkeletalMeshImportData& ImportData)
+{
+	std::vector<VMaterial>&	ImportedMaterials = ImportData.Materials;
+
+	// If direct linkup of materials is requested, try to find them here - to get a texture name from a 
+	// material name, cut off anything in front of the dot (beyond are special flags).
+	Materials.clear();
+	int32 SkinOffset = INDEX_NONE;
+
+	for (uint32 MatIndex = 0; MatIndex < ImportedMaterials.size(); ++MatIndex)
+	{
+		const VMaterial& ImportedMaterial = ImportedMaterials[MatIndex];
+
+		UMaterial* Material = NULL;
+		std::string MaterialNameNoSkin = ImportedMaterial.MaterialImportName;
+// 		if (ImportedMaterial.Material.IsValid())
+// 		{
+// 			Material = ImportedMaterial.Material.Get();
+// 		}
+// 		else
+		{
+			const std::string& MaterialName = ImportedMaterial.MaterialImportName;
+			MaterialNameNoSkin = MaterialName;
+			Material = UMaterial::GetDefaultMaterial(MD_Surface);// FindObject<UMaterialInterface>(ANY_PACKAGE, *MaterialName);
+// 			if (Material == nullptr)
+// 			{
+// 				SkinOffset = MaterialName.Find(TEXT("_skin"), ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+// 				if (SkinOffset != INDEX_NONE)
+// 				{
+// 					FString SkinXXNumber = MaterialName.Right(MaterialName.Len() - (SkinOffset + 1)).RightChop(4);
+// 					if (SkinXXNumber.IsNumeric())
+// 					{
+// 						MaterialNameNoSkin = MaterialName.LeftChop(MaterialName.Len() - SkinOffset);
+// 						Material = FindObject<UMaterialInterface>(ANY_PACKAGE, *MaterialNameNoSkin);
+// 					}
+// 				}
+// 			}
+		}
+
+		const bool bEnableShadowCasting = true;
+		Materials.push_back(FSkeletalMaterial(Material, MaterialNameNoSkin));
+	}
+}
 
 USkeletalMesh* FBXImporter::ImportSkeletalMesh(class AActor* InOwner, const char* pFileName)
 {
@@ -954,7 +997,7 @@ USkeletalMesh* FBXImporter::ImportSkeletalMesh(class AActor* InOwner, const char
 	USkeletalMesh* NewSekeletalMesh = new USkeletalMesh(InOwner);
 
 	// process materials from import data
-	//ProcessImportMeshMaterials(SkeletalMesh->Materials, *SkelMeshImportDataPtr);
+	ProcessImportMeshMaterials(NewSekeletalMesh->Materials, *SkelMeshImportDataPtr);
 
 	// process reference skeleton from import data
 	int32 SkeletalDepth = 0;
@@ -973,12 +1016,12 @@ USkeletalMesh* FBXImporter::ImportSkeletalMesh(class AActor* InOwner, const char
 	SkeletalMeshModel *ImportedResource = NewSekeletalMesh->GetImportedModel();
 	assert(ImportedResource->LODModels.size() == 0);
 	ImportedResource->LODModels.clear();
-	ImportedResource->LODModels.push_back(new SkeletalMeshLODModel());
+	ImportedResource->LODModels.push_back(new FSkeletalMeshLODModel());
 
 	NewSekeletalMesh->ResetLODInfo();
 	FSkeletalMeshLODInfo& NewLODInfo = NewSekeletalMesh->AddLODInfo();
 
-	SkeletalMeshLODModel& LODModel = *ImportedResource->LODModels[0];
+	FSkeletalMeshLODModel& LODModel = *ImportedResource->LODModels[0];
 
 	LODModel.NumTexCoords = FMath::Max<uint32>(1, SkelMeshImportDataPtr->NumTexCoords);
 
@@ -2747,7 +2790,7 @@ class SkeletalMeshBuildData final : public IMeshBuildData
 {
 public:
 	SkeletalMeshBuildData(
-		SkeletalMeshLODModel& InLODModel,
+		FSkeletalMeshLODModel& InLODModel,
 		const FReferenceSkeleton& InRefSkeleton,
 		const std::vector<FVertInfluence>& InInfluences,
 		const std::vector<FMeshWedge>& InWedges,
@@ -2892,7 +2935,7 @@ public:
 	SMikkTSpaceInterface MikkTInterface;
 	MikkTSpace_Skeletal_Mesh MikkTUserData;
 
-	SkeletalMeshLODModel& LODModel;
+	FSkeletalMeshLODModel& LODModel;
 	const FReferenceSkeleton& RefSkeleton;
 	const std::vector<FVertInfluence>& Influences;
 	const std::vector<FMeshWedge>& Wedges;
@@ -4315,20 +4358,20 @@ void SkeletalMeshTools::ChunkSkinnedVertices(std::vector<FSkinnedMeshChunk*>& Ch
 	}
 }
 
-bool FBXImporter::BuildSkeletalMesh(SkeletalMeshLODModel& LODModel, const FReferenceSkeleton& RefSkeleton, const std::vector<FVertInfluence>& Influences, const std::vector<FMeshWedge>& Wedges, const std::vector<FMeshFace>& Faces, const std::vector<FVector>& Points, const std::vector<int32>& PointToOriginalMap, const MeshBuildOptions& BuildOptions /*= MeshBuildOptions()*/, std::vector<std::string> * OutWarningMessages /*= NULL*/, std::vector<std::string> * OutWarningNames /*= NULL*/)
+bool FBXImporter::BuildSkeletalMesh(FSkeletalMeshLODModel& LODModel, const FReferenceSkeleton& RefSkeleton, const std::vector<FVertInfluence>& Influences, const std::vector<FMeshWedge>& Wedges, const std::vector<FMeshFace>& Faces, const std::vector<FVector>& Points, const std::vector<int32>& PointToOriginalMap, const MeshBuildOptions& BuildOptions /*= MeshBuildOptions()*/, std::vector<std::string> * OutWarningMessages /*= NULL*/, std::vector<std::string> * OutWarningNames /*= NULL*/)
 {
-	auto UpdateOverlappingVertices = [](SkeletalMeshLODModel& InLODModel)
+	auto UpdateOverlappingVertices = [](FSkeletalMeshLODModel& InLODModel)
 	{
 		// clear first
 		for (uint32 SectionIdx = 0; SectionIdx < InLODModel.Sections.size(); SectionIdx++)
 		{
-			SkeletalMeshSection& CurSection = InLODModel.Sections[SectionIdx];
+			FSkeletalMeshSection& CurSection = InLODModel.Sections[SectionIdx];
 			CurSection.OverlappingVertices.clear();
 		}
 
 		for (uint32 SectionIdx = 0; SectionIdx < InLODModel.Sections.size(); SectionIdx++)
 		{
-			SkeletalMeshSection& CurSection = InLODModel.Sections[SectionIdx];
+			FSkeletalMeshSection& CurSection = InLODModel.Sections[SectionIdx];
 			const uint32 NumSoftVertices = CurSection.SoftVertices.size();
 
 			// Create a list of vertex Z/index pairs
@@ -4336,7 +4379,7 @@ bool FBXImporter::BuildSkeletalMesh(SkeletalMeshLODModel& LODModel, const FRefer
 			VertIndexAndZ.reserve(NumSoftVertices);
 			for (uint32 VertIndex = 0; VertIndex < NumSoftVertices; ++VertIndex)
 			{
-				SoftSkinVertex& SrcVert = CurSection.SoftVertices[VertIndex];
+				FSoftSkinVertex& SrcVert = CurSection.SoftVertices[VertIndex];
 				//new(VertIndexAndZ)FIndexAndZ(VertIndex, SrcVert.Position);
 				VertIndexAndZ.push_back(FIndexAndZ(VertIndex, SrcVert.Position));
 			}
@@ -4348,7 +4391,7 @@ bool FBXImporter::BuildSkeletalMesh(SkeletalMeshLODModel& LODModel, const FRefer
 			{
 				const uint32 SrcVertIndex = VertIndexAndZ[i].Index;
 				const float Z = VertIndexAndZ[i].Z;
-				SoftSkinVertex& SrcVert = CurSection.SoftVertices[SrcVertIndex];
+				FSoftSkinVertex& SrcVert = CurSection.SoftVertices[SrcVertIndex];
 
 				// only need to search forward, since we add pairs both ways
 				for (uint32 j = i + 1; j < VertIndexAndZ.size(); ++j)
@@ -4357,7 +4400,7 @@ bool FBXImporter::BuildSkeletalMesh(SkeletalMeshLODModel& LODModel, const FRefer
 						break; // can't be any more dups
 
 					const uint32 IterVertIndex = VertIndexAndZ[j].Index;
-					SoftSkinVertex& IterVert = CurSection.SoftVertices[IterVertIndex];
+					FSoftSkinVertex& IterVert = CurSection.SoftVertices[IterVertIndex];
 					if (PointsEqual(SrcVert.Position, IterVert.Position))
 					{
 						// if so, we add to overlapping vert
@@ -4403,7 +4446,7 @@ bool FBXImporter::BuildSkeletalMesh(SkeletalMeshLODModel& LODModel, const FRefer
 	return true;
 }
 
-void FBXImporter::BuildSkeletalModelFromChunks(SkeletalMeshLODModel& LODModel, const FReferenceSkeleton& RefSkeleton, std::vector<FSkinnedMeshChunk*>& Chunks, const std::vector<int32>& PointToOriginalMap)
+void FBXImporter::BuildSkeletalModelFromChunks(FSkeletalMeshLODModel& LODModel, const FReferenceSkeleton& RefSkeleton, std::vector<FSkinnedMeshChunk*>& Chunks, const std::vector<int32>& PointToOriginalMap)
 {
 	// Clear out any data currently held in the LOD model.
 	LODModel.Sections.clear();
@@ -4415,8 +4458,8 @@ void FBXImporter::BuildSkeletalModelFromChunks(SkeletalMeshLODModel& LODModel, c
 	{
 		FSkinnedMeshChunk* SrcChunk = Chunks[ChunkIndex];
 
-		LODModel.Sections.push_back(SkeletalMeshSection());
-		SkeletalMeshSection& Section = LODModel.Sections.back();
+		LODModel.Sections.push_back(FSkeletalMeshSection());
+		FSkeletalMeshSection& Section = LODModel.Sections.back();
 		Section.MaterialIndex = SrcChunk->MaterialIndex;
 		Exchange(Section.BoneMap, SrcChunk->BoneMap);
 
@@ -4450,7 +4493,7 @@ void FBXImporter::BuildSkeletalModelFromChunks(SkeletalMeshLODModel& LODModel, c
 	for (uint32 SectionIndex = 0; SectionIndex < LODModel.Sections.size(); SectionIndex++)
 	{
 		FSkinnedMeshChunk* SrcChunk = Chunks[SectionIndex];
-		SkeletalMeshSection& Section = LODModel.Sections[SectionIndex];
+		FSkeletalMeshSection& Section = LODModel.Sections[SectionIndex];
 		std::vector<FSoftSkinBuildVertex>& ChunkVertices = SrcChunk->Vertices;
 		std::vector<uint32>& ChunkIndices = SrcChunk->Indices;
 
@@ -4494,7 +4537,7 @@ void FBXImporter::BuildSkeletalModelFromChunks(SkeletalMeshLODModel& LODModel, c
 	// Build the arrays of rigid and soft vertices on the model's chunks.
 	for (uint32 SectionIndex = 0; SectionIndex < LODModel.Sections.size(); SectionIndex++)
 	{
-		SkeletalMeshSection& Section = LODModel.Sections[SectionIndex];
+		FSkeletalMeshSection& Section = LODModel.Sections[SectionIndex];
 		std::vector<FSoftSkinBuildVertex>& ChunkVertices = Chunks[SectionIndex]->Vertices;
 
 		CurrentVertexIndex = 0;
@@ -4516,7 +4559,7 @@ void FBXImporter::BuildSkeletalModelFromChunks(SkeletalMeshLODModel& LODModel, c
 		{
 			const FSoftSkinBuildVertex& SoftVertex = ChunkVertices[VertexIndex];
 
-			SoftSkinVertex NewVertex;
+			FSoftSkinVertex NewVertex;
 			NewVertex.Position = SoftVertex.Position;
 			NewVertex.TangentX = SoftVertex.TangentX;
 			NewVertex.TangentY = SoftVertex.TangentY;
@@ -4568,7 +4611,7 @@ void FBXImporter::BuildSkeletalModelFromChunks(SkeletalMeshLODModel& LODModel, c
 	// Finish building the sections.
 	for (uint32 SectionIndex = 0; SectionIndex < LODModel.Sections.size(); SectionIndex++)
 	{
-		SkeletalMeshSection& Section = LODModel.Sections[SectionIndex];
+		FSkeletalMeshSection& Section = LODModel.Sections[SectionIndex];
 
 		const std::vector<uint32>& SectionIndices = Chunks[SectionIndex]->Indices;
 
