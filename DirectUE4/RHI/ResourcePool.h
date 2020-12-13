@@ -13,7 +13,7 @@ public:
 	{}
 	virtual ~TResourcePool()
 	{
-		DrainPool(true);
+		//DrainPool(true);
 	}
 	uint32 PooledSizeForCreationArguments(ResourceCreationArguments Args)
 	{
@@ -152,7 +152,7 @@ public:
 	/** Destructor */
 	virtual ~TRenderResourcePool()
 	{
-		TResourcePool<ResourceType, ResourcePoolPolicy, ResourceCreationArguments>::DrainPool(true);
+		//TResourcePool<ResourceType, ResourcePoolPolicy, ResourceCreationArguments>::DrainPool(true);
 	}
 
 	/** Creates a pooled resource.

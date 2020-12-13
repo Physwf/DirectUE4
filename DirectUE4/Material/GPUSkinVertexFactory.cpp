@@ -129,7 +129,10 @@ bool FGPUBaseSkinVertexFactory::FShaderDataType::UpdateBoneData(const std::vecto
 	uint32 PooledArraySize = BoneBufferPool.PooledSizeForCreationArguments(VectorArraySize);
 
 	D3D11_BUFFER_DESC Desc;
-	CurrentBoneBuffer->VertexBufferRHI->GetDesc(&Desc);
+	if (IsValidRef(*CurrentBoneBuffer))
+	{
+		CurrentBoneBuffer->VertexBufferRHI->GetDesc(&Desc);
+	}
 	if (!IsValidRef(*CurrentBoneBuffer) || PooledArraySize != Desc.ByteWidth)
 	{
 		if (IsValidRef(*CurrentBoneBuffer))
@@ -207,6 +210,13 @@ void TGPUSkinVertexFactory<bExtraBoneInfluencesT>::AddVertexElements(FDataType& 
 	OutElements.push_back(AccessStreamComponent(InData.TangentBasisComponents[0], 1));
 	OutElements.push_back(AccessStreamComponent(InData.TangentBasisComponents[1], 2));
 
+
+	// bone indices decls
+	OutElements.push_back(AccessStreamComponent(InData.BoneIndices, 3));
+
+	// bone weights decls
+	OutElements.push_back(AccessStreamComponent(InData.BoneWeights, 4));
+
 	const uint8 BaseTexCoordAttribute = 5;
 	//for (int32 CoordinateIndex = 0; CoordinateIndex < InData.TextureCoordinates.Num(); CoordinateIndex++)
 	{
@@ -216,11 +226,10 @@ void TGPUSkinVertexFactory<bExtraBoneInfluencesT>::AddVertexElements(FDataType& 
 		));
 	}
 
-	// bone indices decls
-	OutElements.push_back(AccessStreamComponent(InData.BoneIndices, 3));
+	FVertexStreamComponent NullColorComponent(GNullColorVertexBuffer.Get(), 0, 0, sizeof(FColor), DXGI_FORMAT_R8G8B8A8_UNORM,4);
+	OutElements.push_back(AccessStreamComponent(NullColorComponent, 13));
 
-	// bone weights decls
-	OutElements.push_back(AccessStreamComponent(InData.BoneWeights, 4));
+
 }
 
 

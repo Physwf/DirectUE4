@@ -13,6 +13,8 @@ SkeletalMeshActor::SkeletalMeshActor(class UWorld* InOwner, const char* Resource
 	MeshComponent = new USkeletalMeshComponent(this);
 	MeshComponent->SetSkeletalMesh(Mesh);
 	MeshComponent->Mobility = EComponentMobility::Movable;
+
+	RootComponent = MeshComponent;
 }
 
 SkeletalMeshActor::~SkeletalMeshActor()

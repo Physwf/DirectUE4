@@ -50,6 +50,9 @@ std::shared_ptr<FD3D11Texture2D> GBlackTextureDepthCube;
 ComPtr<ID3D11Buffer> DynamicVB;
 ComPtr<ID3D11Buffer> DynamicIB;
 
+ComPtr<ID3D11Buffer> GNullColorVertexBuffer;
+ComPtr<ID3D11ShaderResourceView> GNullColorVertexBufferSRV;
+
 LONG WindowWidth = 1920;
 LONG WindowHeight = 1080;
 
@@ -1539,8 +1542,10 @@ ComPtr<ID3D11ShaderResourceView> RHICreateShaderResourceView(std::shared_ptr<FD3
 // 		TRefCountPtr<ID3D11ShaderResourceView> ShaderResourceView;
 // 		VERIFYD3D11RESULT_EX(Direct3DDevice->CreateShaderResourceView(Texture2DArray->GetResource(), &SRVDesc, (ID3D11ShaderResourceView**)ShaderResourceView.GetInitReference()), Direct3DDevice);
 // 
-// 		return new FD3D11ShaderResourceView(ShaderResourceView, Texture2DArray);
-// 
+// 		return new FD3D11ShaderResourceView(ShaderResourceView, Texture2DArray);
+
+// 
+
 // 		FD3D11Texture3D* Texture3D = ResourceCast(Texture3DRHI);
 // 
 // 		D3D11_TEXTURE3D_DESC TextureDesc;
@@ -1559,7 +1564,8 @@ ComPtr<ID3D11ShaderResourceView> RHICreateShaderResourceView(std::shared_ptr<FD3
 // 		TRefCountPtr<ID3D11ShaderResourceView> ShaderResourceView;
 // 		VERIFYD3D11RESULT_EX(Direct3DDevice->CreateShaderResourceView(Texture3D->GetResource(), &SRVDesc, (ID3D11ShaderResourceView**)ShaderResourceView.GetInitReference()), Direct3DDevice);
 // 
-// 		return new FD3D11ShaderResourceView(ShaderResourceView, Texture3D);
+// 		return new FD3D11ShaderResourceView(ShaderResourceView, Texture3D);
+
 	}
 	if (Texture2DRHI->IsCube())
 	{
@@ -1861,6 +1867,16 @@ bool InitRHI()
 		IndexDesc.MiscFlags = 0;
 
 		assert(S_OK == D3D11Device->CreateBuffer(&IndexDesc, NULL, DynamicIB.GetAddressOf()));
+	}
+	{
+		uint32 Vertices[4];
+		Vertices[0] = FColor(255, 255, 255, 255).DWColor();
+		Vertices[1] = FColor(255, 255, 255, 255).DWColor();
+		Vertices[2] = FColor(255, 255, 255, 255).DWColor();
+		Vertices[3] = FColor(255, 255, 255, 255).DWColor();
+		GNullColorVertexBuffer = RHICreateVertexBuffer(sizeof(uint32) * 4, D3D11_USAGE_DEFAULT, D3D11_BIND_SHADER_RESOURCE, 0 ,Vertices);
+		GNullColorVertexBufferSRV = RHICreateShaderResourceView(GNullColorVertexBuffer.Get(), sizeof(FColor), DXGI_FORMAT_R8G8B8A8_UNORM);
+
 	}
 	return true;
 }

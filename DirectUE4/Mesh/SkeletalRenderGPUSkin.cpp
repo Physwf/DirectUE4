@@ -220,8 +220,9 @@ void InitGPUSkinVertexFactoryComponents(typename VertexFactoryType::FDataType* V
 	VertexFactoryData->TangentBasisComponents[0] = FVertexStreamComponent(
 		VertexBuffers.StaticVertexBuffers->TangentsVertexBufferRHI.Get(),
 		0,
-		sizeof(Vector4),
-		DXGI_FORMAT_R32G32B32A32_FLOAT
+		sizeof(FVector),
+		DXGI_FORMAT_R32G32B32_FLOAT,
+		4
 	);
 	VertexFactoryData->TangentBasisComponents[1] = FVertexStreamComponent(
 		VertexBuffers.StaticVertexBuffers->TangentsVertexBufferRHI.Get(),
@@ -241,13 +242,13 @@ void InitGPUSkinVertexFactoryComponents(typename VertexFactoryType::FDataType* V
 	VertexFactoryData->BoneIndices = FVertexStreamComponent(
 		VertexBuffers.SkinWeightVertexBuffer->WeightVertexBufferRHI.Get(), 
 		/*STRUCT_OFFSET(WeightInfoType, InfluenceBones)*/0, 
-		/*VertexBuffers.SkinWeightVertexBuffer->GetStride()*/4,
+		/*VertexBuffers.SkinWeightVertexBuffer->GetStride()*/8,
 		DXGI_FORMAT_R8G8B8A8_UINT);
 	// bone weights
 	VertexFactoryData->BoneWeights = FVertexStreamComponent(
 		VertexBuffers.SkinWeightVertexBuffer->WeightVertexBufferRHI.Get(),
 		/*STRUCT_OFFSET(WeightInfoType, InfluenceWeights)*/4, 
-		/*VertexBuffers.SkinWeightVertexBuffer->GetStride()*/4,
+		/*VertexBuffers.SkinWeightVertexBuffer->GetStride()*/8,
 		DXGI_FORMAT_R8G8B8A8_UNORM);
 
 // 	if (VertexFactoryType::HasExtraBoneInfluences)

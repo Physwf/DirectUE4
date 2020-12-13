@@ -38,6 +38,9 @@ extern ID3D11ShaderResourceView* GWhiteTextureCubeSRV;
 extern ID3D11SamplerState* GWhiteTextureCubeSamplerState;
 extern std::shared_ptr<class FD3D11Texture2D> GBlackTextureDepthCube;
 
+extern ComPtr<ID3D11Buffer> GNullColorVertexBuffer;
+extern ComPtr<ID3D11ShaderResourceView> GNullColorVertexBufferSRV;
+
 extern LONG WindowWidth;
 extern LONG WindowHeight;
 

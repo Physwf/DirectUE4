@@ -79,6 +79,8 @@ public:
 	class USkeletalMesh* SkeletalMesh;
 
 	class FSkeletalMeshObject*	MeshObject;
+	
+	int32 PredictedLODLevel;
 
 	std::weak_ptr<class USkinnedMeshComponent> MasterPoseComponent;
 
@@ -101,6 +103,7 @@ protected:
 	virtual void SendRenderDynamicData_Concurrent() override;
 	virtual void DestroyRenderState_Concurrent() override;
 
+	virtual bool UpdateLODStatus();
 
 	std::vector<int32> MasterBoneMap;
 

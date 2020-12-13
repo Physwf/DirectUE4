@@ -12,18 +12,23 @@ AActor::~AActor()
 
 }
 
-void AActor::SetActorLocation(FVector NewLocation)
+bool AActor::SetActorLocation(FVector NewLocation)
 {
 	if (RootComponent)
 	{
 		const FVector Delta = NewLocation - GetActorLocation();
-		RootComponent->MoveComponent(Delta, GetActorQuat());
+		return RootComponent->MoveComponent(Delta, GetActorQuat());
 	}
 	Position = NewLocation;
-
+	return false;
 }
 
-void AActor::SetActorRotation(FRotator InRotation)
+bool AActor::SetActorRotation(FRotator NewRotation)
 {
-	Rotation = InRotation;
+	if (RootComponent)
+	{
+		return RootComponent->MoveComponent(FVector::ZeroVector, NewRotation.Quaternion());
+	}
+	Rotation = NewRotation;
+	return false;
 }

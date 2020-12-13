@@ -47,8 +47,9 @@ public:
 	/** If we belong to a world, mark this for a deferred update, otherwise do it now. */
 	void MarkForNeededEndOfFrameRecreate();
 
+	class FScene* GetScene() const;
 	AActor* GetOwner() const { return Owner; }
-	UWorld* GetWorld() { return WorldPrivite; }
+	UWorld* GetWorld() { return WorldPrivate; }
 protected:
 
 
@@ -63,7 +64,7 @@ protected:
 
 	void RecreateRenderState_Concurrent();
 private:
-	UWorld * WorldPrivite;
+	UWorld * WorldPrivate;
 	mutable AActor* Owner;
 };
 

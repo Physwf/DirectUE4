@@ -14,9 +14,9 @@ public:
 	virtual void Tick(float fDeltaSeconds) = 0;
 	virtual void PostLoad() = 0;
 
-	void SetActorLocation(FVector NewLocation);
+	bool SetActorLocation(FVector NewLocation);
 	FVector GetActorLocation() const { return Position; }
-	void SetActorRotation(FRotator InRotation);
+	bool SetActorRotation(FRotator InRotation);
 	FRotator GetActorRotation() { return Rotation; }
 
 	FQuat GetActorQuat() const

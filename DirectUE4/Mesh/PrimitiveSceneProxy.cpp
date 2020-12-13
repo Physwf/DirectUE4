@@ -14,7 +14,7 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 	, bSelfShadowOnly(false)
 	, bCastInsetShadow(false)	// Assumed to be enabled if bSelfShadowOnly is enabled.
 	, bCastFarShadow(true)
-	//, Scene(InComponent->GetScene())
+	, Scene(InComponent->GetScene())
 	//, PrimitiveComponentId(0)
 	, PrimitiveSceneInfo(NULL)
 {

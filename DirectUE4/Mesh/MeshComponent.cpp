@@ -95,7 +95,7 @@ void USkinnedMeshComponent::OnRegister()
 
 	UMeshComponent::OnRegister();
 
-	//UpdateLODStatus();
+	UpdateLODStatus();
 }
 
 void USkinnedMeshComponent::OnUnregister()
@@ -115,6 +115,35 @@ void USkinnedMeshComponent::CreateRenderState_Concurrent()
 	MeshObject = ::new FSkeletalMeshObjectGPUSkin(this, SkelMeshRenderData);
 
 	UMeshComponent::CreateRenderState_Concurrent();
+
+	if (SkeletalMesh)
+	{
+		// Update dynamic data
+
+		if (MeshObject)
+		{
+			// Calculate new lod level
+			UpdateLODStatus();
+
+			// If we have a valid LOD, set up required data, during reimport we may try to create data before we have all the LODs
+			// imported, in that case we skip until we have all the LODs
+			if (SkeletalMesh->IsValidLODIndex(PredictedLODLevel))
+			{
+// 				const bool bMorphTargetsAllowed = CVarEnableMorphTargets.GetValueOnAnyThread(true) != 0;
+// 
+// 				// Are morph targets disabled for this LOD?
+// 				if (bDisableMorphTarget || !bMorphTargetsAllowed)
+// 				{
+// 					ActiveMorphTargets.Empty();
+// 				}
+
+				MeshObject->Update(PredictedLODLevel, this, /*ActiveMorphTargets, MorphTargetWeights,*/ true);  // send to rendering thread
+			}
+		}
+
+		// scene proxy update of material usage based on active morphs
+		//UpdateMorphMaterialUsageOnProxy();
+	}
 }
 
 void USkinnedMeshComponent::SendRenderDynamicData_Concurrent()
@@ -162,6 +191,12 @@ void USkinnedMeshComponent::DestroyRenderState_Concurrent()
 		//BeginCleanup(MeshObject);
 		MeshObject = NULL;
 	}
+}
+
+bool USkinnedMeshComponent::UpdateLODStatus()
+{
+	PredictedLODLevel = 0;
+	return true;
 }
 
 void USkinnedMeshComponent::UpdateMasterBoneMap()

@@ -10,7 +10,7 @@ UActorComponent::UActorComponent(AActor* InOwner)
 	, bRenderTransformDirty(false)
 	, bRenderDynamicDataDirty(false)
 {
-	WorldPrivite = Owner->GetWorld();
+	WorldPrivate = Owner->GetWorld();
 }
 
 UActorComponent::~UActorComponent()
@@ -177,6 +177,11 @@ void UActorComponent::MarkForNeededEndOfFrameRecreate()
 		// we don't have a world, do it right now.
 		DoDeferredRenderUpdates_Concurrent();
 	}
+}
+
+class FScene* UActorComponent::GetScene() const
+{
+	return (WorldPrivate ? WorldPrivate->Scene : NULL);
 }
 
 USceneComponent::USceneComponent(AActor* InOwner) : UActorComponent(InOwner)

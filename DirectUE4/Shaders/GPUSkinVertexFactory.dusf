@@ -27,10 +27,10 @@ struct FVertexFactoryInput
 {
 	float4	Position : ATTRIBUTE0;
 	// 0..1
-	half3	TangentX : ATTRIBUTE1;
+	float3	TangentX : ATTRIBUTE1;
 	// 0..1
 	// TangentZ.w contains sign of tangent basis determinant
-	half4	TangentZ : ATTRIBUTE2;
+	float4	TangentZ : ATTRIBUTE2;
 
 #if FEATURE_LEVEL >= FEATURE_LEVEL_ES3_1 || COMPILER_METAL
 	uint4	BlendIndices : ATTRIBUTE3;
@@ -194,6 +194,9 @@ float3 UnpackedPosition(FVertexFactoryInput Input)
 
 FBoneMatrix GetBoneMatrix(int Index)
 {
+// 	float4 A = float4(1, 0, 0, 0);
+// 	float4 B = float4(0, 1, 0, 0);
+// 	float4 C = float4(0, 0, 1, 0);
 	float4 A = BoneMatrices[Index * 3];
 	float4 B = BoneMatrices[Index * 3 + 1];
 	float4 C = BoneMatrices[Index * 3 + 2];

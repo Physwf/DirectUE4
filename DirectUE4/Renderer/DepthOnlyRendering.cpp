@@ -476,6 +476,67 @@ bool FDepthDrawingPolicyFactory::DrawMesh(
 
 			bDirty = true;
 		}
+		else if (!IsTranslucentBlendMode(BlendMode) || Material->IsTranslucencyWritingCustomDepth())
+		{
+			bool bDraw = true;
+
+			const bool bMaterialMasked = !Material->WritesEveryPixel() || Material->IsTranslucencyWritingCustomDepth();
+
+			switch (DrawingContext.DepthDrawingMode)
+			{
+			case DDM_AllOpaque:
+				break;
+			case DDM_AllOccluders:
+				break;
+			case DDM_NonMaskedOnly:
+				bDraw = !bMaterialMasked;
+				break;
+			default:
+				assert(!"Unrecognized DepthDrawingMode");
+			}
+
+			if (bDraw)
+			{
+				FDepthDrawingPolicy DrawingPolicy(
+					Mesh.VertexFactory,
+					MaterialRenderProxy,
+					*MaterialRenderProxy->GetMaterial(),
+					OverrideSettings,
+					DrawingContext.MobileColorValue
+				);
+
+				FDrawingPolicyRenderState DrawRenderStateLocal(DrawRenderState);
+				DrawingPolicy.SetupPipelineState(DrawRenderStateLocal, View);
+				CommitGraphicsPipelineState(DrawingPolicy, DrawRenderStateLocal, DrawingPolicy.GetBoundShaderStateInput());
+				DrawingPolicy.SetSharedState(Context, DrawRenderStateLocal, &View, FDepthDrawingPolicy::ContextDataType(bIsInstancedStereo, bIsInstancedStereoEmulated));
+
+				int32 BatchElementIndex = 0;
+				uint64 Mask = BatchElementMask;
+				do
+				{
+					if (Mask & 1)
+					{
+						// We draw instanced static meshes twice when rendering with instanced stereo. Once for each eye.
+						const bool bIsInstancedMesh = Mesh.Elements[BatchElementIndex].bIsInstancedMesh;
+						const uint32 InstancedStereoDrawCount = (bIsInstancedStereo && bIsInstancedMesh) ? 2 : 1;
+						for (uint32 DrawCountIter = 0; DrawCountIter < InstancedStereoDrawCount; ++DrawCountIter)
+						{
+							//DrawingPolicy.SetInstancedEyeIndex(DrawCountIter);
+
+							//TDrawEvent<FRHICommandList> MeshEvent;
+							//BeginMeshDrawEvent(RHICmdList, PrimitiveSceneProxy, Mesh, MeshEvent, EnumHasAnyFlags(EShowMaterialDrawEventTypes(GShowMaterialDrawEventTypes), EShowMaterialDrawEventTypes::Depth));
+
+							DrawingPolicy.SetMeshRenderState(Context, View, PrimitiveSceneProxy, Mesh, BatchElementIndex, DrawRenderStateLocal, FMeshDrawingPolicy::ElementDataType(), FDepthDrawingPolicy::ContextDataType());
+							DrawingPolicy.DrawMesh(Context, View, Mesh, BatchElementIndex, bIsInstancedStereo);
+						}
+					}
+					Mask >>= 1;
+					BatchElementIndex++;
+				} while (Mask);
+
+				bDirty = true;
+			}
+		}
 	}
 	return bDirty;
 }

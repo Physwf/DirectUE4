@@ -2,6 +2,8 @@
 #include "Skeleton.h"
 #include "log.h"
 
+#include <algorithm>
+
 FTransform GetComponentSpaceTransform(std::vector<uint8>& ComponentSpaceFlags, std::vector<FTransform>& ComponentSpaceTransforms, FReferenceSkeleton& RefSkeleton, int32 TargetIndex)
 {
 	FTransform& This = ComponentSpaceTransforms[TargetIndex];
@@ -128,36 +130,35 @@ void FReferenceSkeleton::RebuildNameToIndexMap()
 	}
 
 }
+struct FEnsureParentsExistScratchArea 
+{
+	static FEnsureParentsExistScratchArea& Get()
+	{
+		static FEnsureParentsExistScratchArea Instance;
+		return Instance;
+	}
+
+	std::vector<bool> BoneExists;
+};
 
 void FReferenceSkeleton::EnsureParentsExist(std::vector<FBoneIndexType>& InOutBoneSortedArray) const
 {
-	/*
+	
 	const int32 NumBones = GetNum();
 	// Iterate through existing array.
-	int32 i = 0;
+	uint32 i = 0;
 
-	TArray<bool>& BoneExists = FEnsureParentsExistScratchArea::Get().BoneExists;
-	BoneExists.Reset();
-	BoneExists.SetNumZeroed(NumBones);
+	std::vector<bool>& BoneExists = FEnsureParentsExistScratchArea::Get().BoneExists;
+	BoneExists.clear();
+	BoneExists.resize(NumBones);
 
-	while (i < InOutBoneSortedArray.Num())
+	while (i < InOutBoneSortedArray.size())
 	{
 		const int32 BoneIndex = InOutBoneSortedArray[i];
 
 		// For the root bone, just move on.
 		if (BoneIndex > 0)
 		{
-#if	!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-			// Warn if we're getting bad data.
-			// Bones are matched as int32, and a non found bone will be set to INDEX_NONE == -1
-			// This should never happen, so if it does, something is wrong!
-			if (BoneIndex >= NumBones)
-			{
-				UE_LOG(LogAnimation, Log, TEXT("FAnimationRuntime::EnsureParentsExist, BoneIndex >= RefSkeleton.GetNum()."));
-				i++;
-				continue;
-			}
-#endif
 			BoneExists[BoneIndex] = true;
 
 			const int32 ParentIndex = GetParentIndex(BoneIndex);
@@ -167,7 +168,7 @@ void FReferenceSkeleton::EnsureParentsExist(std::vector<FBoneIndexType>& InOutBo
 			// parent can be missing
 			if (!BoneExists[ParentIndex])
 			{
-				InOutBoneSortedArray.InsertUninitialized(i);
+				InOutBoneSortedArray.insert(InOutBoneSortedArray.begin() + i, FBoneIndexType());
 				InOutBoneSortedArray[i] = ParentIndex;
 				BoneExists[ParentIndex] = true;
 			}
@@ -183,16 +184,16 @@ void FReferenceSkeleton::EnsureParentsExist(std::vector<FBoneIndexType>& InOutBo
 			i++;
 		}
 	}
-	*/
+	
 }
 
 void FReferenceSkeleton::EnsureParentsExistAndSort(std::vector<FBoneIndexType>& InOutBoneUnsortedArray) const
 {
-	/*
-	InOutBoneUnsortedArray.Sort();
+	
+	std::sort(InOutBoneUnsortedArray.begin(), InOutBoneUnsortedArray.end());
 
 	EnsureParentsExist(InOutBoneUnsortedArray);
 
-	InOutBoneUnsortedArray.Sort();
-	*/
+	std::sort(InOutBoneUnsortedArray.begin(), InOutBoneUnsortedArray.end());
+	
 }

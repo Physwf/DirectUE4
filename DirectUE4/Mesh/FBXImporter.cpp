@@ -924,6 +924,158 @@ void ProcessImportMeshMaterials(std::vector<FSkeletalMaterial>& Materials, FSkel
 	}
 }
 
+void ProcessImportMeshInfluences(FSkeletalMeshImportData& ImportData)
+{
+	std::vector<FVector>& Points = ImportData.Points;
+	std::vector<VVertex>& Wedges = ImportData.Wedges;
+	std::vector<VRawBoneInfluence>& Influences = ImportData.Influences;
+
+	struct FCompareVertexIndex
+	{
+		bool operator()(const VRawBoneInfluence& A, const VRawBoneInfluence& B) const
+		{
+			if (A.VertexIndex > B.VertexIndex) return false;
+			else if (A.VertexIndex < B.VertexIndex) return true;
+			else if (A.Weight < B.Weight) return false;
+			else if (A.Weight > B.Weight) return true;
+			else if (A.BoneIndex > B.BoneIndex) return false;
+			else if (A.BoneIndex < B.BoneIndex) return true;
+			else									  return  false;
+		}
+	};
+	std::sort(Influences.begin(), Influences.end(), FCompareVertexIndex());
+
+	std::vector<VRawBoneInfluence> NewInfluences;
+	int32	LastNewInfluenceIndex = 0;
+	int32	LastVertexIndex = INDEX_NONE;
+	int32	InfluenceCount = 0;
+
+	float TotalWeight = 0.f;
+	const float MINWEIGHT = 0.01f;
+
+	int MaxVertexInfluence = 0;
+	float MaxIgnoredWeight = 0.0f;
+
+	for (uint32 i = 0; i < Influences.size(); i++)
+	{
+		// if less than min weight, or it's more than 8, then we clear it to use weight
+		InfluenceCount++;
+		TotalWeight += Influences[i].Weight;
+		// we have all influence for the same vertex, normalize it now
+		if (i + 1 >= Influences.size() || Influences[i].VertexIndex != Influences[i + 1].VertexIndex)
+		{
+			// Normalize the last set of influences.
+			if (InfluenceCount && (TotalWeight != 1.0f))
+			{
+				float OneOverTotalWeight = 1.f / TotalWeight;
+				for (int r = 0; r < InfluenceCount; r++)
+				{
+					Influences[i - r].Weight *= OneOverTotalWeight;
+				}
+			}
+
+			if (MaxVertexInfluence < InfluenceCount)
+			{
+				MaxVertexInfluence = InfluenceCount;
+			}
+
+			// clear to count next one
+			InfluenceCount = 0;
+			TotalWeight = 0.f;
+		}
+
+		if (InfluenceCount > MAX_TOTAL_INFLUENCES &&  Influences[i].Weight > MaxIgnoredWeight)
+		{
+			MaxIgnoredWeight = Influences[i].Weight;
+		}
+	}
+
+	if (MaxVertexInfluence > MAX_TOTAL_INFLUENCES)
+	{
+		assert(false);
+	}
+
+	for (uint32 i = 0; i < Influences.size(); i++)
+	{
+		// we found next verts, normalize it now
+		if (LastVertexIndex != Influences[i].VertexIndex)
+		{
+			// Normalize the last set of influences.
+			if (InfluenceCount && (TotalWeight != 1.0f))
+			{
+				float OneOverTotalWeight = 1.f / TotalWeight;
+				for (int r = 0; r < InfluenceCount; r++)
+				{
+					NewInfluences[LastNewInfluenceIndex - r].Weight *= OneOverTotalWeight;
+				}
+			}
+
+			// now we insert missing verts
+			if (LastVertexIndex != INDEX_NONE)
+			{
+				int32 CurrentVertexIndex = Influences[i].VertexIndex;
+				for (int32 j = LastVertexIndex + 1; j < CurrentVertexIndex; j++)
+				{
+					// Add a 0-bone weight if none other present (known to happen with certain MAX skeletal setups).
+					LastNewInfluenceIndex = (int32)NewInfluences.size();
+					NewInfluences.push_back(VRawBoneInfluence());
+					NewInfluences[LastNewInfluenceIndex].VertexIndex = j;
+					NewInfluences[LastNewInfluenceIndex].BoneIndex = 0;
+					NewInfluences[LastNewInfluenceIndex].Weight = 1.f;
+				}
+			}
+
+			// clear to count next one
+			InfluenceCount = 0;
+			TotalWeight = 0.f;
+			LastVertexIndex = Influences[i].VertexIndex;
+		}
+
+		// if less than min weight, or it's more than 8, then we clear it to use weight
+		if (Influences[i].Weight > MINWEIGHT && InfluenceCount < MAX_TOTAL_INFLUENCES)
+		{
+			LastNewInfluenceIndex = (int32)NewInfluences.size();
+			NewInfluences.push_back(Influences[i]);
+			InfluenceCount++;
+			TotalWeight += Influences[i].Weight;
+		}
+	}
+
+	Influences = NewInfluences;
+
+	if (Influences.size() == 0)
+	{
+		//UnFbx::FFbxImporter* FFbxImporter = UnFbx::FFbxImporter::GetInstance();
+		// warn about no influences
+		//FFbxImporter->AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, LOCTEXT("WarningNoSkelInfluences", "Warning skeletal mesh is has no vertex influences")), FFbxErrors::SkeletalMesh_NoInfluences);
+		// add one for each wedge entry
+		Influences.insert(Influences.end(), Wedges.size(), VRawBoneInfluence());
+		for (uint32 WedgeIdx = 0; WedgeIdx < Wedges.size(); WedgeIdx++)
+		{
+			Influences[WedgeIdx].VertexIndex = WedgeIdx;
+			Influences[WedgeIdx].BoneIndex = 0;
+			Influences[WedgeIdx].Weight = 1.0f;
+		}
+		for (uint32 i = 0; i < Influences.size(); i++)
+		{
+			int32 CurrentVertexIndex = Influences[i].VertexIndex;
+
+			if (LastVertexIndex != CurrentVertexIndex)
+			{
+				for (int32 j = LastVertexIndex + 1; j < CurrentVertexIndex; j++)
+				{
+					// Add a 0-bone weight if none other present (known to happen with certain MAX skeletal setups).
+					Influences.insert(Influences.begin()+i, 1, VRawBoneInfluence());
+					Influences[i].VertexIndex = j;
+					Influences[i].BoneIndex = 0;
+					Influences[i].Weight = 1.f;
+				}
+				LastVertexIndex = CurrentVertexIndex;
+			}
+		}
+	}
+}
+
 USkeletalMesh* FBXImporter::ImportSkeletalMesh(class AActor* InOwner, const char* pFileName)
 {
 	ImportOptions = new FBXImportOptions();
@@ -1010,7 +1162,7 @@ USkeletalMesh* FBXImporter::ImportSkeletalMesh(class AActor* InOwner, const char
 
 
 	// process bone influences from import data
-	//ProcessImportMeshInfluences(*SkelMeshImportDataPtr);
+	ProcessImportMeshInfluences(*SkelMeshImportDataPtr);
 
 
 	SkeletalMeshModel *ImportedResource = NewSekeletalMesh->GetImportedModel();
@@ -3882,7 +4034,7 @@ public:
 					int32 LookIdx = InfIdx;
 
 					uint32 InfluenceCount = 0;
-					while ((int32)BuildData.Influences.size() > LookIdx && (BuildData.Influences[LookIdx].VertIndex == Wedge.iVertex))
+					while (IsValidIndex(BuildData.Influences, LookIdx) && (BuildData.Influences[LookIdx].VertIndex == Wedge.iVertex))
 					{
 						InfluenceCount++;
 						LookIdx++;
