@@ -71,14 +71,17 @@ class USkinnedMeshComponent : public UMeshComponent
 public:
 	USkinnedMeshComponent(AActor* InOwner) : UMeshComponent(InOwner) 
 	{
+		bDoubleBufferedComponentSpaceTransforms = true;
+		CurrentEditableComponentTransforms = 0;
 		CurrentReadComponentTransforms = 1;
+		bNeedToFlipSpaceBaseBuffers = false;
 
 		CurrentBoneTransformRevisionNumber = 0;
 	}
 
 	class USkeletalMesh* SkeletalMesh;
 
-	class FSkeletalMeshObject*	MeshObject;
+	class FSkeletalMeshObject*	MeshObject = NULL;
 	
 	int32 PredictedLODLevel;
 
@@ -108,13 +111,17 @@ protected:
 	std::vector<int32> MasterBoneMap;
 
 	int32 CurrentReadComponentTransforms;
-
+	int32 CurrentEditableComponentTransforms;
 	uint32 CurrentBoneTransformRevisionNumber;
 
 	std::vector<uint8> PreviousBoneVisibilityStates;
 	std::vector<FTransform> PreviousComponentSpaceTransformsArray;
 
 	bool bHasValidBoneTransform;
+
+	uint8 bDoubleBufferedComponentSpaceTransforms : 1;
+	uint8 bNeedToFlipSpaceBaseBuffers : 1;
+
 private:
 	std::vector<FTransform> ComponentSpaceTransformsArray[2];
 public:
@@ -129,7 +136,14 @@ public:
 	{
 		return ComponentSpaceTransformsArray[CurrentReadComponentTransforms];
 	}
-
+	std::vector<FTransform>& GetEditableComponentSpaceTransforms()
+	{
+		return ComponentSpaceTransformsArray[CurrentEditableComponentTransforms];
+	}
+	const std::vector<FTransform>& GetEditableComponentSpaceTransforms() const
+	{
+		return ComponentSpaceTransformsArray[CurrentEditableComponentTransforms];
+	}
 	uint32 GetNumComponentSpaceTransforms() const
 	{
 		return GetComponentSpaceTransforms().size();
@@ -145,6 +159,8 @@ public:
 
 
 protected:
+	void FlipEditableSpaceBases();
+
 	virtual bool AllocateTransformData();
 	virtual void DeallocateTransformData();
 };
@@ -154,4 +170,22 @@ class USkeletalMeshComponent : public USkinnedMeshComponent
 public:
 	USkeletalMeshComponent(AActor* InOwner) : USkinnedMeshComponent(InOwner) {}
 
+	virtual void SetSkeletalMesh(class USkeletalMesh* NewMesh, bool bReinitPose = true) override;
+
+	virtual void InitAnim(bool bForceReinit);
+
+	void RecalcRequiredBones(int32 LODIndex);
+
+	void ComputeRequiredBones(std::vector<FBoneIndexType>& OutRequiredBones, std::vector<FBoneIndexType>& OutFillComponentSpaceTransformsRequiredBones, int32 LODIndex, bool bIgnorePhysicsAsset) const;
+	
+	std::vector<FBoneIndexType> RequiredBones;
+
+	std::vector<FTransform> BoneSpaceTransforms;
+
+	std::vector<FBoneIndexType> FillComponentSpaceTransformsRequiredBones;
+protected:
+	virtual void OnRegister() override;
+	virtual void OnUnregister() override;
+private:
+	void FillComponentSpaceTransforms(const USkeletalMesh* InSkeletalMesh, const std::vector<FTransform>& InBoneSpaceTransforms, std::vector<FTransform>& OutComponentSpaceTransforms) const;
 };

@@ -59,7 +59,7 @@ void UWorld::InitWorld()
 
 	SkeletalMeshActor* Mannequin = SpawnActor<SkeletalMeshActor>("Mannequin/SK_Mannequin.FBX");
 	Mannequin->SetActorRotation(FRotator(0, 90.f, 0));
-	Mannequin->SetActorLocation(FVector(100, 0, 0));
+	Mannequin->SetActorLocation(FVector(0, 0, 0));
 
 	Camera* C = SpawnActor<Camera>();
 	C->SetActorLocation(FVector(-400, 0,  0));

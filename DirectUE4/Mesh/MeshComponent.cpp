@@ -58,6 +58,10 @@ FSkeletalMeshRenderData* USkinnedMeshComponent::GetSkeletalMeshRenderData() cons
 	{
 		return &MeshObject->GetSkeletalMeshRenderData();
 	}
+	else if (SkeletalMesh)
+	{
+		return SkeletalMesh->GetResourceForRendering();
+	}
 	return NULL;
 }
 
@@ -255,6 +259,39 @@ void USkinnedMeshComponent::InitLODInfos()
 	}
 }
 
+void USkinnedMeshComponent::FlipEditableSpaceBases()
+{
+	if (bNeedToFlipSpaceBaseBuffers)
+	{
+		// save previous transform if it's valid
+		if (bHasValidBoneTransform)
+		{
+			PreviousComponentSpaceTransformsArray = GetComponentSpaceTransforms();
+			PreviousBoneVisibilityStates = BoneVisibilityStates;
+		}
+
+		bNeedToFlipSpaceBaseBuffers = false;
+		if (bDoubleBufferedComponentSpaceTransforms)
+		{
+			CurrentReadComponentTransforms = CurrentEditableComponentTransforms;
+			CurrentEditableComponentTransforms = 1 - CurrentEditableComponentTransforms;
+		}
+		else
+		{
+			CurrentReadComponentTransforms = CurrentEditableComponentTransforms = 0;
+		}
+
+		// if we don't have a valid transform, we copy after we write, so that it doesn't cause motion blur
+		if (!bHasValidBoneTransform)
+		{
+			PreviousComponentSpaceTransformsArray = GetComponentSpaceTransforms();
+			PreviousBoneVisibilityStates = BoneVisibilityStates;
+		}
+
+		++CurrentBoneTransformRevisionNumber;
+	}
+}
+
 bool USkinnedMeshComponent::AllocateTransformData()
 {
 	if (SkeletalMesh != NULL && MasterPoseComponent.lock() == NULL)
@@ -306,3 +343,103 @@ void USkinnedMeshComponent::DeallocateTransformData()
 
 }
 
+void USkeletalMeshComponent::SetSkeletalMesh(class USkeletalMesh* InSkelMesh, bool bReinitPose /*= true*/)
+{
+	USkinnedMeshComponent::SetSkeletalMesh(InSkelMesh, bReinitPose);
+
+	InitAnim(bReinitPose);
+}
+
+void USkeletalMeshComponent::InitAnim(bool bForceReinit)
+{
+	if (SkeletalMesh != nullptr && IsRegistered())
+	{
+		RecalcRequiredBones(PredictedLODLevel);
+
+		BoneSpaceTransforms = SkeletalMesh->RefSkeleton.GetRefBonePose();
+		//Mini RefreshBoneTransforms (the bit we actually care about)
+		FillComponentSpaceTransforms(SkeletalMesh, BoneSpaceTransforms, GetEditableComponentSpaceTransforms());
+		bNeedToFlipSpaceBaseBuffers = true; // Have updated space bases so need to flip
+		FlipEditableSpaceBases();
+	}
+}
+
+void USkeletalMeshComponent::RecalcRequiredBones(int32 LODIndex)
+{
+	if (!SkeletalMesh)
+	{
+		return;
+	}
+
+	ComputeRequiredBones(RequiredBones, FillComponentSpaceTransformsRequiredBones, LODIndex, /*bIgnorePhysicsAsset=*/ false);
+
+	BoneSpaceTransforms = SkeletalMesh->RefSkeleton.GetRefBonePose();
+
+}
+
+void USkeletalMeshComponent::ComputeRequiredBones(std::vector<FBoneIndexType>& OutRequiredBones, std::vector<FBoneIndexType>& OutFillComponentSpaceTransformsRequiredBones, int32 LODIndex, bool bIgnorePhysicsAsset) const
+{
+	OutRequiredBones.clear();
+	OutFillComponentSpaceTransformsRequiredBones.clear();
+
+	if (!SkeletalMesh)
+	{
+		return;
+	}
+
+	FSkeletalMeshRenderData* SkelMeshRenderData = GetSkeletalMeshRenderData();
+	assert(SkelMeshRenderData);
+
+	LODIndex = FMath::Clamp(LODIndex, 0, (int32)SkelMeshRenderData->LODRenderData.size() - 1);
+
+	// The list of bones we want is taken from the predicted LOD level.
+	FSkeletalMeshLODRenderData& LODData = *SkelMeshRenderData->LODRenderData[LODIndex];
+	OutRequiredBones = LODData.RequiredBones;
+
+	OutFillComponentSpaceTransformsRequiredBones = OutRequiredBones;
+}
+
+void USkeletalMeshComponent::OnRegister()
+{
+	USkinnedMeshComponent::OnRegister();
+	InitAnim(true);
+}
+
+void USkeletalMeshComponent::OnUnregister()
+{
+	USkinnedMeshComponent::OnUnregister();
+}
+
+void USkeletalMeshComponent::FillComponentSpaceTransforms(const USkeletalMesh* InSkeletalMesh, const std::vector<FTransform>& InBoneSpaceTransforms, std::vector<FTransform>& OutComponentSpaceTransforms) const
+{
+	if (!InSkeletalMesh)
+	{
+		return;
+	}
+
+	assert(InSkeletalMesh->RefSkeleton.GetNum() == InBoneSpaceTransforms.size());
+	assert(InSkeletalMesh->RefSkeleton.GetNum() == OutComponentSpaceTransforms.size());
+
+	const FTransform* LocalTransformsData = InBoneSpaceTransforms.data();
+	FTransform* ComponentSpaceData = OutComponentSpaceTransforms.data();
+
+	{
+		assert(FillComponentSpaceTransformsRequiredBones[0] == 0);
+		OutComponentSpaceTransforms[0] = InBoneSpaceTransforms[0];
+	}
+
+	for (uint32 i = 1; i < FillComponentSpaceTransformsRequiredBones.size(); i++)
+	{
+		const int32 BoneIndex = FillComponentSpaceTransformsRequiredBones[i];
+		FTransform* SpaceBase = ComponentSpaceData + BoneIndex;
+
+
+		const int32 ParentIndex = InSkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
+		FTransform* ParentSpaceBase = ComponentSpaceData + ParentIndex;
+
+		FTransform::Multiply(SpaceBase, LocalTransformsData + BoneIndex, ParentSpaceBase);
+
+		SpaceBase->NormalizeRotation();
+	}
+
+}
