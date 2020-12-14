@@ -1,5 +1,8 @@
 #pragma once
 
+//http://help.autodesk.com/view/FBX/2018/ENU/?guid=FBX_Developer_Help_getting_started_installing_and_configuring_configuring_the_fbx_sdk_for_wind_html
+#define FBXSDK_SHARED
+
 #include "fbxsdk.h"
 #include "UnrealMath.h"
 #include "Transform.h"
@@ -296,8 +299,8 @@ struct FBXImportOptions
 // 	bool bImportMorph;
 // 	bool bImportAnimations;
 // 	bool bUpdateSkeletonReferencePose;
-// 	bool bResample;
-// 	bool bImportRigidMesh;
+	bool bResample;
+	bool bImportRigidMesh;
 // 	bool bUseT0AsRefPose;
 	bool bPreserveSmoothingGroups;
 	FOverlappingThresholds OverlappingThresholds;
@@ -310,10 +313,10 @@ struct FBXImportOptions
 // 	EFBXAnimationLengthImportType AnimationLengthImportType;
 // 	struct FIntPoint AnimationRange;
 // 	FString AnimationName;
-// 	bool	bPreserveLocalTransform;
+	bool	bPreserveLocalTransform;
 // 	bool	bDeleteExistingMorphTargetCurves;
 // 	bool	bImportCustomAttribute;
-// 	bool	bImportBoneTracks;
+	bool	bImportBoneTracks;
 // 	bool	bSetMaterialDriveParameterOnCustomAttribute;
 // 	bool	bRemoveRedundantKeys;
 // 	bool	bDoNotImportCurveWithZero;
@@ -447,16 +450,62 @@ namespace SkeletalMeshTools
 	//void CalcBoneVertInfos(USkeletalMesh* SkeletalMesh, std::vector<FBoneVertInfo>& Infos, bool bOnlyDominant);
 };
 
+class FFbxDataConverter
+{
+public:
+	static void SetJointPostConversionMatrix(FbxAMatrix ConversionMatrix) { JointPostConversionMatrix = ConversionMatrix; }
+	static const FbxAMatrix &GetJointPostConversionMatrix() { return JointPostConversionMatrix; }
+
+	static FVector ConvertPos(FbxVector4 Vector);
+	static FVector ConvertDir(FbxVector4 Vector);
+	static FRotator ConvertEuler(FbxDouble3 Euler);
+	static FVector ConvertScale(FbxDouble3 Vector);
+	static FVector ConvertScale(FbxVector4 Vector);
+	static FRotator ConvertRotation(FbxQuaternion Quaternion);
+	static FVector ConvertRotationToFVect(FbxQuaternion Quaternion, bool bInvertRot);
+	static FQuat ConvertRotToQuat(FbxQuaternion Quaternion);
+	static float ConvertDist(FbxDouble Distance);
+	static FTransform ConvertTransform(FbxAMatrix Matrix);
+	static FMatrix ConvertMatrix(FbxAMatrix Matrix);
+
+	/*
+	* Convert fbx linear space color to sRGB FColor
+	*/
+	static FColor ConvertColor(FbxDouble3 Color);
+
+	static FbxVector4 ConvertToFbxPos(FVector Vector);
+	static FbxVector4 ConvertToFbxRot(FVector Vector);
+	static FbxVector4 ConvertToFbxScale(FVector Vector);
+
+	/*
+	* Convert sRGB FColor to fbx linear space color
+	*/
+	static FbxDouble3   ConvertToFbxColor(FColor Color);
+
+	// FbxCamera with no rotation faces X with Y-up while ours faces X with Z-up so add a -90 degrees roll to compensate
+	static FRotator GetCameraRotation() { return FRotator(0.f, 0.f, -90.f); }
+
+	// FbxLight with no rotation faces -Z while ours faces Y so add a 90 degrees pitch to compensate
+	static FRotator GetLightRotation() { return FRotator(0.f, 90.f, 0.f); }
+
+private:
+	static FbxAMatrix JointPostConversionMatrix;
+};
+
 class FStaticMeshRenderData;
 struct FStaticMeshLODResources;
 struct StaticMeshBuildVertex;
 class MeshDescription;
+class USkeleton;
+class UAnimSequence;
+class UFbxAssetImportData;
 
 class FBXImporter
 {
 public:
 	UStaticMesh* ImportStaticMesh(class AActor* InOwner, const char* filename);
 	USkeletalMesh* ImportSkeletalMesh(class AActor* InOwner, const char* filename);
+	UAnimSequence* ImportFbxAnimation(USkeleton* Skeleton, const char* InFilename, const char* AnimName, bool bImportMorphTracks);
 
 	bool FillSkeletalMeshImportData(std::vector<FbxNode*>& NodeArray, std::vector<FbxShape*> *FbxShapeArray, FSkeletalMeshImportData* OutData);
 	bool ImportBone(std::vector<FbxNode*>& NodeArray, FSkeletalMeshImportData &ImportData, std::vector<FbxNode*> &OutSortedLinks, bool& bUseTime0AsRefPose, FbxNode *SkeletalMeshNode);
@@ -476,10 +525,25 @@ public:
 
 	bool BuildStaticMesh(FStaticMeshRenderData& OutRenderData, UStaticMesh* Mesh/*, const FStaticMeshLODGroup& LODGroup */);
 	void BuildVertexBuffer(const MeshDescription& MD2, FStaticMeshLODResources& StaticMeshLOD, std::vector<std::vector<uint32> >& OutPerSectionIndices, std::vector<StaticMeshBuildVertex>& StaticMeshBuildVertices, const std::multimap<int32, int32>& OverlappingCorners, float VertexComparisonThreshold, std::vector<int32>& RemapVerts);
+
+	FbxNode* FindFBXMeshesByBone(const std::string& RootBoneName, bool bExpandLOD, std::vector<FbxNode*>& OutFBXMeshNodeArray);
+	void FillFbxSkelMeshArrayInScene(FbxNode* Node, std::vector<std::vector<FbxNode*>*>& outSkelMeshArray, bool ExpandLOD, bool bForceFindRigid = false);
+	void RecursiveFindFbxSkelMesh(FbxNode* Node, std::vector<std::vector<FbxNode*>*>& outSkelMeshArray, std::vector<FbxNode*>& SkeletonArray, bool ExpandLOD);
+	FbxNode* FindLODGroupNode(FbxNode* NodeLodGroup, int32 LodIndex, FbxNode *NodeToFind = nullptr);
+	FbxNode* RecursiveGetFirstMeshNode(FbxNode* Node, FbxNode* NodeToFind = nullptr);
+	void RecursiveFixSkeleton(FbxNode* Node, std::vector<FbxNode*> &SkelMeshes, bool bImportNestedMeshes);
+	void RecursiveFindRigidMesh(FbxNode* Node, std::vector<std::vector<FbxNode*>* >& outSkelMeshArray, std::vector<FbxNode*>& SkeletonArray, bool ExpandLOD);
+
+	UAnimSequence* ImportAnimations(USkeleton* Skeleton, std::vector<FbxNode*>& SortedLinks, const std::string& Name, std::vector<FbxNode*>& NodeArray);
+	FbxTimeSpan GetAnimationTimeSpan(FbxNode* RootNode, FbxAnimStack* AnimStack, int32 ResampleRate);
+	bool ImportAnimation(USkeleton* Skeleton, UAnimSequence* DestSeq, const std::string& FileName, std::vector<FbxNode*>& SortedLinks, std::vector<FbxNode*>& NodeArray, FbxAnimStack* CurAnimStack, const int32 ResampleRate, const FbxTimeSpan AnimTimeSpan);
+	void FillAndVerifyBoneNames(USkeleton* Skeleton, std::vector<FbxNode*>& SortedLinks, std::vector<std::string> & OutRawBoneNames, std::string Filename);
+	void BuildFbxMatrixForImportTransform(FbxAMatrix& OutMatrix, UFbxAssetImportData* AssetData);
 public:
 	FbxScene* fbxScene;
 	FbxManager* SDKManager;
 	FBXImportOptions* ImportOptions;
+	FFbxDataConverter Converter;
 	FbxGeometryConverter* GeometryConverter;
 };
 

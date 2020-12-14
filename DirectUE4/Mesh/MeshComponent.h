@@ -164,6 +164,18 @@ protected:
 	virtual bool AllocateTransformData();
 	virtual void DeallocateTransformData();
 };
+namespace EAnimationMode
+{
+	enum Type
+	{
+		AnimationBlueprint ,
+		AnimationSingleNode,
+		// This is custom type, engine leaves AnimInstance as it is
+		AnimationCustomMode,
+	};
+}
+
+class UAnimInstance;
 
 class USkeletalMeshComponent : public USkinnedMeshComponent
 {
@@ -173,6 +185,15 @@ public:
 	virtual void SetSkeletalMesh(class USkeletalMesh* NewMesh, bool bReinitPose = true) override;
 
 	virtual void InitAnim(bool bForceReinit);
+
+	UAnimInstance* AnimScriptInstance;
+
+	void PlayAnimation(class UAnimationAsset* NewAnimToPlay, bool bLooping);
+	void SetAnimation(class UAnimationAsset* NewAnimToPlay);
+
+	void Play(bool bLooping);
+	void Stop();
+	bool IsPlaying() const;
 
 	void RecalcRequiredBones(int32 LODIndex);
 
@@ -186,6 +207,8 @@ public:
 protected:
 	virtual void OnRegister() override;
 	virtual void OnUnregister() override;
+
+	EAnimationMode::Type	AnimationMode;
 private:
 	void FillComponentSpaceTransforms(const USkeletalMesh* InSkeletalMesh, const std::vector<FTransform>& InBoneSpaceTransforms, std::vector<FTransform>& OutComponentSpaceTransforms) const;
 };

@@ -45,4 +45,15 @@ template <typename T>
 	if (it == container.end()) return -1;
 	return int32(it - container.begin());
 }
+
+template <typename T>
+inline void Remove(std::vector<T>& container, const T& Value)
+{
+	auto It = std::find(container.begin(), container.end(), Value);
+	if (It != container.end())
+	{
+		container.erase(It);
+	}
+}
+
 #define STRUCT_OFFSET( struc, member )	__builtin_offsetof(struc, member)

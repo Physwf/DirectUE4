@@ -380,6 +380,22 @@ void FMatrix::To3x4MatrixTranspose(float* Out) const
 	Dest[11] = Src[14]; // [3][2]
 }
 
+bool FMatrix::ContainsNaN() const
+{
+	for (int32 i = 0; i < 4; i++)
+	{
+		for (int32 j = 0; j < 4; j++)
+		{
+			if (!FMath::IsFinite(M[i][j]))
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
 void FMatrix::SetIdentity()
 {
 	M[0][0] = 1; M[0][1] = 0;  M[0][2] = 0;  M[0][3] = 0;
@@ -554,6 +570,30 @@ FLinearColor::FLinearColor(const FFloat16Color& C)
 	G = C.G.GetFloat();
 	B = C.B.GetFloat();
 	A = C.A.GetFloat();
+}
+
+FColor FLinearColor::ToFColor(const bool bSRGB) const
+{
+	float FloatR = FMath::Clamp(R, 0.0f, 1.0f);
+	float FloatG = FMath::Clamp(G, 0.0f, 1.0f);
+	float FloatB = FMath::Clamp(B, 0.0f, 1.0f);
+	float FloatA = FMath::Clamp(A, 0.0f, 1.0f);
+
+	if (bSRGB)
+	{
+		FloatR = FloatR <= 0.0031308f ? FloatR * 12.92f : FMath::Pow(FloatR, 1.0f / 2.4f) * 1.055f - 0.055f;
+		FloatG = FloatG <= 0.0031308f ? FloatG * 12.92f : FMath::Pow(FloatG, 1.0f / 2.4f) * 1.055f - 0.055f;
+		FloatB = FloatB <= 0.0031308f ? FloatB * 12.92f : FMath::Pow(FloatB, 1.0f / 2.4f) * 1.055f - 0.055f;
+	}
+
+	FColor ret;
+
+	ret.A = FMath::FloorToInt(FloatA * 255.999f);
+	ret.R = FMath::FloorToInt(FloatR * 255.999f);
+	ret.G = FMath::FloorToInt(FloatG * 255.999f);
+	ret.B = FMath::FloorToInt(FloatB * 255.999f);
+
+	return ret;
 }
 
 FLinearColor FLinearColor::operator*(const FLinearColor& ColorB) const
@@ -932,6 +972,16 @@ FQuat FRotator::Quaternion() const
 	return RotationQuat;
 }
 
+FVector FRotator::Euler() const
+{
+	return FVector(Roll, Pitch, Yaw);
+}
+
+FRotator FRotator::MakeFromEuler(const FVector& Euler)
+{
+	return FRotator(Euler.Y, Euler.Z, Euler.X);
+}
+
 FRotator FQuat::Rotator() const
 {
 	//SCOPE_CYCLE_COUNTER(STAT_MathConvertQuatToRotator);
@@ -1003,6 +1053,12 @@ FVector::FVector(const FLinearColor& InColor)
 const Vector2 Vector2::ZeroVector(0.0f, 0.0f);
 const Vector2 Vector2::UnitVector(1.0f, 1.0f);
 const FRotator FRotator::ZeroRotator(0.f, 0.f, 0.f);
+
+FRotator::FRotator(const FQuat& Quat)
+{
+	*this = Quat.Rotator();
+}
+
 const FQuat FQuat::Identity(0, 0, 0, 1);
 
 FQuat FQuat::operator*(const FQuat& Q) const
@@ -1043,6 +1099,16 @@ FMatrix FQuat::operator*(const FMatrix& M) const
 	}
 
 	return Result;
+}
+
+FQuat FQuat::MakeFromEuler(const FVector& Euler)
+{
+	return FRotator::MakeFromEuler(Euler).Quaternion();
+}
+
+FVector FQuat::Euler() const
+{
+	return Rotator().Euler();
 }
 
 const FColor FColor::White(255, 255, 255);

@@ -364,6 +364,11 @@ void USkeletalMeshComponent::InitAnim(bool bForceReinit)
 	}
 }
 
+void USkeletalMeshComponent::PlayAnimation(class UAnimationAsset* NewAnimToPlay, bool bLooping)
+{
+
+}
+
 void USkeletalMeshComponent::RecalcRequiredBones(int32 LODIndex)
 {
 	if (!SkeletalMesh)

@@ -68,6 +68,11 @@ class USkeleton
 public:
 	const std::vector<FVirtualBone>& GetVirtualBones() const { return VirtualBones; }
 
+	const FReferenceSkeleton& GetReferenceSkeleton() const
+	{
+		return ReferenceSkeleton;
+	}
+
 	bool DoesParentChainMatch(int32 StartBoneTreeIndex, const USkeletalMesh* InSkelMesh) const;
 	bool IsCompatibleMesh(const USkeletalMesh* InSkelMesh) const;
 	bool CreateReferenceSkeletonFromMesh(const USkeletalMesh* InSkeletalMesh, const std::vector<int32>& RequiredRefBones);

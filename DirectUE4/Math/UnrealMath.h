@@ -1301,7 +1301,7 @@ struct FLinearColor
 	FLinearColor() {}
 	FLinearColor(float InR, float InG, float InB, float InA = 1.0f) : R(InR), G(InG), B(InB), A(InA) {}
 	FLinearColor(struct FColor);
-
+	FColor ToFColor(const bool bSRGB) const;
 	FLinearColor operator*(const FLinearColor& ColorB) const;
 	explicit FLinearColor(const FFloat16Color& C);
 	FLinearColor operator*(float Scalar) const;
@@ -1430,7 +1430,7 @@ struct FMatrix
 		return Result;
 	}
 	void			RemoveScaling(float Tolerance = SMALL_NUMBER);
-	inline FVector	ExtractScaling(float Tolerance = SMALL_NUMBER);
+	FVector			ExtractScaling(float Tolerance = SMALL_NUMBER);
 	void			SetAxis(int32 i, const FVector& Axis);
 
 	void GetScaledAxes(FVector &X, FVector &Y, FVector &Z) const;
@@ -1445,6 +1445,7 @@ struct FMatrix
 	FVector GetColumn(int32 i) const;
 
 	void To3x4MatrixTranspose(float* Out) const;
+	bool ContainsNaN() const;
 
 	static FMatrix	FromScale(float Scale);
 	static FMatrix	DXFromPitch(float fPitch);

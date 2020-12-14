@@ -5,6 +5,8 @@
 #include "Skeleton.h"
 #include "mikktspace.h"
 #include "UnrealTemplates.h"
+#include "AnimSequence.h"
+#include "AssetImportData.h"
 
 #include <algorithm>
 
@@ -1225,6 +1227,75 @@ USkeletalMesh* FBXImporter::ImportSkeletalMesh(class AActor* InOwner, const char
 	NewSekeletalMesh->PostLoad();
 
 	return NewSekeletalMesh;
+}
+
+UAnimSequence* FBXImporter::ImportFbxAnimation(USkeleton* Skeleton, const char* InFilename, const char* AnimName, bool bImportMorphTracks)
+{
+	ImportOptions = new FBXImportOptions();
+	ImportOptions->bImportScene = false;
+	ImportOptions->bBakePivotInVertex = false;
+	ImportOptions->bTransformVertexToAbsolute = true;
+	ImportOptions->bPreserveSmoothingGroups = false;
+	ImportOptions->NormalImportMethod = FBXNIM_ComputeNormals;
+	ImportOptions->NormalGenerationMethod = EFBXNormalGenerationMethod::MikkTSpace;
+	ImportOptions->bResample = true;
+	ImportOptions->bImportBoneTracks = true;
+
+	SDKManager = FbxManager::Create();
+
+	FbxIOSettings* lIOSetting = FbxIOSettings::Create(SDKManager, IOSROOT);
+	SDKManager->SetIOSettings(lIOSetting);
+
+	FbxImporter* lImporter = FbxImporter::Create(SDKManager, "MeshImporter");
+	if (!lImporter->Initialize(InFilename, -1, SDKManager->GetIOSettings()))
+	{
+		X_LOG("Call to FbxImporter::Initialize() failed.\n");
+		X_LOG("Error returned: %s \n\n", lImporter->GetStatus().GetErrorString());
+		return NULL;
+	}
+
+	fbxScene = FbxScene::Create(SDKManager, "Mesh");
+	lImporter->Import(fbxScene);
+	lImporter->Destroy();
+
+	FbxAxisSystem::ECoordSystem CoordSystem = FbxAxisSystem::eRightHanded;
+	FbxAxisSystem::EUpVector UpVector = FbxAxisSystem::eZAxis;
+	FbxAxisSystem::EFrontVector FrontVector = (FbxAxisSystem::EFrontVector) - FbxAxisSystem::eParityOdd;
+
+	FbxAxisSystem UnrealImportAxis(UpVector, FrontVector, CoordSystem);
+	FbxAxisSystem SourceSetup = fbxScene->GetGlobalSettings().GetAxisSystem();
+
+	if (SourceSetup != UnrealImportAxis)
+	{
+		FbxRootNodeUtility::RemoveAllFbxRoots(fbxScene);
+		UnrealImportAxis.ConvertScene(fbxScene);
+		FbxAMatrix JointOrientationMatrix;
+		JointOrientationMatrix.SetIdentity();
+		// 		if (GetImportOptions()->bForceFrontXAxis)
+		// 		{
+		// 			JointOrientationMatrix.SetR(FbxVector4(-90.0, -90.0, 0.0));
+		// 		}
+		SetJointPostConversionMatrix(JointOrientationMatrix);
+	}
+
+	UAnimSequence * NewAnimation = NULL;
+
+	std::vector<FbxNode*> FBXMeshNodeArray;
+	FbxNode* SkeletonRoot = FindFBXMeshesByBone(Skeleton->GetReferenceSkeleton().GetBoneName(0), true, FBXMeshNodeArray);
+
+	std::vector<FbxNode*> SortedLinks;
+	RecursiveBuildSkeleton(SkeletonRoot, SortedLinks);
+
+	if (SortedLinks.size() == 0)
+	{
+
+	}
+	else
+	{
+
+	}
+
+	return NewAnimation;
 }
 
 bool FBXImporter::FillSkeletalMeshImportData(std::vector<FbxNode*>& NodeArray, std::vector<FbxShape*> *FbxShapeArray, FSkeletalMeshImportData* OutData)
@@ -4990,3 +5061,859 @@ void FBXImporter::BuildVertexBuffer(const MeshDescription& MD2, FStaticMeshLODRe
 	}
 }
 
+FbxNode* FBXImporter::FindFBXMeshesByBone(const std::string& RootBoneName, bool bExpandLOD, std::vector<FbxNode*>& OutFBXMeshNodeArray)
+{
+	const std::string BoneNameString = RootBoneName;
+
+	FbxNode* SkeletonRoot = NULL;
+
+	SkeletonRoot = fbxScene->FindNodeByName(BoneNameString.c_str());
+
+	if (!SkeletonRoot)
+	{
+		return NULL;
+	}
+
+	// Get Mesh nodes array that bind to the skeleton system
+	// 1, get all skeltal meshes in the FBX file
+	std::vector<std::vector<FbxNode*>* > SkelMeshArray;
+	FillFbxSkelMeshArrayInScene(fbxScene->GetRootNode(), SkelMeshArray, false, ImportOptions->bImportScene);
+
+	// 2, then get skeletal meshes that bind to this skeleton
+	for (uint32 SkelMeshIndex = 0; SkelMeshIndex < SkelMeshArray.size(); SkelMeshIndex++)
+	{
+		FbxNode* MeshNode = NULL;
+		if (IsValidIndex(*SkelMeshArray[SkelMeshIndex],0))
+		{
+			FbxNode* Node = (*SkelMeshArray[SkelMeshIndex])[0];
+			if (Node->GetNodeAttribute() && Node->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eLODGroup)
+			{
+				MeshNode = FindLODGroupNode(Node, 0);
+			}
+			else
+			{
+				MeshNode = Node;
+			}
+		}
+
+		if (!/*ensure*/(MeshNode && MeshNode->GetMesh()))
+		{
+			return NULL;
+		}
+
+		// 3, get the root bone that the mesh bind to
+		FbxSkin* Deformer = (FbxSkin*)MeshNode->GetMesh()->GetDeformer(0, FbxDeformer::eSkin);
+		FbxNode* Link = nullptr;
+		// If there is no deformer this is likely rigid animation
+		if (Deformer)
+		{
+			Link = Deformer->GetCluster(0)->GetLink();
+			Link = GetRootSkeleton(Link);
+		}
+		else
+		{
+			Link = GetRootSkeleton(SkeletonRoot);
+		}
+		// 4, fill in the mesh node
+		if (Link == SkeletonRoot)
+		{
+			// copy meshes
+			if (bExpandLOD)
+			{
+				std::vector<FbxNode*> SkelMeshes = *SkelMeshArray[SkelMeshIndex];
+				for (uint32 NodeIndex = 0; NodeIndex < SkelMeshes.size(); NodeIndex++)
+				{
+					FbxNode* Node = SkelMeshes[NodeIndex];
+					if (Node->GetNodeAttribute() && Node->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eLODGroup)
+					{
+						FbxNode *InnerMeshNode = FindLODGroupNode(Node, 0);
+						if (InnerMeshNode != nullptr) OutFBXMeshNodeArray.push_back(InnerMeshNode);
+					}
+					else
+					{
+						OutFBXMeshNodeArray.push_back(Node);
+					}
+				}
+			}
+			else
+			{
+				OutFBXMeshNodeArray.insert(OutFBXMeshNodeArray.end(), SkelMeshArray[SkelMeshIndex]->begin(), SkelMeshArray[SkelMeshIndex]->end());
+			}
+			break;
+		}
+	}
+
+	for (uint32 i = 0; i < SkelMeshArray.size(); i++)
+	{
+		delete SkelMeshArray[i];
+	}
+
+	return SkeletonRoot;
+}
+
+void FBXImporter::FillFbxSkelMeshArrayInScene(FbxNode* Node, std::vector<std::vector<FbxNode*>*>& outSkelMeshArray, bool ExpandLOD, bool bForceFindRigid /*= false*/)
+{
+	std::vector<FbxNode*> SkeletonArray;
+
+	RecursiveFindFbxSkelMesh(Node, outSkelMeshArray, SkeletonArray, ExpandLOD);
+
+	for (uint32 SkelIndex = 0; SkelIndex < SkeletonArray.size(); SkelIndex++)
+	{
+		RecursiveFixSkeleton(SkeletonArray[SkelIndex], *outSkelMeshArray[SkelIndex], true /*ImportOptions->bImportMeshesInBoneHierarchy*/);
+	}
+
+	if (bForceFindRigid || outSkelMeshArray.size() == 0)
+	{
+		RecursiveFindRigidMesh(Node, outSkelMeshArray, SkeletonArray, ExpandLOD);
+		if (bForceFindRigid)
+		{
+			//Cleanup the rigid mesh, We want to remove any real static mesh from the outSkelMeshArray
+			//Any non skinned mesh that contain no animation should be part of this array.
+			int32 AnimStackCount = fbxScene->GetSrcObjectCount<FbxAnimStack>();
+			std::vector<int32> SkeletalMeshArrayToRemove;
+			for (uint32 i = 0; i < outSkelMeshArray.size(); i++)
+			{
+				bool bIsValidSkeletal = false;
+				std::vector<FbxNode*> NodeArray = *outSkelMeshArray[i];
+				for (FbxNode *InspectedNode : NodeArray)
+				{
+					FbxMesh* Mesh = InspectedNode->GetMesh();
+
+					FbxLODGroup* LodGroup = InspectedNode->GetLodGroup();
+					if (LodGroup != nullptr)
+					{
+						FbxNode* SkelMeshNode = FindLODGroupNode(InspectedNode, 0);
+						if (SkelMeshNode != nullptr)
+						{
+							Mesh = SkelMeshNode->GetMesh();
+						}
+					}
+
+					if (Mesh == nullptr)
+					{
+						continue;
+					}
+					if (Mesh->GetDeformerCount(FbxDeformer::eSkin) > 0)
+					{
+						bIsValidSkeletal = true;
+						break;
+					}
+					//If there is some anim object we count this as a valid skeletal mesh imported as rigid mesh
+					for (int32 AnimStackIndex = 0; AnimStackIndex < AnimStackCount; AnimStackIndex++)
+					{
+						FbxAnimStack* CurAnimStack = fbxScene->GetSrcObject<FbxAnimStack>(AnimStackIndex);
+						// set current anim stack
+
+						fbxScene->SetCurrentAnimationStack(CurAnimStack);
+
+						FbxTimeSpan AnimTimeSpan(FBXSDK_TIME_INFINITE, FBXSDK_TIME_MINUS_INFINITE);
+						InspectedNode->GetAnimationInterval(AnimTimeSpan, CurAnimStack);
+
+						if (AnimTimeSpan.GetDuration() > 0)
+						{
+							bIsValidSkeletal = true;
+							break;
+						}
+					}
+					if (bIsValidSkeletal)
+					{
+						break;
+					}
+				}
+				if (!bIsValidSkeletal)
+				{
+					SkeletalMeshArrayToRemove.push_back(i);
+				}
+			}
+			for (uint32 i = SkeletalMeshArrayToRemove.size() - 1; i >= 0; --i)
+			{
+				if (!IsValidIndex(SkeletalMeshArrayToRemove, i) || !IsValidIndex(outSkelMeshArray,SkeletalMeshArrayToRemove[i]))
+					continue;
+				int32 IndexToRemove = SkeletalMeshArrayToRemove[i];
+				outSkelMeshArray[IndexToRemove]->clear();
+				outSkelMeshArray.erase(outSkelMeshArray.begin() + IndexToRemove);
+			}
+		}
+	}
+	//Empty the skeleton array
+	SkeletonArray.clear();
+}
+
+void FBXImporter::RecursiveFindFbxSkelMesh(FbxNode* Node, std::vector<std::vector<FbxNode*>*>& outSkelMeshArray, std::vector<FbxNode*>& SkeletonArray, bool ExpandLOD)
+{
+	FbxNode* SkelMeshNode = nullptr;
+	FbxNode* NodeToAdd = Node;
+
+	if (Node->GetMesh() && Node->GetMesh()->GetDeformerCount(FbxDeformer::eSkin) > 0)
+	{
+		SkelMeshNode = Node;
+	}
+	else if (Node->GetNodeAttribute() && Node->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eLODGroup)
+	{
+		// for LODgroup, add the LODgroup to OutSkelMeshArray according to the skeleton that the first child bind to
+		SkelMeshNode = FindLODGroupNode(Node, 0);
+		// check if the first child is skeletal mesh
+		if (SkelMeshNode != nullptr && !(SkelMeshNode->GetMesh() && SkelMeshNode->GetMesh()->GetDeformerCount(FbxDeformer::eSkin) > 0))
+		{
+			SkelMeshNode = nullptr;
+		}
+		else if (ExpandLOD)
+		{
+			// if ExpandLOD is true, only add the first LODGroup level node
+			NodeToAdd = SkelMeshNode;
+		}
+		// else NodeToAdd = Node;
+	}
+}
+
+FbxNode* FBXImporter::FindLODGroupNode(FbxNode* NodeLodGroup, int32 LodIndex, FbxNode *NodeToFind /*= nullptr*/)
+{
+	assert(NodeLodGroup->GetChildCount() >= LodIndex);
+	FbxNode *ChildNode = NodeLodGroup->GetChild(LodIndex);
+
+	return RecursiveGetFirstMeshNode(ChildNode, NodeToFind);
+}
+
+FbxNode* FBXImporter::RecursiveGetFirstMeshNode(FbxNode* Node, FbxNode* NodeToFind /*= nullptr*/)
+{
+	if (Node->GetMesh() != nullptr)
+		return Node;
+	for (int32 ChildIndex = 0; ChildIndex < Node->GetChildCount(); ++ChildIndex)
+	{
+		FbxNode *MeshNode = RecursiveGetFirstMeshNode(Node->GetChild(ChildIndex), NodeToFind);
+		if (NodeToFind == nullptr)
+		{
+			if (MeshNode != nullptr)
+			{
+				return MeshNode;
+			}
+		}
+		else if (MeshNode == NodeToFind)
+		{
+			return MeshNode;
+		}
+	}
+	return nullptr;
+}
+
+void FBXImporter::RecursiveFixSkeleton(FbxNode* Node, std::vector<FbxNode*> &SkelMeshes, bool bImportNestedMeshes)
+{
+	FbxNodeAttribute* Attr = Node->GetNodeAttribute();
+	bool NodeIsLodGroup = (Attr && (Attr->GetAttributeType() == FbxNodeAttribute::eLODGroup));
+	if (!NodeIsLodGroup)
+	{
+		for (int32 i = 0; i < Node->GetChildCount(); i++)
+		{
+			RecursiveFixSkeleton(Node->GetChild(i), SkelMeshes, bImportNestedMeshes);
+		}
+	}
+
+	if (Attr && (Attr->GetAttributeType() == FbxNodeAttribute::eMesh || Attr->GetAttributeType() == FbxNodeAttribute::eNull))
+	{
+		if (bImportNestedMeshes  && Attr->GetAttributeType() == FbxNodeAttribute::eMesh)
+		{
+			// for leaf mesh, keep them as mesh
+			int32 ChildCount = Node->GetChildCount();
+			int32 ChildIndex;
+			for (ChildIndex = 0; ChildIndex < ChildCount; ChildIndex++)
+			{
+				FbxNode* Child = Node->GetChild(ChildIndex);
+				if (Child->GetMesh() == NULL)
+				{
+					break;
+				}
+			}
+
+			if (ChildIndex != ChildCount)
+			{
+				// Remove from the mesh list it is no longer a mesh
+				Remove(SkelMeshes,Node);
+
+				//replace with skeleton
+				FbxSkeleton* lSkeleton = FbxSkeleton::Create(SDKManager, "");
+				Node->SetNodeAttribute(lSkeleton);
+				lSkeleton->SetSkeletonType(FbxSkeleton::eLimbNode);
+			}
+			else // this mesh may be not in skeleton mesh list. If not, add it.
+			{
+				if (!Contains(SkelMeshes, Node))
+				{
+					SkelMeshes.push_back(Node);
+				}
+			}
+		}
+		else
+		{
+			// Remove from the mesh list it is no longer a mesh
+			Remove(SkelMeshes,Node);
+
+			//replace with skeleton
+			FbxSkeleton* lSkeleton = FbxSkeleton::Create(SDKManager, "");
+			Node->SetNodeAttribute(lSkeleton);
+			lSkeleton->SetSkeletonType(FbxSkeleton::eLimbNode);
+		}
+	}
+}
+
+void FBXImporter::RecursiveFindRigidMesh(FbxNode* Node, std::vector<std::vector<FbxNode*>* >& outSkelMeshArray, std::vector<FbxNode*>& SkeletonArray, bool ExpandLOD)
+{
+	bool bRigidNodeFound = false;
+	FbxNode* RigidMeshNode = nullptr;
+
+	if (Node->GetMesh())
+	{
+		// ignore skeletal mesh
+		if (Node->GetMesh()->GetDeformerCount(FbxDeformer::eSkin) == 0)
+		{
+			RigidMeshNode = Node;
+			bRigidNodeFound = true;
+		}
+	}
+	else if (Node->GetNodeAttribute() && Node->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eLODGroup)
+	{
+		// for LODgroup, add the LODgroup to OutSkelMeshArray according to the skeleton that the first child bind to
+		FbxNode* FirstLOD = FindLODGroupNode(Node, 0);
+		// check if the first child is skeletal mesh
+		if (FirstLOD != nullptr && FirstLOD->GetMesh())
+		{
+			if (FirstLOD->GetMesh()->GetDeformerCount(FbxDeformer::eSkin) == 0)
+			{
+				bRigidNodeFound = true;
+			}
+		}
+
+		if (bRigidNodeFound)
+		{
+			if (ExpandLOD)
+			{
+				RigidMeshNode = FirstLOD;
+			}
+			else
+			{
+				RigidMeshNode = Node;
+			}
+
+		}
+	}
+
+	if (bRigidNodeFound)
+	{
+		// find root skeleton
+		FbxNode* Link = GetRootSkeleton(RigidMeshNode);
+
+		uint32 i;
+		for (i = 0; i < SkeletonArray.size(); i++)
+		{
+			if (Link == SkeletonArray[i])
+			{
+				// append to existed outSkelMeshArray element
+				std::vector<FbxNode*>* TempArray = outSkelMeshArray[i];
+				TempArray->push_back(RigidMeshNode);
+				break;
+			}
+		}
+
+		// if there is no outSkelMeshArray element that is bind to this skeleton
+		// create new element for outSkelMeshArray
+		if (i == SkeletonArray.size())
+		{
+			std::vector<FbxNode*>* TempArray = new std::vector<FbxNode*>();
+			TempArray->push_back(RigidMeshNode);
+			outSkelMeshArray.push_back(TempArray);
+			SkeletonArray.push_back(Link);
+		}
+	}
+
+	// for LODGroup, we will not deep in.
+	if (!(Node->GetNodeAttribute() && Node->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eLODGroup))
+	{
+		int32 ChildIndex;
+		for (ChildIndex = 0; ChildIndex < Node->GetChildCount(); ++ChildIndex)
+		{
+			RecursiveFindRigidMesh(Node->GetChild(ChildIndex), outSkelMeshArray, SkeletonArray, ExpandLOD);
+		}
+	}
+}
+
+#define DEFAULT_SAMPLERATE			30.f
+#define MINIMUM_ANIMATION_LENGTH	(1/DEFAULT_SAMPLERATE)
+
+UAnimSequence* FBXImporter::ImportAnimations(USkeleton* Skeleton, std::vector<FbxNode*>& SortedLinks, const std::string& Name, std::vector<FbxNode*>& NodeArray)
+{
+	if (Skeleton == NULL)
+	{
+		return NULL;
+	}
+
+// 	int32 ValidTakeCount = 0;
+// 	if (IsValidAnimationData(SortedLinks, NodeArray, ValidTakeCount) == false)
+// 	{
+// 		return NULL;
+// 	}
+
+	UAnimSequence* LastCreatedAnim = NULL;
+
+	int32 ResampleRate = DEFAULT_SAMPLERATE;
+	if (ImportOptions->bResample)
+	{
+		// For FBX data, "Frame Rate" is just the speed at which the animation is played back.  It can change
+		// arbitrarily, and the underlying data can stay the same.  What we really want here is the Sampling Rate,
+		// ie: the number of animation keys per second.  These are the individual animation curve keys
+		// on the FBX nodes of the skeleton.  So we loop through the nodes of the skeleton and find the maximum number 
+		// of keys that any node has, then divide this by the total length (in seconds) of the animation to find the 
+		// sampling rate of this set of data 
+
+		// we want the maximum resample rate, so that we don't lose any precision of fast anims,
+		// and don't mind creating lerped frames for slow anims
+		int32 MaxStackResampleRate = 30;// GetMaxSampleRate(SortedLinks, NodeArray);
+
+		if (MaxStackResampleRate != 0)
+		{
+			ResampleRate = MaxStackResampleRate;
+		}
+
+	}
+
+	int32 AnimStackCount = fbxScene->GetSrcObjectCount<FbxAnimStack>();
+
+	for (int32 AnimStackIndex = 0; AnimStackIndex < AnimStackCount; AnimStackIndex++)
+	{
+		FbxAnimStack* CurAnimStack = fbxScene->GetSrcObject<FbxAnimStack>(AnimStackIndex);
+
+		FbxTimeSpan AnimTimeSpan = GetAnimationTimeSpan(SortedLinks[0], CurAnimStack, ResampleRate);
+
+		UAnimSequence * DestSeq = new UAnimSequence();
+		DestSeq->SetSkeleton(Skeleton);
+
+		ImportAnimation(Skeleton, DestSeq, Name, SortedLinks, NodeArray, CurAnimStack, ResampleRate, AnimTimeSpan);
+
+		LastCreatedAnim = DestSeq;
+	}
+
+	return LastCreatedAnim;
+}
+
+FbxTimeSpan FBXImporter::GetAnimationTimeSpan(FbxNode* RootNode, FbxAnimStack* AnimStack, int32 ResampleRate)
+{
+	FbxTimeSpan AnimTimeSpan(FBXSDK_TIME_INFINITE, FBXSDK_TIME_MINUS_INFINITE);
+
+	AnimTimeSpan = AnimStack->GetLocalTimeSpan();
+
+	return AnimTimeSpan;
+}
+
+bool FBXImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence* DestSeq, const std::string& FileName, std::vector<FbxNode*>& SortedLinks, std::vector<FbxNode*>& NodeArray, FbxAnimStack* CurAnimStack, const int32 ResampleRate, const FbxTimeSpan AnimTimeSpan)
+{
+	DestSeq->CleanAnimSequenceForImport();
+
+	FbxTime SequenceLength = AnimTimeSpan.GetDuration();
+	float PreviousSequenceLength = DestSeq->SequenceLength;
+
+	DestSeq->SequenceLength = FMath::Max<float>(SequenceLength.GetSecondDouble(), MINIMUM_ANIMATION_LENGTH);
+
+	const bool bSourceDataExists = DestSeq->HasSourceRawData();
+	//TArray<AnimationTransformDebug::FAnimationTransformDebugData> TransformDebugData;
+	int32 TotalNumKeys = 0;
+	const FReferenceSkeleton& RefSkeleton = Skeleton->GetReferenceSkeleton();
+	if (ImportOptions->bImportBoneTracks)
+	{
+
+		std::vector<std::string> FbxRawBoneNames;
+		FillAndVerifyBoneNames(Skeleton, SortedLinks, FbxRawBoneNames, FileName);
+
+		const bool bPreserveLocalTransform = ImportOptions->bPreserveLocalTransform;
+
+		UFbxAnimSequenceImportData* TemplateData = (UFbxAnimSequenceImportData*)(DestSeq->AssetImportData);
+		FbxAMatrix FbxAddedMatrix;
+		BuildFbxMatrixForImportTransform(FbxAddedMatrix, TemplateData);
+		FMatrix AddedMatrix = Converter.ConvertMatrix(FbxAddedMatrix);
+
+		bool bIsRigidMeshAnimation = false;
+		if (ImportOptions->bImportScene && SortedLinks.size() > 0)
+		{
+			for (uint32 BoneIdx = 0; BoneIdx < SortedLinks.size(); ++BoneIdx)
+			{
+				FbxNode* Link = SortedLinks[BoneIdx];
+				if (Link->GetMesh() && Link->GetMesh()->GetDeformerCount(FbxDeformer::eSkin) == 0)
+				{
+					bIsRigidMeshAnimation = true;
+					break;
+				}
+			}
+		}
+
+		FbxNode *SkeletalMeshRootNode = NodeArray.size() > 0 ? NodeArray[0] : nullptr;
+
+		const int32 NumSamplingFrame = FMath::RoundToInt((AnimTimeSpan.GetDuration().GetSecondDouble() * ResampleRate));
+		//Set the time increment from the re-sample rate
+		FbxTime TimeIncrement = 0;
+		TimeIncrement.SetSecondDouble(1.0 / ((double)(ResampleRate)));
+
+		//Add a threshold when we compare if we have reach the end of the animation
+		const FbxTime TimeComparisonThreshold = (KINDA_SMALL_NUMBER*FBXSDK_TC_SECOND);
+
+		for (uint32 SourceTrackIdx = 0; SourceTrackIdx < FbxRawBoneNames.size(); ++SourceTrackIdx)
+		{
+			int32 NumKeysForTrack = 0;
+
+			// see if it's found in Skeleton
+			std::string BoneName = FbxRawBoneNames[SourceTrackIdx];
+			int32 BoneTreeIndex = RefSkeleton.FindBoneIndex(BoneName);
+
+			if (BoneTreeIndex != INDEX_NONE)
+			{
+				bool bSuccess = true;
+
+				FRawAnimSequenceTrack RawTrack;
+				RawTrack.PosKeys.clear();
+				RawTrack.RotKeys.clear();
+				RawTrack.ScaleKeys.clear();
+
+				FbxNode* Link = SortedLinks[SourceTrackIdx];
+				FbxNode * LinkParent = Link->GetParent();
+
+				for (FbxTime CurTime = AnimTimeSpan.GetStart(); CurTime < (AnimTimeSpan.GetStop() + TimeComparisonThreshold); CurTime += TimeIncrement)
+				{
+					// save global trasnform
+					FbxAMatrix GlobalMatrix = Link->EvaluateGlobalTransform(CurTime) * FFbxDataConverter::GetJointPostConversionMatrix();
+					// we'd like to verify this before going to Transform. 
+					// currently transform has tons of NaN check, so it will crash there
+					FMatrix GlobalUEMatrix = Converter.ConvertMatrix(GlobalMatrix);
+					if (GlobalUEMatrix.ContainsNaN())
+					{
+						bSuccess = false;
+						X_LOG("Track %s contains invalid transform. Could not import the track.", BoneName.c_str());
+						break;
+					}
+
+					FTransform GlobalTransform = Converter.ConvertTransform(GlobalMatrix);
+					if (GlobalTransform.ContainsNaN())
+					{
+						bSuccess = false;
+						X_LOG("Track {0} has invalid transform(NaN). Zero scale transform can cause this issue.", BoneName.c_str());
+						break;
+					}
+
+					// debug data, including import transformation
+					FTransform AddedTransform(AddedMatrix);
+
+					FTransform LocalTransform;
+					if (!bPreserveLocalTransform && LinkParent)
+					{
+						// I can't rely on LocalMatrix. I need to recalculate quaternion/scale based on global transform if Parent exists
+						FbxAMatrix ParentGlobalMatrix = Link->GetParent()->EvaluateGlobalTransform(CurTime);
+						if (BoneTreeIndex != 0)
+						{
+							ParentGlobalMatrix = ParentGlobalMatrix * FFbxDataConverter::GetJointPostConversionMatrix();
+						}
+						FTransform ParentGlobalTransform = Converter.ConvertTransform(ParentGlobalMatrix);
+						//In case we do a scene import we need to add the skeletal mesh root node matrix to the parent link.
+						if (ImportOptions->bImportScene && !ImportOptions->bTransformVertexToAbsolute && BoneTreeIndex == 0 && SkeletalMeshRootNode != nullptr)
+						{
+							//In the case of a rigidmesh animation we have to use the skeletalMeshRootNode position at zero since the mesh can be animate.
+							FbxAMatrix GlobalSkeletalNodeFbx = bIsRigidMeshAnimation ? SkeletalMeshRootNode->EvaluateGlobalTransform(0) : SkeletalMeshRootNode->EvaluateGlobalTransform(CurTime);
+							FTransform GlobalSkeletalNode = Converter.ConvertTransform(GlobalSkeletalNodeFbx);
+							ParentGlobalTransform = ParentGlobalTransform * GlobalSkeletalNode;
+						}
+
+						LocalTransform = GlobalTransform.GetRelativeTransform(ParentGlobalTransform);
+					}
+					else
+					{
+						FbxAMatrix& LocalMatrix = Link->EvaluateLocalTransform(CurTime);
+						FbxVector4 NewLocalT = LocalMatrix.GetT();
+						FbxVector4 NewLocalS = LocalMatrix.GetS();
+						FbxQuaternion NewLocalQ = LocalMatrix.GetQ();
+
+						LocalTransform.SetTranslation(Converter.ConvertPos(NewLocalT));
+						LocalTransform.SetScale3D(Converter.ConvertScale(NewLocalS));
+						LocalTransform.SetRotation(Converter.ConvertRotToQuat(NewLocalQ));
+
+					}
+
+					if (TemplateData && BoneTreeIndex == 0)
+					{
+						// If we found template data earlier, apply the import transform matrix to
+						// the root track.
+						LocalTransform.SetFromMatrix(LocalTransform.ToMatrixWithScale() * AddedMatrix);
+					}
+
+					if (LocalTransform.ContainsNaN())
+					{
+						bSuccess = false;
+						X_LOG("Track %s has invalid transform(NaN). If you have zero scale transform, that can cause this.", BoneName.c_str());
+						break;
+					}
+
+					RawTrack.ScaleKeys.push_back(LocalTransform.GetScale3D());
+					RawTrack.PosKeys.push_back(LocalTransform.GetTranslation());
+					RawTrack.RotKeys.push_back(LocalTransform.GetRotation());
+
+					++NumKeysForTrack;
+				}
+
+				TotalNumKeys = FMath::Max(TotalNumKeys, NumKeysForTrack);
+			}
+		}
+	}
+
+	{
+		if (bSourceDataExists)
+		{
+			//DestSeq->BakeTrackCurvesToRawAnimation();
+		}
+		else
+		{
+			// otherwise just compress
+			//DestSeq->PostProcessSequence();
+		}
+	}
+	return true;
+}
+
+void FBXImporter::FillAndVerifyBoneNames(USkeleton* Skeleton, std::vector<FbxNode*>& SortedLinks, std::vector<std::string>& OutRawBoneNames, std::string Filename)
+{
+	uint32 TrackNum = SortedLinks.size();
+
+	OutRawBoneNames.resize(TrackNum);
+
+	for (uint32 BoneIndex = 0; BoneIndex < TrackNum; BoneIndex++)
+	{
+		OutRawBoneNames[BoneIndex] = SortedLinks[BoneIndex]->GetName();
+	}
+
+	const FReferenceSkeleton& RefSkeleton = Skeleton->GetReferenceSkeleton();
+
+	// make sure at least root bone matches
+	if (OutRawBoneNames[0] != RefSkeleton.GetBoneName(0))
+	{
+		return;
+	}
+
+	for (uint32 I = 0; I < TrackNum; I++)
+	{
+		for (uint32 J = I + 1; J < TrackNum; J++)
+		{
+			if (OutRawBoneNames[I] == OutRawBoneNames[J])
+			{
+				std::string RawBoneName = OutRawBoneNames[J];
+				assert(false);
+				X_LOG("Could not import %s.\nDuplicate bone name found ('%s'). Each bone must have a unique name.", Filename.c_str(), RawBoneName.c_str());
+			}
+		}
+	}
+
+	std::string BoneNames;
+	for (uint32 I = 0; I < TrackNum; ++I)
+	{
+		std::string RawBoneName = OutRawBoneNames[I];
+		if (RefSkeleton.FindBoneIndex(RawBoneName) == INDEX_NONE)
+		{
+			BoneNames += RawBoneName;
+			BoneNames += "  \n";
+		}
+	}
+
+	if (BoneNames.empty() == false)
+	{
+		// warn user
+		assert(false);
+		//X_LOG("The following bones exist in the imported animation, but not in the Skeleton asset %s.  Any animation on these bones will not be imported: \n\n %s", Skeleton->GetName(), BoneNames)
+	}
+}
+
+void FBXImporter::BuildFbxMatrixForImportTransform(FbxAMatrix& OutMatrix, UFbxAssetImportData* AssetData)
+{
+	if (!AssetData)
+	{
+		OutMatrix.SetIdentity();
+		return;
+	}
+
+	FbxVector4 FbxAddedTranslation = Converter.ConvertToFbxPos(AssetData->ImportTranslation);
+	FbxVector4 FbxAddedScale = Converter.ConvertToFbxScale(FVector(AssetData->ImportUniformScale));
+	FbxVector4 FbxAddedRotation = Converter.ConvertToFbxRot(AssetData->ImportRotation.Euler());
+
+	OutMatrix = FbxAMatrix(FbxAddedTranslation, FbxAddedRotation, FbxAddedScale);
+}
+
+FVector FFbxDataConverter::ConvertPos(FbxVector4 Vector)
+{
+	FVector Out;
+	Out[0] = Vector[0];
+	// flip Y, then the right-handed axis system is converted to LHS
+	Out[1] = -Vector[1];
+	Out[2] = Vector[2];
+	return Out;
+}
+
+
+
+FVector FFbxDataConverter::ConvertDir(FbxVector4 Vector)
+{
+	FVector Out;
+	Out[0] = Vector[0];
+	Out[1] = -Vector[1];
+	Out[2] = Vector[2];
+	return Out;
+}
+
+FRotator FFbxDataConverter::ConvertEuler(FbxDouble3 Euler)
+{
+	return FRotator::MakeFromEuler(FVector(Euler[0], -Euler[1], Euler[2]));
+}
+
+
+FVector FFbxDataConverter::ConvertScale(FbxDouble3 Vector)
+{
+	FVector Out;
+	Out[0] = Vector[0];
+	Out[1] = Vector[1];
+	Out[2] = Vector[2];
+	return Out;
+}
+
+
+FVector FFbxDataConverter::ConvertScale(FbxVector4 Vector)
+{
+	FVector Out;
+	Out[0] = Vector[0];
+	Out[1] = Vector[1];
+	Out[2] = Vector[2];
+	return Out;
+}
+
+FRotator FFbxDataConverter::ConvertRotation(FbxQuaternion Quaternion)
+{
+	FRotator Out(ConvertRotToQuat(Quaternion));
+	return Out;
+}
+
+FVector FFbxDataConverter::ConvertRotationToFVect(FbxQuaternion Quaternion, bool bInvertOrient)
+{
+	FQuat UnrealQuaternion = ConvertRotToQuat(Quaternion);
+	FVector Euler;
+	Euler = UnrealQuaternion.Euler();
+	if (bInvertOrient)
+	{
+		Euler.Y = -Euler.Y;
+		Euler.Z = 180.f + Euler.Z;
+	}
+	return Euler;
+}
+
+//-------------------------------------------------------------------------
+//
+//-------------------------------------------------------------------------
+FQuat FFbxDataConverter::ConvertRotToQuat(FbxQuaternion Quaternion)
+{
+	FQuat UnrealQuat;
+	UnrealQuat.X = Quaternion[0];
+	UnrealQuat.Y = -Quaternion[1];
+	UnrealQuat.Z = Quaternion[2];
+	UnrealQuat.W = -Quaternion[3];
+
+	return UnrealQuat;
+}
+
+//-------------------------------------------------------------------------
+//
+//-------------------------------------------------------------------------
+float FFbxDataConverter::ConvertDist(FbxDouble Distance)
+{
+	float Out;
+	Out = (float)Distance;
+	return Out;
+}
+
+FTransform FFbxDataConverter::ConvertTransform(FbxAMatrix Matrix)
+{
+	FTransform Out;
+
+	FQuat Rotation = ConvertRotToQuat(Matrix.GetQ());
+	FVector Origin = ConvertPos(Matrix.GetT());
+	FVector Scale = ConvertScale(Matrix.GetS());
+
+	Out.SetTranslation(Origin);
+	Out.SetScale3D(Scale);
+	Out.SetRotation(Rotation);
+
+	return Out;
+}
+
+FMatrix FFbxDataConverter::ConvertMatrix(FbxAMatrix Matrix)
+{
+	FMatrix UEMatrix;
+
+	for (int i = 0; i < 4; ++i)
+	{
+		FbxVector4 Row = Matrix.GetRow(i);
+		if (i == 1)
+		{
+			UEMatrix.M[i][0] = -Row[0];
+			UEMatrix.M[i][1] = Row[1];
+			UEMatrix.M[i][2] = -Row[2];
+			UEMatrix.M[i][3] = -Row[3];
+		}
+		else
+		{
+			UEMatrix.M[i][0] = Row[0];
+			UEMatrix.M[i][1] = -Row[1];
+			UEMatrix.M[i][2] = Row[2];
+			UEMatrix.M[i][3] = Row[3];
+		}
+	}
+
+	return UEMatrix;
+}
+
+FColor FFbxDataConverter::ConvertColor(FbxDouble3 Color)
+{
+	//Fbx is in linear color space
+	FColor SRGBColor = FLinearColor(Color[0], Color[1], Color[2]).ToFColor(true);
+	return SRGBColor;
+}
+
+FbxVector4 FFbxDataConverter::ConvertToFbxPos(FVector Vector)
+{
+	FbxVector4 Out;
+	Out[0] = Vector[0];
+	Out[1] = -Vector[1];
+	Out[2] = Vector[2];
+
+	return Out;
+}
+
+FbxVector4 FFbxDataConverter::ConvertToFbxRot(FVector Vector)
+{
+	FbxVector4 Out;
+	Out[0] = Vector[0];
+	Out[1] = -Vector[1];
+	Out[2] = -Vector[2];
+
+	return Out;
+}
+
+FbxVector4 FFbxDataConverter::ConvertToFbxScale(FVector Vector)
+{
+	FbxVector4 Out;
+	Out[0] = Vector[0];
+	Out[1] = Vector[1];
+	Out[2] = Vector[2];
+
+	return Out;
+}
+
+FbxDouble3 FFbxDataConverter::ConvertToFbxColor(FColor Color)
+{
+	//Fbx is in linear color space
+	FLinearColor FbxLinearColor(Color);
+	FbxDouble3 Out;
+	Out[0] = FbxLinearColor.R;
+	Out[1] = FbxLinearColor.G;
+	Out[2] = FbxLinearColor.B;
+
+	return Out;
+}
+
+FbxAMatrix FFbxDataConverter::JointPostConversionMatrix;
