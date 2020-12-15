@@ -211,6 +211,11 @@ bool USceneComponent::InternalSetWorldLocationAndRotation(FVector NewLocation, c
 	return true;
 }
 
+FTransform USceneComponent::GetRelativeTransform() const
+{
+	return FTransform::Identity;
+}
+
 FBoxSphereBounds USceneComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	FBoxSphereBounds NewBounds;

@@ -1,6 +1,9 @@
 #pragma once
 
 #include "PrimitiveComponent.h"
+#include "SingleAnimationPlayData.h"
+#include "AnimationAsset.h"
+#include "AnimCurveTypes.h"
 
 class AActor;
 class UMaterial;
@@ -99,6 +102,8 @@ public:
 	virtual void SetSkeletalMesh(class USkeletalMesh* NewMesh, bool bReinitPose = true);
 
 	void SetMasterPoseComponent(USkinnedMeshComponent* NewMasterBoneComponent, bool bForceUpdate = false);
+
+	virtual void RefreshBoneTransforms(/*FActorComponentTickFunction* TickFunction = NULL*/) = 0;
 protected:
 	virtual void OnRegister() override;
 	virtual void OnUnregister() override;
@@ -176,6 +181,7 @@ namespace EAnimationMode
 }
 
 class UAnimInstance;
+struct FCompactPose;
 
 class USkeletalMeshComponent : public USkinnedMeshComponent
 {
@@ -186,7 +192,22 @@ public:
 
 	virtual void InitAnim(bool bForceReinit);
 
+	void TickAnimation(float DeltaTime, bool bNeedsValidRootMotion);
+
+	void PerformAnimationEvaluation(const USkeletalMesh* InSkeletalMesh, UAnimInstance* InAnimInstance, std::vector<FTransform>& OutSpaceBases, std::vector<FTransform>& OutBoneSpaceTransforms, FVector& OutRootBoneTranslation, FBlendedHeapCurve& OutCurve) const;
+	void PerformAnimationProcessing(const USkeletalMesh* InSkeletalMesh, UAnimInstance* InAnimInstance, bool bInDoEvaluation, std::vector<FTransform>& OutSpaceBases, std::vector<FTransform>& OutBoneSpaceTransforms, FVector& OutRootBoneTranslation, FBlendedHeapCurve& OutCurve) const;
+	void EvaluateAnimation(const USkeletalMesh* InSkeletalMesh, UAnimInstance* InAnimInstance, std::vector<FTransform>& OutBoneSpaceTransforms, FVector& OutRootBoneTranslation, FBlendedHeapCurve& OutCurve, FCompactPose& OutPose) const;
+	void EvaluatePostProcessMeshInstance(std::vector<FTransform>& OutBoneSpaceTransforms, FCompactPose& InOutPose, FBlendedHeapCurve& OutCurve, const USkeletalMesh* InSkeletalMesh, FVector& OutRootBoneTranslation) const;
+	void FinalizePoseEvaluationResult(const USkeletalMesh* InMesh, std::vector<FTransform>& OutBoneSpaceTransforms, FVector& OutRootBoneTranslation, FCompactPose& InFinalPose) const;
+	
 	UAnimInstance* AnimScriptInstance;
+	struct FSingleAnimationPlayData AnimationData;
+
+	void SetAnimationMode(EAnimationMode::Type InAnimationMode);
+	EAnimationMode::Type GetAnimationMode() const;
+
+	class UAnimSingleNodeInstance* GetSingleNodeInstance() const;
+	bool InitializeAnimScriptInstance(bool bForceReinit = true);
 
 	void PlayAnimation(class UAnimationAsset* NewAnimToPlay, bool bLooping);
 	void SetAnimation(class UAnimationAsset* NewAnimToPlay);
@@ -195,6 +216,7 @@ public:
 	void Stop();
 	bool IsPlaying() const;
 
+	virtual void RefreshBoneTransforms(/*FActorComponentTickFunction* TickFunction = NULL*/) override;
 	void RecalcRequiredBones(int32 LODIndex);
 
 	void ComputeRequiredBones(std::vector<FBoneIndexType>& OutRequiredBones, std::vector<FBoneIndexType>& OutFillComponentSpaceTransformsRequiredBones, int32 LODIndex, bool bIgnorePhysicsAsset) const;
@@ -204,11 +226,23 @@ public:
 	std::vector<FTransform> BoneSpaceTransforms;
 
 	std::vector<FBoneIndexType> FillComponentSpaceTransformsRequiredBones;
+
+	float GlobalAnimRateScale;
+
+	uint8 bRequiredBonesUpToDate : 1;
+
+	FVector RootBoneTranslation;
+
+	uint8 bForceRefpose : 1;
+
+	FBlendedHeapCurve AnimCurves;
 protected:
 	virtual void OnRegister() override;
 	virtual void OnUnregister() override;
 
 	EAnimationMode::Type	AnimationMode;
 private:
+	void ClearAnimScriptInstance();
+
 	void FillComponentSpaceTransforms(const USkeletalMesh* InSkeletalMesh, const std::vector<FTransform>& InBoneSpaceTransforms, std::vector<FTransform>& OutComponentSpaceTransforms) const;
 };

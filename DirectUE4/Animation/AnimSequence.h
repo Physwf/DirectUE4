@@ -1,6 +1,10 @@
 #pragma once
 
+#include "AnimTypes.h"
+#include "AnimationAsset.h"
+#include "AnimCurveTypes.h"
 #include "AnimSequenceBase.h"
+#include "BoneIndices.h"
 
 #include <vector>
 #include <string>
@@ -56,9 +60,35 @@ protected:
 	std::vector<struct FRawAnimSequenceTrack> RawAnimationData;
 	std::vector<std::string> AnimationTrackNames;
 	std::vector<struct FRawAnimSequenceTrack> SourceRawAnimationData;
+	std::vector<struct FTrackToSkeletonMap> CompressedTrackToSkeletonMapTable;
 public:
 	class UAssetImportData* AssetImportData;
+	class UAnimSequence* RefPoseSeq;
+	int32 RefFrameIndex;
+	EAdditiveAnimationType AdditiveAnimType;
+	EAdditiveBasePoseType RefPoseType;
+	bool bEnableRootMotion;
+	std::string RetargetSource;
+
+	int32 GetSkeletonIndexFromCompressedDataTrackIndex(const int32 TrackIndex) const
+	{
+		return CompressedTrackToSkeletonMapTable[TrackIndex].BoneTreeIndex;
+	}
 public:
 	void CleanAnimSequenceForImport();
-	bool  HasSourceRawData() const { return SourceRawAnimationData.size() > 0; }
+	bool HasSourceRawData() const { return SourceRawAnimationData.size() > 0; }
+
+	virtual void GetAnimationPose(FCompactPose& OutPose, FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext) const override;
+	void GetBonePose(FCompactPose& OutPose, FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext, bool bForceUseRawData = false) const;
+
+	void GetBonePose_Additive(FCompactPose& OutPose, FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext) const;
+
+	virtual bool IsValidAdditive() const override;
+	virtual void EvaluateCurveData(FBlendedCurve& OutCurve, float CurrentTime, bool bForceUseRawData = false) const;
+	void GetAdditiveBasePose(FCompactPose& OutPose, FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext) const;
+private:
+	void RetargetBoneTransform(FTransform& BoneTransform, const int32 SkeletonBoneIndex, const FCompactPoseBoneIndex& BoneIndex, const FBoneContainer& RequiredBones, const bool bIsBakedAdditive) const;
+	void GetBonePose_AdditiveMeshRotationOnly(FCompactPose& OutPose, FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext) const;
+
+	bool UseRawDataForPoseExtraction(const FBoneContainer& RequiredBones) const;
 };

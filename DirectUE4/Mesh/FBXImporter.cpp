@@ -1292,7 +1292,7 @@ UAnimSequence* FBXImporter::ImportFbxAnimation(USkeleton* Skeleton, const char* 
 	}
 	else
 	{
-
+		NewAnimation = ImportAnimations(Skeleton, SortedLinks, AnimName, FBXMeshNodeArray);
 	}
 
 	return NewAnimation;

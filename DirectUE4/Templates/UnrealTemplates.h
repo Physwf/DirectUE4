@@ -55,5 +55,19 @@ inline void Remove(std::vector<T>& container, const T& Value)
 		container.erase(It);
 	}
 }
+template <typename ElementType, typename KeyType>
+inline int32 IndexOfByKey(std::vector<ElementType> Container, const KeyType& Key)
+{
+	const ElementType* __restrict Start = Container.data();
+	auto ArrayNum = Container.size();
+	for (const ElementType* __restrict Data = Start, *__restrict DataEnd = Start + ArrayNum; Data != DataEnd; ++Data)
+	{
+		if (*Data == Key)
+		{
+			return static_cast<int32>(Data - Start);
+		}
+	}
+	return INDEX_NONE;
+}
 
 #define STRUCT_OFFSET( struc, member )	__builtin_offsetof(struc, member)

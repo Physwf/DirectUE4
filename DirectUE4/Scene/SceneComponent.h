@@ -102,6 +102,14 @@ public:
 	{
 		return GetComponentTransform().GetRotation();
 	}
+	FRotator GetComponentRotation() const
+	{
+		//return WorldRotationCache.NormalizedQuatToRotator(GetComponentTransform().GetRotation());
+		return FRotator::ZeroRotator;
+	}
+
+	FTransform GetRelativeTransform() const;
+
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const;
 
 	virtual void UpdateBounds();

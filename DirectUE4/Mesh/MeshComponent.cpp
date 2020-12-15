@@ -6,6 +6,7 @@
 #include "SkeletalMeshTypes.h"
 #include "SkeletalRenderGPUSkin.h"
 #include "SkeletalMesh.h"
+#include "AnimSingleNodeInstance.h"
 
 UMeshComponent::UMeshComponent(AActor* InOwner)
 	: UPrimitiveComponent(InOwner)
@@ -364,9 +365,224 @@ void USkeletalMeshComponent::InitAnim(bool bForceReinit)
 	}
 }
 
-void USkeletalMeshComponent::PlayAnimation(class UAnimationAsset* NewAnimToPlay, bool bLooping)
+void USkeletalMeshComponent::TickAnimation(float DeltaTime, bool bNeedsValidRootMotion)
+{
+	if (SkeletalMesh != nullptr)
+	{
+		// We're about to UpdateAnimation, this will potentially queue events that we'll need to dispatch.
+		//bNeedsQueuedAnimEventsDispatched = true;
+
+		// We update sub instances first incase we're using either root motion or non-threaded update.
+		// This ensures that we go through the pre update process and initialize the proxies correctly.
+// 		for (UAnimInstance* SubInstance : SubInstances)
+// 		{
+// 			SubInstance->UpdateAnimation(DeltaTime * GlobalAnimRateScale, false);
+// 		}
+
+		if (AnimScriptInstance != nullptr)
+		{
+			// Tick the animation
+			AnimScriptInstance->UpdateAnimation(DeltaTime * GlobalAnimRateScale, bNeedsValidRootMotion);
+		}
+
+// 		if (ShouldUpdatePostProcessInstance())
+// 		{
+// 			PostProcessAnimInstance->UpdateAnimation(DeltaTime * GlobalAnimRateScale, false);
+// 		}
+
+		/**
+		If we're called directly for autonomous proxies, TickComponent is not guaranteed to get called.
+		So dispatch all queued events here if we're doing MontageOnly ticking.
+		*/
+// 		if (ShouldOnlyTickMontages(DeltaTime))
+// 		{
+// 			ConditionallyDispatchQueuedAnimEvents();
+// 		}
+	}
+}
+
+void USkeletalMeshComponent::PerformAnimationEvaluation(const USkeletalMesh* InSkeletalMesh, UAnimInstance* InAnimInstance, std::vector<FTransform>& OutSpaceBases, std::vector<FTransform>& OutBoneSpaceTransforms, FVector& OutRootBoneTranslation, FBlendedHeapCurve& OutCurve) const
+{
+	PerformAnimationProcessing(InSkeletalMesh, InAnimInstance, true, OutSpaceBases, OutBoneSpaceTransforms, OutRootBoneTranslation, OutCurve);
+}
+
+void USkeletalMeshComponent::PerformAnimationProcessing(const USkeletalMesh* InSkeletalMesh, UAnimInstance* InAnimInstance, bool bInDoEvaluation, std::vector<FTransform>& OutSpaceBases, std::vector<FTransform>& OutBoneSpaceTransforms, FVector& OutRootBoneTranslation, FBlendedHeapCurve& OutCurve) const
+{
+	if (!InSkeletalMesh || OutSpaceBases.size() == 0)
+	{
+		return;
+	}
+
+	// update anim instance
+// 	if (InAnimInstance && InAnimInstance->NeedsUpdate())
+// 	{
+// 		InAnimInstance->ParallelUpdateAnimation();
+// 	}
+// 
+// 	if (ShouldPostUpdatePostProcessInstance())
+// 	{
+// 		// If we don't have an anim instance, we may still have a post physics instance
+// 		PostProcessAnimInstance->ParallelUpdateAnimation();
+// 	}
+	if (bInDoEvaluation)
+	{
+		FCompactPose EvaluatedPose;
+
+		// evaluate pure animations, and fill up BoneSpaceTransforms
+		EvaluateAnimation(InSkeletalMesh, InAnimInstance, OutBoneSpaceTransforms, OutRootBoneTranslation, OutCurve, EvaluatedPose);
+		EvaluatePostProcessMeshInstance(OutBoneSpaceTransforms, EvaluatedPose, OutCurve, InSkeletalMesh, OutRootBoneTranslation);
+
+		// Finalize the transforms from the evaluation
+		FinalizePoseEvaluationResult(InSkeletalMesh, OutBoneSpaceTransforms, OutRootBoneTranslation, EvaluatedPose);
+
+		// Fill SpaceBases from LocalAtoms
+		FillComponentSpaceTransforms(InSkeletalMesh, OutBoneSpaceTransforms, OutSpaceBases);
+	}
+}
+
+void USkeletalMeshComponent::EvaluateAnimation(const USkeletalMesh* InSkeletalMesh, UAnimInstance* InAnimInstance, std::vector<FTransform>& OutBoneSpaceTransforms, FVector& OutRootBoneTranslation, FBlendedHeapCurve& OutCurve, FCompactPose& OutPose) const
+{
+	if (!InSkeletalMesh)
+	{
+		return;
+	}
+
+	// We can only evaluate animation if RequiredBones is properly setup for the right mesh!
+	if (InSkeletalMesh->Skeleton &&
+		InAnimInstance &&
+		InAnimInstance->ParallelCanEvaluate(InSkeletalMesh))
+	{
+		InAnimInstance->ParallelEvaluateAnimation(bForceRefpose, InSkeletalMesh, OutBoneSpaceTransforms, OutCurve, OutPose);
+	}
+	else
+	{
+		// unfortunately it's possible they might not have skeleton, in that case, we don't have any place to copy the curve from
+		if (InSkeletalMesh->Skeleton)
+		{
+			//OutCurve.InitFrom(&InSkeletalMesh->Skeleton->GetDefaultCurveUIDList());
+		}
+	}
+}
+
+void USkeletalMeshComponent::EvaluatePostProcessMeshInstance(std::vector<FTransform>& OutBoneSpaceTransforms, FCompactPose& InOutPose, FBlendedHeapCurve& OutCurve, const USkeletalMesh* InSkeletalMesh, FVector& OutRootBoneTranslation) const
 {
 
+}
+
+void USkeletalMeshComponent::FinalizePoseEvaluationResult(const USkeletalMesh* InMesh, std::vector<FTransform>& OutBoneSpaceTransforms, FVector& OutRootBoneTranslation, FCompactPose& InFinalPose) const
+{
+
+}
+
+void USkeletalMeshComponent::SetAnimationMode(EAnimationMode::Type InAnimationMode)
+{
+	bool bNeedChange = AnimationMode != InAnimationMode;
+	if (bNeedChange)
+	{
+		AnimationMode = InAnimationMode;
+		ClearAnimScriptInstance();
+	}
+
+	if (SkeletalMesh != nullptr && (bNeedChange || AnimationMode == EAnimationMode::AnimationBlueprint))
+	{
+		if (InitializeAnimScriptInstance(true))
+		{
+			//OnAnimInitialized.Broadcast();
+		}
+	}
+}
+
+EAnimationMode::Type USkeletalMeshComponent::GetAnimationMode() const
+{
+	return AnimationMode;
+}
+
+class UAnimSingleNodeInstance* USkeletalMeshComponent::GetSingleNodeInstance() const
+{
+	return (UAnimSingleNodeInstance*)(AnimScriptInstance);
+}
+
+bool USkeletalMeshComponent::InitializeAnimScriptInstance(bool bForceReinit /*= true*/)
+{
+	bool bInitializedMainInstance = false;
+	bool bInitializedPostInstance = false;
+
+	if (IsRegistered())
+	{
+		AnimScriptInstance = new UAnimSingleNodeInstance(this);
+
+		if (AnimScriptInstance)
+		{
+			AnimScriptInstance->InitializeAnimation();
+			bInitializedMainInstance = true;
+		}
+
+		AnimationData.Initialize((UAnimSingleNodeInstance*)AnimScriptInstance);
+	}
+
+	return bInitializedMainInstance || bInitializedPostInstance;
+}
+
+void USkeletalMeshComponent::PlayAnimation(class UAnimationAsset* NewAnimToPlay, bool bLooping)
+{
+	SetAnimationMode(EAnimationMode::AnimationSingleNode);
+	SetAnimation(NewAnimToPlay);
+	Play(bLooping);
+}
+
+void USkeletalMeshComponent::SetAnimation(class UAnimationAsset* NewAnimToPlay)
+{
+	UAnimSingleNodeInstance* SingleNodeInstance = GetSingleNodeInstance();
+	if (SingleNodeInstance)
+	{
+		SingleNodeInstance->SetAnimationAsset(NewAnimToPlay, false);
+		SingleNodeInstance->SetPlaying(false);
+	}
+}
+
+void USkeletalMeshComponent::Play(bool bLooping)
+{
+	UAnimSingleNodeInstance* SingleNodeInstance = GetSingleNodeInstance();
+	if (SingleNodeInstance)
+	{
+		SingleNodeInstance->SetPlaying(true);
+		SingleNodeInstance->SetLooping(bLooping);
+	}
+}
+
+void USkeletalMeshComponent::RefreshBoneTransforms(/*FActorComponentTickFunction* TickFunction = NULL*/)
+{
+	if (!SkeletalMesh || GetNumComponentSpaceTransforms() == 0)
+	{
+		return;
+	}
+
+	if (!bRequiredBonesUpToDate)
+	{
+		RecalcRequiredBones(PredictedLODLevel);
+	}
+
+	const bool bShouldDoEvaluation = true;
+
+	if (bShouldDoEvaluation)
+	{
+		if (AnimScriptInstance)
+		{
+			AnimScriptInstance->PreEvaluateAnimation();
+
+// 			for (UAnimInstance* SubInstance : SubInstances)
+// 			{
+// 				SubInstance->PreEvaluateAnimation();
+// 			}
+		}
+
+// 		if (ShouldEvaluatePostProcessInstance())
+// 		{
+// 			PostProcessAnimInstance->PreEvaluateAnimation();
+// 		}
+
+		PerformAnimationEvaluation(SkeletalMesh, AnimScriptInstance, GetEditableComponentSpaceTransforms(), BoneSpaceTransforms, RootBoneTranslation, AnimCurves);
+	}
 }
 
 void USkeletalMeshComponent::RecalcRequiredBones(int32 LODIndex)
@@ -413,6 +629,16 @@ void USkeletalMeshComponent::OnRegister()
 void USkeletalMeshComponent::OnUnregister()
 {
 	USkinnedMeshComponent::OnUnregister();
+}
+
+void USkeletalMeshComponent::ClearAnimScriptInstance()
+{
+	if (AnimScriptInstance)
+	{
+		//AnimScriptInstance->EndNotifyStates();
+	}
+	AnimScriptInstance = nullptr;
+	//SubInstances.Empty();
 }
 
 void USkeletalMeshComponent::FillComponentSpaceTransforms(const USkeletalMesh* InSkeletalMesh, const std::vector<FTransform>& InBoneSpaceTransforms, std::vector<FTransform>& OutComponentSpaceTransforms) const

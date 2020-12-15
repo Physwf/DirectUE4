@@ -3,6 +3,7 @@
 #include "SkeletalMesh.h"
 #include "World.h"
 #include "MeshComponent.h"
+#include "AnimSequence.h"
 
 SkeletalMeshActor::SkeletalMeshActor(class UWorld* InOwner, const char* ResourcePath)
  : AActor(InOwner)
@@ -15,6 +16,14 @@ SkeletalMeshActor::SkeletalMeshActor(class UWorld* InOwner, const char* Resource
 	MeshComponent->Mobility = EComponentMobility::Movable;
 
 	RootComponent = MeshComponent;
+}
+
+SkeletalMeshActor::SkeletalMeshActor(class UWorld* InOwner, const char* ResourcePath, const char* AnimationPath)
+	:SkeletalMeshActor(InOwner, ResourcePath)
+{
+	FBXImporter Importer;
+	UAnimSequence* AnimSequence = Importer.ImportFbxAnimation(MeshComponent->SkeletalMesh->Skeleton, AnimationPath,"Idle",false);
+	MeshComponent->PlayAnimation(AnimSequence,true);
 }
 
 SkeletalMeshActor::~SkeletalMeshActor()
