@@ -1467,3 +1467,11 @@ bool FFloat16Color::operator==(const FFloat16Color& Src) const
 		(A == Src.A)
 		);
 }
+
+FBox::FBox(const std::vector<FVector>& Points)
+{
+	for (uint32 i = 0; i < Points.size(); ++i)
+	{
+		*this += Points[i];
+	}
+}

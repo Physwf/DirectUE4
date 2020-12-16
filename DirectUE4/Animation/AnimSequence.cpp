@@ -2,6 +2,9 @@
 #include "BonePose.h"
 #include "AnimEncoding.h"
 #include "AnimationRuntime.h"
+#include "AnimCompressionDerivedData.h"
+#include "AnimCompress.h"
+#include "log.h"
 
 struct FRetargetTracking
 {
@@ -30,6 +33,229 @@ struct FGetBonePoseScratchArea
 		return Instance;
 	}
 };
+
+void UAnimSequence::PostProcessSequence(bool bForceNewRawDatGuid /*= true*/)
+{
+	CompressRawAnimData();
+
+	OnRawDataChanged();
+}
+
+bool UAnimSequence::CompressRawAnimData()
+{
+	const float MaxPosDiff = 0.0001f;
+	const float MaxAngleDiff = 0.0003f;
+	return CompressRawAnimData(MaxPosDiff, MaxAngleDiff);
+}
+
+bool UAnimSequence::CompressRawAnimData(float MaxPosDiff, float MaxAngleDiff)
+{
+	bool bRemovedKeys = false;
+
+	if (AnimationTrackNames.size() > 0 && /*ensureMsgf*/(RawAnimationData.size() > 0/*, TEXT("%s is trying to compress while raw animation is missing"), *GetName()*/))
+	{
+		for (uint32 TrackIndex = 0; TrackIndex < RawAnimationData.size(); TrackIndex++)
+		{
+			bRemovedKeys |= CompressRawAnimSequenceTrack(RawAnimationData[TrackIndex], MaxPosDiff, MaxAngleDiff);
+		}
+
+		const USkeleton* MySkeleton = GetSkeleton();
+
+		if (MySkeleton)
+		{
+			bool bCompressScaleKeys = false;
+			// go through remove keys if not needed
+			for (uint32 TrackIndex = 0; TrackIndex < RawAnimationData.size(); TrackIndex++)
+			{
+				FRawAnimSequenceTrack const& RawData = RawAnimationData[TrackIndex];
+				if (RawData.ScaleKeys.size() > 0)
+				{
+					// if scale key exists, see if we can just empty it
+					if ((RawData.ScaleKeys.size() > 1) || (RawData.ScaleKeys[0].Equals(FVector(1.f)) == false))
+					{
+						bCompressScaleKeys = true;
+						break;
+					}
+				}
+			}
+
+			// if we don't have scale, we should delete all scale keys
+			// if you have one track that has scale, we still should support scale, so compress scale
+			if (!bCompressScaleKeys)
+			{
+				// then remove all scale keys
+				for (uint32 TrackIndex = 0; TrackIndex < RawAnimationData.size(); TrackIndex++)
+				{
+					FRawAnimSequenceTrack& RawData = RawAnimationData[TrackIndex];
+					RawData.ScaleKeys.clear();
+				}
+			}
+		}
+
+		CompressedTrackOffsets.clear();
+		CompressedScaleOffsets.Empty();
+	}
+	else
+	{
+		CompressedTrackOffsets.clear();
+		CompressedScaleOffsets.Empty();
+	}
+
+	return bRemovedKeys;
+
+}
+
+bool UAnimSequence::CompressRawAnimSequenceTrack(FRawAnimSequenceTrack& RawTrack, float MaxPosDiff, float MaxAngleDiff)
+{
+	bool bRemovedKeys = false;
+
+	// First part is to make sure we have valid input
+	bool const bPosTrackIsValid = (RawTrack.PosKeys.size() == 1 || RawTrack.PosKeys.size() == NumFrames);
+	if (!bPosTrackIsValid)
+	{
+		//UE_LOG(LogAnimation, Warning, TEXT("Found non valid position track for %s, %d frames, instead of %d. Chopping!"), *GetName(), RawTrack.PosKeys.Num(), NumFrames);
+		bRemovedKeys = true;
+		RawTrack.PosKeys.erase(RawTrack.PosKeys.begin() + 1, RawTrack.PosKeys.begin() + 1 + RawTrack.PosKeys.size() - 1);
+		//RawTrack.PosKeys.Shrink();
+		assert(RawTrack.PosKeys.size() == 1);
+	}
+
+	bool const bRotTrackIsValid = (RawTrack.RotKeys.size() == 1 || RawTrack.RotKeys.size() == NumFrames);
+	if (!bRotTrackIsValid)
+	{
+		//UE_LOG(LogAnimation, Warning, TEXT("Found non valid rotation track for %s, %d frames, instead of %d. Chopping!"), *GetName(), RawTrack.RotKeys.Num(), NumFrames);
+		bRemovedKeys = true;
+		RawTrack.RotKeys.erase(RawTrack.RotKeys.begin() + 1, RawTrack.RotKeys.begin() + 1 + RawTrack.RotKeys.size() - 1);
+		//RawTrack.RotKeys.Shrink();
+		assert(RawTrack.RotKeys.size() == 1);
+	}
+
+	// scale keys can be empty, and that is valid 
+	bool const bScaleTrackIsValid = (RawTrack.ScaleKeys.size() == 0 || RawTrack.ScaleKeys.size() == 1 || RawTrack.ScaleKeys.size() == NumFrames);
+	if (!bScaleTrackIsValid)
+	{
+		//UE_LOG(LogAnimation, Warning, TEXT("Found non valid Scaleation track for %s, %d frames, instead of %d. Chopping!"), *GetName(), RawTrack.ScaleKeys.Num(), NumFrames);
+		bRemovedKeys = true;
+		RawTrack.ScaleKeys.erase(RawTrack.ScaleKeys.begin() + 1, RawTrack.ScaleKeys.begin() + 1 + RawTrack.ScaleKeys.size() - 1);
+		//RawTrack.ScaleKeys.Shrink();
+		assert(RawTrack.ScaleKeys.size() == 1);
+	}
+
+	// Second part is actual compression.
+
+	// Check variation of position keys
+	if ((RawTrack.PosKeys.size() > 1) && (MaxPosDiff >= 0.0f))
+	{
+		FVector FirstPos = RawTrack.PosKeys[0];
+		bool bFramesIdentical = true;
+		for (uint32 j = 1; j < RawTrack.PosKeys.size() && bFramesIdentical; j++)
+		{
+			if ((FirstPos - RawTrack.PosKeys[j]).SizeSquared() > FMath::Square(MaxPosDiff))
+			{
+				bFramesIdentical = false;
+			}
+		}
+
+		// If all keys are the same, remove all but first frame
+		if (bFramesIdentical)
+		{
+			bRemovedKeys = true;
+			RawTrack.PosKeys.erase(RawTrack.PosKeys.begin() + 1, RawTrack.PosKeys.begin() + 1 + RawTrack.PosKeys.size() - 1);
+			//RawTrack.PosKeys.Shrink();
+			assert(RawTrack.PosKeys.size() == 1);
+		}
+	}
+
+	// Check variation of rotational keys
+	if ((RawTrack.RotKeys.size() > 1) && (MaxAngleDiff >= 0.0f))
+	{
+		FQuat FirstRot = RawTrack.RotKeys[0];
+		bool bFramesIdentical = true;
+		for (uint32 j = 1; j < RawTrack.RotKeys.size() && bFramesIdentical; j++)
+		{
+			if (FQuat::Error(FirstRot, RawTrack.RotKeys[j]) > MaxAngleDiff)
+			{
+				bFramesIdentical = false;
+			}
+		}
+
+		// If all keys are the same, remove all but first frame
+		if (bFramesIdentical)
+		{
+			bRemovedKeys = true;
+			RawTrack.RotKeys.erase(RawTrack.RotKeys.begin() + 1, RawTrack.RotKeys.begin() + 1 + RawTrack.RotKeys.size() - 1);
+			//RawTrack.RotKeys.Shrink();
+			assert(RawTrack.RotKeys.size() == 1);
+		}
+	}
+
+	float MaxScaleDiff = 0.0001f;
+
+	// Check variation of Scaleition keys
+	if ((RawTrack.ScaleKeys.size() > 1) && (MaxScaleDiff >= 0.0f))
+	{
+		FVector FirstScale = RawTrack.ScaleKeys[0];
+		bool bFramesIdentical = true;
+		for (uint32 j = 1; j < RawTrack.ScaleKeys.size() && bFramesIdentical; j++)
+		{
+			if ((FirstScale - RawTrack.ScaleKeys[j]).SizeSquared() > FMath::Square(MaxScaleDiff))
+			{
+				bFramesIdentical = false;
+			}
+		}
+
+		// If all keys are the same, remove all but first frame
+		if (bFramesIdentical)
+		{
+			bRemovedKeys = true;
+			RawTrack.ScaleKeys.erase(RawTrack.ScaleKeys.begin()+1, RawTrack.ScaleKeys.begin() + 1 + RawTrack.ScaleKeys.size() - 1);
+			//RawTrack.ScaleKeys.Shrink();
+			assert(RawTrack.ScaleKeys.size() == 1);
+		}
+	}
+
+	return bRemovedKeys;
+}
+
+
+void UAnimSequence::OnRawDataChanged()
+{
+	CompressedTrackOffsets.clear();
+	CompressedScaleOffsets.Empty();
+	CompressedByteStream.clear();
+	bUseRawDataOnly = true;
+
+	RequestSyncAnimRecompression(false);
+}
+
+void UAnimSequence::RequestAnimCompression(bool bAsyncCompression, bool bAllowAlternateCompressor /*= false*/, bool bOutput /*= false*/)
+{
+	std::shared_ptr<FAnimCompressContext> CompressContext = std::make_shared<FAnimCompressContext>(bAllowAlternateCompressor, bOutput);
+	RequestAnimCompression(bAsyncCompression, CompressContext);
+}
+
+void UAnimSequence::RequestAnimCompression(bool bAsyncCompression, std::shared_ptr<FAnimCompressContext> CompressContext)
+{
+	USkeleton* CurrentSkeleton = GetSkeleton();
+	if (CurrentSkeleton == nullptr)
+	{
+		bUseRawDataOnly = true;
+		return;
+	}
+	const bool bDoCompressionInPlace = false;//FUObjectThreadContext::Get().IsRoutingPostLoad;
+	std::vector<uint8> OutData;
+	FDerivedDataAnimationCompression* AnimCompressor = new FDerivedDataAnimationCompression(this, CompressContext, bDoCompressionInPlace);
+
+	AnimCompressor->Build(OutData);
+
+	delete AnimCompressor;
+	AnimCompressor = nullptr;
+}
+
+bool UAnimSequence::IsCompressedDataValid() const
+{
+	return CompressedByteStream.size() > 0 || RawAnimationData.size() == 0 || (TranslationCompressionFormat == ACF_Identity && RotationCompressionFormat == ACF_Identity && ScaleCompressionFormat == ACF_Identity);
+}
 
 void UAnimSequence::CleanAnimSequenceForImport()
 {
