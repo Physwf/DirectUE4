@@ -282,3 +282,68 @@ bool USkeleton::RecreateBoneTree(USkeletalMesh* InSkelMesh)
 	return false;
 }
 
+int32 USkeleton::GetMeshLinkupIndex(const USkeletalMesh* InSkelMesh)
+{
+	auto IndexIt = SkelMesh2LinkupCache.find(InSkelMesh);
+	int32 LinkupIndex = INDEX_NONE;
+
+	if (IndexIt == SkelMesh2LinkupCache.end())
+	{
+		LinkupIndex = BuildLinkup(InSkelMesh);
+	}
+	else
+	{
+		LinkupIndex = IndexIt->second;
+	}
+
+	// make sure it's not out of range
+	assert(LinkupIndex < (int32)LinkupCache.size());
+
+	return LinkupIndex;
+}
+
+int32 USkeleton::BuildLinkup(const USkeletalMesh* InSkelMesh)
+{
+	const FReferenceSkeleton& SkeletonRefSkel = ReferenceSkeleton;
+	const FReferenceSkeleton& MeshRefSkel = InSkelMesh->RefSkeleton;
+
+	// @todoanim : need to refresh NULL SkeletalMeshes from Cache
+	// since now they're autoweak pointer, they will go away if not used
+	// so whenever map transition happens, this links will need to clear up
+	FSkeletonToMeshLinkup NewMeshLinkup;
+
+	// First, make sure the Skeleton has all the bones the SkeletalMesh possesses.
+	// This can get out of sync if a mesh was imported on that Skeleton, but the Skeleton was not saved.
+
+	const int32 NumMeshBones = MeshRefSkel.GetNum();
+	NewMeshLinkup.MeshToSkeletonTable.clear();
+	NewMeshLinkup.MeshToSkeletonTable.reserve(NumMeshBones);
+	NewMeshLinkup.MeshToSkeletonTable.resize(NumMeshBones);
+
+	for (int32 MeshBoneIndex = 0; MeshBoneIndex < NumMeshBones; MeshBoneIndex++)
+	{
+		const std::string MeshBoneName = MeshRefSkel.GetBoneName(MeshBoneIndex);
+		int32 SkeletonBoneIndex = SkeletonRefSkel.FindBoneIndex(MeshBoneName);
+
+		NewMeshLinkup.MeshToSkeletonTable[MeshBoneIndex] = SkeletonBoneIndex;
+	}
+
+	const int32 NumSkeletonBones = SkeletonRefSkel.GetNum();
+	NewMeshLinkup.SkeletonToMeshTable.clear();
+	NewMeshLinkup.SkeletonToMeshTable.reserve(NumSkeletonBones);
+	NewMeshLinkup.SkeletonToMeshTable.resize(NumSkeletonBones);
+
+	for (int32 SkeletonBoneIndex = 0; SkeletonBoneIndex < NumSkeletonBones; SkeletonBoneIndex++)
+	{
+		const int32 MeshBoneIndex = MeshRefSkel.FindBoneIndex(SkeletonRefSkel.GetBoneName(SkeletonBoneIndex));
+		NewMeshLinkup.SkeletonToMeshTable[SkeletonBoneIndex] = MeshBoneIndex;
+	}
+
+	int32 NewIndex = LinkupCache.size();
+	LinkupCache.push_back(NewMeshLinkup);
+	assert(NewIndex != INDEX_NONE);
+	SkelMesh2LinkupCache.insert(std::make_pair(InSkelMesh, NewIndex));
+
+	return NewIndex;
+}
+

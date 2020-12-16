@@ -132,6 +132,7 @@ protected:
 	std::vector<std::string> AnimationTrackNames;
 	std::vector<struct FRawAnimSequenceTrack> SourceRawAnimationData;
 	std::vector<struct FTrackToSkeletonMap> CompressedTrackToSkeletonMapTable;
+	std::vector<std::string>				UniqueMarkerNames;
 public:
 	class UAssetImportData* AssetImportData;
 	class UAnimSequence* RefPoseSeq;
@@ -192,6 +193,7 @@ public:
 
 	class AnimEncoding* ScaleCodec;
 
+	void  UpdateCompressedTrackMapFromRaw() { CompressedTrackToSkeletonMapTable = TrackToSkeletonMapTable; }
 	int32 GetSkeletonIndexFromCompressedDataTrackIndex(const int32 TrackIndex) const
 	{
 		return CompressedTrackToSkeletonMapTable[TrackIndex].BoneTreeIndex;
@@ -200,6 +202,9 @@ public:
 
 	bool OnlyUseRawData() const { return bUseRawDataOnly; }
 	void SetUseRawDataOnly(bool bInUseRawDataOnly) { bUseRawDataOnly = bInUseRawDataOnly; }
+
+	void ResizeSequence(float NewLength, int32 NewNumFrames, bool bInsert, int32 StartFrame/*inclusive */, int32 EndFrame/*inclusive*/);
+	virtual int32 GetNumberOfFrames() const override { return NumFrames; }
 
 	void PostProcessSequence(bool bForceNewRawDatGuid = true);
 	bool CompressRawAnimData();
@@ -211,6 +216,10 @@ public:
 	void RequestAnimCompression(bool bAsyncCompression, std::shared_ptr<FAnimCompressContext> CompressContext);
 	void RequestSyncAnimRecompression(bool bOutput = false) { RequestAnimCompression(false, false, bOutput); }
 	bool IsCompressedDataValid() const;
+
+	int32 AddNewRawTrack(std::string TrackName, FRawAnimSequenceTrack* TrackData = nullptr);
+
+	virtual std::vector<std::string>* GetUniqueMarkerNames() { return &UniqueMarkerNames; }
 public:
 	void CleanAnimSequenceForImport();
 	bool HasSourceRawData() const { return SourceRawAnimationData.size() > 0; }

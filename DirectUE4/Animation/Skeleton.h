@@ -9,6 +9,24 @@
 
 class USkeletalMesh;
 
+struct FSkeletonToMeshLinkup
+{
+	/**
+	* Mapping table. Size must be same as size of bone tree (not Mesh Ref Pose).
+	* No index should be more than the number of bones in this skeleton
+	* -1 indicates no match for this bone - will be ignored.
+	*/
+	std::vector<int32> SkeletonToMeshTable;
+
+	/**
+	* Mapping table. Size must be same as size of ref pose (not bone tree).
+	* No index should be more than the number of bones in this skeletalmesh
+	* -1 indicates no match for this bone - will be ignored.
+	*/
+	std::vector<int32> MeshToSkeletonTable;
+
+};
+
 namespace EBoneTranslationRetargetingMode
 {
 	enum Type
@@ -97,8 +115,9 @@ public:
 
 	static const std::string AnimTrackCurveMappingName;
 public:
+	std::vector<struct FSkeletonToMeshLinkup> LinkupCache;
 	std::map<std::string, FReferencePose> AnimRetargetSources;
-
+	std::map<const USkeletalMesh*, int32> SkelMesh2LinkupCache;
 public:
 	const std::vector<FVirtualBone>& GetVirtualBones() const { return VirtualBones; }
 
@@ -136,4 +155,8 @@ public:
 	bool MergeBonesToBoneTree(const USkeletalMesh* InSkeletalMesh, const std::vector<int32>& RequiredRefBones);
 	bool MergeAllBonesToBoneTree(const USkeletalMesh* InSkelMesh);
 	bool RecreateBoneTree(USkeletalMesh* InSkelMesh);
+
+	int32 GetMeshLinkupIndex(const USkeletalMesh* InSkelMesh);
+protected:
+	int32 BuildLinkup(const USkeletalMesh* InSkelMesh);
 };

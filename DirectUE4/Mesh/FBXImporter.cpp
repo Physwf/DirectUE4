@@ -7,6 +7,7 @@
 #include "UnrealTemplates.h"
 #include "AnimSequence.h"
 #include "AssetImportData.h"
+#include "AnimTypes.h"
 
 #include <algorithm>
 
@@ -5435,9 +5436,6 @@ void FBXImporter::RecursiveFindRigidMesh(FbxNode* Node, std::vector<std::vector<
 	}
 }
 
-#define DEFAULT_SAMPLERATE			30.f
-#define MINIMUM_ANIMATION_LENGTH	(1/DEFAULT_SAMPLERATE)
-
 UAnimSequence* FBXImporter::ImportAnimations(USkeleton* Skeleton, std::vector<FbxNode*>& SortedLinks, const std::string& Name, std::vector<FbxNode*>& NodeArray)
 {
 	if (Skeleton == NULL)
@@ -5652,9 +5650,18 @@ bool FBXImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence* DestSeq, c
 					++NumKeysForTrack;
 				}
 
-				TotalNumKeys = FMath::Max(TotalNumKeys, NumKeysForTrack);
+				if (bSuccess)
+				{
+					//add new track
+					int32 NewTrackIdx = DestSeq->AddNewRawTrack(BoneName, &RawTrack);
+				}
+
 			}
+			TotalNumKeys = FMath::Max(TotalNumKeys, NumKeysForTrack);
 		}
+
+		DestSeq->NumFrames = TotalNumKeys;
+
 	}
 
 	{
@@ -5665,7 +5672,7 @@ bool FBXImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence* DestSeq, c
 		else
 		{
 			// otherwise just compress
-			//DestSeq->PostProcessSequence();
+			DestSeq->PostProcessSequence();
 		}
 	}
 	return true;

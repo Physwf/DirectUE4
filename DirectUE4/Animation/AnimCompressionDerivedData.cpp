@@ -36,7 +36,7 @@ bool FDerivedDataAnimationCompression::Build(std::vector<uint8>& OutData)
 
 	bool bCompressionSuccessful = false;
 	{
-// 		AnimToOperateOn->UpdateCompressedTrackMapFromRaw();
+		AnimToOperateOn->UpdateCompressedTrackMapFromRaw();
 // 		AnimToOperateOn->CompressedCurveData = AnimToOperateOn->RawCurveData; //Curves don't actually get compressed, but could have additives baked in
 // 
 // 		const float MaxCurveError = AnimToOperateOn->CompressionScheme->MaxCurveError;

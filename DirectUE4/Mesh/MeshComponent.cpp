@@ -414,16 +414,17 @@ void USkeletalMeshComponent::PerformAnimationProcessing(const USkeletalMesh* InS
 	}
 
 	// update anim instance
-// 	if (InAnimInstance && InAnimInstance->NeedsUpdate())
-// 	{
-// 		InAnimInstance->ParallelUpdateAnimation();
-// 	}
+	if (InAnimInstance && InAnimInstance->NeedsUpdate())
+	{
+		InAnimInstance->ParallelUpdateAnimation();
+	}
 // 
 // 	if (ShouldPostUpdatePostProcessInstance())
 // 	{
 // 		// If we don't have an anim instance, we may still have a post physics instance
 // 		PostProcessAnimInstance->ParallelUpdateAnimation();
-// 	}
+// 	}
+
 	if (bInDoEvaluation)
 	{
 		FCompactPose EvaluatedPose;
@@ -438,6 +439,7 @@ void USkeletalMeshComponent::PerformAnimationProcessing(const USkeletalMesh* InS
 		// Fill SpaceBases from LocalAtoms
 		FillComponentSpaceTransforms(InSkeletalMesh, OutBoneSpaceTransforms, OutSpaceBases);
 	}
+
 }
 
 void USkeletalMeshComponent::EvaluateAnimation(const USkeletalMesh* InSkeletalMesh, UAnimInstance* InAnimInstance, std::vector<FTransform>& OutBoneSpaceTransforms, FVector& OutRootBoneTranslation, FBlendedHeapCurve& OutCurve, FCompactPose& OutPose) const
@@ -471,7 +473,24 @@ void USkeletalMeshComponent::EvaluatePostProcessMeshInstance(std::vector<FTransf
 
 void USkeletalMeshComponent::FinalizePoseEvaluationResult(const USkeletalMesh* InMesh, std::vector<FTransform>& OutBoneSpaceTransforms, FVector& OutRootBoneTranslation, FCompactPose& InFinalPose) const
 {
+	OutBoneSpaceTransforms = InMesh->RefSkeleton.GetRefBonePose();
 
+	if (InFinalPose.IsValid() && InFinalPose.GetNumBones() > 0)
+	{
+		InFinalPose.NormalizeRotations();
+
+		for (const FCompactPoseBoneIndex BoneIndex : InFinalPose.ForEachBoneIndex())
+		{
+			FMeshPoseBoneIndex MeshPoseIndex = InFinalPose.GetBoneContainer().MakeMeshPoseIndex(BoneIndex);
+			OutBoneSpaceTransforms[MeshPoseIndex.GetInt()] = InFinalPose[BoneIndex];
+		}
+	}
+	else
+	{
+		OutBoneSpaceTransforms = InMesh->RefSkeleton.GetRefBonePose();
+	}
+
+	OutRootBoneTranslation = OutBoneSpaceTransforms[0].GetTranslation() - InMesh->RefSkeleton.GetRefBonePose()[0].GetTranslation();
 }
 
 void USkeletalMeshComponent::SetAnimationMode(EAnimationMode::Type InAnimationMode)
@@ -521,6 +540,12 @@ bool USkeletalMeshComponent::InitializeAnimScriptInstance(bool bForceReinit /*= 
 	}
 
 	return bInitializedMainInstance || bInitializedPostInstance;
+}
+
+void USkeletalMeshComponent::SetForceRefPose(bool bNewForceRefPose)
+{
+	bForceRefpose = bNewForceRefPose;
+	MarkRenderStateDirty();
 }
 
 void USkeletalMeshComponent::PlayAnimation(class UAnimationAsset* NewAnimToPlay, bool bLooping)
@@ -582,7 +607,11 @@ void USkeletalMeshComponent::RefreshBoneTransforms(/*FActorComponentTickFunction
 // 		}
 
 		PerformAnimationEvaluation(SkeletalMesh, AnimScriptInstance, GetEditableComponentSpaceTransforms(), BoneSpaceTransforms, RootBoneTranslation, AnimCurves);
+		bNeedToFlipSpaceBaseBuffers = true;
+		FlipEditableSpaceBases();
+		MarkRenderDynamicDataDirty();
 	}
+
 }
 
 void USkeletalMeshComponent::RecalcRequiredBones(int32 LODIndex)

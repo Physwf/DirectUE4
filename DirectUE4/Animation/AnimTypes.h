@@ -2,6 +2,9 @@
 
 #include "UnrealMath.h"
 
+#define DEFAULT_SAMPLERATE			30.f
+#define MINIMUM_ANIMATION_LENGTH	(1/DEFAULT_SAMPLERATE)
+
 namespace SmartName
 {
 	// ID type, should be used to access SmartNames as fundamental type may change.

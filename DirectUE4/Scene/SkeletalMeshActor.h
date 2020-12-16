@@ -3,6 +3,7 @@
 #include "Actor.h"
 
 class USkeletalMeshComponent;
+class UAnimSequence;
 
 class SkeletalMeshActor : public AActor
 {
@@ -16,4 +17,5 @@ public:
 	virtual void Tick(float fDeltaTime) override;
 protected:
 	USkeletalMeshComponent* MeshComponent;
+	UAnimSequence* AnimSequence;
 };

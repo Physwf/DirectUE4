@@ -1,5 +1,6 @@
 #include "AnimSingleNodeInstanceProxy.h"
 #include "AnimationRuntime.h"
+#include "AnimSingleNodeInstance.h"
 
 void FAnimNode_SingleNode::Evaluate_AnyThread(FPoseContext& Output)
 {
@@ -60,12 +61,39 @@ void FAnimNode_SingleNode::Evaluate_AnyThread(FPoseContext& Output)
 
 void FAnimNode_SingleNode::Update_AnyThread(const FAnimationUpdateContext& Context)
 {
+	float NewPlayRate = Proxy->PlayRate;
+	UAnimSequence* PreviewBasePose = NULL;
 
+	if (Proxy->bPlaying == false)
+	{
+		// we still have to tick animation when bPlaying is false because 
+		NewPlayRate = 0.f;
+	}
+	if (Proxy->CurrentAsset != NULL)
+	{
+		FAnimGroupInstance* SyncGroup;
+		if (UAnimSequence* Sequence = (UAnimSequence*)(Proxy->CurrentAsset))
+		{
+			FAnimTickRecord& TickRecord = Proxy->CreateUninitializedTickRecord(INDEX_NONE, /*out*/ SyncGroup);
+			Proxy->MakeSequenceTickRecord(TickRecord, Sequence, Proxy->bLooping, NewPlayRate, 1.f, /*inout*/ Proxy->CurrentTime, Proxy->MarkerTickRecord);
+			// if it's not looping, just set play to be false when reached to end
+			if (!Proxy->bLooping)
+			{
+				const float CombinedPlayRate = NewPlayRate * Sequence->RateScale;
+				if ((CombinedPlayRate < 0.f && Proxy->CurrentTime <= 0.f) || (CombinedPlayRate > 0.f && Proxy->CurrentTime >= Sequence->SequenceLength))
+				{
+					Proxy->SetPlaying(false);
+				}
+			}
+		}
+	}
 }
 
 void FAnimSingleNodeInstanceProxy::SetAnimationAsset(UAnimationAsset* NewAsset, USkeletalMeshComponent* MeshComponent, bool bIsLooping, float InPlayRate)
 {
-
+	bLooping = bIsLooping;
+	PlayRate = InPlayRate;
+	CurrentTime = 0.f;
 }
 
 void FAnimSingleNodeInstanceProxy::Initialize(UAnimInstance* InAnimInstance)
@@ -104,7 +132,10 @@ void FAnimSingleNodeInstanceProxy::PreUpdate(UAnimInstance* InAnimInstance, floa
 
 void FAnimSingleNodeInstanceProxy::InitializeObjects(UAnimInstance* InAnimInstance)
 {
+	FAnimInstanceProxy::InitializeObjects(InAnimInstance);
 
+	UAnimSingleNodeInstance* AnimSingleNodeInstance = (UAnimSingleNodeInstance*)(InAnimInstance);
+	CurrentAsset = AnimSingleNodeInstance->CurrentAsset;
 }
 
 void FAnimSingleNodeInstanceProxy::ClearObjects()

@@ -49,7 +49,7 @@ void FSceneRenderTargets::FinishRenderingGBuffer()
 
 void FSceneRenderTargets::FinishRendering()
 {
-	//D3D11DeviceContext->CopyResource(BackBuffer, SceneColorRT);
+	//D3D11DeviceContext->CopyResource(BackBuffer, SceneColor->TargetableTexture->GetResource());
 }
 
 EPixelFormat FSceneRenderTargets::GetSceneColorFormat() const

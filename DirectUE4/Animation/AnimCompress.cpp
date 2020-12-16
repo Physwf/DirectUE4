@@ -196,7 +196,113 @@ void UAnimCompress::SeparateRawDataIntoTracks(
 	std::vector<struct FRotationTrack>& OutRotationData, 
 	std::vector<struct FScaleTrack>& OutScaleData)
 {
+	const int32 NumTracks = RawAnimData.size();
 
+	OutTranslationData.clear();
+	OutRotationData.clear();
+	OutScaleData.clear();
+	OutTranslationData.resize(NumTracks);
+	OutRotationData.resize(NumTracks);
+	OutScaleData.resize(NumTracks);
+
+	bool bCompressScaleKeys = false;
+
+	for (int32 TrackIndex = 0; TrackIndex < NumTracks; ++TrackIndex)
+	{
+		const FRawAnimSequenceTrack& RawTrack = RawAnimData[TrackIndex];
+		FTranslationTrack&	TranslationTrack = OutTranslationData[TrackIndex];
+		FRotationTrack&		RotationTrack = OutRotationData[TrackIndex];
+		FScaleTrack&		ScaleTrack = OutScaleData[TrackIndex];
+
+		const int32 PrevNumPosKeys = RawTrack.PosKeys.size();
+		const int32 PrevNumRotKeys = RawTrack.RotKeys.size();
+		const bool	bHasScale = (RawTrack.ScaleKeys.size() != 0);
+		bCompressScaleKeys |= bHasScale;
+
+		// Do nothing if the data for this track is empty.
+		if (PrevNumPosKeys == 0 || PrevNumRotKeys == 0)
+		{
+			continue;
+		}
+
+		// Copy over position keys.
+		for (uint32 PosIndex = 0; PosIndex < RawTrack.PosKeys.size(); ++PosIndex)
+		{
+			TranslationTrack.PosKeys.push_back(RawTrack.PosKeys[PosIndex]);
+		}
+
+		// Copy over rotation keys.
+		for (uint32 RotIndex = 0; RotIndex < RawTrack.RotKeys.size(); ++RotIndex)
+		{
+			RotationTrack.RotKeys.push_back(RawTrack.RotKeys[RotIndex]);
+		}
+
+		// Set times for the translation track.
+		if (TranslationTrack.PosKeys.size() > 1)
+		{
+			const float PosFrameInterval = SequenceLength / static_cast<float>(TranslationTrack.PosKeys.size() - 1);
+			for (uint32 PosIndex = 0; PosIndex < TranslationTrack.PosKeys.size(); ++PosIndex)
+			{
+				TranslationTrack.Times.push_back(PosIndex * PosFrameInterval);
+			}
+		}
+		else
+		{
+			TranslationTrack.Times.push_back(0.f);
+		}
+
+		// Set times for the rotation track.
+		if (RotationTrack.RotKeys.size() > 1)
+		{
+			const float RotFrameInterval = SequenceLength / static_cast<float>(RotationTrack.RotKeys.size() - 1);
+			for (uint32 RotIndex = 0; RotIndex < RotationTrack.RotKeys.size(); ++RotIndex)
+			{
+				RotationTrack.Times.push_back(RotIndex * RotFrameInterval);
+			}
+		}
+		else
+		{
+			RotationTrack.Times.push_back(0.f);
+		}
+
+		if (bHasScale)
+		{
+			// Copy over scalekeys.
+			for (uint32 ScaleIndex = 0; ScaleIndex < RawTrack.ScaleKeys.size(); ++ScaleIndex)
+			{
+				ScaleTrack.ScaleKeys.push_back(RawTrack.ScaleKeys[ScaleIndex]);
+			}
+
+			// Set times for the rotation track.
+			if (ScaleTrack.ScaleKeys.size() > 1)
+			{
+				const float ScaleFrameInterval = SequenceLength / static_cast<float>(ScaleTrack.ScaleKeys.size() - 1);
+				for (uint32 ScaleIndex = 0; ScaleIndex < ScaleTrack.ScaleKeys.size(); ++ScaleIndex)
+				{
+					ScaleTrack.Times.push_back(ScaleIndex * ScaleFrameInterval);
+				}
+			}
+			else
+			{
+				ScaleTrack.Times.push_back(0.f);
+			}
+		}
+
+		// Trim unused memory.
+		TranslationTrack.PosKeys.shrink_to_fit();
+		TranslationTrack.Times.shrink_to_fit();
+		RotationTrack.RotKeys.shrink_to_fit();
+		RotationTrack.Times.shrink_to_fit();
+		ScaleTrack.ScaleKeys.shrink_to_fit();
+		ScaleTrack.Times.shrink_to_fit();
+	}
+
+	// if nothing to compress, empty the ScaleData
+	// that way we don't have to worry about compressing scale data. 
+	if (!bCompressScaleKeys)
+	{
+		OutScaleData.clear();
+	}
 }
 
 void UAnimCompress::FilterAnimRotationOnlyKeys(std::vector<FTranslationTrack>& PositionTracks, UAnimSequence* AnimSeq)

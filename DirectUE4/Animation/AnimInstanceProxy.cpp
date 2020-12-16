@@ -33,8 +33,7 @@ void FAnimInstanceProxy::PreUpdate(UAnimInstance* InAnimInstance, float DeltaSec
 
 void FAnimInstanceProxy::RecalcRequiredBones(USkeletalMeshComponent* Component, void* Asset)
 {
-	//RequiredBones.InitializeTo(Component->RequiredBones, FCurveEvaluationOption(Component->GetAllowedAnimCurveEvaluate(), &Component->GetDisallowedAnimCurvesEvaluation(), Component->PredictedLODLevel), *Asset);
-
+	RequiredBones.InitializeTo(Component->RequiredBones, FCurveEvaluationOption(/*Component->GetAllowedAnimCurveEvaluate()*/true, /*&Component->GetDisallowedAnimCurvesEvaluation()*/nullptr, Component->PredictedLODLevel), Asset);
 }
 
 void FAnimInstanceProxy::UpdateAnimation()
@@ -47,12 +46,33 @@ void FAnimInstanceProxy::UpdateAnimation()
 	}
 
 	UpdateAnimationNode(CurrentDeltaSeconds);
+
 	TickAssetPlayerInstances(CurrentDeltaSeconds);
 }
 
 void FAnimInstanceProxy::TickAssetPlayerInstances(float DeltaSeconds)
 {
+	std::vector<FAnimGroupInstance>& SyncGroups = SyncGroupArrays[GetSyncGroupWriteIndex()];
+	const std::vector<FAnimGroupInstance>& PreviousSyncGroups = SyncGroupArrays[GetSyncGroupReadIndex()];
+	std::vector<FAnimTickRecord>& UngroupedActivePlayers = UngroupedActivePlayerArrays[GetSyncGroupWriteIndex()];
 
+
+	for (uint32 TickIndex = 0; TickIndex < UngroupedActivePlayers.size(); ++TickIndex)
+	{
+		FAnimTickRecord& AssetPlayerToTick = UngroupedActivePlayers[TickIndex];
+		const std::vector<std::string>* UniqueNames = AssetPlayerToTick.SourceAsset->GetUniqueMarkerNames();
+		const std::vector<std::string>& ValidMarkers = UniqueNames ? *UniqueNames : FMarkerTickContext::DefaultMarkerNames;
+
+		const bool bOnlyOneAnimationInGroup = true;
+		FAnimAssetTickContext TickContext(DeltaSeconds, RootMotionMode, bOnlyOneAnimationInGroup, ValidMarkers);
+		{
+			AssetPlayerToTick.SourceAsset->TickAssetPlayer(AssetPlayerToTick, NotifyQueue, TickContext);
+		}
+// 		if (RootMotionMode == ERootMotionMode::RootMotionFromEverything && TickContext.RootMotionMovementParams.bHasRootMotion)
+// 		{
+// 			ExtractedRootMotion.AccumulateWithBlend(TickContext.RootMotionMovementParams, AssetPlayerToTick.GetRootMotionWeight());
+// 		}
+	}
 }
 
 void FAnimInstanceProxy::EvaluateAnimation(FPoseContext& Output)
@@ -77,6 +97,37 @@ void FAnimInstanceProxy::EvaluateAnimationNode(FPoseContext& Output)
 	{
 		Output.ResetToRefPose();
 	}
+}
+
+FAnimTickRecord& FAnimInstanceProxy::CreateUninitializedTickRecord(int32 GroupIndex, FAnimGroupInstance*& OutSyncGroupPtr)
+{
+	// Find or create the sync group if there is one
+	OutSyncGroupPtr = NULL;
+	if (GroupIndex >= 0)
+	{
+		std::vector<FAnimGroupInstance>& SyncGroups = SyncGroupArrays[GetSyncGroupWriteIndex()];
+		while ((int32)SyncGroups.size() <= GroupIndex)
+		{
+			SyncGroups.push_back(FAnimGroupInstance());
+		}
+		OutSyncGroupPtr = &(SyncGroups[GroupIndex]);
+	}
+
+	// Create the record
+	std::vector<FAnimTickRecord>& Players = (OutSyncGroupPtr != NULL) ? OutSyncGroupPtr->ActivePlayers : UngroupedActivePlayerArrays[GetSyncGroupWriteIndex()];
+	Players.push_back(FAnimTickRecord());
+	FAnimTickRecord* TickRecord = &Players.back();
+	return *TickRecord;
+}
+
+void FAnimInstanceProxy::MakeSequenceTickRecord(FAnimTickRecord& TickRecord, UAnimSequenceBase* Sequence, bool bLooping, float PlayRate, float FinalBlendWeight, float& CurrentTime, FMarkerTickRecord& MarkerTickRecord) const
+{
+	TickRecord.SourceAsset = Sequence;
+	TickRecord.TimeAccumulator = &CurrentTime;
+	TickRecord.MarkerTickRecord = &MarkerTickRecord;
+	TickRecord.PlayRateMultiplier = PlayRate;
+	TickRecord.EffectiveBlendWeight = FinalBlendWeight;
+	TickRecord.bLooping = bLooping;
 }
 
 void FAnimInstanceProxy::Initialize(UAnimInstance* InAnimInstance)

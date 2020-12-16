@@ -50,6 +50,11 @@ void UAnimInstance::PostUpdateAnimation()
 
 }
 
+bool UAnimInstance::NeedsUpdate() const
+{
+	return bNeedsUpdate;
+}
+
 void UAnimInstance::ParallelUpdateAnimation()
 {
 	GetProxyOnAnyThread<FAnimInstanceProxy>().UpdateAnimation();
@@ -144,6 +149,8 @@ USkeletalMeshComponent* UAnimInstance::GetOwningComponent() const
 
 void UAnimInstance::PreUpdateAnimation(float DeltaSeconds)
 {
+	bNeedsUpdate = true;
+
 	GetProxyOnGameThread<FAnimInstanceProxy>().PreUpdate(this, DeltaSeconds);
 }
 

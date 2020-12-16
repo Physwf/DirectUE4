@@ -7,3 +7,5 @@ void UAnimationAsset::SetSkeleton(USkeleton* NewSkeleton)
 		Skeleton = NewSkeleton;
 	}
 }
+
+const std::vector<std::string> FMarkerTickContext::DefaultMarkerNames;

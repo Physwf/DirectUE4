@@ -13,14 +13,22 @@ class USkeletalMeshComponent;
 class UAnimInstance
 {
 public:
-	UAnimInstance(class USkeletalMeshComponent* InOuter) : Outer(InOuter) {}
+	UAnimInstance(class USkeletalMeshComponent* InOuter) 
+		: Outer(InOuter) 
+	{
+		bNeedsUpdate = false;
+	}
 	~UAnimInstance() {}
 
 	USkeleton* CurrentSkeleton;
 
+	uint8 bNeedsUpdate : 1;
+
 	void InitializeAnimation();
 	void UpdateAnimation(float DeltaSeconds, bool bNeedsValidRootMotion);
 	void PostUpdateAnimation();
+
+	bool NeedsUpdate() const;
 
 	void ParallelUpdateAnimation();
 
@@ -47,7 +55,7 @@ protected:
 	virtual void PreUpdateAnimation(float DeltaSeconds);
 
 	/** Proxy object, nothing should access this from an externally-callable API as it is used as a scratch area on worker threads */
-	mutable FAnimInstanceProxy* AnimInstanceProxy;
+	mutable FAnimInstanceProxy* AnimInstanceProxy = NULL;
 
 	template <typename T /*= FAnimInstanceProxy*/>	// @TODO: Cant default parameters to this function on Xbox One until we move off the VS2012 compiler
 	inline T& GetProxyOnGameThread()

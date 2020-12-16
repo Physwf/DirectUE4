@@ -33,3 +33,4 @@ void FPoseContext::Initialize(FAnimInstanceProxy* InAnimInstanceProxy)
 	Pose.SetBoneContainer(&RequiredBone);
 	Curve.InitFrom(RequiredBone);
 }
+

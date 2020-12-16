@@ -34,6 +34,17 @@ struct FGetBonePoseScratchArea
 	}
 };
 
+void UAnimSequence::ResizeSequence(float NewLength, int32 NewNumFrames, bool bInsert, int32 StartFrame/*inclusive */, int32 EndFrame/*inclusive*/)
+{
+	int32 OldNumFrames = NumFrames;
+	float OldSequenceLength = SequenceLength;
+
+	// verify condition
+	NumFrames = NewNumFrames;
+	// Update sequence length to match new number of frames.
+	SequenceLength = NewLength;
+}
+
 void UAnimSequence::PostProcessSequence(bool bForceNewRawDatGuid /*= true*/)
 {
 	CompressRawAnimData();
@@ -160,7 +171,7 @@ bool UAnimSequence::CompressRawAnimSequenceTrack(FRawAnimSequenceTrack& RawTrack
 		if (bFramesIdentical)
 		{
 			bRemovedKeys = true;
-			RawTrack.PosKeys.erase(RawTrack.PosKeys.begin() + 1, RawTrack.PosKeys.begin() + 1 + RawTrack.PosKeys.size() - 1);
+			RawTrack.PosKeys.erase(RawTrack.PosKeys.begin() + 1, RawTrack.PosKeys.end());
 			//RawTrack.PosKeys.Shrink();
 			assert(RawTrack.PosKeys.size() == 1);
 		}
@@ -183,7 +194,7 @@ bool UAnimSequence::CompressRawAnimSequenceTrack(FRawAnimSequenceTrack& RawTrack
 		if (bFramesIdentical)
 		{
 			bRemovedKeys = true;
-			RawTrack.RotKeys.erase(RawTrack.RotKeys.begin() + 1, RawTrack.RotKeys.begin() + 1 + RawTrack.RotKeys.size() - 1);
+			RawTrack.RotKeys.erase(RawTrack.RotKeys.begin() + 1, RawTrack.RotKeys.end());
 			//RawTrack.RotKeys.Shrink();
 			assert(RawTrack.RotKeys.size() == 1);
 		}
@@ -208,7 +219,7 @@ bool UAnimSequence::CompressRawAnimSequenceTrack(FRawAnimSequenceTrack& RawTrack
 		if (bFramesIdentical)
 		{
 			bRemovedKeys = true;
-			RawTrack.ScaleKeys.erase(RawTrack.ScaleKeys.begin()+1, RawTrack.ScaleKeys.begin() + 1 + RawTrack.ScaleKeys.size() - 1);
+			RawTrack.ScaleKeys.erase(RawTrack.ScaleKeys.begin()+1, RawTrack.ScaleKeys.end());
 			//RawTrack.ScaleKeys.Shrink();
 			assert(RawTrack.ScaleKeys.size() == 1);
 		}
@@ -255,6 +266,39 @@ void UAnimSequence::RequestAnimCompression(bool bAsyncCompression, std::shared_p
 bool UAnimSequence::IsCompressedDataValid() const
 {
 	return CompressedByteStream.size() > 0 || RawAnimationData.size() == 0 || (TranslationCompressionFormat == ACF_Identity && RotationCompressionFormat == ACF_Identity && ScaleCompressionFormat == ACF_Identity);
+}
+
+int32 UAnimSequence::AddNewRawTrack(std::string TrackName, FRawAnimSequenceTrack* TrackData /*= nullptr*/)
+{
+	const int32 SkeletonIndex = GetSkeleton() ? GetSkeleton()->GetReferenceSkeleton().FindBoneIndex(TrackName) : INDEX_NONE;
+
+	if (SkeletonIndex != INDEX_NONE)
+	{
+		int32 TrackIndex = IndexOfByKey(AnimationTrackNames,TrackName);
+		if (TrackIndex != INDEX_NONE)
+		{
+			if (TrackData)
+			{
+				RawAnimationData[TrackIndex] = *TrackData;
+			}
+			return TrackIndex;
+		}
+
+		assert(AnimationTrackNames.size() == RawAnimationData.size());
+		TrackIndex = AnimationTrackNames.size();
+		AnimationTrackNames.push_back(TrackName);
+		TrackToSkeletonMapTable.push_back(FTrackToSkeletonMap(SkeletonIndex));
+		if (TrackData)
+		{
+			RawAnimationData.push_back(*TrackData);
+		}
+		else
+		{
+			RawAnimationData.push_back(FRawAnimSequenceTrack());
+		}
+		return TrackIndex;
+	}
+	return INDEX_NONE;
 }
 
 void UAnimSequence::CleanAnimSequenceForImport()

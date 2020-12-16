@@ -186,7 +186,12 @@ struct FCompactPose;
 class USkeletalMeshComponent : public USkinnedMeshComponent
 {
 public:
-	USkeletalMeshComponent(AActor* InOwner) : USkinnedMeshComponent(InOwner) {}
+	USkeletalMeshComponent(AActor* InOwner) 
+		: USkinnedMeshComponent(InOwner) 
+		, bForceRefpose(false)
+	{
+		GlobalAnimRateScale = 1.0f;
+	}
 
 	virtual void SetSkeletalMesh(class USkeletalMesh* NewMesh, bool bReinitPose = true) override;
 
@@ -208,6 +213,8 @@ public:
 
 	class UAnimSingleNodeInstance* GetSingleNodeInstance() const;
 	bool InitializeAnimScriptInstance(bool bForceReinit = true);
+
+	void SetForceRefPose(bool bNewForceRefPose);
 
 	void PlayAnimation(class UAnimationAsset* NewAnimToPlay, bool bLooping);
 	void SetAnimation(class UAnimationAsset* NewAnimToPlay);

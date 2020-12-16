@@ -57,6 +57,8 @@ private:
 
 	float CurrentTime;
 
+	FMarkerTickRecord MarkerTickRecord;
+
 	float PlayRate;
 	bool bLooping;
 	bool bPlaying;

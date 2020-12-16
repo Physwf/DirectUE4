@@ -22,8 +22,7 @@ SkeletalMeshActor::SkeletalMeshActor(class UWorld* InOwner, const char* Resource
 	:SkeletalMeshActor(InOwner, ResourcePath)
 {
 	FBXImporter Importer;
-	UAnimSequence* AnimSequence = Importer.ImportFbxAnimation(MeshComponent->SkeletalMesh->Skeleton, AnimationPath,"Idle",false);
-	MeshComponent->PlayAnimation(AnimSequence,true);
+	AnimSequence = Importer.ImportFbxAnimation(MeshComponent->SkeletalMesh->Skeleton, AnimationPath,"Idle",false);
 }
 
 SkeletalMeshActor::~SkeletalMeshActor()
@@ -34,10 +33,12 @@ SkeletalMeshActor::~SkeletalMeshActor()
 void SkeletalMeshActor::PostLoad()
 {
 	MeshComponent->Register();
+	MeshComponent->PlayAnimation(AnimSequence, true);
 }
 
 void SkeletalMeshActor::Tick(float fDeltaTime)
 {
-
+	MeshComponent->TickAnimation(fDeltaTime,false);
+	MeshComponent->RefreshBoneTransforms();
 }
 
