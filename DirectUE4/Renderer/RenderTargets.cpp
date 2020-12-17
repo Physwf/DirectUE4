@@ -50,6 +50,7 @@ void FSceneRenderTargets::FinishRenderingGBuffer()
 void FSceneRenderTargets::FinishRendering()
 {
 	//D3D11DeviceContext->CopyResource(BackBuffer, SceneColor->TargetableTexture->GetResource());
+	RHICopyToResolveTarget(BackBuffer, SceneColor->TargetableTexture.get(),FResolveParams(FResolveRect(0,0,1920,1080), CubeFace_PosX,0,0,0, FResolveRect(0, 0, 1920, 1080)));
 }
 
 EPixelFormat FSceneRenderTargets::GetSceneColorFormat() const
@@ -280,6 +281,11 @@ void FSceneRenderTargets::AllocateCommonDepthTargets()
 	Desc.NumSamples = 1;// GetNumSceneColorMSAASamples(CurrentFeatureLevel);
 	//Desc.Flags |= GFastVRamConfig.SceneDepth;
 	GRenderTargetPool.FindFreeElement(Desc, SceneDepthZ, TEXT("SceneDepthZ"));
+}
+
+bool FSceneRenderTargets::IsSceneColorAllocated() const
+{
+	return GetSceneColorForCurrentShadingPath() != 0;
 }
 
 void FSceneRenderTargets::GetGBufferADesc(PooledRenderTargetDesc& Desc) const

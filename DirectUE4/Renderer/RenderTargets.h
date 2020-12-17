@@ -103,6 +103,8 @@ public:
 	/** Returns the size of most screen space render targets e.g. SceneColor, SceneDepth, GBuffer, ... might be different from final RT or output Size because of ScreenPercentage use. */
 	FIntPoint GetBufferSizeXY() const { return BufferSize; }
 
+	bool IsSceneColorAllocated() const;
+
 	//void PreallocGBufferTargets();
 	void GetGBufferADesc(PooledRenderTargetDesc& Desc) const;
 	void AllocGBufferTargets();

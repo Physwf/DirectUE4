@@ -53,6 +53,13 @@ FViewInfo::~FViewInfo()
 		delete CachedViewUniformShaderParameters;
 }
 
+FIntPoint FViewInfo::GetSecondaryViewRectSize() const
+{
+	return FIntPoint(
+		FMath::CeilToInt(UnscaledViewRect.Width() * Family->SecondaryViewFraction),
+		FMath::CeilToInt(UnscaledViewRect.Height() * Family->SecondaryViewFraction));
+}
+
 void UpdateNoiseTextureParameters(FViewUniformShaderParameters& ViewUniformShaderParameters)
 {
 
@@ -746,8 +753,6 @@ void FSceneRenderer::Render()
 		}
 	}
 
-	FSceneRenderTargets& SceneContex = FSceneRenderTargets::Get();
-	SceneContex.FinishRendering();
 }
 
 FIntPoint FSceneRenderer::GetDesiredInternalBufferSize(const FSceneViewFamily& ViewFamily)

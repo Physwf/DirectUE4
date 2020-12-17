@@ -310,11 +310,79 @@ public:
 
 typedef std::vector<uint8> FPrimitiveViewMasks;
 
+struct FTemporalAAHistory
+{
+	// Number of render target in the history.
+	static constexpr uint32 kRenderTargetCount = 2;
+
+	// Render targets holding's pixel history.
+	//  scene color's RGBA are in RT[0].
+	ComPtr<PooledRenderTarget> RT[kRenderTargetCount];
+
+	// Reference size of RT. Might be different than RT's actual size to handle down res.
+	FIntPoint ReferenceBufferSize;
+
+	// Viewport coordinate of the history in RT according to ReferenceBufferSize.
+	FIntRect ViewportRect;
+
+	// Scene color's PreExposure.
+	float SceneColorPreExposure;
+
+
+	void SafeRelease()
+	{
+		for (uint32 i = 0; i < kRenderTargetCount; i++)
+		{
+			RT[i].Reset();
+		}
+	}
+
+	bool IsValid() const
+	{
+		return RT[0].IsValid();
+	}
+};
+
+// Structure that hold all information related to previous frame.
+struct FPreviousViewInfo
+{
+	// View matrices.
+	FViewMatrices ViewMatrices;
+
+	// Temporal AA result of last frame
+	FTemporalAAHistory TemporalAAHistory;
+
+	// Temporal AA history for diaphragm DOF.
+	//FTemporalAAHistory DOFPreGatherHistory;
+	//FTemporalAAHistory DOFPostGatherForegroundHistory;
+	//FTemporalAAHistory DOFPostGatherBackgroundHistory;
+
+	// Scene color input for SSR, that can be different from TemporalAAHistory.RT[0] if there is a SSR
+	// input post process material.
+	//TRefCountPtr<IPooledRenderTarget> CustomSSRInput;
+
+
+	void SafeRelease()
+	{
+		TemporalAAHistory.SafeRelease();
+		//DOFPreGatherHistory.SafeRelease();
+		//DOFPostGatherForegroundHistory.SafeRelease();
+		//DOFPostGatherBackgroundHistory.SafeRelease();
+		//CustomSSRInput.SafeRelease();
+	}
+};
+
 class FViewInfo : public FSceneView
 {
 public:
 	/* Final position of the view in the final render target (in pixels), potentially scaled by ScreenPercentage */
 	FIntRect ViewRect;
+
+	/**
+	* The view's state, or NULL if no state exists.
+	* This should be used internally to the renderer module to avoid having to cast View.State to an FSceneViewState*
+	*/
+	FSceneViewState* ViewState;
 
 	/** Cached view uniform shader parameters, to allow recreating the view uniform buffer without having to fill out the entire struct. */
 	FViewUniformShaderParameters* CachedViewUniformShaderParameters;
@@ -467,7 +535,7 @@ public:
 	//uint16 ShadingModelMaskInView;
 
 	// Previous frame view info to use for this view.
-	//FPreviousViewInfo PrevViewInfo;
+	FPreviousViewInfo PrevViewInfo;
 
 	/** An intermediate number of visible static meshes.  Doesn't account for occlusion until after FinishOcclusionQueries is called. */
 	//int32 NumVisibleStaticMeshElements;
@@ -531,7 +599,7 @@ public:
 	~FViewInfo();
 
 	/** Returns the size of view rect after primary upscale ( == only with secondary screen percentage). */
-	//FIntPoint GetSecondaryViewRectSize() const;
+	FIntPoint GetSecondaryViewRectSize() const;
 
 	/** Returns whether the view requires a secondary upscale. */
 	// 	bool RequiresSecondaryUpscale() const

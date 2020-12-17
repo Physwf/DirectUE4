@@ -90,6 +90,10 @@ void Viewport::Draw(bool bShouldPresent /*= true*/)
 	GFrameNumberRenderThread++;
 	GFrameNumber++;
 	Renderer.Render();
+
+	FSceneRenderTargets& SceneContex = FSceneRenderTargets::Get();
+	SceneContex.FinishRendering();
+
 	if (bShouldPresent)
 	{
 		DXGISwapChain->Present(0, 0);

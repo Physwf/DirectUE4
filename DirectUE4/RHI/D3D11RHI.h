@@ -23,10 +23,9 @@ extern IDXGIOutput*	DXGIOutput;
 extern IDXGISwapChain* DXGISwapChain;
 
 extern ID3D11Device*			D3D11Device;
-extern ID3D11DeviceContext*	D3D11DeviceContext;
+extern ID3D11DeviceContext*		D3D11DeviceContext;
 
-extern ID3D11Texture2D* BackBuffer;
-extern ID3D11RenderTargetView* BackBufferRTV;
+extern class FD3D11Texture2D* BackBuffer;
 
 extern ID3D11ShaderResourceView* GBlackTextureSRV;
 extern ID3D11SamplerState* GBlackTextureSamplerState;

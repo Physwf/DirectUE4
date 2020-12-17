@@ -305,6 +305,10 @@ public:
 		float p = ((((-2.6051615e-07f * y2 + 2.4760495e-05f) * y2 - 0.0013888378f) * y2 + 0.041666638f) * y2 - 0.5f) * y2 + 1.0f;
 		*ScalarCos = sign * p;
 	}
+	static inline uint32 RoundUpToPowerOfTwo(uint32 Arg)
+	{
+		return 1 << CeilLogTwo(Arg);
+	}
 	static inline float Sin(float Value) { return sinf(Value); }
 	static inline float Asin(float Value) { return asinf((Value < -1.f) ? -1.f : ((Value < 1.f) ? Value : 1.f)); }
 	static inline float Sinh(float Value) { return sinhf(Value); }
@@ -2479,6 +2483,9 @@ struct FIntPoint
 	int32 Y;
 
 	FIntPoint() {}
+
+	static const FIntPoint ZeroValue;
+	static const FIntPoint NoneValue;
 
 	FIntPoint(int32 InX, int32 InY);
 	const int32& operator()(int32 PointIndex) const;

@@ -13,6 +13,27 @@
 
 #include <memory>
 
+enum EAntiAliasingMethod
+{
+	AAM_None ,
+	AAM_FXAA,
+	AAM_TemporalAA ,
+	/** Only supported with forward shading.  MSAA sample count is controlled by r.MSAACount. */
+	AAM_MSAA,
+	AAM_MAX,
+};
+
+enum EAutoExposureMethod
+{
+	/** Not supported on mobile, requires compute shader to construct 64 bin histogram */
+	AEM_Histogram,
+	/** Not supported on mobile, faster method that computes single value by downsampling */
+	AEM_Basic,
+	/** Uses camera settings. */
+	AEM_Manual,
+	AEM_MAX,
+};
+
 enum EBasePassDrawListType
 {
 	EBasePass_Default = 0,
@@ -66,7 +87,16 @@ struct FUpdateLightTransformParameters
 	FMatrix LightToWorld;
 	Vector4 Position;
 };
+class FSceneViewState
+{
+	// Previous frame's view info to use.
+	FPreviousViewInfo PrevFrameViewInfo;
 
+	// Pending previous frame's view info. When rendering a new view, this must be the PendingPrevFrame that
+	// should be updated. This is the next frame that is only going to set PrevFrame = PendingPrevFrame if
+	// the world is not pause.
+	FPreviousViewInfo PendingPrevFrameViewInfo;
+};
 class FScene
 {
 public:

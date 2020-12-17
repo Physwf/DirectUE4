@@ -1475,3 +1475,7 @@ FBox::FBox(const std::vector<FVector>& Points)
 		*this += Points[i];
 	}
 }
+
+const FIntPoint FIntPoint::ZeroValue(0, 0);;
+
+const FIntPoint FIntPoint::NoneValue(INDEX_NONE, INDEX_NONE);;

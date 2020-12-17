@@ -28,7 +28,7 @@ IDXGISwapChain* DXGISwapChain = NULL;
 ID3D11Device*			D3D11Device = NULL;
 ID3D11DeviceContext*	D3D11DeviceContext = NULL;
 
-ID3D11Texture2D* BackBuffer = NULL; 
+FD3D11Texture2D* BackBuffer;
 
 ID3D11Texture2D* GBlackTexture;
 ID3D11ShaderResourceView* GBlackTextureSRV;
@@ -1717,10 +1717,10 @@ bool InitRHI()
 		SwapChainDesc.BufferCount = 1;
 		SwapChainDesc.BufferDesc.Width = WindowWidth;
 		SwapChainDesc.BufferDesc.Height = WindowHeight;
-		SwapChainDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		SwapChainDesc.BufferDesc.Format = DXGI_FORMAT_R10G10B10A2_UNORM;
 		SwapChainDesc.BufferDesc.RefreshRate.Numerator = 60;
 		SwapChainDesc.BufferDesc.RefreshRate.Denominator = 1;
-		SwapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+		SwapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_SHADER_INPUT;
 		SwapChainDesc.OutputWindow = g_hWind;
 		SwapChainDesc.SampleDesc.Count = 1;
 		SwapChainDesc.SampleDesc.Quality = 0;// NumQualityLevels - 1;
@@ -1737,12 +1737,57 @@ bool InitRHI()
 		}
 	}
 
-	hr = DXGISwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&BackBuffer);
-	if (FAILED(hr))
 	{
-		X_LOG("GetBuffer failed!");
-		return false;
+		ComPtr<ID3D11Texture2D> BackBufferRHI = NULL;
+		ComPtr<ID3D11RenderTargetView> BackBufferRTV = NULL;
+
+		hr = DXGISwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)BackBufferRHI.GetAddressOf());
+		if (FAILED(hr))
+		{
+			X_LOG("GetBuffer failed!");
+			return false;
+		}
+
+		D3D11_RENDER_TARGET_VIEW_DESC RTVDesc;
+		RTVDesc.Format = DXGI_FORMAT_UNKNOWN;
+		RTVDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+		RTVDesc.Texture2D.MipSlice = 0;
+		assert(S_OK == D3D11Device->CreateRenderTargetView(BackBufferRHI.Get(), &RTVDesc, BackBufferRTV.GetAddressOf()));
+
+		D3D11_TEXTURE2D_DESC TextureDesc;
+		BackBufferRHI->GetDesc(&TextureDesc);
+
+		ComPtr<ID3D11ShaderResourceView> BackBufferShaderResourceView;
+		D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc;
+		SRVDesc.Format = DXGI_FORMAT_UNKNOWN;
+		SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+		SRVDesc.Texture2D.MostDetailedMip = 0;
+		SRVDesc.Texture2D.MipLevels = 1;
+		assert(S_OK == D3D11Device->CreateShaderResourceView(BackBufferRHI.Get(), &SRVDesc, BackBufferShaderResourceView.GetAddressOf()));
+
+		std::vector<ComPtr<ID3D11RenderTargetView> > RenderTargetViews;
+		RenderTargetViews.push_back(BackBufferRTV);
+
+		BackBuffer = new FD3D11Texture2D
+		(
+			TextureDesc.Width,
+			TextureDesc.Height,
+			1,
+			1,
+			1,
+			PF_B8G8R8A8,
+			false,
+			0,
+			FClearValueBinding(),
+			BackBufferRHI,
+			BackBufferShaderResourceView,
+			1,
+			false,
+			RenderTargetViews,
+			nullptr
+		);
 	}
+
 
 	// Initialize the platform pixel format map.
 	GPixelFormats[PF_Unknown].PlatformFormat = DXGI_FORMAT_UNKNOWN;
