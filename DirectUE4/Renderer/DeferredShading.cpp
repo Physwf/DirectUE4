@@ -455,10 +455,75 @@ void FViewInfo::InitRHIResources()
 	ViewUniformBuffer = TUniformBufferPtr<FViewUniformShaderParameters>::CreateUniformBufferImmediate(*CachedViewUniformShaderParameters); //TUniformBufferRef<FViewUniformShaderParameters>::CreateUniformBufferImmediate(*CachedViewUniformShaderParameters, UniformBuffer_SingleFrame);
 }
 
+PooledRenderTarget* FViewInfo::GetEyeAdaptationRT() const
+{
+	FSceneViewState* EffectiveViewState = GetEffectiveViewState();
+	PooledRenderTarget* Result = NULL;
+	if (EffectiveViewState)
+	{
+		Result = EffectiveViewState->GetCurrentEyeAdaptationRT();
+	}
+	return Result;
+}
+
+PooledRenderTarget* FViewInfo::GetLastEyeAdaptationRT(/*FRHICommandList& RHICmdList*/) const
+{
+	FSceneViewState* EffectiveViewState = GetEffectiveViewState();
+	PooledRenderTarget* Result = NULL;
+	if (EffectiveViewState)
+	{
+		Result = EffectiveViewState->GetLastEyeAdaptationRT();
+	}
+	return Result;
+}
+
+bool FViewInfo::HasValidEyeAdaptation() const
+{
+	FSceneViewState* EffectiveViewState = GetEffectiveViewState();
+
+	// Because eye adapation also contains pre-exposure, make sure it isn't used in scene captures.
+	if (EffectiveViewState && Family && Family->bResolveScene /*&& Family->EngineShowFlags.PostProcessing*/)
+	{
+		return EffectiveViewState->HasValidEyeAdaptation();
+	}
+	return false;
+}
+
+void FViewInfo::SetValidEyeAdaptation() const
+{
+	FSceneViewState* EffectiveViewState = GetEffectiveViewState();
+
+	if (EffectiveViewState)
+	{
+		EffectiveViewState->SetValidEyeAdaptation();
+	}
+}
+
+float FViewInfo::GetLastEyeAdaptationExposure() const
+{
+	const FSceneViewState* EffectiveViewState = GetEffectiveViewState();
+	if (EffectiveViewState)
+	{
+		return EffectiveViewState->GetLastEyeAdaptationExposure();
+	}
+	return 0.f; // Invalid exposure
+}
+
 void FViewInfo::SetValidTonemappingLUT() const
 {
 	FSceneViewState* EffectiveViewState = GetEffectiveViewState();
 	if (EffectiveViewState) EffectiveViewState->SetValidTonemappingLUT();
+}
+
+const std::shared_ptr<FD3D11Texture2D>* FViewInfo::GetTonemappingLUTTexture() const
+{
+	const std::shared_ptr<FD3D11Texture2D>* TextureRHIRef = NULL;
+	FSceneViewState* EffectiveViewState = GetEffectiveViewState();
+	if (EffectiveViewState && EffectiveViewState->HasValidTonemappingLUT())
+	{
+		TextureRHIRef = EffectiveViewState->GetTonemappingLUTTexture();
+	}
+	return TextureRHIRef;
 }
 
 PooledRenderTarget* FViewInfo::GetTonemappingLUTRenderTarget(const int32 LUTSize, const bool bUseVolumeLUT, const bool bNeedUAV) const

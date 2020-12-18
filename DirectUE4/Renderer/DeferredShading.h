@@ -507,7 +507,7 @@ public:
 	// 	FVector TranslucencyLightingVolumeSize[TVC_MAX];
 
 	/** Temporal jitter at the pixel scale. */
-	//FVector2D TemporalJitterPixels;
+	Vector2 TemporalJitterPixels;
 
 	/** true if all PrimitiveVisibilityMap's bits are set to false. */
 	//uint32 bHasNoVisiblePrimitive : 1;
@@ -543,7 +543,7 @@ public:
 	//int32 NumVisibleStaticMeshElements;
 
 	/** Frame's exposure. Always > 0. */
-	//float PreExposure;
+	float PreExposure;
 
 	/** Mip bias to apply in material's samplers. */
 	float MaterialTextureMipBias;
@@ -643,38 +643,38 @@ public:
 	//bool IsDistanceCulled(float DistanceSquared, float MaxDrawDistance, float MinDrawDistance, const FPrimitiveSceneInfo* PrimitiveSceneInfo);
 
 	/** Gets the eye adaptation render target for this view. Same as GetEyeAdaptationRT */
-	//IPooledRenderTarget* GetEyeAdaptation(FRHICommandList& RHICmdList) const;
+	//PooledRenderTarget* GetEyeAdaptation(/*FRHICommandList& RHICmdList*/) const;
 
-	// 	IPooledRenderTarget* GetEyeAdaptation() const
-	// 	{
-	// 		return GetEyeAdaptationRT();
-	// 	}
+	PooledRenderTarget* GetEyeAdaptation() const
+	{
+		return GetEyeAdaptationRT();
+	}
 	/** Gets one of two eye adaptation render target for this view.
 	* NB: will return null in the case that the internal view state pointer
 	* (for the left eye in the stereo case) is null.
 	*/
-	//IPooledRenderTarget* GetEyeAdaptationRT(FRHICommandList& RHICmdList) const;
-	//IPooledRenderTarget* GetEyeAdaptationRT() const;
-	//IPooledRenderTarget* GetLastEyeAdaptationRT(FRHICommandList& RHICmdList) const;
+	//PooledRenderTarget* GetEyeAdaptationRT(/*FRHICommandList& RHICmdList*/) const;
+	PooledRenderTarget* GetEyeAdaptationRT() const;
+	PooledRenderTarget* GetLastEyeAdaptationRT(/*FRHICommandList& RHICmdList*/) const;
 
 	/**Swap the order of the two eye adaptation targets in the double buffer system */
 	//void SwapEyeAdaptationRTs(FRHICommandList& RHICmdList) const;
 
 	/** Tells if the eyeadaptation texture exists without attempting to allocate it. */
-	//bool HasValidEyeAdaptation() const;
+	bool HasValidEyeAdaptation() const;
 
 	/** Informs sceneinfo that eyedaptation has queued commands to compute it at least once and that it can be used */
-	//void SetValidEyeAdaptation() const;
+	void SetValidEyeAdaptation() const;
 
 	/** Get the last valid exposure value for eye adapation. */
-	//float GetLastEyeAdaptationExposure() const;
+	float GetLastEyeAdaptationExposure() const;
 
 	/** Informs sceneinfo that tonemapping LUT has queued commands to compute it at least once */
 	void SetValidTonemappingLUT() const;
 
 	/** Gets the tonemapping LUT texture, previously computed by the CombineLUTS post process,
 	* for stereo rendering, this will force the post-processing to use the same texture for both eyes*/
-	//const FTextureRHIRef* GetTonemappingLUTTexture() const;
+	const std::shared_ptr<FD3D11Texture2D>* GetTonemappingLUTTexture() const;
 
 	/** Gets the rendertarget that will be populated by CombineLUTS post process
 	* for stereo rendering, this will force the post-processing to use the same render target for both eyes*/

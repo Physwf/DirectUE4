@@ -261,3 +261,43 @@ TStaticMeshDrawList<TBasePassDrawingPolicy<FUniformLightMapPolicy> >& FScene::Ge
 {
 	return BasePassUniformLightMapPolicyDrawList[DrawType];
 }
+
+uint32 FSceneViewState::GetFrameIndexMod8() const
+{
+	return FrameIndexMod8;
+}
+
+void FSceneViewState::FEyeAdaptationRTManager::SafeRelease()
+{
+	RenderTarget[0].Reset();
+	RenderTarget[1].Reset();
+
+	for (int32 i = 0; i < NUM_STAGING_BUFFERS; ++i)
+	{
+		StagingBuffers[i].Reset();
+	}
+}
+
+void FSceneViewState::FEyeAdaptationRTManager::SwapRTs(bool bUpdateLastExposure)
+{
+
+}
+
+Microsoft::WRL::ComPtr<PooledRenderTarget>& FSceneViewState::FEyeAdaptationRTManager::GetRTRef(const int BufferNumber)
+{
+	assert(BufferNumber == 0 || BufferNumber == 1);
+
+	// Create textures if needed.
+	if (!RenderTarget[BufferNumber].Get())
+	{
+		// Create the texture needed for EyeAdaptation
+		PooledRenderTargetDesc Desc(PooledRenderTargetDesc::Create2DDesc(FIntPoint(1, 1), PF_G32R32F, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable, false));
+		//if (GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5)
+		{
+			Desc.TargetableFlags |= TexCreate_UAV;
+		}
+		GRenderTargetPool.FindFreeElement(Desc, RenderTarget[BufferNumber], TEXT("EyeAdaptation"));
+	}
+
+	return RenderTarget[BufferNumber];
+}

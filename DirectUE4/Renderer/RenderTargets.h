@@ -93,6 +93,8 @@ public:
 		return DefaultDepthClear;
 	}
 
+	void SetSceneColor(PooledRenderTarget* In);
+
 	void FinishRendering();
 
 	int32 GetMSAACount() const { return CurrentMSAACount; }

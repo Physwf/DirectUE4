@@ -47,6 +47,11 @@ void FSceneRenderTargets::FinishRenderingGBuffer()
 
 }
 
+void FSceneRenderTargets::SetSceneColor(PooledRenderTarget* In)
+{
+	SceneColor = In;
+}
+
 void FSceneRenderTargets::FinishRendering()
 {
 	//D3D11DeviceContext->CopyResource(BackBuffer, SceneColor->TargetableTexture->GetResource());

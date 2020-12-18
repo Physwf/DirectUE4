@@ -2141,3 +2141,4 @@ void RHIUpdateBoneBuffer(ID3D11Buffer* InVertexBuffer, uint32 InBufferSize, cons
 
 extern float GProjectionSignY;
 extern EPixelFormat GRHIHDRDisplayOutputFormat;
+extern ID3D11ShaderResourceView* HighFrequencyNoiseTexture;

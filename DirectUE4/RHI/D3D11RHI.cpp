@@ -2628,3 +2628,4 @@ void RHICopyTexture(FD3D11Texture2D* SourceTexture, FD3D11Texture2D* DestTexture
 
 float GProjectionSignY = 1.0f;
 EPixelFormat GRHIHDRDisplayOutputFormat = PF_FloatRGBA;
+ID3D11ShaderResourceView* HighFrequencyNoiseTexture;

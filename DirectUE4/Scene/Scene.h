@@ -98,15 +98,52 @@ public:
 	// the world is not pause.
 	FPreviousViewInfo PendingPrevFrameViewInfo;
 
+	bool bSequencerIsPaused;
+	const std::shared_ptr<FD3D11Texture2D>* GetTonemappingLUTTexture() const {
+		const std::shared_ptr<FD3D11Texture2D>* ShaderResourceTexture = NULL;
+
+		if (CombinedLUTRenderTarget.Get()!= NULL) {
+			ShaderResourceTexture = &CombinedLUTRenderTarget->ShaderResourceTexture;
+		}
+		return ShaderResourceTexture;
+	}
 	bool HasValidTonemappingLUT() const
 	{
 		return bValidTonemappingLUT;
 	}
-
 	void SetValidTonemappingLUT(bool bValid = true)
 	{
 		bValidTonemappingLUT = bValid;
 	}
+	PooledRenderTarget* GetCurrentEyeAdaptationRT()
+	{
+		return EyeAdaptationRTManager.GetCurrentRT().Get();
+	}
+	PooledRenderTarget* GetLastEyeAdaptationRT()
+	{
+		return EyeAdaptationRTManager.GetLastRT().Get();
+	}
+	/** Swaps the double-buffer targets used in eye adaptation */
+	void SwapEyeAdaptationRTs()
+	{
+		EyeAdaptationRTManager.SwapRTs(bUpdateLastExposure);
+	}
+
+	bool HasValidEyeAdaptation() const
+	{
+		return bValidEyeAdaptation;
+	}
+
+	void SetValidEyeAdaptation()
+	{
+		bValidEyeAdaptation = true;
+	}
+
+	float GetLastEyeAdaptationExposure() const
+	{
+		return EyeAdaptationRTManager.GetLastExposure();
+	}
+	virtual uint32 GetFrameIndexMod8() const;
 
 	// Returns a reference to the render target used for the LUT.  Allocated on the first request.
 	PooledRenderTarget& GetTonemappingLUTRenderTarget(const int32 LUTSize, const bool bUseVolumeLUT, const bool bNeedUAV)
@@ -141,9 +178,60 @@ public:
 		return RenderTarget;
 	}
 private:
+	/** The current frame PreExposure */
+	float PreExposure;
+
+	bool bValidEyeAdaptation;
+
+	/** Whether to get the last exposure from GPU */
+	bool bUpdateLastExposure;
+	// to implement eye adaptation / auto exposure changes over time
+	class FEyeAdaptationRTManager
+	{
+	public:
+
+		FEyeAdaptationRTManager() : CurrentBuffer(0), LastExposure(0.f), CurrentStagingBuffer(0) {}
+
+		void SafeRelease();
+
+		ComPtr<PooledRenderTarget>& GetCurrentRT()
+		{
+			return GetRTRef(CurrentBuffer);
+		}
+
+		/** Return old Render Target*/
+		ComPtr<PooledRenderTarget>& GetLastRT()
+		{
+			return GetRTRef(1 - CurrentBuffer);
+		}
+
+		/** Reverse the current/last order of the targets */
+		void SwapRTs(bool bUpdateLastExposure);
+
+		/** Get the last frame exposure value (used to compute pre-exposure) */
+		float GetLastExposure() const { return LastExposure; }
+
+	private:
+
+		/** Return one of two two render targets */
+		ComPtr<PooledRenderTarget>&  GetRTRef(const int BufferNumber);
+
+	private:
+
+		int32 CurrentBuffer;
+
+		float LastExposure;
+		int32 CurrentStagingBuffer;
+		static const int32 NUM_STAGING_BUFFERS = 3;
+
+		ComPtr<PooledRenderTarget> RenderTarget[2];
+		ComPtr<PooledRenderTarget> StagingBuffers[NUM_STAGING_BUFFERS];
+	} EyeAdaptationRTManager;
+
 	ComPtr<PooledRenderTarget> CombinedLUTRenderTarget;
 	bool bValidTonemappingLUT;
-
+	// counts up by one each frame, warped in 0..7 range, ResetViewState() puts it back to 0
+	uint32 FrameIndexMod8;
 
 };
 class FScene

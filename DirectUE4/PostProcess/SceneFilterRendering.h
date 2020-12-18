@@ -52,4 +52,20 @@ struct alignas(16) FDrawRectangleParameters
 
 };
 
+extern void DrawPostProcessPass(
+	float X,
+	float Y,
+	float SizeX,
+	float SizeY,
+	float U,
+	float V,
+	float SizeU,
+	float SizeV,
+	FIntPoint TargetSize,
+	FIntPoint TextureSize,
+	class FShader* VertexShader//,
+	/*EStereoscopicPass StereoView,*/
+	//bool bHasCustomMesh,
+	//EDrawRectangleFlags Flags = EDRF_Default
+);
 

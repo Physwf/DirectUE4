@@ -35,3 +35,8 @@ std::shared_ptr<std::vector<D3D11_INPUT_ELEMENT_DESC>> GetFilterInputDelcaration
 	return GFilterInputDeclaration;
 }
 
+extern void DrawPostProcessPass(float X, float Y, float SizeX, float SizeY, float U, float V, float SizeU, float SizeV, FIntPoint TargetSize, FIntPoint TextureSize, class FShader* VertexShader/*, */ /*EStereoscopicPass StereoView,*/ /*bool bHasCustomMesh, */ /*EDrawRectangleFlags Flags = EDRF_Default */)
+{
+	DrawRectangle(X, Y, SizeX, SizeY, U, V, SizeU, SizeV, TargetSize, TextureSize, VertexShader/*, Flags*/);
+}
+

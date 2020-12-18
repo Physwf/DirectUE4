@@ -771,6 +771,8 @@ public:
 
 	//FPlane NearClippingPlane;
 
+	bool bCameraCut;
+
 	float NearClippingDistance;
 
 	/** true if ViewMatrix.Determinant() is negative. */
@@ -836,4 +838,6 @@ public:
 	uint32 FrameNumber;
 	float SecondaryViewFraction;
 	const FRenderTarget* RenderTarget;
+	/** if true then results of scene rendering are copied/resolved to the RenderTarget. */
+	bool bResolveScene;
 };

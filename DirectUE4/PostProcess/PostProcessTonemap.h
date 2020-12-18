@@ -5,6 +5,8 @@
 #include "GlobalShader.h"
 #include "PostProcessParameters.h"
 #include "RenderingCompositionGraph.h"
+#include "Scene.h"
+
 
 static float GrainHalton(int32 Index, int32 Base)
 {
@@ -57,3 +59,117 @@ private:
 
 	//FComputeFenceRHIRef AsyncEndFence;
 };
+
+/** Encapsulates the post processing tone map vertex shader. */
+template< bool bUseAutoExposure>
+class TPostProcessTonemapVS : public FGlobalShader
+{
+	// This class is in the header so that Temporal AA can share this vertex shader.
+	DECLARE_SHADER_TYPE(TPostProcessTonemapVS, Global);
+
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
+	{
+		return true;
+	}
+
+	/** Default constructor. */
+	TPostProcessTonemapVS() {}
+
+public:
+	FPostProcessPassParameters PostprocessParameter;
+	FShaderResourceParameter EyeAdaptation;
+	FShaderParameter GrainRandomFull;
+	FShaderParameter DefaultEyeExposure;
+	FShaderParameter ScreenPosToScenePixel;
+
+	/** Initialization constructor. */
+	TPostProcessTonemapVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		: FGlobalShader(Initializer)
+	{
+		PostprocessParameter.Bind(Initializer.ParameterMap);
+		EyeAdaptation.Bind(Initializer.ParameterMap, ("EyeAdaptation"));
+		GrainRandomFull.Bind(Initializer.ParameterMap, ("GrainRandomFull"));
+		DefaultEyeExposure.Bind(Initializer.ParameterMap, ("DefaultEyeExposure"));
+		ScreenPosToScenePixel.Bind(Initializer.ParameterMap, ("ScreenPosToScenePixel"));
+	}
+
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		// Compile time template-based conditional
+		OutEnvironment.SetDefine(("EYEADAPTATION_EXPOSURE_FIX"), (uint32)bUseAutoExposure);
+	}
+
+	void TransitionResources(const FRenderingCompositePassContext& Context)
+	{
+// 		if (Context.View.HasValidEyeAdaptation())
+// 		{
+// 			IPooledRenderTarget* EyeAdaptationRT = Context.View.GetEyeAdaptation(Context.RHICmdList);
+// 			FTextureRHIParamRef EyeAdaptationRTRef = EyeAdaptationRT->GetRenderTargetItem().TargetableTexture;
+// 			if (EyeAdaptationRTRef)
+// 			{
+// 				Context.RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, &EyeAdaptationRTRef, 1);
+// 			}
+// 		}
+	}
+
+	void SetVS(const FRenderingCompositePassContext& Context)
+	{
+		ID3D11VertexShader* const ShaderRHI = GetVertexShader();
+
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(ShaderRHI, Context.View.ViewUniformBuffer.get());
+
+		PostprocessParameter.SetVS(ShaderRHI, Context, TStaticSamplerState<D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT, D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_CLAMP>::GetRHI());
+
+		FVector GrainRandomFullValue;
+		{
+			uint8 FrameIndexMod8 = 0;
+			if (Context.View.State)
+			{
+				FrameIndexMod8 = Context.View.State->GetFrameIndexMod8();
+			}
+			GrainRandomFromFrame(&GrainRandomFullValue, FrameIndexMod8);
+		}
+
+		SetShaderValue(ShaderRHI, GrainRandomFull, GrainRandomFullValue);
+
+
+		if (Context.View.HasValidEyeAdaptation())
+		{
+			PooledRenderTarget* EyeAdaptationRT = Context.View.GetEyeAdaptation();
+			FD3D11Texture2D* EyeAdaptationRTRef = EyeAdaptationRT->TargetableTexture.get();
+			if (EyeAdaptationRTRef)
+			{
+				//Context.RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, &EyeAdaptationRTRef, 1);
+			}
+			SetTextureParameter(ShaderRHI, EyeAdaptation, EyeAdaptationRT->TargetableTexture->GetShaderResourceView());
+		}
+		else
+		{
+			// some views don't have a state, thumbnail rendering?
+			SetTextureParameter(ShaderRHI, EyeAdaptation, GWhiteTextureSRV);
+		}
+
+		// Compile time template-based conditional
+		if (!bUseAutoExposure)
+		{
+			// Compute a CPU-based default.  NB: reverts to "1" if SM5 feature level is not supported
+// 			float FixedExposure = FRCPassPostProcessEyeAdaptation::GetFixedExposure(Context.View);
+// 			// Load a default value 
+// 			SetShaderValue(ShaderRHI, DefaultEyeExposure, FixedExposure);
+		}
+
+		{
+			FIntPoint ViewportOffset = Context.SceneColorViewRect.Min;
+			FIntPoint ViewportExtent = Context.SceneColorViewRect.Size();
+			Vector4 ScreenPosToScenePixelValue(
+				ViewportExtent.X * 0.5f,
+				-ViewportExtent.Y * 0.5f,
+				ViewportExtent.X * 0.5f - 0.5f + ViewportOffset.X,
+				ViewportExtent.Y * 0.5f - 0.5f + ViewportOffset.Y);
+			SetShaderValue(ShaderRHI, ScreenPosToScenePixel, ScreenPosToScenePixelValue);
+		}
+	}
+};
+
+
+typedef TPostProcessTonemapVS<true/*bUseEyeAdaptation*/> FPostProcessTonemapVS;
