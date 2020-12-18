@@ -1,6 +1,13 @@
 #include "PostProcessing.h"
 #include "RenderTargets.h"
-
+#include "PostProcessInput.h"
+#include "RenderingCompositionGraph.h"
+#include "PostProcessTemporalAA.h"
+#include "PostProcessTonemap.h"
+#include "PostProcessCombineLUTs.h"
+#include "PostProcessDownsample.h"
+#include "Scene.h"
+#include "SystemTextures.h"
 
 IMPLEMENT_SHADER_TYPE(, FPostProcessVS, "PostProcessBloom.dusf", "MainPostprocessCommonVS", SF_Vertex);
 
@@ -127,6 +134,12 @@ void FPostProcessing::Process(const FViewInfo& View, ComPtr<PooledRenderTarget>&
 			FRenderingCompositeOutputRef EyeAdaptation;
 		} AutoExposure(View);
 
+		// optional
+		FRenderingCompositeOutputRef BloomOutputCombined;
+
+		FSceneViewState* ViewState = (FSceneViewState*)Context.View.State;
+
+		const bool bHDRTonemapperOutput = false;// bAllowTonemapper && (GetHighResScreenshotConfig().bCaptureHDR || CVarDumpFramesAsHDR->GetValueOnRenderThread() || bHDROutputEnabled);
 		FRCPassPostProcessTonemap* Tonemapper = 0;
 
 		if (AllowFullPostProcessing(View))
@@ -163,22 +176,24 @@ void FPostProcessing::Process(const FViewInfo& View, ComPtr<PooledRenderTarget>&
 					AddTemporalAA(Context, NoVelocityRef, Parameters, bDownsampleDuringTemporalAA ? &SceneColorHalfRes : nullptr);
 				}
 			}
+
+			// Down sample Scene color from full to half res (this may have been done during TAA).
+			if (!SceneColorHalfRes.IsValid())
+			{
+				// doesn't have to be as high quality as the Scene color
+				const bool bIsComputePass = false;// ShouldDoComputePostProcessing(Context.View);
+
+				FRenderingCompositePass* HalfResPass = Context.Graph.RegisterPass(new FRCPassPostProcessDownsample(SceneColorHalfResFormat, DownsampleQuality, bIsComputePass, ("SceneColorHalfRes")));
+				HalfResPass->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
+
+				SceneColorHalfRes = FRenderingCompositeOutputRef(HalfResPass);
+			}
+
+			Tonemapper = AddTonemapper(Context, BloomOutputCombined, AutoExposure.EyeAdaptation, AutoExposure.MethodId, false, bHDRTonemapperOutput);
 		}
 
 
-		// Down sample Scene color from full to half res (this may have been done during TAA).
-		if (!SceneColorHalfRes.IsValid())
-		{
-			// doesn't have to be as high quality as the Scene color
-			const bool bIsComputePass = false;// ShouldDoComputePostProcessing(Context.View);
-
-			FRenderingCompositePass* HalfResPass = Context.Graph.RegisterPass(new FRCPassPostProcessDownsample(SceneColorHalfResFormat, DownsampleQuality, bIsComputePass, ("SceneColorHalfRes")));
-			HalfResPass->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
-
-			SceneColorHalfRes = FRenderingCompositeOutputRef(HalfResPass);
-		}
-
-		Tonemapper = AddTonemapper(Context, BloomOutputCombined, AutoExposure.EyeAdaptation, AutoExposure.MethodId, false, bHDRTonemapperOutput);
+		
 	}
 
 }

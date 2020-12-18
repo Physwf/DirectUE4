@@ -1,4 +1,6 @@
 #include "PostProcessDownsample.h"
+#include "GPUProfiler.h"
+#include "SceneFilterRendering.h"
 
 const int32 GDownsampleTileSizeX = 8;
 const int32 GDownsampleTileSizeY = 8;
@@ -41,11 +43,11 @@ public:
 		BufferBilinearUVMinMax.Bind(Initializer.ParameterMap, ("BufferBilinearUVMinMax"));
 	}
 
-	void SetParameters(const FRenderingCompositePassContext& Context, const FPooledRenderTargetDesc* InputDesc, const FIntPoint& SrcSize, const FIntRect& SrcRect)
+	void SetParameters(const FRenderingCompositePassContext& Context, const PooledRenderTargetDesc* InputDesc, const FIntPoint& SrcSize, const FIntRect& SrcRect)
 	{
-		const ID3D11PixelShader* ShaderRHI = GetPixelShader();
+		ID3D11PixelShader* const ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters<FViewUniformShaderParameters>(ShaderRHI, Context.View.ViewUniformBuffer);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(ShaderRHI, Context.View.ViewUniformBuffer.get());
 		SceneTextureParameters.Set(ShaderRHI, ESceneTextureSetupMode::All);
 
 		// filter only if needed for better performance
@@ -112,9 +114,9 @@ public:
 
 	void SetParameters(const FRenderingCompositePassContext& Context)
 	{
-		const ID3D11VertexShader* ShaderRHI = GetVertexShader();
+		ID3D11VertexShader* const ShaderRHI = GetVertexShader();
 
-		FGlobalShader::SetParameters<FViewUniformShaderParameters>(ShaderRHI, Context.View.ViewUniformBuffer);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(ShaderRHI, Context.View.ViewUniformBuffer.get());
 
 		const PooledRenderTargetDesc* InputDesc = Context.Pass->GetInputDesc(ePId_Input0);
 
@@ -159,7 +161,7 @@ void FRCPassPostProcessDownsample::Process(FRenderingCompositePassContext& Conte
 
 	SCOPED_DRAW_EVENT_FORMAT(Downsample, TEXT("Downsample%s %dx%d"), bIsComputePass ? TEXT("Compute") : TEXT(""), DestRect.Width(), DestRect.Height());
 
-	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
+	const PooledRenderTarget& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 	const bool bIsDepthInputAvailable = (GetInputDesc(ePId_Input1) != nullptr);
 
 	bool bManuallyClampUV = !(SrcRect.Min == FIntPoint::ZeroValue && SrcRect.Max == SrcSize);
@@ -177,10 +179,12 @@ void FRCPassPostProcessDownsample::Process(FRenderingCompositePassContext& Conte
 // 		else
 		{
 			// Set the view family's render target/viewport.
-			FRHIRenderTargetView RtView = FRHIRenderTargetView(DestRenderTarget.TargetableTexture, ERenderTargetLoadAction::ENoAction);
-			FRHISetRenderTargetsInfo Info(1, &RtView, FRHIDepthRenderTargetView());
-			Context.RHICmdList.SetRenderTargetsAndClear(Info);
-			Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f);
+			//FRHIRenderTargetView RtView = FRHIRenderTargetView(DestRenderTarget.TargetableTexture, ERenderTargetLoadAction::ENoAction);
+			//FRHISetRenderTargetsInfo Info(1, &RtView, FRHIDepthRenderTargetView());
+			//Context.RHICmdList.SetRenderTargetsAndClear(Info);
+			//Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f);
+			SetRenderTarget(DestRenderTarget.TargetableTexture.get(), nullptr, false, false, false);
+			RHISetViewport(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f);
 		}
 
 		// InflateSize increases the size of the source/dest rectangle to compensate for bilinear reads and UIBlur pass requirements.
@@ -236,10 +240,10 @@ void FRCPassPostProcessDownsample::Process(FRenderingCompositePassContext& Conte
 			SrcRect.Width(), SrcRect.Height(),
 			DestSize,
 			SrcSize,
-			*VertexShader,
+			*VertexShader//,
 			/*EDRF_UseTriangleOptimization*/);
 
-		RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, FResolveParams());
+		RHICopyToResolveTarget(DestRenderTarget.TargetableTexture.get(), DestRenderTarget.ShaderResourceTexture.get(), FResolveParams());
 	}
 }
 
@@ -263,7 +267,7 @@ PooledRenderTargetDesc FRCPassPostProcessDownsample::ComputeOutputDesc(EPassOutp
 	Ret.TargetableFlags |= bIsComputePass ? TexCreate_UAV : TexCreate_RenderTargetable;
 	//Ret.Flags |= GFastVRamConfig.Downsample;
 	Ret.AutoWritable = false;
-	Ret.DebugName = DebugName;
+	//Ret.DebugName = DebugName;
 
 	Ret.ClearValue = FClearValueBinding(FLinearColor(0, 0, 0, 0));
 
@@ -298,7 +302,7 @@ void FRCPassPostProcessDownsample::SetShader(const FRenderingCompositePassContex
 
 	D3D11DeviceContext->IASetInputLayout(GetInputLayout(GetFilterInputDelcaration().get(), VertexShader->GetCode().Get()));
 	D3D11DeviceContext->VSSetShader(VertexShader->GetVertexShader(), 0, 0);
-	D3D11DeviceContext->PSSetShader(PixelShader->GetVertexShader(), 0, 0);
+	D3D11DeviceContext->PSSetShader(PixelShader->GetPixelShader(), 0, 0);
 
 	PixelShader->SetParameters(Context, InputDesc, SrcSize, SrcRect);
 	VertexShader->SetParameters(Context);

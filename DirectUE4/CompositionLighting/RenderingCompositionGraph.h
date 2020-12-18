@@ -2,12 +2,14 @@
 
 #include "GlobalShader.h"
 #include "PostProcessParameters.h"
+#include "DeferredShading.h"
 
 class FViewInfo;
 struct FRenderingCompositeOutput;
 struct FRenderingCompositeOutputRef;
 struct FRenderingCompositePass;
 struct FRenderingCompositePassContext;
+struct PooledRenderTarget;
 
 template<typename ShaderMetaType> class TShaderMap;
 
@@ -26,7 +28,7 @@ public:
 	T* RegisterPass(T* InPass)
 	{
 		assert(InPass);
-		Nodes.Add(InPass);
+		Nodes.push_back(InPass);
 
 		return InPass;
 	}
@@ -75,12 +77,12 @@ struct FRenderingCompositePassContext
 
 	// call this only once after all nodes have been registered and connected (SetInput() or SetDependency())
 	// @param GraphDebugName must not be 0
-	void Process(const TArray<FRenderingCompositePass*>& TargetedRoots, const TCHAR *GraphDebugName);
+	void Process(const std::vector<FRenderingCompositePass*>& TargetedRoots, const TCHAR *GraphDebugName);
 
 	void Process(FRenderingCompositePass* Root, const TCHAR *GraphDebugName)
 	{
 		std::vector<FRenderingCompositePass*> TargetedRoots;
-		TargetedRoots.Add(Root);
+		TargetedRoots.push_back(Root);
 		Process(TargetedRoots, GraphDebugName);
 	}
 
@@ -130,10 +132,10 @@ struct FRenderingCompositePassContext
 	}
 
 	/** Returns whether this render target is view family's output render target. */
-	bool IsViewFamilyRenderTarget(const FSceneRenderTargetItem& DestRenderTarget) const;
+	bool IsViewFamilyRenderTarget(const PooledRenderTarget& DestRenderTarget) const;
 
 	/** Returns the rectangle where the scene color must be drawn. */
-	FIntRect GetSceneColorDestRect(const FSceneRenderTargetItem& DestRenderTarget) const
+	FIntRect GetSceneColorDestRect(const PooledRenderTarget& DestRenderTarget) const
 	{
 		if (IsViewFamilyRenderTarget(DestRenderTarget))
 		{
@@ -150,7 +152,7 @@ struct FRenderingCompositePassContext
 	}
 
 	/** Returns the LoadAction that should be use for a given render target. */
-	ERenderTargetLoadAction GetLoadActionForRenderTarget(const FSceneRenderTargetItem& DestRenderTarget) const
+	ERenderTargetLoadAction GetLoadActionForRenderTarget(const PooledRenderTarget& DestRenderTarget) const
 	{
 		ERenderTargetLoadAction LoadAction = ERenderTargetLoadAction::ENoAction;
 
@@ -179,7 +181,7 @@ struct FRenderingCompositePassContext
 	FIntPoint ReferenceBufferSize;
 
 	//
-	//FSceneViewState* ViewState;
+	FSceneViewState* ViewState;
 	// is updated before each Pass->Process() call
 	FRenderingCompositePass* Pass;
 	//
@@ -257,7 +259,7 @@ struct FRenderingCompositePass
 	* @param Index - Output index
 	* @param Filename - Output dump filename, needs to have extension, gets modified if we have an HDR image e.g. ".png"
 	*/
-	virtual void SetOutputDumpFilename(EPassOutputId OutputId, const TCHAR* Filename) = 0;
+	//virtual void SetOutputDumpFilename(EPassOutputId OutputId, const TCHAR* Filename) = 0;
 
 	/**
 	* Allows access to an optional TArray of colors in which to capture the pass output
@@ -397,7 +399,7 @@ struct FRenderingCompositeOutput
 	}
 
 	/** Get the texture to read from */
-	TRefCountPtr<PooledRenderTarget> RequestInput()
+	ComPtr<PooledRenderTarget> RequestInput()
 	{
 		//		check(PooledRenderTarget);
 		assert(Dependencies > 0);
@@ -409,7 +411,7 @@ struct FRenderingCompositeOutput
 	* get the surface to write to
 	* @param DebugName must not be 0
 	*/
-	const FSceneRenderTargetItem& RequestSurface(const FRenderingCompositePassContext& Context);
+	const PooledRenderTarget& RequestSurface(const FRenderingCompositePassContext& Context);
 
 	// private:
 	PooledRenderTargetDesc RenderTargetDesc;
@@ -477,7 +479,7 @@ struct TRenderingCompositePassBase :public FRenderingCompositePass
 
 	void AddDependency(const FRenderingCompositeOutputRef& InOutputRef)
 	{
-		AdditionalDependencies.Add(InOutputRef);
+		AdditionalDependencies.push_back(InOutputRef);
 	}
 
 	virtual FRenderingCompositeOutput* GetOutput(EPassOutputId InPassOutputId)
@@ -516,7 +518,7 @@ struct TRenderingCompositePassBase :public FRenderingCompositePass
 
 	virtual FRenderingCompositeOutputRef* GetAdditionalDependency(uint32 Index)
 	{
-		uint32 AdditionalDependenciesCount = AdditionalDependencies.Num();
+		uint32 AdditionalDependenciesCount = AdditionalDependencies.size();
 
 		if (Index < AdditionalDependenciesCount)
 		{

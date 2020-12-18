@@ -3,7 +3,7 @@
 #include "Shader.h"
 #include "GlobalShader.h"
 #include "SceneView.h"
-#include "PostProcess/RenderingCompositionGraph.h"
+#include "RenderingCompositionGraph.h"
 #include "DeferredShading.h"
 
 class FPostprocessContext
@@ -38,7 +38,7 @@ class FPostProcessVS : public FGlobalShader
 	/** to have a similar interface as all other shaders */
 	void SetParameters(const FRenderingCompositePassContext& Context)
 	{
-		FGlobalShader::SetParameters<FViewUniformShaderParameters>(GetVertexShader(), Context.View.ViewUniformBuffer);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(GetVertexShader(), Context.View.ViewUniformBuffer.get());
 	}
 
 	void SetParameters(FUniformBuffer* const ViewUniformBuffer)

@@ -1,5 +1,11 @@
 #pragma once
 
+#include "D3D11RHI.h"
+#include "ShaderParameters.h"
+
+class FShaderParameterMap;
+struct FRenderingCompositePassContext;
+
 // This is the index for the texture input of this pass.
 // More that that should not be needed.
 // Could be an uint32 but for better readability and type safety it's an enum.
@@ -61,15 +67,13 @@ struct FPostProcessPassParameters
 	void Bind(const FShaderParameterMap& ParameterMap);
 
 	/** Set the pixel shader parameter values. */
-	template <typename TRHICmdList>
-	void SetPS(TRHICmdList& RHICmdList, const FPixelShaderRHIParamRef& ShaderRHI, const FRenderingCompositePassContext& Context, ID3D11SamplerState* Filter = TStaticSamplerState<>::GetRHI(), EFallbackColor FallbackColor = eFC_0000, ID3D11SamplerState** FilterOverrideArray = 0);
+	void SetPS(ID3D11PixelShader* const ShaderRHI, const FRenderingCompositePassContext& Context, ID3D11SamplerState* Filter = TStaticSamplerState<>::GetRHI(), EFallbackColor FallbackColor = eFC_0000, ID3D11SamplerState** FilterOverrideArray = 0);
 
 	/** Set the compute shader parameter values. */
-	template< typename TRHICmdList >
-	void SetCS(const FComputeShaderRHIParamRef& ShaderRHI, const FRenderingCompositePassContext& Context, TRHICmdList& RHICmdList, ID3D11SamplerState* Filter = TStaticSamplerState<>::GetRHI(), EFallbackColor FallbackColor = eFC_0000, ID3D11SamplerState** FilterOverrideArray = 0);
+	void SetCS(ID3D11ComputeShader* const ShaderRHI, const FRenderingCompositePassContext& Context, ID3D11SamplerState* Filter = TStaticSamplerState<>::GetRHI(), EFallbackColor FallbackColor = eFC_0000, ID3D11SamplerState** FilterOverrideArray = 0);
 
 	/** Set the vertex shader parameter values. */
-	void SetVS(const FVertexShaderRHIParamRef& ShaderRHI, const FRenderingCompositePassContext& Context, ID3D11SamplerState* Filter = TStaticSamplerState<>::GetRHI(), EFallbackColor FallbackColor = eFC_0000, ID3D11SamplerState** FilterOverrideArray = 0);
+	void SetVS(ID3D11VertexShader* const ShaderRHI, const FRenderingCompositePassContext& Context, ID3D11SamplerState* Filter = TStaticSamplerState<>::GetRHI(), EFallbackColor FallbackColor = eFC_0000, ID3D11SamplerState** FilterOverrideArray = 0);
 
 
 private:
@@ -88,9 +92,8 @@ private:
 public:
 	// @param Filter can be 0 if FilterOverrideArray is used
 	// @param FilterOverrideArray can be 0 if Filter is used
-	template< typename TShaderRHIParamRef, typename TRHICmdList >
+	template< typename TShaderRHIParamRef>
 	void Set(
-		TRHICmdList& RHICmdList,
 		const TShaderRHIParamRef& ShaderRHI,
 		const FRenderingCompositePassContext& Context,
 		ID3D11SamplerState* Filter,
@@ -98,3 +101,4 @@ public:
 		ID3D11SamplerState** FilterOverrideArray = 0
 	);
 };
+

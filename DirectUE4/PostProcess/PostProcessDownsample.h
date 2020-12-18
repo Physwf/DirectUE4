@@ -26,7 +26,7 @@ public:
 
 private:
 	template <uint32 Method, uint32 ManuallyClampUV>
-	void SetShader(const FRenderingCompositePassContext& Context, const FPooledRenderTargetDesc* InputDesc, const FIntPoint& SrcSize, const FIntRect& SrcRect);
+	void SetShader(const FRenderingCompositePassContext& Context, const PooledRenderTargetDesc* InputDesc, const FIntPoint& SrcSize, const FIntRect& SrcRect);
 
 // 	template <uint32 Method, typename TRHICmdList>
 // 	void DispatchCS(TRHICmdList& RHICmdList, FRenderingCompositePassContext& Context, const FIntPoint& SrcSize, const FIntRect& DestRect, FUnorderedAccessViewRHIParamRef DestUAV);

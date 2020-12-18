@@ -1957,6 +1957,8 @@ struct FBoundShaderStateInput
 	}
 };
 std::shared_ptr<std::vector<D3D11_INPUT_ELEMENT_DESC>>& GetVertexDeclarationFVector4();
+std::shared_ptr<std::vector<D3D11_INPUT_ELEMENT_DESC>>& GetScreenVertexDeclaration();
+
 extern ID3D11InputLayout* GetInputLayout(const std::vector<D3D11_INPUT_ELEMENT_DESC>* InputDecl, ID3DBlob* VSCode);
 
 void DrawRectangle(
@@ -2136,3 +2138,6 @@ void RHICopyTexture(FD3D11Texture2D* SourceTexture, FD3D11Texture2D* DestTexture
 
 typedef uint16 FBoneIndexType;
 void RHIUpdateBoneBuffer(ID3D11Buffer* InVertexBuffer, uint32 InBufferSize, const std::vector<FMatrix>& InReferenceToLocalMatrices, const std::vector<FBoneIndexType>& InBoneMap);
+
+extern float GProjectionSignY;
+extern EPixelFormat GRHIHDRDisplayOutputFormat;

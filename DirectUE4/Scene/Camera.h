@@ -3,7 +3,7 @@
 #include "Actor.h"
 #include "SceneView.h"
 
-class Viewport;
+class FViewport;
 
 class Camera : public AActor
 {
@@ -15,7 +15,7 @@ public:
 	void LookAt(FVector Target);
 	void SetLen(float fNear, float fFar);
 
-	FSceneView* CalcSceneView(FSceneViewFamily& ViewFamily, Viewport& VP);
+	FSceneView* CalcSceneView(FSceneViewFamily& ViewFamily, FViewport& VP);
 
 	virtual void PostLoad() override {}
 	virtual void Tick(float fDeltaSeconds) override;

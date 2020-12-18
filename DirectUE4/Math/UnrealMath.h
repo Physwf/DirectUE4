@@ -664,7 +664,7 @@ struct FVector
 	FVector GetSafeNormal(float Tolerance = SMALL_NUMBER) const;
 	bool Equals(const FVector& V, float Tolerance = KINDA_SMALL_NUMBER) const;
 	struct Vector2 ToVector2() const;
-
+	static float DotProduct(const FVector& A, const FVector& B);
 	float Size() const;
 	FVector GetSignVector() const;
 	float GetMax() const;
@@ -2704,6 +2704,7 @@ struct FIntVector
 	int32 Z;
 	FIntVector() {}
 	FIntVector(int32 InX, int32 InY, int32 InZ);
+	explicit FIntVector(int32 InValue);
 };
 
 inline FIntVector::FIntVector(int32 InX, int32 InY, int32 InZ) : X(InX) , Y(InY) , Z(InZ) { }

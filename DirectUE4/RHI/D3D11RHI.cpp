@@ -13,6 +13,7 @@
 #include "SceneFilterRendering.h"
 #include "Shader.h"
 #include "OneColorShader.h"
+#include "VolumeRendering.h"
 
 // #define STB_IMAGE_IMPLEMENTATION
 // #include "stb_image.h"
@@ -1788,6 +1789,7 @@ bool InitRHI()
 		);
 	}
 
+	GVolumeRasterizeVertexBuffer.InitRHI();
 
 	// Initialize the platform pixel format map.
 	GPixelFormats[PF_Unknown].PlatformFormat = DXGI_FORMAT_UNKNOWN;
@@ -2308,6 +2310,18 @@ std::shared_ptr<std::vector<D3D11_INPUT_ELEMENT_DESC>>& GetVertexDeclarationFVec
 	return GVector4VertexDeclaration;
 }
 
+std::shared_ptr<std::vector<D3D11_INPUT_ELEMENT_DESC>>& GetScreenVertexDeclaration()
+{
+	static std::shared_ptr<std::vector<D3D11_INPUT_ELEMENT_DESC>> GScreenVertexDeclaration = std::make_shared<std::vector<D3D11_INPUT_ELEMENT_DESC>, std::initializer_list<D3D11_INPUT_ELEMENT_DESC>>
+		(
+			{
+				{ "ATTRIBUTE",	0,	DXGI_FORMAT_R32G32_FLOAT,	0, 0,   D3D11_INPUT_PER_VERTEX_DATA,0 },
+				{ "ATTRIBUTE",	1,	DXGI_FORMAT_R32G32_FLOAT,	0, 8,	D3D11_INPUT_PER_VERTEX_DATA,0 },
+			}
+	);
+	return GScreenVertexDeclaration;
+}
+
 void ClearQuadSetup(bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil)
 {
 	// Set new states
@@ -2612,3 +2626,5 @@ void RHICopyTexture(FD3D11Texture2D* SourceTexture, FD3D11Texture2D* DestTexture
 	}
 }
 
+float GProjectionSignY = 1.0f;
+EPixelFormat GRHIHDRDisplayOutputFormat = PF_FloatRGBA;

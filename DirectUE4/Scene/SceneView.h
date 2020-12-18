@@ -5,6 +5,7 @@
 #include "ConvexVolume.h"
 
 class FSceneViewFamily;
+class FRenderTarget;
 
 struct ViewInitOptions
 {
@@ -720,12 +721,15 @@ enum class EPrimaryScreenPercentageMethod
 	RawOutput,
 };
 
+class FSceneViewState;
+
 class FSceneView
 {
 public:
 	const FSceneViewFamily* Family;
 
-	float SecondaryViewFraction;
+	FSceneViewState* State;
+
 
 	TUniformBufferPtr<FViewUniformShaderParameters> ViewUniformBuffer;
 	FViewMatrices ViewMatrices;
@@ -772,6 +776,10 @@ public:
 	/** true if ViewMatrix.Determinant() is negative. */
 	bool bReverseCulling;
 
+	FLinearColor OverlayColor;
+
+	FLinearColor ColorScale;
+
 	/* Vector used by shaders to convert depth buffer samples into z coordinates in world space */
 	Vector4 InvDeviceZToWorldZTransform;
 
@@ -788,7 +796,7 @@ public:
 	/** Whether to force two sided rendering for this view. */
 	bool bRenderSceneTwoSided;
 	// The antialiasing method.
-	EAntiAliasingMethod AntiAliasingMethod;
+	enum EAntiAliasingMethod AntiAliasingMethod;
 
 	// Primary screen percentage method to use.
 	EPrimaryScreenPercentageMethod PrimaryScreenPercentageMethod;
@@ -826,4 +834,6 @@ public:
 	class FScene* Scene;
 	std::vector<const FSceneView*> Views;
 	uint32 FrameNumber;
+	float SecondaryViewFraction;
+	const FRenderTarget* RenderTarget;
 };

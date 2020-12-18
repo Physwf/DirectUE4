@@ -1,5 +1,11 @@
 #pragma once
 
+#include "ShaderParameters.h"
+#include "Shader.h"
+#include "GlobalShader.h"
+#include "PostProcessParameters.h"
+#include "RenderingCompositionGraph.h"
+
 static float GrainHalton(int32 Index, int32 Base)
 {
 	float Result = 0.0f;
@@ -20,7 +26,7 @@ static void GrainRandomFromFrame(FVector* __restrict const Constant, uint32 Fram
 	Constant->Y = GrainHalton(FrameNumber & 1023, 3);
 }
 
-void FilmPostSetConstants(Vector4* __restrict const Constants, const FPostProcessSettings* __restrict const FinalPostProcessSettings, bool bMobile, bool UseColorMatrix, bool UseShadowTint, bool UseContrast);
+void FilmPostSetConstants(Vector4* __restrict const Constants, /*const FPostProcessSettings* __restrict const FinalPostProcessSettings,*/ bool bMobile, bool UseColorMatrix, bool UseShadowTint, bool UseContrast);
 
 // derives from TRenderingCompositePassBase<InputCount, OutputCount>
 // ePId_Input0: SceneColor

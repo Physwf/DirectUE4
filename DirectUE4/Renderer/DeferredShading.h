@@ -339,7 +339,7 @@ struct FTemporalAAHistory
 
 	bool IsValid() const
 	{
-		return RT[0].IsValid();
+		return RT[0].Get() != NULL;
 	}
 };
 
@@ -371,6 +371,8 @@ struct FPreviousViewInfo
 		//CustomSSRInput.SafeRelease();
 	}
 };
+
+class FSceneViewState;
 
 class FViewInfo : public FSceneView
 {
@@ -668,7 +670,7 @@ public:
 	//float GetLastEyeAdaptationExposure() const;
 
 	/** Informs sceneinfo that tonemapping LUT has queued commands to compute it at least once */
-	//void SetValidTonemappingLUT() const;
+	void SetValidTonemappingLUT() const;
 
 	/** Gets the tonemapping LUT texture, previously computed by the CombineLUTS post process,
 	* for stereo rendering, this will force the post-processing to use the same texture for both eyes*/
@@ -676,7 +678,7 @@ public:
 
 	/** Gets the rendertarget that will be populated by CombineLUTS post process
 	* for stereo rendering, this will force the post-processing to use the same render target for both eyes*/
-	//FSceneRenderTargetItem* GetTonemappingLUTRenderTarget(FRHICommandList& RHICmdList, const int32 LUTSize, const bool bUseVolumeLUT, const bool bNeedUAV) const;
+	PooledRenderTarget* GetTonemappingLUTRenderTarget(const int32 LUTSize, const bool bUseVolumeLUT, const bool bNeedUAV) const;
 
 	//inline FVector GetPrevViewDirection() const { return PrevViewInfo.ViewMatrices.GetViewMatrix().GetColumn(2); }
 
@@ -706,7 +708,7 @@ private:
 	//ESamplerFilter WorldTextureGroupSamplerFilter;
 	//bool bIsValidWorldTextureGroupSamplerFilter;
 
-	//FSceneViewState* GetEffectiveViewState() const;
+	FSceneViewState* GetEffectiveViewState() const;
 
 	/** Initialization that is common to the constructors. */
 	void Init();

@@ -454,6 +454,24 @@ void FViewInfo::InitRHIResources()
 		*CachedViewUniformShaderParameters);
 	ViewUniformBuffer = TUniformBufferPtr<FViewUniformShaderParameters>::CreateUniformBufferImmediate(*CachedViewUniformShaderParameters); //TUniformBufferRef<FViewUniformShaderParameters>::CreateUniformBufferImmediate(*CachedViewUniformShaderParameters, UniformBuffer_SingleFrame);
 }
+
+void FViewInfo::SetValidTonemappingLUT() const
+{
+	FSceneViewState* EffectiveViewState = GetEffectiveViewState();
+	if (EffectiveViewState) EffectiveViewState->SetValidTonemappingLUT();
+}
+
+PooledRenderTarget* FViewInfo::GetTonemappingLUTRenderTarget(const int32 LUTSize, const bool bUseVolumeLUT, const bool bNeedUAV) const
+{
+	PooledRenderTarget* TargetItem = NULL;
+	FSceneViewState* EffectiveViewState = GetEffectiveViewState();
+	if (EffectiveViewState)
+	{
+		TargetItem = &(EffectiveViewState->GetTonemappingLUTRenderTarget(LUTSize, bUseVolumeLUT, bNeedUAV));
+	}
+	return TargetItem;
+}
+
 // These are not real view infos, just dumb memory blocks
 static std::vector<FViewInfo*> ViewInfoSnapshots;
 // these are never freed, even at program shutdown
@@ -517,6 +535,12 @@ void FViewInfo::DestroyAllSnapshots()
 		FreeViewInfoSnapshots.push_back(Snapshot);
 	}
 	ViewInfoSnapshots.clear();
+}
+
+FSceneViewState* FViewInfo::GetEffectiveViewState() const
+{
+	FSceneViewState* EffectiveViewState = ViewState;
+	return EffectiveViewState;
 }
 
 void FViewInfo::Init()

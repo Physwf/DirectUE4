@@ -4,6 +4,13 @@
 #include "ShaderParameters.h"
 #include "SceneView.h"
 
+
+struct FScreenVertex
+{
+	Vector2 Position;
+	Vector2 UV;
+};
+
 /**
 * A pixel shader for rendering a textured screen element.
 */

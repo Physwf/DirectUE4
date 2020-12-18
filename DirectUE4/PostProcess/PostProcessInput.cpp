@@ -8,7 +8,7 @@ FRCPassPostProcessInput::FRCPassPostProcessInput(const ComPtr<PooledRenderTarget
 
 void FRCPassPostProcessInput::Process(FRenderingCompositePassContext& Context)
 {
-	PassOutputs[0].PooledRenderTarget = Data;
+	PassOutputs[0].RenderTarget = Data;
 }
 
 PooledRenderTargetDesc FRCPassPostProcessInput::ComputeOutputDesc(EPassOutputId InPassOutputId) const

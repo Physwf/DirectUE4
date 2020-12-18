@@ -4,7 +4,6 @@
 /** The minimum Z value in clip space for the RHI. */
 float GMinClipZ = 0.f;
 /** The sign to apply to the Y axis of projection matrices. */
-float GProjectionSignY = 1.f;
 
 FPrimitiveUniformShaderParameters Primitive;
 FViewUniformShaderParameters View;

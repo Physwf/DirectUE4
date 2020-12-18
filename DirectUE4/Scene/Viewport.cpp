@@ -5,7 +5,17 @@
 #include "DeferredShading.h"
 #include "Scene.h"
 
-void Viewport::OnKeyDown(unsigned int KeyCode)
+const std::shared_ptr<FD3D11Texture2D>& FRenderTarget::GetRenderTargetTexture() const
+{
+	return RenderTargetTextureRHI;
+}
+
+float FRenderTarget::GetDisplayGamma() const
+{
+	return 2.2f;
+}
+
+void FViewport::OnKeyDown(unsigned int KeyCode)
 {
 // 	switch(KeyCode)
 // 	{
@@ -32,12 +42,12 @@ void Viewport::OnKeyDown(unsigned int KeyCode)
 // 	}
 }
 
-void Viewport::OnKeyUp(unsigned int KeyCode)
+void FViewport::OnKeyUp(unsigned int KeyCode)
 {
 	//MainCamera.StopMove();
 }
 
-void Viewport::OnMouseDown(int X, int Y)
+void FViewport::OnMouseDown(int X, int Y)
 {
 // 	if (SelectedActor)
 // 	{
@@ -45,7 +55,7 @@ void Viewport::OnMouseDown(int X, int Y)
 // 	}
 }
 
-void Viewport::OnMouseUp(int X, int Y)
+void FViewport::OnMouseUp(int X, int Y)
 {
 // 	if (SelectedActor)
 // 	{
@@ -53,18 +63,18 @@ void Viewport::OnMouseUp(int X, int Y)
 // 	}
 }
 
-void Viewport::OnRightMouseDown(int X, int Y)
+void FViewport::OnRightMouseDown(int X, int Y)
 {
 	//MainCamera.StartDrag(X, Y);
 }
 
-void Viewport::OnRightMouseUp(int X, int Y)
+void FViewport::OnRightMouseUp(int X, int Y)
 {
 	//MainCamera.StopDrag(X, Y);
 
 }
 
-void Viewport::OnMouseMove(int X, int Y)
+void FViewport::OnMouseMove(int X, int Y)
 {
 // 	MainCamera.Drag(X, Y);
 // 	if (SelectedActor)
@@ -73,7 +83,7 @@ void Viewport::OnMouseMove(int X, int Y)
 // 	}
 }
 
-void Viewport::Draw(bool bShouldPresent /*= true*/)
+void FViewport::Draw(bool bShouldPresent /*= true*/)
 {
 	FSceneViewFamily ViewFamily;
 	ViewFamily.Scene = GWorld.Scene;
@@ -101,4 +111,5 @@ void Viewport::Draw(bool bShouldPresent /*= true*/)
 	FViewInfo::DestroyAllSnapshots();
 }
 
-Viewport GWindowViewport;
+FViewport GWindowViewport;
+

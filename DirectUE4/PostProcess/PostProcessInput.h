@@ -1,6 +1,6 @@
 #pragma once
 
-#include "PostProcess/RenderingCompositionGraph.h"
+#include "RenderingCompositionGraph.h"
 
 class FRCPassPostProcessInput : public TRenderingCompositePassBase<0, 1>
 {
@@ -16,5 +16,5 @@ public:
 
 protected:
 
-	TRefCountPtr<PooledRenderTarget> Data;
+	ComPtr<PooledRenderTarget> Data;
 };

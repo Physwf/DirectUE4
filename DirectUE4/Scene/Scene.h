@@ -89,6 +89,7 @@ struct FUpdateLightTransformParameters
 };
 class FSceneViewState
 {
+public:
 	// Previous frame's view info to use.
 	FPreviousViewInfo PrevFrameViewInfo;
 
@@ -96,6 +97,54 @@ class FSceneViewState
 	// should be updated. This is the next frame that is only going to set PrevFrame = PendingPrevFrame if
 	// the world is not pause.
 	FPreviousViewInfo PendingPrevFrameViewInfo;
+
+	bool HasValidTonemappingLUT() const
+	{
+		return bValidTonemappingLUT;
+	}
+
+	void SetValidTonemappingLUT(bool bValid = true)
+	{
+		bValidTonemappingLUT = bValid;
+	}
+
+	// Returns a reference to the render target used for the LUT.  Allocated on the first request.
+	PooledRenderTarget& GetTonemappingLUTRenderTarget(const int32 LUTSize, const bool bUseVolumeLUT, const bool bNeedUAV)
+	{
+		if (CombinedLUTRenderTarget.Get() == NULL ||
+			CombinedLUTRenderTarget->GetDesc().Extent.Y != LUTSize ||
+			((CombinedLUTRenderTarget->GetDesc().Depth != 0) != bUseVolumeLUT) ||
+			!!(CombinedLUTRenderTarget->GetDesc().TargetableFlags & TexCreate_UAV) != bNeedUAV)
+		{
+			// Create the texture needed for the tonemapping LUT
+			EPixelFormat LUTPixelFormat = PF_A2B10G10R10;
+			if (!GPixelFormats[LUTPixelFormat].Supported)
+			{
+				LUTPixelFormat = PF_R8G8B8A8;
+			}
+
+			PooledRenderTargetDesc Desc = PooledRenderTargetDesc::Create2DDesc(FIntPoint(LUTSize * LUTSize, LUTSize), LUTPixelFormat, FClearValueBinding::Transparent, TexCreate_None, TexCreate_ShaderResource, false);
+			Desc.TargetableFlags |= bNeedUAV ? TexCreate_UAV : TexCreate_RenderTargetable;
+
+			if (bUseVolumeLUT)
+			{
+				Desc.Extent = FIntPoint(LUTSize, LUTSize);
+				Desc.Depth = LUTSize;
+			}
+
+			//Desc.DebugName = TEXT("CombineLUTs");
+
+			GRenderTargetPool.FindFreeElement(Desc, CombinedLUTRenderTarget, TEXT("CombineLUTs")/*Desc.DebugName*/);
+		}
+
+		PooledRenderTarget& RenderTarget = *CombinedLUTRenderTarget.Get();
+		return RenderTarget;
+	}
+private:
+	ComPtr<PooledRenderTarget> CombinedLUTRenderTarget;
+	bool bValidTonemappingLUT;
+
+
 };
 class FScene
 {

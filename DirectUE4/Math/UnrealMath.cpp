@@ -451,6 +451,11 @@ struct Vector2 FVector::ToVector2() const
 	return Vector2(X,Y);
 }
 
+float FVector::DotProduct(const FVector& A, const FVector& B)
+{
+	return A | B;
+}
+
 float FVector::Size() const
 {
 	return FMath::Sqrt(X*X + Y * Y + Z * Z);
@@ -1479,3 +1484,10 @@ FBox::FBox(const std::vector<FVector>& Points)
 const FIntPoint FIntPoint::ZeroValue(0, 0);;
 
 const FIntPoint FIntPoint::NoneValue(INDEX_NONE, INDEX_NONE);;
+
+FIntVector::FIntVector(int32 InValue)
+	: X(InValue)
+	, Y(InValue)
+	, Z(InValue)
+{ }
+
