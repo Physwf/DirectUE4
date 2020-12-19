@@ -202,7 +202,7 @@ void FPostProcessing::Process(const FViewInfo& View, ComPtr<PooledRenderTarget>&
 				// doesn't have to be as high quality as the Scene color
 				const bool bIsComputePass = false;// ShouldDoComputePostProcessing(Context.View);
 
-				FRenderingCompositePass* HalfResPass = Context.Graph.RegisterPass(new FRCPassPostProcessDownsample(SceneColorHalfResFormat, DownsampleQuality, bIsComputePass, ("SceneColorHalfRes")));
+				FRenderingCompositePass* HalfResPass = Context.Graph.RegisterPass(new FRCPassPostProcessDownsample(SceneColorHalfResFormat, DownsampleQuality, bIsComputePass, TEXT("SceneColorHalfRes")));
 				HalfResPass->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
 
 				SceneColorHalfRes = FRenderingCompositeOutputRef(HalfResPass);
@@ -236,7 +236,7 @@ void FPostProcessing::Process(const FViewInfo& View, ComPtr<PooledRenderTarget>&
 			// todo: this should come from View.Family->RenderTarget
 			Desc.Format = /*bHDROutputEnabled*/true ? GRHIHDRDisplayOutputFormat : Desc.Format;
 			Desc.NumMips = 1;
-			//Desc.DebugName = TEXT("FinalPostProcessColor");
+			Desc.DebugName = TEXT("FinalPostProcessColor");
 
 			//GRenderTargetPool.CreateUntrackedElement(Desc, Temp, Item);
 			Temp = new PooledRenderTarget(Desc, NULL);

@@ -63,7 +63,7 @@ RenderTargetPool::RenderTargetPool()
 
 }
 
-bool RenderTargetPool::FindFreeElement(const PooledRenderTargetDesc& InputDesc, ComPtr<PooledRenderTarget> &Out, const wchar_t* DebugName)
+bool RenderTargetPool::FindFreeElement(const PooledRenderTargetDesc& InputDesc, ComPtr<PooledRenderTarget> &Out, const wchar_t* InDebugName)
 {
 	if (!InputDesc.IsValid())
 	{
@@ -101,7 +101,7 @@ bool RenderTargetPool::FindFreeElement(const PooledRenderTargetDesc& InputDesc, 
 		if (Out->GetDesc().Compare(Desc, bExactMatch))
 		{
 			// we can reuse the same, but the debug name might have changed
-// 			Current->Desc.DebugName = InDebugName;
+			Current->Desc.DebugName = InDebugName;
 // 			RHIBindDebugLabelName(Current->GetRenderTargetItem().TargetableTexture, InDebugName);
 			assert(!Out->IsFree());
 			// #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -237,23 +237,22 @@ Done:
 					Found->MipSRVs.resize(Desc.NumMips);
 					for (uint16 i = 0; i < Desc.NumMips; i++)
 					{
-						Found->MipSRVs[i] = RHICreateShaderResourceView(Found->ShaderResourceTexture,i); 
+						Found->MipSRVs[i] = RHICreateShaderResourceView((FD3D11Texture2D*)Found->ShaderResourceTexture.get(),i); 
 					}
 				}
 			}
 			else if (Desc.Is3DTexture())
 			{
-				// 				Found->RenderTargetItem.ShaderResourceTexture = RHICreateTexture3D(
-				// 					Desc.Extent.X,
-				// 					Desc.Extent.Y,
-				// 					Desc.Depth,
-				// 					Desc.Format,
-				// 					Desc.NumMips,
-				// 					Desc.Flags | Desc.TargetableFlags,
-				// 					CreateInfo);
-				// 
-				// 				// similar to RHICreateTargetableShaderResource2D
-				// 				Found->RenderTargetItem.TargetableTexture = Found->RenderTargetItem.ShaderResourceTexture;
+				Found->ShaderResourceTexture = RHICreateTexture3D(
+					Desc.Extent.X,
+					Desc.Extent.Y,
+					Desc.Depth,
+					Desc.Format,
+					Desc.NumMips,
+					Desc.Flags | Desc.TargetableFlags);
+
+				// similar to RHICreateTargetableShaderResource2D
+				Found->TargetableTexture = Found->ShaderResourceTexture;
 			}
 			else
 			{
@@ -292,7 +291,7 @@ Done:
 						Found->MipSRVs.resize(Desc.NumMips);
 						for (uint16 i = 0; i < Desc.NumMips; i++)
 						{
-							Found->MipSRVs[i] = RHICreateShaderResourceView(Found->ShaderResourceTexture, i);
+							Found->MipSRVs[i] = RHICreateShaderResourceView((FD3D11Texture2D*)Found->ShaderResourceTexture.get(), i);
 						}
 					}
 				}
@@ -361,7 +360,12 @@ Done:
 		//VerifyAllocationLevel();
 
 		FoundIndex = PooledRenderTargets.size() - 1;
+
+		Found->Desc.DebugName = InDebugName;
+
 	}
+
+	Found->Desc.DebugName = InDebugName;
 
 	Out = Found;
 

@@ -516,9 +516,9 @@ void FViewInfo::SetValidTonemappingLUT() const
 	if (EffectiveViewState) EffectiveViewState->SetValidTonemappingLUT();
 }
 
-const std::shared_ptr<FD3D11Texture2D>* FViewInfo::GetTonemappingLUTTexture() const
+const std::shared_ptr<FD3D11Texture>* FViewInfo::GetTonemappingLUTTexture() const
 {
-	const std::shared_ptr<FD3D11Texture2D>* TextureRHIRef = NULL;
+	const std::shared_ptr<FD3D11Texture>* TextureRHIRef = NULL;
 	FSceneViewState* EffectiveViewState = GetEffectiveViewState();
 	if (EffectiveViewState && EffectiveViewState->HasValidTonemappingLUT())
 	{

@@ -310,7 +310,7 @@ public:
 		{
 			FRenderingCompositeOutputRef* OutputRef = Context.Pass->GetInput(ePId_Input3);
 
-			const std::shared_ptr<FD3D11Texture2D>* SrcTexture = Context.View.GetTonemappingLUTTexture();
+			const std::shared_ptr<FD3D11Texture>* SrcTexture = Context.View.GetTonemappingLUTTexture();
 			bool bShowErrorLog = false;
 			// Use a provided tonemaping LUT (provided by a CombineLUTs pass). 
 			if (!SrcTexture)
@@ -708,7 +708,7 @@ PooledRenderTargetDesc FRCPassPostProcessTonemap::ComputeOutputDesc(EPassOutputI
 
 	// RGB is the color in LDR, A is the luminance for PostprocessAA
 	Ret.Format = bHDROutput ? GRHIHDRDisplayOutputFormat : Ret.Format;
-	//Ret.DebugName = TEXT("Tonemap");
+	Ret.DebugName = TEXT("Tonemap");
 	Ret.ClearValue = FClearValueBinding(FLinearColor(0, 0, 0, 0));
 	//Ret.Flags |= GFastVRamConfig.Tonemap;
 

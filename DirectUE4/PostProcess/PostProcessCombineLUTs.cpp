@@ -519,6 +519,7 @@ static void SetLUTBlenderShader(FRenderingCompositePassContext& Context, uint32 
 
 		D3D11DeviceContext->IASetInputLayout(GetInputLayout(GetScreenVertexDeclaration().get(),VertexShader->GetCode().Get()));
 		D3D11DeviceContext->VSSetShader(VertexShader->GetVertexShader(), 0, 0);
+		D3D11DeviceContext->GSSetShader(GeometryShader->GetGeometryShader(), 0, 0);
 		D3D11DeviceContext->PSSetShader(LocalPixelShader->GetPixelShader(),0,0);
 		D3D11DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
@@ -653,7 +654,7 @@ PooledRenderTargetDesc FRCPassPostProcessCombineLUTs::ComputeOutputDesc(EPassOut
 
 	if (!bAllocateOutput)
 	{
-		//Ret.DebugName = TEXT("DummyLUT");
+		Ret.DebugName = TEXT("DummyLUT");
 	}
 	else
 	{
@@ -671,7 +672,7 @@ PooledRenderTargetDesc FRCPassPostProcessCombineLUTs::ComputeOutputDesc(EPassOut
 			Ret.Depth = GLUTSize;
 		}
 		//Ret.Flags |= GFastVRamConfig.CombineLUTs;
-		//Ret.DebugName = TEXT("CombineLUTs");
+		Ret.DebugName = TEXT("CombineLUTs");
 	}
 	Ret.ClearValue = FClearValueBinding::Transparent;
 

@@ -125,27 +125,27 @@ public:
 	/** Returns the appropriate resolution for a given cube shadow index. */
 	int32 GetCubeShadowDepthZResolution(int32 ShadowIndex) const;
 public:
-	const std::shared_ptr<FD3D11Texture2D>& GetSceneColorTexture() const;
-	const std::shared_ptr<FD3D11Texture2D>& GetSceneDepthTexture() const { return SceneDepthZ->ShaderResourceTexture; }
+	const std::shared_ptr<FD3D11Texture>& GetSceneColorTexture() const;
+	const std::shared_ptr<FD3D11Texture>& GetSceneDepthTexture() const { return SceneDepthZ->ShaderResourceTexture; }
 
-	const std::shared_ptr<FD3D11Texture2D>* GetActualDepthTexture() const;
-	const std::shared_ptr<FD3D11Texture2D>& GetGBufferATexture() const { return GBufferA->ShaderResourceTexture; }
-	const std::shared_ptr<FD3D11Texture2D>& GetGBufferBTexture() const { return GBufferB->ShaderResourceTexture; }
-	const std::shared_ptr<FD3D11Texture2D>& GetGBufferCTexture() const { return GBufferC->ShaderResourceTexture; }
+	const std::shared_ptr<FD3D11Texture>* GetActualDepthTexture() const;
+	const std::shared_ptr<FD3D11Texture>& GetGBufferATexture() const { return GBufferA->ShaderResourceTexture; }
+	const std::shared_ptr<FD3D11Texture>& GetGBufferBTexture() const { return GBufferB->ShaderResourceTexture; }
+	const std::shared_ptr<FD3D11Texture>& GetGBufferCTexture() const { return GBufferC->ShaderResourceTexture; }
 	//const std::shared_ptr<FD3D11Texture2D>& GetGBufferDTexture() const { return GBufferD->ShaderResourceTexture; }
 	//const std::shared_ptr<FD3D11Texture2D>& GetGBufferETexture() const { return GBufferE->ShaderResourceTexture; }
 	//const std::shared_ptr<FD3D11Texture2D>& GetGBufferVelocityTexture() const { return GBufferVelocity->ShaderResourceTexture; }
 
-	const std::shared_ptr<FD3D11Texture2D>& GetLightAttenuationTexture() const { LightAttenuation->ShaderResourceTexture; }
+	const std::shared_ptr<FD3D11Texture>& GetLightAttenuationTexture() const { LightAttenuation->ShaderResourceTexture; }
 
-	const std::shared_ptr<FD3D11Texture2D>& GetSceneColorSurface() const { return SceneColor->TargetableTexture; }
+	const std::shared_ptr<FD3D11Texture>& GetSceneColorSurface() const { return SceneColor->TargetableTexture; }
 	//const std::shared_ptr<FD3D11Texture2D>& GetSceneAlphaCopySurface() const { return (const FTexture2DRHIRef&)SceneAlphaCopy->GetRenderTargetItem().TargetableTexture; }
-	const std::shared_ptr<FD3D11Texture2D>& GetSceneDepthSurface() const { return SceneDepthZ->TargetableTexture; }
+	const std::shared_ptr<FD3D11Texture>& GetSceneDepthSurface() const { return SceneDepthZ->TargetableTexture; }
 	//const std::shared_ptr<FD3D11Texture2D>& GetSmallDepthSurface() const { return (const FTexture2DRHIRef&)SmallDepthZ->GetRenderTargetItem().TargetableTexture; }
 	//const std::shared_ptr<FD3D11Texture2D>& GetOptionalShadowDepthColorSurface(FRHICommandList& RHICmdList, int32 Width, int32 Height) const;
-	const std::shared_ptr<FD3D11Texture2D>& GetLightAttenuationSurface() const { return LightAttenuation->TargetableTexture; }
+	const std::shared_ptr<FD3D11Texture>& GetLightAttenuationSurface() const { return LightAttenuation->TargetableTexture; }
 
-	const std::shared_ptr<FD3D11Texture2D>& GetScreenSpaceAO() { return ScreenSpaceAO->ShaderResourceTexture; }
+	const std::shared_ptr<FD3D11Texture>& GetScreenSpaceAO() { return ScreenSpaceAO->ShaderResourceTexture; }
 
 	const ComPtr<PooledRenderTarget>& GetSceneColor() const;
 
@@ -171,7 +171,7 @@ private:
 
 	FIntPoint ComputeDesiredSize(const FSceneViewFamily& ViewFamily);
 
-	int32 GetGBufferRenderTargets(ERenderTargetLoadAction ColorLoadAction, FD3D11Texture2D* OutRenderTargets[8], int32& OutVelocityRTIndex);
+	int32 GetGBufferRenderTargets(ERenderTargetLoadAction ColorLoadAction, FD3D11Texture* OutRenderTargets[8], int32& OutVelocityRTIndex);
 
 	int32 CurrentMaxShadowResolution;
 

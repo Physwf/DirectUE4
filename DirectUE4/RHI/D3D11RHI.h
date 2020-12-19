@@ -842,43 +842,37 @@ struct FPixelFormatInfo
 	EPixelFormat	UnrealFormat;
 };
 
-
-class FD3D11Texture2D
+class FD3D11Texture
 {
 public:
-	FD3D11Texture2D(
-		uint32 InSizeX, 
+	FD3D11Texture(
+		uint32 InSizeX,
 		uint32 InSizeY,
 		uint32 InSizeZ,
-		uint32 InNumMips, 
-		uint32 InNumSamples, 
+		uint32 InNumMips,
+		uint32 InNumSamples,
 		EPixelFormat InFormat,
-		bool bInCubemap,
-		uint32 InFlags, 
+		uint32 InFlags,
 		const FClearValueBinding& InClearValue,
-		ComPtr<ID3D11Texture2D> InResource,
 		ComPtr<ID3D11ShaderResourceView> InShaderResourceView,
 		int32 InRTVArraySize,
 		bool bInCreatedRTVsPerSlice,
 		const std::vector<ComPtr<ID3D11RenderTargetView>>& InRenderTargetViews,
 		ComPtr<ID3D11DepthStencilView>* InDepthStencilViews
-		) 
-	: SizeX(InSizeX)
-	, SizeY(InSizeY)
-	, SizeZ(InSizeZ)
-	, ClearValue(InClearValue)
-	, NumMips(InNumMips)
-	, NumSamples(InNumSamples)
-	, Format(InFormat)
-	, bCubemap(bInCubemap)
-	, Flags(InFlags)
-	, MemorySize(0)
-	, Resource(InResource)
-	, ShaderResourceView(InShaderResourceView)
-	, RenderTargetViews(InRenderTargetViews)
-	, bCreatedRTVsPerSlice(bInCreatedRTVsPerSlice)
-	, RTVArraySize(InRTVArraySize)
-	, NumDepthStencilViews(0)
+	) 
+		: SizeX(InSizeX)
+		, SizeY(InSizeY)
+		, SizeZ(InSizeZ)
+		, ClearValue(InClearValue)
+		, NumMips(InNumMips)
+		, NumSamples(InNumSamples)
+		, Format(InFormat)
+		, Flags(InFlags)
+		, ShaderResourceView(InShaderResourceView)
+		, RenderTargetViews(InRenderTargetViews)
+		, bCreatedRTVsPerSlice(bInCreatedRTVsPerSlice)
+		, RTVArraySize(InRTVArraySize)
+		, NumDepthStencilViews(0)
 	{
 		if (InDepthStencilViews != nullptr)
 		{
@@ -892,6 +886,12 @@ public:
 			}
 		}
 	}
+	virtual ID3D11Resource* GetResource() const { return NULL; }
+
+	virtual class FD3D11Texture2D* GetTexture2D() { return NULL; }
+	virtual class FD3D11Texture2D* GetTexture2DArray() { return NULL; }
+	virtual class FD3D11Texture3D* GetTexture3D() { return NULL; }
+	virtual class FD3D11Texture2D* GetTextureCube() { return NULL; }
 
 	uint32 GetSizeX() const { return SizeX; }
 	uint32 GetSizeY() const { return SizeY; }
@@ -903,9 +903,7 @@ public:
 	uint32 GetFlags() const { return Flags; }
 	uint32 GetNumSamples() const { return NumSamples; }
 	bool IsMultisampled() const { return NumSamples > 1; }
-	bool IsCube() const { return bCubemap; }
 
-	ID3D11Texture2D* GetResource() const { return Resource.Get(); }
 	ID3D11ShaderResourceView* GetShaderResourceView() const { return ShaderResourceView.Get(); }
 	ID3D11RenderTargetView* GetRenderTargetView(int32 MipIndex, int32 ArraySliceIndex) const
 	{
@@ -969,10 +967,6 @@ public:
 		return ClearValue;
 	}
 
-	void Release()
-	{
-
-	}
 private:
 	uint32 SizeX;
 	uint32 SizeY;
@@ -983,18 +977,89 @@ private:
 	EPixelFormat Format;
 	uint32 Flags;
 
-	int32 MemorySize;
-	ComPtr<ID3D11Texture2D> Resource;
 	ComPtr<ID3D11ShaderResourceView> ShaderResourceView;
 	std::vector<ComPtr<ID3D11RenderTargetView>> RenderTargetViews;
 	bool bCreatedRTVsPerSlice;
 	int32 RTVArraySize;
 	ComPtr<ID3D11DepthStencilView> DepthStencilViews[FExclusiveDepthStencil::MaxIndex];
-	/** Number of Depth Stencil Views - used for fast call tracking. */
 	uint32	NumDepthStencilViews;
-	const uint32 bCubemap : 1;
 };
 
+class FD3D11Texture2D : public FD3D11Texture
+{
+public:
+	FD3D11Texture2D(
+		uint32 InSizeX, 
+		uint32 InSizeY,
+		uint32 InSizeZ,
+		uint32 InNumMips, 
+		uint32 InNumSamples, 
+		EPixelFormat InFormat,
+		bool bInCubemap,
+		uint32 InFlags, 
+		const FClearValueBinding& InClearValue,
+		ComPtr<ID3D11Texture2D> InResource,
+		ComPtr<ID3D11ShaderResourceView> InShaderResourceView,
+		int32 InRTVArraySize,
+		bool bInCreatedRTVsPerSlice,
+		const std::vector<ComPtr<ID3D11RenderTargetView>>& InRenderTargetViews,
+		ComPtr<ID3D11DepthStencilView>* InDepthStencilViews
+		) 
+	: FD3D11Texture(InSizeX, InSizeY, InSizeZ, InNumMips, InNumSamples, InFormat, InFlags, InClearValue, InShaderResourceView, InRTVArraySize, bInCreatedRTVsPerSlice, InRenderTargetViews, InDepthStencilViews)
+	, bCubemap(bInCubemap)
+	, Resource(InResource)
+	{}
+
+	virtual class FD3D11Texture2D* GetTexture2D() override { return this; }
+	virtual class FD3D11Texture2D* GetTexture2DArray() override { return GetSizeZ() > 0 ?  this :  nullptr; }
+	virtual class FD3D11Texture2D* GetTextureCube() override { return IsCube() ? this : nullptr; }
+
+	bool IsCube() const { return bCubemap; }
+	virtual ID3D11Texture2D* GetResource() const override { return Resource.Get(); }
+	void Release() {}
+private:
+	ComPtr<ID3D11Texture2D> Resource;
+	/** Number of Depth Stencil Views - used for fast call tracking. */
+	const uint32 bCubemap : 1;
+};
+class FD3D11Texture3D : public FD3D11Texture
+{
+public:
+	FD3D11Texture3D(
+		ID3D11Texture3D* InResource,
+		ID3D11ShaderResourceView* InShaderResourceView, 
+		const std::vector<ComPtr<ID3D11RenderTargetView>>& InRenderTargetViews, 
+		uint32 InSizeX, 
+		uint32 InSizeY, 
+		uint32 InSizeZ, 
+		uint32 InNumMips, 
+		EPixelFormat InFormat, 
+		uint32 InFlags, 
+		const FClearValueBinding& InClearValue
+	) 
+	: FD3D11Texture(InSizeX, InSizeY, InSizeZ, InNumMips, 1, InFormat, InFlags, InClearValue, InShaderResourceView, 1, false, InRenderTargetViews, NULL)
+	, Resource(InResource)
+	{
+
+	}
+	virtual class FD3D11Texture3D* GetTexture3D() override { return this; }
+
+	virtual ID3D11Texture3D* GetResource() const override { return Resource.Get(); }
+	//FRHIResourceInfo ResourceInfo;
+
+	void SetName(const std::string& InName)
+	{
+		TextureName = InName;
+	}
+
+	std::string GetName() const
+	{
+		return TextureName;
+	}
+private:
+	ComPtr<ID3D11Texture3D> Resource;
+	std::string TextureName;
+};
 /** Flags used for texture creation */
 enum ETextureCreateFlags
 {
@@ -1069,7 +1134,8 @@ enum ETextureCreateFlags
 
 ID3D11Buffer* RHICreateVertexBuffer(UINT Size, D3D11_USAGE InUsage, UINT BindFlags, UINT MiscFlags, const void* Data = NULL);
 std::shared_ptr<FD3D11Texture2D> CreateD3D11Texture2D(uint32 SizeX, uint32 SizeY, uint32 SizeZ, bool bTextureArray, bool bCubeTexture, EPixelFormat Format, uint32 NumMips, uint32 NumSamples, uint32 Flags, FClearValueBinding ClearBindingValue = FClearValueBinding::Transparent, void* BulkData = nullptr, uint32 BulkDataSize = 0);
-ComPtr<ID3D11ShaderResourceView> RHICreateShaderResourceView(std::shared_ptr<FD3D11Texture2D> Texture2DRHI, uint16 MipLevel);
+ComPtr<ID3D11ShaderResourceView> RHICreateShaderResourceView(FD3D11Texture2D* Texture2DRHI, uint16 MipLevel);
+ComPtr<ID3D11ShaderResourceView> RHICreateShaderResourceView(FD3D11Texture3D* Texture2DRHI, uint16 MipLevel);
 ComPtr<ID3D11ShaderResourceView> RHICreateShaderResourceView(ID3D11Buffer* VertexBuffer, UINT Stride, DXGI_FORMAT Format);
 inline std::shared_ptr<FD3D11Texture2D> RHICreateTexture2D(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 NumSamples, uint32 Flags, FClearValueBinding ClearBindingValue = FClearValueBinding::Transparent, void* BulkData = nullptr, uint32 BulkDataSize = 0)
 {
@@ -1086,6 +1152,11 @@ inline std::shared_ptr<FD3D11Texture2D> RHICreateTextureCube(uint32 Size, uint8 
 inline std::shared_ptr<FD3D11Texture2D> RHICreateTextureCubeArray(uint32 Size, uint32 ArraySize, uint8 Format, uint32 NumMips, uint32 Flags, FClearValueBinding ClearBindingValue = FClearValueBinding::Transparent, void* BulkData = nullptr, uint32 BulkDataSize = 0)
 {
 	return CreateD3D11Texture2D(Size, Size, 6 * ArraySize, true, true, (EPixelFormat)Format, NumMips, 1, Flags, ClearBindingValue, BulkData, BulkDataSize);
+}
+std::shared_ptr<FD3D11Texture3D> CreateD3D11Texture3D(uint32 SizeX, uint32 SizeY, uint32 SizeZ, uint8 Format, uint32 NumMips, uint32 Flags, FClearValueBinding ClearBindingValue = FClearValueBinding::Transparent, void* BulkData = nullptr, uint32 BulkDataSize = 0);
+inline std::shared_ptr<FD3D11Texture3D> RHICreateTexture3D(uint32 SizeX, uint32 SizeY, uint32 SizeZ, uint8 Format, uint32 NumMips, uint32 Flags, FClearValueBinding ClearBindingValue = FClearValueBinding::Transparent, void* BulkData = nullptr, uint32 BulkDataSize = 0)
+{
+	return CreateD3D11Texture3D(SizeX, SizeY, SizeZ, Format, NumMips, Flags, ClearBindingValue, BulkData, BulkDataSize);
 }
 enum class ERenderTargetLoadAction : uint8
 {
@@ -1114,8 +1185,8 @@ inline void RHICreateTargetableShaderResource2D(
 	uint32 TargetableTextureFlags,
 	bool bForceSeparateTargetAndShaderResource,
 	FClearValueBinding ClearValue,
-	std::shared_ptr<FD3D11Texture2D>& OutTargetableTexture,
-	std::shared_ptr<FD3D11Texture2D>& OutShaderResourceTexture,
+	std::shared_ptr<FD3D11Texture>& OutTargetableTexture,
+	std::shared_ptr<FD3D11Texture>& OutShaderResourceTexture,
 	uint32 NumSamples = 1
 )
 {
@@ -1161,8 +1232,8 @@ inline void RHICreateTargetableShaderResource2DArray(
 	uint32 Flags,
 	uint32 TargetableTextureFlags,
 	FClearValueBinding ClearValue,
-	std::shared_ptr<FD3D11Texture2D>& OutTargetableTexture,
-	std::shared_ptr<FD3D11Texture2D>& OutShaderResourceTexture,
+	std::shared_ptr<FD3D11Texture>& OutTargetableTexture,
+	std::shared_ptr<FD3D11Texture>& OutShaderResourceTexture,
 	uint32 NumSamples = 1
 )
 {
@@ -1189,8 +1260,8 @@ inline void RHICreateTargetableShaderResourceCube(
 	uint32 TargetableTextureFlags,
 	bool bForceSeparateTargetAndShaderResource,
 	FClearValueBinding ClearValue,
-	std::shared_ptr<FD3D11Texture2D>& OutTargetableTexture,
-	std::shared_ptr<FD3D11Texture2D>& OutShaderResourceTexture
+	std::shared_ptr<FD3D11Texture>& OutTargetableTexture,
+	std::shared_ptr<FD3D11Texture>& OutShaderResourceTexture
 )
 {
 	// Ensure none of the usage flags are passed in.
@@ -1228,8 +1299,8 @@ inline void RHICreateTargetableShaderResourceCubeArray(
 	uint32 TargetableTextureFlags,
 	bool bForceSeparateTargetAndShaderResource,
 	FClearValueBinding ClearValue,
-	std::shared_ptr<FD3D11Texture2D>& OutTargetableTexture,
-	std::shared_ptr<FD3D11Texture2D>& OutShaderResourceTexture
+	std::shared_ptr<FD3D11Texture>& OutTargetableTexture,
+	std::shared_ptr<FD3D11Texture>& OutShaderResourceTexture
 )
 {
 	// Ensure none of the usage flags are passed in.
@@ -1486,10 +1557,12 @@ private:
 	uint8* Contents;
 };
 
-void SetRenderTarget(FD3D11Texture2D* NewRenderTarget, FD3D11Texture2D* NewDepthStencilTarget, int32 MipIndex=0, int32 ArraySliceIndex=0);
-void SetRenderTarget(FD3D11Texture2D* NewRenderTarget, FD3D11Texture2D* NewDepthStencilTarget, bool bClearColor = false, bool bClearDepth = false, bool bClearStencil = false, int32 MipIndex = 0, int32 ArraySliceIndex = 0);
-void SetRenderTargets(uint32 NumRTV, FD3D11Texture2D** NewRenderTarget, FD3D11Texture2D* NewDepthStencilTarget, bool bClearColor = false, bool bClearDepth = false, bool bClearStencil = false);
-void SetRenderTargetAndClear(FD3D11Texture2D* NewRenderTarget, FD3D11Texture2D* NewDepthStencilTarget);
+void SetRenderTarget(FD3D11Texture* NewRenderTarget, FD3D11Texture* NewDepthStencilTarget, int32 MipIndex=0, int32 ArraySliceIndex=0);
+void SetRenderTarget(FD3D11Texture* NewRenderTarget, FD3D11Texture* NewDepthStencilTarget, bool bClearColor = false, bool bClearDepth = false, bool bClearStencil = false, int32 MipIndex = 0, int32 ArraySliceIndex = 0);
+void SetRenderTargets(uint32 NumRTV, FD3D11Texture** NewRenderTarget, FD3D11Texture* NewDepthStencilTarget, bool bClearColor = false, bool bClearDepth = false, bool bClearStencil = false);
+void SetRenderTargetAndClear(FD3D11Texture* NewRenderTarget, FD3D11Texture* NewDepthStencilTarget);
+
+void ClearRemderState();
 enum ECubeFace
 {
 	CubeFace_PosX = 0,
@@ -2029,7 +2102,7 @@ inline uint32 GetD3D11CubeFace(ECubeFace Face)
 		return 5;//D3DCUBEMAP_FACE_NEGATIVE_Z;
 	};
 }
-void RHIReadSurfaceFloatData(FD3D11Texture2D* TextureRHI, FIntRect InRect, std::vector<FFloat16Color>& OutData, ECubeFace CubeFace, int32 ArrayIndex, int32 MipIndex);
+void RHIReadSurfaceFloatData(FD3D11Texture* TextureRHI, FIntRect InRect, std::vector<FFloat16Color>& OutData, ECubeFace CubeFace, int32 ArrayIndex, int32 MipIndex);
 
 struct FResolveRect
 {
@@ -2100,7 +2173,7 @@ struct FResolveParams
 };
 
 
-void RHICopyToResolveTarget(FD3D11Texture2D* SourceTextureRHI, FD3D11Texture2D* DestTextureRHI, const FResolveParams& ResolveParams);
+void RHICopyToResolveTarget(FD3D11Texture* SourceTextureRHI, FD3D11Texture* DestTextureRHI, const FResolveParams& ResolveParams);
 struct FRHICopyTextureInfo
 {
 	// Number of texels to copy. Z Must be always be > 0.
@@ -2134,7 +2207,7 @@ struct FRHICopyTextureInfo
 		Size.Y = FMath::Max(Size.Y / 2, 1);
 	}
 };
-void RHICopyTexture(FD3D11Texture2D* SourceTexture, FD3D11Texture2D* DestTexture, const FRHICopyTextureInfo& CopyInfo);
+void RHICopyTexture(FD3D11Texture* SourceTexture, FD3D11Texture* DestTexture, const FRHICopyTextureInfo& CopyInfo);
 
 typedef uint16 FBoneIndexType;
 void RHIUpdateBoneBuffer(ID3D11Buffer* InVertexBuffer, uint32 InBufferSize, const std::vector<FMatrix>& InReferenceToLocalMatrices, const std::vector<FBoneIndexType>& InBoneMap);

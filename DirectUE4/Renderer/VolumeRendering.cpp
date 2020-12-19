@@ -18,5 +18,6 @@ void RasterizeToVolumeTexture(FVolumeBounds VolumeBounds)
 	//RHICmdList.DrawPrimitive(PT_TriangleStrip, 0, 2, NumInstances);
 	D3D11DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 	D3D11DeviceContext->DrawInstanced(2, NumInstances,0,0);	
+	ClearRemderState();
 }
 

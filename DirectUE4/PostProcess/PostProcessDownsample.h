@@ -14,7 +14,7 @@ public:
 	FRCPassPostProcessDownsample(EPixelFormat InOverrideFormat = PF_Unknown,
 		uint32 InQuality = 1,
 		bool bInIsComputePass = false,
-		const char *InDebugName = ("Downsample"));
+		const wchar_t *InDebugName = TEXT("Downsample"));
 
 	// interface FRenderingCompositePass ---------
 
@@ -37,6 +37,6 @@ private:
 	// explained in constructor
 	uint32 Quality;
 	// must be a valid pointer
-	const char* DebugName;
+	const wchar_t* DebugName;
 };
 

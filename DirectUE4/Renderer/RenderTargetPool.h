@@ -208,6 +208,8 @@ struct PooledRenderTargetDesc
 	bool AutoWritable;
 	/** create render target write mask (supported only on specific platforms) */
 	bool bCreateRenderTargetWriteMask;
+
+	const wchar_t* DebugName;
 };
 
 struct PooledRenderTarget
@@ -251,9 +253,9 @@ struct PooledRenderTarget
 	}
 	virtual const PooledRenderTargetDesc& GetDesc() const;
 	/** The 2D or cubemap texture that may be used as a render or depth-stencil target. */
-	std::shared_ptr<FD3D11Texture2D> TargetableTexture;
+	std::shared_ptr<FD3D11Texture> TargetableTexture;
 	/** The 2D or cubemap shader-resource 2D texture that the targetable textures may be resolved to. */
-	std::shared_ptr<FD3D11Texture2D> ShaderResourceTexture;
+	std::shared_ptr<FD3D11Texture> ShaderResourceTexture;
 	/** only created if requested through the flag, same as MipUAVs[0] */
 	// TODO: refactor all the code to only use MipUAVs?
 	ComPtr<ID3D11UnorderedAccessView> UAV;
@@ -274,6 +276,8 @@ private:
 	bool bSnapshot;
 
 	friend class RenderTargetPool;
+
+	const wchar_t* DebugName;
 };
 
 class RenderTargetPool

@@ -177,7 +177,7 @@ private:
 IMPLEMENT_SHADER_TYPE(, FAccumulateCubeFacesPS, ("ReflectionEnvironmentShaders.dusf"), ("AccumulateCubeFacesPS"), SF_Pixel)
 
 
-void ComputeDiffuseIrradiance(FD3D11Texture2D* LightingSource, int32 LightingSourceMipIndex, FSHVectorRGB3* OutIrradianceEnvironmentMap)
+void ComputeDiffuseIrradiance(FD3D11Texture* LightingSource, int32 LightingSourceMipIndex, FSHVectorRGB3* OutIrradianceEnvironmentMap)
 {
 	auto ShaderMap = GetGlobalShaderMap();
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get();

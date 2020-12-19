@@ -196,7 +196,7 @@ private:
 
 		if (LightingChannelsTexture.IsBound())
 		{
-			std::shared_ptr<FD3D11Texture2D> LightingChannelsTextureRHI = SceneRenderTargets.LightingChannels ? SceneRenderTargets.LightingChannels->ShaderResourceTexture : GSystemTextures.WhiteDummy->TargetableTexture;
+			std::shared_ptr<FD3D11Texture> LightingChannelsTextureRHI = SceneRenderTargets.LightingChannels ? SceneRenderTargets.LightingChannels->ShaderResourceTexture : GSystemTextures.WhiteDummy->TargetableTexture;
 
 			SetTextureParameter(
 				ShaderRHI,

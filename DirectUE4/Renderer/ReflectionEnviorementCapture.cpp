@@ -115,7 +115,7 @@ void CreateCubeMips(int32 NumMips, ComPtr<PooledRenderTarget>& Cubemap)
 {
 	SCOPED_DRAW_EVENT(CreateCubeMips);
 
-	FD3D11Texture2D* CubeRef = Cubemap->TargetableTexture.get();
+	FD3D11Texture* CubeRef = Cubemap->TargetableTexture.get();
 
 	auto* ShaderMap = GetGlobalShaderMap();
 
@@ -537,8 +537,8 @@ void FullyResolveReflectionScratchCubes()
 {
 	SCOPED_DRAW_EVENT(FullyResolveReflectionScratchCubes);
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get();
-	std::shared_ptr<FD3D11Texture2D>& Scratch0 = SceneContext.ReflectionColorScratchCubemap[0]->TargetableTexture;
-	std::shared_ptr<FD3D11Texture2D>& Scratch1 = SceneContext.ReflectionColorScratchCubemap[1]->TargetableTexture;
+	std::shared_ptr<FD3D11Texture>& Scratch0 = SceneContext.ReflectionColorScratchCubemap[0]->TargetableTexture;
+	std::shared_ptr<FD3D11Texture>& Scratch1 = SceneContext.ReflectionColorScratchCubemap[1]->TargetableTexture;
 	FResolveParams ResolveParams(FResolveRect(), CubeFace_PosX, -1, -1, -1);
 	RHICopyToResolveTarget(Scratch0.get(), Scratch0.get(), ResolveParams);
 	RHICopyToResolveTarget(Scratch1.get(), Scratch1.get(), ResolveParams);
@@ -614,7 +614,7 @@ float ComputeSingleAverageBrightnessFromCubemap(int32 TargetSize, ComPtr<PooledR
 	PooledRenderTargetDesc Desc(PooledRenderTargetDesc::Create2DDesc(FIntPoint(1, 1), PF_FloatRGBA, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable, false));
 	GRenderTargetPool.FindFreeElement(Desc, ReflectionBrightnessTarget, TEXT("ReflectionBrightness"));
 
-	std::shared_ptr<FD3D11Texture2D>& BrightnessTarget = ReflectionBrightnessTarget->TargetableTexture;
+	std::shared_ptr<FD3D11Texture>& BrightnessTarget = ReflectionBrightnessTarget->TargetableTexture;
 	SetRenderTarget(BrightnessTarget.get(), NULL, false);
 
 	//FGraphicsPipelineStateInitializer GraphicsPSOInit;

@@ -3,7 +3,7 @@
 #include "SHMath.h"
 #include "GlobalShader.h"
 
-extern void ComputeDiffuseIrradiance(FD3D11Texture2D* LightingSource, int32 LightingSourceMipIndex, FSHVectorRGB3* OutIrradianceEnvironmentMap);
+extern void ComputeDiffuseIrradiance(FD3D11Texture* LightingSource, int32 LightingSourceMipIndex, FSHVectorRGB3* OutIrradianceEnvironmentMap);
 
 /** Pixel shader used for filtering a mip. */
 class FCubeFilterPS : public FGlobalShader

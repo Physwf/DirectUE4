@@ -130,7 +130,7 @@ public:
 
 IMPLEMENT_SHADER_TYPE(, FPostProcessDownsampleVS, ("PostProcessDownsample.dusf"), ("MainDownsampleVS"), SF_Vertex);
 
-FRCPassPostProcessDownsample::FRCPassPostProcessDownsample(EPixelFormat InOverrideFormat /*= PF_Unknown*/, uint32 InQuality /*= 1*/, bool bInIsComputePass /*= false*/, const char *InDebugName /*= ("Downsample")*/)
+FRCPassPostProcessDownsample::FRCPassPostProcessDownsample(EPixelFormat InOverrideFormat /*= PF_Unknown*/, uint32 InQuality /*= 1*/, bool bInIsComputePass /*= false*/, const wchar_t *InDebugName /*= ("Downsample")*/)
 	: OverrideFormat(InOverrideFormat)
 	, Quality(InQuality)
 	, DebugName(InDebugName)
@@ -267,7 +267,7 @@ PooledRenderTargetDesc FRCPassPostProcessDownsample::ComputeOutputDesc(EPassOutp
 	Ret.TargetableFlags |= bIsComputePass ? TexCreate_UAV : TexCreate_RenderTargetable;
 	//Ret.Flags |= GFastVRamConfig.Downsample;
 	Ret.AutoWritable = false;
-	//Ret.DebugName = DebugName;
+	Ret.DebugName = DebugName;
 
 	Ret.ClearValue = FClearValueBinding(FLinearColor(0, 0, 0, 0));
 

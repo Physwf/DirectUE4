@@ -674,7 +674,7 @@ public:
 
 	/** Gets the tonemapping LUT texture, previously computed by the CombineLUTS post process,
 	* for stereo rendering, this will force the post-processing to use the same texture for both eyes*/
-	const std::shared_ptr<FD3D11Texture2D>* GetTonemappingLUTTexture() const;
+	const std::shared_ptr<FD3D11Texture>* GetTonemappingLUTTexture() const;
 
 	/** Gets the rendertarget that will be populated by CombineLUTS post process
 	* for stereo rendering, this will force the post-processing to use the same render target for both eyes*/

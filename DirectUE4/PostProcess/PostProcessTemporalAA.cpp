@@ -456,7 +456,7 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 // 				ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::ENoAction,
 // 				FExclusiveDepthStencil::DepthRead_StencilWrite);
 
-			FD3D11Texture2D* RTVs[2];
+			FD3D11Texture* RTVs[2];
 
 			RTVs[0] = DestRenderTarget[0]->TargetableTexture.get();
 
@@ -571,7 +571,7 @@ PooledRenderTargetDesc FRCPassPostProcessTemporalAA::ComputeOutputDesc(EPassOutp
 		Ret.Reset();
 		//regardless of input type, PF_FloatRGBA is required to properly accumulate between frames for a good result.
 		Ret.Format = PF_FloatRGBA;
-		//Ret.DebugName = kTAAOutputNames[static_cast<int32>(Parameters.Pass)];
+		Ret.DebugName = kTAAOutputNames[static_cast<int32>(Parameters.Pass)];
 		Ret.AutoWritable = false;
 		Ret.TargetableFlags &= ~(TexCreate_RenderTargetable | TexCreate_UAV);
 		Ret.TargetableFlags |= bIsComputePass ? TexCreate_UAV : TexCreate_RenderTargetable;
@@ -609,7 +609,7 @@ PooledRenderTargetDesc FRCPassPostProcessTemporalAA::ComputeOutputDesc(EPassOutp
 			Ret.Format = Parameters.DownsampleOverrideFormat;
 		}
 
-		//Ret.DebugName = TEXT("SceneColorHalfRes");
+		Ret.DebugName = TEXT("SceneColorHalfRes");
 		Ret.AutoWritable = false;
 		Ret.TargetableFlags &= ~TexCreate_RenderTargetable;
 		Ret.TargetableFlags |= TexCreate_UAV;

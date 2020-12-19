@@ -99,8 +99,8 @@ public:
 	FPreviousViewInfo PendingPrevFrameViewInfo;
 
 	bool bSequencerIsPaused;
-	const std::shared_ptr<FD3D11Texture2D>* GetTonemappingLUTTexture() const {
-		const std::shared_ptr<FD3D11Texture2D>* ShaderResourceTexture = NULL;
+	const std::shared_ptr<FD3D11Texture>* GetTonemappingLUTTexture() const {
+		const std::shared_ptr<FD3D11Texture>* ShaderResourceTexture = NULL;
 
 		if (CombinedLUTRenderTarget.Get()!= NULL) {
 			ShaderResourceTexture = &CombinedLUTRenderTarget->ShaderResourceTexture;
@@ -169,7 +169,7 @@ public:
 				Desc.Depth = LUTSize;
 			}
 
-			//Desc.DebugName = TEXT("CombineLUTs");
+			Desc.DebugName = TEXT("CombineLUTs");
 
 			GRenderTargetPool.FindFreeElement(Desc, CombinedLUTRenderTarget, TEXT("CombineLUTs")/*Desc.DebugName*/);
 		}

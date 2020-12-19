@@ -1112,7 +1112,7 @@ void ConditionalClearShaderResource(ID3D11ShaderResourceView* Resource)
 	ClearShaderResourceViews<SF_Compute>(Resource);
 }
 
-void SetRenderTarget(FD3D11Texture2D* NewRenderTarget, FD3D11Texture2D* NewDepthStencilTarget, int32 MipIndex/* = 0*/, int32 ArraySliceIndex /*= 0*/)
+void SetRenderTarget(FD3D11Texture* NewRenderTarget, FD3D11Texture* NewDepthStencilTarget, int32 MipIndex/* = 0*/, int32 ArraySliceIndex /*= 0*/)
 {
 	ID3D11RenderTargetView* RTV = NewRenderTarget->GetRenderTargetView(MipIndex, ArraySliceIndex);
 	ID3D11DepthStencilView* DSV = NewDepthStencilTarget ? NewDepthStencilTarget->GetDepthStencilView(FExclusiveDepthStencil::DepthWrite_StencilWrite) : NULL;
@@ -1121,7 +1121,7 @@ void SetRenderTarget(FD3D11Texture2D* NewRenderTarget, FD3D11Texture2D* NewDepth
 	D3D11DeviceContext->OMSetRenderTargets(1, &RTV, DSV);
 }
 
-void SetRenderTarget(FD3D11Texture2D* NewRenderTarget, FD3D11Texture2D* NewDepthStencilTarget, bool bClearColor/*=false*/, bool bClearDepth /*= false*/, bool bClearStencil /*= false*/, int32 MipIndex/* = 0*/, int32 ArraySliceIndex /*= 0*/)
+void SetRenderTarget(FD3D11Texture* NewRenderTarget, FD3D11Texture* NewDepthStencilTarget, bool bClearColor/*=false*/, bool bClearDepth /*= false*/, bool bClearStencil /*= false*/, int32 MipIndex/* = 0*/, int32 ArraySliceIndex /*= 0*/)
 {
 	ID3D11RenderTargetView* RTV = NewRenderTarget ? NewRenderTarget->GetRenderTargetView(MipIndex, ArraySliceIndex) : NULL;
 	FExclusiveDepthStencil AccessType = FExclusiveDepthStencil::DepthWrite_StencilWrite;
@@ -1153,7 +1153,7 @@ void SetRenderTarget(FD3D11Texture2D* NewRenderTarget, FD3D11Texture2D* NewDepth
 }
 
 
-void SetRenderTargets(uint32 NumRTV, FD3D11Texture2D** NewRenderTarget, FD3D11Texture2D* NewDepthStencilTarget, bool bClearColor /*= false*/, bool bClearDepth /*= false*/, bool bClearStencil /*= false*/)
+void SetRenderTargets(uint32 NumRTV, FD3D11Texture** NewRenderTarget, FD3D11Texture* NewDepthStencilTarget, bool bClearColor /*= false*/, bool bClearDepth /*= false*/, bool bClearStencil /*= false*/)
 {
 	std::vector<ID3D11RenderTargetView*> RTVs;
 
@@ -1190,9 +1190,18 @@ void SetRenderTargets(uint32 NumRTV, FD3D11Texture2D** NewRenderTarget, FD3D11Te
 	}
 }
 
-void SetRenderTargetAndClear(FD3D11Texture2D* NewRenderTarget, FD3D11Texture2D* NewDepthStencilTarget)
+void SetRenderTargetAndClear(FD3D11Texture* NewRenderTarget, FD3D11Texture* NewDepthStencilTarget)
 {
 
+}
+
+void ClearRemderState()
+{
+	D3D11DeviceContext->VSSetShader(NULL, 0, 0);
+	D3D11DeviceContext->HSSetShader(NULL, 0, 0);
+	D3D11DeviceContext->DSSetShader(NULL, 0, 0);
+	D3D11DeviceContext->GSSetShader(NULL, 0, 0);
+	D3D11DeviceContext->PSSetShader(NULL, 0, 0);
 }
 
 ID3D11Buffer* RHICreateVertexBuffer(UINT Size, D3D11_USAGE InUsage, UINT BindFlags, UINT MiscFlags, const void* Data /*= NULL*/)
@@ -1520,11 +1529,12 @@ std::shared_ptr<FD3D11Texture2D> CreateD3D11Texture2D(uint32 SizeX, uint32 SizeY
 	return Texture2D;
 }
 
-ComPtr<ID3D11ShaderResourceView> RHICreateShaderResourceView(std::shared_ptr<FD3D11Texture2D> Texture2DRHI, uint16 MipLevel)
+ComPtr<ID3D11ShaderResourceView> RHICreateShaderResourceView(FD3D11Texture2D* Texture2DRHI, uint16 MipLevel)
 {
 	//todo 2darray/3d
-	{
-// 		FD3D11Texture2DArray* Texture2DArray = ResourceCast(Texture2DArrayRHI);
+// 	if(Texture2DRHI->)
+// 	{
+// 		FD3D11Texture2D* Texture2DArray = (FD3D11Texture2D*)Texture2DRHI;
 // 
 // 		D3D11_TEXTURE2D_DESC TextureDesc;
 // 		Texture2DArray->GetResource()->GetDesc(&TextureDesc);
@@ -1541,37 +1551,16 @@ ComPtr<ID3D11ShaderResourceView> RHICreateShaderResourceView(std::shared_ptr<FD3
 // 		SRVDesc.Texture2DArray.ArraySize = TextureDesc.ArraySize;
 // 
 // 		SRVDesc.Format = PlatformShaderResourceFormat;
-// 		TRefCountPtr<ID3D11ShaderResourceView> ShaderResourceView;
-// 		VERIFYD3D11RESULT_EX(Direct3DDevice->CreateShaderResourceView(Texture2DArray->GetResource(), &SRVDesc, (ID3D11ShaderResourceView**)ShaderResourceView.GetInitReference()), Direct3DDevice);
+// 		ComPtr<ID3D11ShaderResourceView> ShaderResourceView;
+// 		assert(S_OK == D3D11Device->CreateShaderResourceView(Texture2DArray->GetResource(), &SRVDesc, ShaderResourceView.GetAddressOf()));
 // 
-// 		return new FD3D11ShaderResourceView(ShaderResourceView, Texture2DArray);
-
+// 		return ShaderResourceView;
+// 	}
 // 
-
-// 		FD3D11Texture3D* Texture3D = ResourceCast(Texture3DRHI);
-// 
-// 		D3D11_TEXTURE3D_DESC TextureDesc;
-// 		Texture3D->GetResource()->GetDesc(&TextureDesc);
-// 
-// 		bool bSRGB = (Texture3D->GetFlags() & TexCreate_SRGB) != 0;
-// 		const DXGI_FORMAT PlatformShaderResourceFormat = FindShaderResourceDXGIFormat(TextureDesc.Format, bSRGB);
-// 
-// 		// Create a Shader Resource View
-// 		D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc;
-// 		SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE3D;
-// 		SRVDesc.Texture3D.MostDetailedMip = MipLevel;
-// 		SRVDesc.Texture3D.MipLevels = 1;
-// 
-// 		SRVDesc.Format = PlatformShaderResourceFormat;
-// 		TRefCountPtr<ID3D11ShaderResourceView> ShaderResourceView;
-// 		VERIFYD3D11RESULT_EX(Direct3DDevice->CreateShaderResourceView(Texture3D->GetResource(), &SRVDesc, (ID3D11ShaderResourceView**)ShaderResourceView.GetInitReference()), Direct3DDevice);
-// 
-// 		return new FD3D11ShaderResourceView(ShaderResourceView, Texture3D);
-
-	}
+	
 	if (Texture2DRHI->IsCube())
 	{
-		std::shared_ptr<FD3D11Texture2D>  TextureCube = Texture2DRHI;
+		FD3D11Texture2D*  TextureCube = (FD3D11Texture2D*)Texture2DRHI;
 
 		D3D11_TEXTURE2D_DESC TextureDesc;
 		TextureCube->GetResource()->GetDesc(&TextureDesc);
@@ -1592,7 +1581,7 @@ ComPtr<ID3D11ShaderResourceView> RHICreateShaderResourceView(std::shared_ptr<FD3
 	}
 	else
 	{
-		std::shared_ptr<FD3D11Texture2D> Texture2D = Texture2DRHI;
+		FD3D11Texture2D* Texture2D = (FD3D11Texture2D*)Texture2DRHI;
 
 		D3D11_TEXTURE2D_DESC TextureDesc;
 		Texture2D->GetResource()->GetDesc(&TextureDesc);
@@ -1629,6 +1618,128 @@ ComPtr<ID3D11ShaderResourceView> RHICreateShaderResourceView(ID3D11Buffer* Verte
 	assert(S_OK == D3D11Device->CreateShaderResourceView(VertexBuffer, &SRVDesc, ShaderResourceView.GetAddressOf()));
 
 	return ShaderResourceView;
+}
+
+ComPtr<ID3D11ShaderResourceView> RHICreateShaderResourceView(FD3D11Texture3D* Texture2DRHI, uint16 MipLevel)
+{
+	{
+		FD3D11Texture3D* Texture3D = (FD3D11Texture3D*)Texture2DRHI;
+
+		D3D11_TEXTURE3D_DESC TextureDesc;
+		Texture3D->GetResource()->GetDesc(&TextureDesc);
+
+		bool bSRGB = (Texture3D->GetFlags() & TexCreate_SRGB) != 0;
+		const DXGI_FORMAT PlatformShaderResourceFormat = FindShaderResourceDXGIFormat(TextureDesc.Format, bSRGB);
+
+		// Create a Shader Resource View
+		D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc;
+		SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE3D;
+		SRVDesc.Texture3D.MostDetailedMip = MipLevel;
+		SRVDesc.Texture3D.MipLevels = 1;
+
+		SRVDesc.Format = PlatformShaderResourceFormat;
+		ComPtr<ID3D11ShaderResourceView> ShaderResourceView;
+		assert(S_OK == D3D11Device->CreateShaderResourceView(Texture3D->GetResource(), &SRVDesc, (ID3D11ShaderResourceView**)ShaderResourceView.GetAddressOf()));
+
+		return ShaderResourceView;
+
+	}
+}
+
+std::shared_ptr<FD3D11Texture3D> CreateD3D11Texture3D(uint32 SizeX, uint32 SizeY, uint32 SizeZ, uint8 Format, uint32 NumMips, uint32 Flags, FClearValueBinding ClearBindingValue /*= FClearValueBinding::Transparent*/, void* BulkData /*= nullptr*/, uint32 BulkDataSize /*= 0*/)
+{
+	const bool bSRGB = (Flags & TexCreate_SRGB) != 0;
+
+	const DXGI_FORMAT PlatformResourceFormat = (DXGI_FORMAT)GPixelFormats[Format].PlatformFormat;
+	const DXGI_FORMAT PlatformShaderResourceFormat = FindShaderResourceDXGIFormat(PlatformResourceFormat, bSRGB);
+	const DXGI_FORMAT PlatformRenderTargetFormat = FindShaderResourceDXGIFormat(PlatformResourceFormat, bSRGB);
+
+	// Describe the texture.
+	D3D11_TEXTURE3D_DESC TextureDesc;
+	ZeroMemory(&TextureDesc, sizeof(D3D11_TEXTURE3D_DESC));
+	TextureDesc.Width = SizeX;
+	TextureDesc.Height = SizeY;
+	TextureDesc.Depth = SizeZ;
+	TextureDesc.MipLevels = NumMips;
+	TextureDesc.Format = PlatformResourceFormat;
+	TextureDesc.Usage = D3D11_USAGE_DEFAULT;
+	TextureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	TextureDesc.CPUAccessFlags = 0;
+	TextureDesc.MiscFlags = 0;
+
+	if (Flags & TexCreate_GenerateMipCapable)
+	{
+		// Set the flag that allows us to call GenerateMips on this texture later
+		TextureDesc.MiscFlags |= D3D11_RESOURCE_MISC_GENERATE_MIPS;
+	}
+
+	if (Flags & TexCreate_UAV)
+	{
+		TextureDesc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
+	}
+
+	bool bCreateRTV = false;
+
+	if (Flags & TexCreate_RenderTargetable)
+	{
+		TextureDesc.BindFlags |= D3D11_BIND_RENDER_TARGET;
+		bCreateRTV = true;
+	}
+
+	// Set up the texture bind flags.
+	assert(!(Flags & TexCreate_DepthStencilTargetable));
+	assert(!(Flags & TexCreate_ResolveTargetable));
+	assert(Flags & TexCreate_ShaderResource);
+
+	std::vector<D3D11_SUBRESOURCE_DATA> SubResourceData;
+
+	if (BulkData)
+	{
+		uint8* Data = (uint8*)BulkData;
+		SubResourceData.resize(NumMips);
+		uint32 MipOffset = 0;
+		for (uint32 MipIndex = 0; MipIndex < NumMips; ++MipIndex)
+		{
+			SubResourceData[MipIndex].pSysMem = &Data[MipOffset];
+			SubResourceData[MipIndex].SysMemPitch = FMath::Max<uint32>(1, SizeX >> MipIndex) * GPixelFormats[Format].BlockBytes;
+			SubResourceData[MipIndex].SysMemSlicePitch = FMath::Max<uint32>(1, SizeY >> MipIndex) * SubResourceData[MipIndex].SysMemPitch;
+			MipOffset += FMath::Max<uint32>(1, SizeZ >> MipIndex) * SubResourceData[MipIndex].SysMemSlicePitch;
+		}
+	}
+
+	ComPtr<ID3D11Texture3D> TextureResource;
+	assert(S_OK == D3D11Device->CreateTexture3D(&TextureDesc, BulkData != NULL ? (const D3D11_SUBRESOURCE_DATA*)SubResourceData.data() : NULL, TextureResource.GetAddressOf()));
+
+	// Create a shader resource view for the texture.
+	ComPtr<ID3D11ShaderResourceView> ShaderResourceView;
+	{
+		D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc;
+		SRVDesc.Format = PlatformShaderResourceFormat;
+		SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE3D;
+		SRVDesc.Texture3D.MipLevels = NumMips;
+		SRVDesc.Texture3D.MostDetailedMip = 0;
+		assert(S_OK == D3D11Device->CreateShaderResourceView(TextureResource.Get(), &SRVDesc, ShaderResourceView.GetAddressOf()));
+	}
+
+	ComPtr<ID3D11RenderTargetView> RenderTargetView;
+	if (bCreateRTV)
+	{
+		// Create a render-target-view for the texture.
+		D3D11_RENDER_TARGET_VIEW_DESC RTVDesc;
+		memset(&RTVDesc,0, sizeof(RTVDesc));
+		RTVDesc.Format = PlatformRenderTargetFormat;
+		RTVDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE3D;
+		RTVDesc.Texture3D.MipSlice = 0;
+		RTVDesc.Texture3D.FirstWSlice = 0;
+		RTVDesc.Texture3D.WSize = SizeZ;
+
+		assert(S_OK == D3D11Device->CreateRenderTargetView(TextureResource.Get(), &RTVDesc, RenderTargetView.GetAddressOf()));
+	}
+
+	std::vector<ComPtr<ID3D11RenderTargetView> > RenderTargetViews;
+	RenderTargetViews.push_back(RenderTargetView);
+	std::shared_ptr<FD3D11Texture3D> Texture3D = std::make_shared<FD3D11Texture3D>(TextureResource.Get(), ShaderResourceView.Get(), RenderTargetViews, SizeX, SizeY, SizeZ, NumMips, (EPixelFormat)Format, Flags, ClearBindingValue);
+	return Texture3D;
 }
 
 bool InitRHI()
@@ -2443,9 +2554,9 @@ void DrawClearQuadMRT(bool bClearColor, int32 NumClearColors, const FLinearColor
 }
 
 
-void RHIReadSurfaceFloatData(FD3D11Texture2D* TextureRHI, FIntRect InRect, std::vector<FFloat16Color>& OutData, ECubeFace CubeFace, int32 ArrayIndex, int32 MipIndex)
+void RHIReadSurfaceFloatData(FD3D11Texture* TextureRHI, FIntRect InRect, std::vector<FFloat16Color>& OutData, ECubeFace CubeFace, int32 ArrayIndex, int32 MipIndex)
 {
-	FD3D11Texture2D* Texture = /*GetD3D11TextureFromRHITexture*/(TextureRHI);
+	FD3D11Texture2D* Texture = /*GetD3D11TextureFromRHITexture*/(FD3D11Texture2D*)(TextureRHI);
 
 	uint32 SizeX = InRect.Width();
 	uint32 SizeY = InRect.Height();
@@ -2535,7 +2646,7 @@ static inline DXGI_FORMAT ConvertTypelessToUnorm(DXGI_FORMAT Format)
 		return Format;
 	}
 }
-void RHICopyToResolveTarget(FD3D11Texture2D* SourceTextureRHI, FD3D11Texture2D* DestTextureRHI, const FResolveParams& ResolveParams)
+void RHICopyToResolveTarget(FD3D11Texture* SourceTextureRHI, FD3D11Texture* DestTextureRHI, const FResolveParams& ResolveParams)
 {
 	if (!SourceTextureRHI || !DestTextureRHI)
 	{
@@ -2544,8 +2655,8 @@ void RHICopyToResolveTarget(FD3D11Texture2D* SourceTextureRHI, FD3D11Texture2D* 
 	}
 
 
-	FD3D11Texture2D* SourceTexture2D = SourceTextureRHI;
-	FD3D11Texture2D* DestTexture2D = DestTextureRHI;
+	FD3D11Texture2D* SourceTexture2D = (FD3D11Texture2D*) SourceTextureRHI;
+	FD3D11Texture2D* DestTexture2D = (FD3D11Texture2D*)DestTextureRHI;
 
 	// 	FD3D11TextureCube* SourceTextureCube = static_cast<FD3D11TextureCube*>(SourceTextureRHI->GetTextureCube());
 	// 	FD3D11TextureCube* DestTextureCube = static_cast<FD3D11TextureCube*>(DestTextureRHI->GetTextureCube());
@@ -2606,9 +2717,9 @@ void RHICopyToResolveTarget(FD3D11Texture2D* SourceTextureRHI, FD3D11Texture2D* 
 	}
 }
 
-void RHICopyTexture(FD3D11Texture2D* SourceTexture, FD3D11Texture2D* DestTexture, const FRHICopyTextureInfo& CopyInfo)
+void RHICopyTexture(FD3D11Texture* SourceTexture, FD3D11Texture* DestTexture, const FRHICopyTextureInfo& CopyInfo)
 {
-	const bool bIsCube = SourceTexture->IsCube();
+	const bool bIsCube = SourceTexture->GetTextureCube() != nullptr;
 	const bool bAllCubeFaces = bIsCube && (CopyInfo.NumArraySlices % 6) == 0;
 	const int32 NumArraySlices = bAllCubeFaces ? CopyInfo.NumArraySlices / 6 : CopyInfo.NumArraySlices;
 	const int32 NumFaces = bAllCubeFaces ? 6 : 1;

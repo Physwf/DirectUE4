@@ -170,7 +170,7 @@ void BuildHZB(FViewInfo& View)
 	D3D11DeviceContext->RSSetState(TStaticRasterizerState<>::GetRHI());
 	D3D11DeviceContext->OMSetDepthStencilState(TStaticDepthStencilState<TRUE,D3D11_COMPARISON_ALWAYS>::GetRHI(),0);
 
-	FD3D11Texture2D* HZBRenderTargetRef = HZBRenderTarget.TargetableTexture.get();
+	FD3D11Texture* HZBRenderTargetRef = HZBRenderTarget.TargetableTexture.get();
 	//mip0
 	{
 		SCOPED_DRAW_EVENT_FORMAT(BuildHZB, TEXT("HZB SetupMip 0 %dx%d"), HZBSize.X, HZBSize.Y);

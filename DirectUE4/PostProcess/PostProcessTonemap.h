@@ -136,7 +136,7 @@ public:
 		if (Context.View.HasValidEyeAdaptation())
 		{
 			PooledRenderTarget* EyeAdaptationRT = Context.View.GetEyeAdaptation();
-			FD3D11Texture2D* EyeAdaptationRTRef = EyeAdaptationRT->TargetableTexture.get();
+			FD3D11Texture* EyeAdaptationRTRef = EyeAdaptationRT->TargetableTexture.get();
 			if (EyeAdaptationRTRef)
 			{
 				//Context.RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, &EyeAdaptationRTRef, 1);

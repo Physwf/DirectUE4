@@ -606,7 +606,7 @@ public:
 	template<typename ShaderRHIParamRef>
 	void Set(const ShaderRHIParamRef ShaderRHI, const FProjectedShadowInfo* ShadowInfo) const
 	{
-		FD3D11Texture2D* ShadowDepthTextureValue = ShadowInfo
+		FD3D11Texture* ShadowDepthTextureValue = ShadowInfo
 			? ShadowInfo->RenderTargets.DepthTarget->ShaderResourceTexture.get()
 			: GBlackTextureDepthCube.get();
 		if (!ShadowDepthTextureValue)
