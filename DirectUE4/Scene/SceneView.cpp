@@ -1,5 +1,7 @@
 #include "SceneView.h"
 #include "PrimitiveUniformBufferParameters.h"
+#include "SceneTypes.h"
+#include "Scene.h"
 
 /** The minimum Z value in clip space for the RHI. */
 float GMinClipZ = 0.f;
@@ -141,17 +143,58 @@ Vector4 CreateInvDeviceZToWorldZTransform(const FMatrix& ProjMatrix)
 	}
 }
 
+FSceneViewStateReference::~FSceneViewStateReference()
+{
+	Destroy();
+}
+
+void FSceneViewStateReference::Allocate()
+{
+	assert(!Reference);
+	Reference = new FSceneViewState();
+	GlobalListLink = GetSceneViewStateList().insert(GetSceneViewStateList().begin(), this);
+}
+
+void FSceneViewStateReference::Destroy()
+{
+	GetSceneViewStateList().erase(GlobalListLink);
+
+	if (Reference)
+	{
+		//Reference->Destroy();
+		delete Reference;
+		Reference = NULL;
+	}
+}
+
+void FSceneViewStateReference::DestroyAll()
+{
+
+}
+
+void FSceneViewStateReference::AllocateAll()
+{
+
+}
+
+std::list<FSceneViewStateReference*>& FSceneViewStateReference::GetSceneViewStateList()
+{
+	static std::list<FSceneViewStateReference*> List;
+	return List;
+}
+
 
 FSceneView::FSceneView(const ViewInitOptions& InitOptions)
-:	Family(InitOptions.ViewFamily),
-	ViewMatrices(InitOptions),
-	ViewActor(InitOptions.ViewActor),
-	UnscaledViewRect(InitOptions.GetConstrainedViewRect()),
-	UnconstrainedViewRect(InitOptions.GetViewRect()),
-	ProjectionMatrixUnadjustedForRHI(InitOptions.ProjectionMatrix), 
-	bStaticSceneOnly(false)
+	: Family(InitOptions.ViewFamily)
+	, ViewMatrices(InitOptions)
+	, ViewActor(InitOptions.ViewActor)
+	, UnscaledViewRect(InitOptions.GetConstrainedViewRect())
+	, UnconstrainedViewRect(InitOptions.GetViewRect())
+	, ProjectionMatrixUnadjustedForRHI(InitOptions.ProjectionMatrix)
+	, bStaticSceneOnly(false)
 	, LODDistanceFactor(InitOptions.LODDistanceFactor)
 	, LODDistanceFactorSquared(InitOptions.LODDistanceFactor*InitOptions.LODDistanceFactor)
+	, State(InitOptions.SceneViewStateInterface)
 {
 	ShadowViewMatrices = ViewMatrices;
 
@@ -168,6 +211,12 @@ FSceneView::FSceneView(const ViewInitOptions& InitOptions)
 		// Derive the view frustum from the view projection matrix.
 		GetViewFrustumBounds(ViewFrustum, ViewMatrices.GetViewProjectionMatrix(), false);
 	}
+
+	bCameraCut = false;
+	OverlayColor = FLinearColor::Transparent;
+	ColorScale = FLinearColor::White;
+
+	AntiAliasingMethod = EAntiAliasingMethod::AAM_TemporalAA;
 }
 
 void FSceneView::SetupViewRectUniformBufferParameters(

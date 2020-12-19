@@ -1,0 +1,20 @@
+#ifndef __BloomDirtMask_Definition__
+#define __BloomDirtMask_Definition__
+cbuffer BloomDirtMask
+{
+	float4 BloomDirtMask_Tint;
+};
+
+Texture2D BloomDirtMask_Mask;
+SamplerState BloomDirtMask_MaskSampler;
+
+static const struct
+{
+	float4 Tint;
+	Texture2D Mask;
+	SamplerState MaskSampler;
+} BloomDirtMask = {
+	BloomDirtMask_Tint,BloomDirtMask_Mask,BloomDirtMask_MaskSampler
+};
+
+#endif

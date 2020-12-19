@@ -43,6 +43,9 @@ public:
 	void SetSizeXY(uint32 InSizeX, uint32 InSizeY) { SizeX = InSizeX; SizeY = InSizeY; }
 	virtual FIntPoint GetSizeXY() const override { return FIntPoint(SizeX, SizeY); }
 	FIntPoint GetInitialPositionXY() const { return FIntPoint(InitialPositionX, InitialPositionY); }
+
+	void InitRHI();
+	void ReleaseRHI();
 private:
 	/** The initial position of the viewport. */
 	uint32 InitialPositionX;

@@ -55,7 +55,7 @@ void FSceneRenderTargets::SetSceneColor(PooledRenderTarget* In)
 void FSceneRenderTargets::FinishRendering()
 {
 	//D3D11DeviceContext->CopyResource(BackBuffer, SceneColor->TargetableTexture->GetResource());
-	RHICopyToResolveTarget(BackBuffer, SceneColor->TargetableTexture.get(),FResolveParams(FResolveRect(0,0,1920,1080), CubeFace_PosX,0,0,0, FResolveRect(0, 0, 1920, 1080)));
+	//RHICopyToResolveTarget(BackBuffer, SceneColor->TargetableTexture.get(),FResolveParams(FResolveRect(0,0,1920,1080), CubeFace_PosX,0,0,0, FResolveRect(0, 0, 1920, 1080)));
 }
 
 EPixelFormat FSceneRenderTargets::GetSceneColorFormat() const

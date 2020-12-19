@@ -8,6 +8,7 @@
 #include "PostProcessDownsample.h"
 #include "Scene.h"
 #include "SystemTextures.h"
+#include "Viewport.h"
 
 IMPLEMENT_SHADER_TYPE(, FPostProcessVS, "PostProcessBloom.dusf", "MainPostprocessCommonVS", SF_Vertex);
 
@@ -102,7 +103,7 @@ static FRCPassPostProcessTonemap* AddTonemapper(
 		TonemapperCombinedLUTOutputRef = FRenderingCompositeOutputRef(CombinedLUT);
 	}
 
-	const bool bDoEyeAdaptation = true;//IsAutoExposureMethodSupported(View.GetFeatureLevel(), EyeAdapationMethodId);
+	const bool bDoEyeAdaptation = false;//IsAutoExposureMethodSupported(View.GetFeatureLevel(), EyeAdapationMethodId);
 	FRCPassPostProcessTonemap* PostProcessTonemap = Context.Graph.RegisterPass(new FRCPassPostProcessTonemap(View, bDoGammaOnly, bDoEyeAdaptation, bHDRTonemapperOutput, bIsComputePass));
 
 	PostProcessTonemap->SetInput(ePId_Input0, Context.FinalOutput);
@@ -113,6 +114,24 @@ static FRCPassPostProcessTonemap* AddTonemapper(
 	Context.FinalOutput = FRenderingCompositeOutputRef(PostProcessTonemap);
 
 	return PostProcessTonemap;
+}
+
+// could be moved into the graph
+// allows for Framebuffer blending optimization with the composition graph
+void OverrideRenderTarget(FRenderingCompositeOutputRef It, ComPtr<PooledRenderTarget>& RT, PooledRenderTargetDesc& Desc)
+{
+	for (;;)
+	{
+		It.GetOutput()->RenderTarget = RT;
+		It.GetOutput()->RenderTargetDesc = Desc;
+
+		if (!It.GetPass()->FrameBufferBlendingWithInput0())
+		{
+			break;
+		}
+
+		It = *It.GetPass()->GetInput(ePId_Input0);
+	}
 }
 
 void FPostProcessing::Process(const FViewInfo& View, ComPtr<PooledRenderTarget>& VelocityRT)
@@ -192,8 +211,51 @@ void FPostProcessing::Process(const FViewInfo& View, ComPtr<PooledRenderTarget>&
 			Tonemapper = AddTonemapper(Context, BloomOutputCombined, AutoExposure.EyeAdaptation, AutoExposure.MethodId, false, bHDRTonemapperOutput);
 		}
 
+		{
+			// currently created on the heap each frame but View.Family->RenderTarget could keep this object and all would be cleaner
+			ComPtr<PooledRenderTarget> Temp;
+			
 
-		
+			PooledRenderTargetDesc Desc;
+
+			// Texture could be bigger than viewport
+			if (View.Family->RenderTarget->GetRenderTargetTexture())
+			{
+				Desc.Extent.X = View.Family->RenderTarget->GetRenderTargetTexture()->GetSizeX();
+				Desc.Extent.Y = View.Family->RenderTarget->GetRenderTargetTexture()->GetSizeY();
+			}
+			else
+			{
+				Desc.Extent = View.Family->RenderTarget->GetSizeXY();
+			}
+
+			const bool bIsFinalOutputComputePass = Context.FinalOutput.IsComputePass();
+			Desc.TargetableFlags |= bIsFinalOutputComputePass ? TexCreate_UAV : TexCreate_RenderTargetable;
+			Desc.Format = bIsFinalOutputComputePass ? PF_R8G8B8A8 : PF_B8G8R8A8;
+
+			// todo: this should come from View.Family->RenderTarget
+			Desc.Format = /*bHDROutputEnabled*/true ? GRHIHDRDisplayOutputFormat : Desc.Format;
+			Desc.NumMips = 1;
+			//Desc.DebugName = TEXT("FinalPostProcessColor");
+
+			//GRenderTargetPool.CreateUntrackedElement(Desc, Temp, Item);
+			Temp = new PooledRenderTarget(Desc, NULL);
+
+			Temp->TargetableTexture = /*(FTextureRHIRef&)*/View.Family->RenderTarget->GetRenderTargetTexture();
+			Temp->ShaderResourceTexture = /* (FTextureRHIRef&)*/View.Family->RenderTarget->GetRenderTargetTexture();
+			//Item.UAV = View.Family->RenderTarget->GetRenderTargetUAV();
+
+			OverrideRenderTarget(Context.FinalOutput, Temp, Desc);
+
+			std::vector<FRenderingCompositePass*> TargetedRoots;
+			TargetedRoots.push_back(Context.FinalOutput.GetPass());
+
+			CompositeContext.Process(TargetedRoots, TEXT("PostProcessing"));
+		}
+
+
 	}
 
 }
+
+FPostProcessing GPostProcessing;

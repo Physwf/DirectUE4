@@ -78,7 +78,7 @@ namespace
 			//const FPostProcessSettings& Settings = View.FinalPostProcessSettings;
 			PermutationVector.Set<FTonemapperGrainIntensityDim>(/*Settings.GrainIntensity*/0.0f > 0.0f);
 			PermutationVector.Set<FTonemapperVignetteDim>(/*Settings.VignetteIntensity*/0.4f > 0.0f);
-			PermutationVector.Set<FTonemapperBloomDim>(/*Settings.BloomIntensity*/0.675f > 0.0);
+			PermutationVector.Set<FTonemapperBloomDim>(/*Settings.BloomIntensity*//*0.675f > 0.0*/false);
 			PermutationVector.Set<FTonemapperGrainJitterDim>(/*Settings.GrainJitter*/0.f > 0.0f);
 			PermutationVector.Set<FTonemapperSharpenDim>(/*CVarTonemapperSharpen.GetValueOnRenderThread()*/0.0f > 0.0f);
 
@@ -227,6 +227,8 @@ struct alignas(16) FBloomDirtMaskParameters
 	}
 #undef ADD_RES
 };
+
+FBloomDirtMaskParameters BloomDirtMask;
 
 class FPostProcessTonemapShaderParameters
 {

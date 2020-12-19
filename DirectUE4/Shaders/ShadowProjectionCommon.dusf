@@ -174,3 +174,4 @@ float CubemapHardwarePCF(float3 WorldPosition, float3 LightPosition, float Light
 
 	return Shadow;
 }
+

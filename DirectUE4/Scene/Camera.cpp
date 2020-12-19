@@ -12,6 +12,8 @@ Camera::Camera(class UWorld* InOwner)
 	FaceDir = { 1,0,0 };
 	Origin = { 0,0 };
 	Size = { 1.f,1.f };
+
+	ViewState.Allocate();
 }
 
 void Camera::LookAt(FVector Target)
@@ -63,6 +65,8 @@ FSceneView* Camera::CalcSceneView(FSceneViewFamily& ViewFamily, FViewport& VP)
 	InitOptions.DesiredFOV = FOV;
 	InitOptions.ViewOrigin = Position;
 	//InitOptions.ViewRotation = Rotation;
+
+	InitOptions.SceneViewStateInterface = ViewState.GetReference();
 
 	FSceneView* const View = new /*(std::align_val_t(alignof(FSceneView)))*/FSceneView(InitOptions);
 	ViewFamily.Views.push_back(View);

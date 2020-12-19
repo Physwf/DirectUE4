@@ -14,6 +14,7 @@
 #include "Shader.h"
 #include "OneColorShader.h"
 #include "VolumeRendering.h"
+#include "Viewport.h"
 
 // #define STB_IMAGE_IMPLEMENTATION
 // #include "stb_image.h"
@@ -1790,6 +1791,8 @@ bool InitRHI()
 	}
 
 	GVolumeRasterizeVertexBuffer.InitRHI();
+
+	GWindowViewport.InitRHI();
 
 	// Initialize the platform pixel format map.
 	GPixelFormats[PF_Unknown].PlatformFormat = DXGI_FORMAT_UNKNOWN;

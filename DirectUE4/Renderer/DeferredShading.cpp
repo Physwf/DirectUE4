@@ -14,6 +14,7 @@
 #include "GlobalShader.h"
 #include "PrimitiveSceneInfo.h"
 #include "GPUProfiler.h"
+#include "PostProcessing.h"
 
 #include <new>
 
@@ -660,7 +661,7 @@ void FViewInfo::Init()
 
 	ShaderMap = GetGlobalShaderMap();
 
-	// 	ViewState = (FSceneViewState*)State;
+	ViewState = (FSceneViewState*)State;
 	bIsSnapshot = false;
 	// 
 	// 	bAllowStencilDither = false;
@@ -839,6 +840,14 @@ void FSceneRenderer::Render()
 				Scene->AtmosphericFog->RenderFlag |= EAtmosphereRenderFlag::E_DisableLightShaft;
 			}
 			RenderAtmosphere(LightShaftOutput);
+		}
+	}
+	ComPtr<PooledRenderTarget> VelocityRT;
+	if (ViewFamily.bResolveScene)
+	{
+		for (uint32 ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
+		{
+			GPostProcessing.Process(Views[ViewIndex], VelocityRT);
 		}
 	}
 

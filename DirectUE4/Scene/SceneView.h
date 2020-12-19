@@ -6,10 +6,12 @@
 
 class FSceneViewFamily;
 class FRenderTarget;
+class FSceneViewState;
 
 struct ViewInitOptions
 {
 	const FSceneViewFamily* ViewFamily;
+	FSceneViewState* SceneViewStateInterface;
 	/** The view origin. */
 	FVector ViewOrigin;
 	/** Rotation matrix transforming from world space to view space. */
@@ -42,7 +44,7 @@ struct ViewInitOptions
 
 	ViewInitOptions()
 		: ViewFamily(NULL)
-		//, SceneViewStateInterface(NULL)
+		, SceneViewStateInterface(NULL)
 		, ViewActor(NULL)
 		, OverrideFarClippingPlaneDistance(-1.0f)
 		, FOV(90.f)
@@ -836,8 +838,8 @@ public:
 	class FScene* Scene;
 	std::vector<const FSceneView*> Views;
 	uint32 FrameNumber;
-	float SecondaryViewFraction;
+	float SecondaryViewFraction = 1.0f;
 	const FRenderTarget* RenderTarget;
 	/** if true then results of scene rendering are copied/resolved to the RenderTarget. */
-	bool bResolveScene;
+	bool bResolveScene =false;
 };

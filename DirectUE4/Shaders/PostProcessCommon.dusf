@@ -60,6 +60,46 @@ float4 PostprocessInput8MinMax;
 float4 PostprocessInput9MinMax;
 float4 PostprocessInput10MinMax;
 
+// viewport width, height, 1/width, 1/height (scaled to the current rendertarget resolution), depends on SetViewportAndCallRHI() call
+float4 ViewportSize;
+// in pixels (scaled to the current rendertarget resolution), float4(minx,miny,maxx,maxy), depends on SetViewportAndCallRHI() call
+uint4 ViewportRect;
+
+float4 MappingPolynomial;			 // RGB = a, b, c where y = a * x*x + b * x + c
+
+									 // @param InLDRColor needs to be LDR (0..1) and in linear space
+half3 ColorCorrection(half3 InLDRColor)
+{
+	// final color correction to adjust for hardware differences, to make quick adjustements before a demo or simply a user setting
+	return MappingPolynomial.x * (InLDRColor * InLDRColor) + MappingPolynomial.y * InLDRColor + MappingPolynomial.z;
+}
+
+
+half4 UnwrappedTexture3DSample(Texture2D Texture, SamplerState Sampler, float3 UVW, float Size)
+{
+	// a volume texture 16x16x16 would be unwrapped to a 2d texture 256x16
+
+	float IntW = floor(UVW.z * Size - 0.5);
+	half FracW = UVW.z * Size - 0.5 - IntW;
+
+	float U = (UVW.x + IntW) / Size;
+	float V = UVW.y;
+
+	half4 RG0 = Texture2DSample(Texture, Sampler, float2(U, V));
+	half4 RG1 = Texture2DSample(Texture, Sampler, float2(U + 1.0f / Size, V));
+
+	return lerp(RG0, RG1, FracW);
+}
+
+// Scale {-1 to 1} of the viewport space to vignette circle space.
+// Vignette space is scaled such that regardless of viewport aspect ratio, 
+// corners are at the same brightness on a circle.
+float2 VignetteSpace(float2 Pos)
+{
+	// could be optimized but this computation should be done in the vertex shader (3 or 4 vertices)
+	float Scale = sqrt(2.0) / sqrt(1.0 + (ViewportSize.y * ViewportSize.z) * (ViewportSize.y * ViewportSize.z));
+	return Pos * float2(1.0, ViewportSize.y * ViewportSize.z) * Scale;
+}
 
 
 #endif // __POST_PROCESS_COMMON__

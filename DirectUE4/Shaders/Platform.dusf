@@ -117,3 +117,41 @@
 #ifndef STRONG_TYPE
 #define STRONG_TYPE
 #endif
+
+#if !COMPILER_SUPPORTS_MINMAX3
+
+float min3(float a, float b, float c)
+{
+	return min(a, min(b, c));
+}
+
+float max3(float a, float b, float c)
+{
+	return max(a, max(b, c));
+}
+
+float4 min3(float4 a, float4 b, float4 c)
+{
+	return float4(
+		min3(a.x, b.x, c.x),
+		min3(a.y, b.y, c.y),
+		min3(a.z, b.z, c.z),
+		min3(a.w, b.w, c.w)
+	);
+}
+
+float4 max3(float4 a, float4 b, float4 c)
+{
+	return float4(
+		max3(a.x, b.x, c.x),
+		max3(a.y, b.y, c.y),
+		max3(a.z, b.z, c.z),
+		max3(a.w, b.w, c.w)
+	);
+}
+
+#ifndef STENCIL_COMPONENT_SWIZZLE
+#define STENCIL_COMPONENT_SWIZZLE .g
+#endif
+
+#endif

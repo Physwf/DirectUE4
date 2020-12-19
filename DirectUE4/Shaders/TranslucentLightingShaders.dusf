@@ -1,0 +1,78 @@
+#include "Common.dusf"
+#include "SHCommon.dusf"
+
+#if INJECTION_PIXEL_SHADER
+#include "ShadowProjectionCommon.dusf"
+#endif
+
+struct FWriteToSliceVertexOutput
+{
+	FScreenVertexOutput Vertex;
+#if USING_VERTEX_SHADER_LAYER
+	uint LayerIndex : SV_RenderTargetArrayIndex;
+#else
+	uint LayerIndex : TEXCOORD1;
+#endif
+};
+
+/** Z index of the minimum slice in the range. */
+int MinZ;
+
+float4 UVScaleBias;
+uint VolumeCascadeIndex;
+
+/** Vertex shader that writes to a range of slices of a volume texture. */
+void WriteToSliceMainVS(
+	float2 InPosition : ATTRIBUTE0,
+	float2 InUV : ATTRIBUTE1,
+	uint LayerIndex : SV_InstanceID,
+	out FWriteToSliceVertexOutput Output
+)
+{
+	Output.Vertex.Position = float4(InPosition, 0, 1);
+	// Remap UVs based on the subregion of the volume texture being rendered to
+	Output.Vertex.UV = InUV * UVScaleBias.xy + UVScaleBias.zw;
+	Output.LayerIndex = LayerIndex + MinZ;
+}
+
+/** Encodes HDR linear scene color for storage in the 8 bit light attenuation texture. */
+MaterialFloat3 EncodeSceneColorForMaterialNode(MaterialFloat3 LinearSceneColor)
+{
+	// Preserving a range from [0, 10]
+	// Remap values to get more bits of precision in the darks
+	return pow(LinearSceneColor * .1f, .25f);
+}
+
+void CopySceneColorMain(
+	FScreenVertexOutput Input,
+	out float4 OutColor : SV_Target0
+)
+{
+	float4 LinearColor = Texture2DSample(SceneTexturesStruct.SceneColorTexture, SceneTexturesStruct.SceneColorTextureSampler, Input.UV);
+	OutColor = float4(EncodeSceneColorForMaterialNode(LinearColor.rgb), 0);
+}
+
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
+/** Geometry shader that writes to a range of slices of a volume texture. */
+[maxvertexcount(3)]
+void WriteToSliceMainGS(triangle FWriteToSliceVertexOutput Input[3], inout TriangleStream<FWriteToSliceGeometryOutput> OutStream)
+{
+	FWriteToSliceGeometryOutput Vertex0;
+	Vertex0.Vertex = Input[0].Vertex;
+	Vertex0.LayerIndex = Input[0].LayerIndex;
+
+	FWriteToSliceGeometryOutput Vertex1;
+	Vertex1.Vertex = Input[1].Vertex;
+	Vertex1.LayerIndex = Input[1].LayerIndex;
+
+	FWriteToSliceGeometryOutput Vertex2;
+	Vertex2.Vertex = Input[2].Vertex;
+	Vertex2.LayerIndex = Input[2].LayerIndex;
+
+	OutStream.Append(Vertex0);
+	OutStream.Append(Vertex1);
+	OutStream.Append(Vertex2);
+}
+
+#endif // FEATURE_LEVEL
+

@@ -87,6 +87,9 @@ void FViewport::Draw(bool bShouldPresent /*= true*/)
 {
 	FSceneViewFamily ViewFamily;
 	ViewFamily.Scene = GWorld.Scene;
+	ViewFamily.RenderTarget = this;
+	ViewFamily.bResolveScene = true;
+
 	for (Camera* C : GWorld.GetCameras())
 	{
 		FSceneView* View = C->CalcSceneView(ViewFamily,*this);
@@ -109,6 +112,16 @@ void FViewport::Draw(bool bShouldPresent /*= true*/)
 		DXGISwapChain->Present(0, 0);
 	}
 	FViewInfo::DestroyAllSnapshots();
+}
+
+void FViewport::InitRHI()
+{
+	RenderTargetTextureRHI.reset(BackBuffer);
+}
+
+void FViewport::ReleaseRHI()
+{
+	RenderTargetTextureRHI.reset();
 }
 
 FViewport GWindowViewport;

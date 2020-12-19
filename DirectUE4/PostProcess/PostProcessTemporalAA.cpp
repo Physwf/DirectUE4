@@ -409,7 +409,7 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 	if (RenderTargetCount == 2)
 		DestRenderTarget[1] = &PassOutputs[1].RequestSurface(Context);
 
-	const PooledRenderTarget& DestDownsampled = /*bDownsamplePossible ? */PassOutputs[2].RequestSurface(Context) /*: PooledRenderTarget()*/;
+	//const PooledRenderTarget& DestDownsampled = /*bDownsamplePossible ? */PassOutputs[2].RequestSurface(Context) /*: PooledRenderTarget()*/;
 
 	// Whether this is main TAA pass;
 	bool bIsMainPass = Parameters.Pass == ETAAPassConfig::Main || Parameters.Pass == ETAAPassConfig::MainUpsampling;

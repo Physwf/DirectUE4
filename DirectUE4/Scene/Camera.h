@@ -2,6 +2,7 @@
 
 #include "Actor.h"
 #include "SceneView.h"
+#include "SceneTypes.h"
 
 class FViewport;
 
@@ -32,4 +33,6 @@ public:
 	Vector2 Origin;
 	/** The size of the master viewport subregion allocated to this player. 0-1 */
 	Vector2 Size;
+
+	FSceneViewStateReference ViewState;
 };
