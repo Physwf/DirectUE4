@@ -460,6 +460,98 @@ bool FProjectedShadowInfo::HasSubjectPrims() const
 
 }
 
+void FProjectedShadowInfo::GatherDynamicMeshElementsArray(FViewInfo* FoundView, FSceneRenderer& Renderer, PrimitiveArrayType& PrimitiveArray, std::vector<FMeshBatchAndRelevance>& OutDynamicMeshElements, std::vector<const FSceneView*>& ReusedViewsArray)
+{
+	// Simple elements not supported in shadow passes
+	//FSimpleElementCollector DynamicSubjectSimpleElements;
+
+	Renderer.MeshCollector.ClearViewMeshArrays();
+	Renderer.MeshCollector.AddViewMeshArrays(FoundView, &OutDynamicMeshElements/*, &DynamicSubjectSimpleElements, Renderer.ViewFamily.GetFeatureLevel()*/);
+
+	const uint32 PrimitiveCount = PrimitiveArray.size();
+
+	for (uint32 PrimitiveIndex = 0; PrimitiveIndex < PrimitiveCount; ++PrimitiveIndex)
+	{
+		const FPrimitiveSceneInfo* PrimitiveSceneInfo = PrimitiveArray[PrimitiveIndex];
+		const FPrimitiveSceneProxy* PrimitiveSceneProxy = PrimitiveSceneInfo->Proxy;
+
+		// Lookup the primitive's cached view relevance
+		FPrimitiveViewRelevance ViewRelevance = FoundView->PrimitiveViewRelevanceMap[PrimitiveSceneInfo->GetIndex()];
+
+		if (!ViewRelevance.bInitializedThisFrame)
+		{
+			// Compute the subject primitive's view relevance since it wasn't cached
+			ViewRelevance = PrimitiveSceneInfo->Proxy->GetViewRelevance(FoundView);
+		}
+
+		// Only draw if the subject primitive is shadow relevant.
+		if (ViewRelevance.bShadowRelevance && ViewRelevance.bDynamicRelevance)
+		{
+			Renderer.MeshCollector.SetPrimitive(PrimitiveSceneInfo->Proxy/*, PrimitiveSceneInfo->DefaultDynamicHitProxyId*/);
+
+			// 			if (ViewRelevance.bUseCustomViewData && DependentView != nullptr)
+			// 			{
+			// 				if (DependentView->GetCustomData(PrimitiveSceneInfo->GetIndex()) == nullptr)
+			// 				{
+			// 					void* CustomData = PrimitiveSceneInfo->Proxy->InitViewCustomData(*DependentView, DependentView->LODDistanceFactor, DependentView->GetCustomDataGlobalMemStack());
+			// 					DependentView->SetCustomData(PrimitiveSceneInfo, CustomData);
+			// 
+			// 					// This is required as GetDynamicMeshElements will received ReusedViewsArray which contains only FoundView
+			// 					FoundView->SetCustomData(PrimitiveSceneInfo, CustomData);
+			// 				}
+			// 			}
+
+			PrimitiveSceneInfo->Proxy->GetDynamicMeshElements(ReusedViewsArray, Renderer.ViewFamily, 0x1, Renderer.MeshCollector);
+		}
+	}
+}
+
+void FProjectedShadowInfo::GatherDynamicMeshElements(FSceneRenderer& Renderer, class FVisibleLightInfo& VisibleLightInfo, std::vector<const FSceneView*>& ReusedViewsArray)
+{
+	if (DynamicSubjectPrimitives.size() > 0 || ReceiverPrimitives.size() > 0 /*|| SubjectTranslucentPrimitives.Num() > 0*/)
+	{
+		// Backup properties of the view that we will override
+		FMatrix OriginalViewMatrix = ShadowDepthView->ViewMatrices.GetViewMatrix();
+
+		// Override the view matrix so that billboarding primitives will be aligned to the light
+		ShadowDepthView->ViewMatrices.HackOverrideViewMatrixForShadows(ShadowViewMatrix);
+
+		ReusedViewsArray[0] = ShadowDepthView;
+
+		int32 Disable = 0; //CVarDisableCullShadows.GetValueOnRenderThread();
+		FConvexVolume NoCull;
+
+		// 		if (bPreShadow && GPreshadowsForceLowestLOD)
+		// 		{
+		// 			ShadowDepthView->DrawDynamicFlags = EDrawDynamicFlags::ForceLowestLOD;
+		// 		}
+
+		// 		if (IsWholeSceneDirectionalShadow())
+		// 		{
+		// 			ShadowDepthView->SetPreShadowTranslation(FVector(0, 0, 0));
+		// 			ShadowDepthView->SetDynamicMeshElementsShadowCullFrustum((Disable & 1) ? &NoCull : &CascadeSettings.ShadowBoundsAccurate); //-V547
+		// 			GatherDynamicMeshElementsArray(ShadowDepthView, Renderer, DynamicSubjectPrimitives, DynamicSubjectMeshElements, ReusedViewsArray);
+		// 			ShadowDepthView->SetPreShadowTranslation(PreShadowTranslation);
+		// 		}
+		// 		else
+		{
+			ShadowDepthView->SetPreShadowTranslation(PreShadowTranslation);
+			ShadowDepthView->SetDynamicMeshElementsShadowCullFrustum((Disable & 1) ? &NoCull : &CasterFrustum); //-V547
+			GatherDynamicMeshElementsArray(ShadowDepthView, Renderer, DynamicSubjectPrimitives, DynamicSubjectMeshElements, ReusedViewsArray);
+		}
+
+		//ShadowDepthView->DrawDynamicFlags = EDrawDynamicFlags::None;
+
+		//ShadowDepthView->SetDynamicMeshElementsShadowCullFrustum((Disable & 2) ? &NoCull : &ReceiverFrustum); //-V547
+		//GatherDynamicMeshElementsArray(ShadowDepthView, Renderer, ReceiverPrimitives, DynamicReceiverMeshElements, ReusedViewsArray);
+
+		//ShadowDepthView->SetDynamicMeshElementsShadowCullFrustum((Disable & 4) ? &NoCull : &CasterFrustum); //-V547
+		//GatherDynamicMeshElementsArray(ShadowDepthView, Renderer, SubjectTranslucentPrimitives, DynamicSubjectTranslucentMeshElements, ReusedViewsArray);
+
+		//Renderer.MeshCollector.ProcessTasks();
+	}
+}
+
 int32 GCachedShadowsCastFromMovablePrimitives = 1;
 static int32 GShadowLightViewConvexHullCull = 1;
 void BuildLightViewFrustumConvexHull(const FVector& LightOrigin, const FConvexVolume& Frustum, FConvexVolume& ConvexHull)
@@ -1011,7 +1103,63 @@ void FSceneRenderer::AllocateOnePassPointLightDepthTargets(const std::vector<FPr
 
 void FSceneRenderer::GatherShadowDynamicMeshElements()
 {
+	std::vector<const FSceneView*> ReusedViewsArray;
+	ReusedViewsArray.resize(1);
 
+	for (uint32 AtlasIndex = 0; AtlasIndex < SortedShadowsForShadowDepthPass.ShadowMapAtlases.size(); AtlasIndex++)
+	{
+		FSortedShadowMapAtlas& Atlas = SortedShadowsForShadowDepthPass.ShadowMapAtlases[AtlasIndex];
+
+		for (uint32 ShadowIndex = 0; ShadowIndex < Atlas.Shadows.size(); ShadowIndex++)
+		{
+			FProjectedShadowInfo* ProjectedShadowInfo = Atlas.Shadows[ShadowIndex];
+			FVisibleLightInfo& VisibleLightInfo = VisibleLightInfos[ProjectedShadowInfo->GetLightSceneInfo().Id];
+			ProjectedShadowInfo->GatherDynamicMeshElements(*this, VisibleLightInfo, ReusedViewsArray);
+		}
+	}
+
+	for (uint32 AtlasIndex = 0; AtlasIndex < SortedShadowsForShadowDepthPass.RSMAtlases.size(); AtlasIndex++)
+	{
+		FSortedShadowMapAtlas& Atlas = SortedShadowsForShadowDepthPass.RSMAtlases[AtlasIndex];
+
+		for (uint32 ShadowIndex = 0; ShadowIndex < Atlas.Shadows.size(); ShadowIndex++)
+		{
+			FProjectedShadowInfo* ProjectedShadowInfo = Atlas.Shadows[ShadowIndex];
+			FVisibleLightInfo& VisibleLightInfo = VisibleLightInfos[ProjectedShadowInfo->GetLightSceneInfo().Id];
+			ProjectedShadowInfo->GatherDynamicMeshElements(*this, VisibleLightInfo, ReusedViewsArray);
+		}
+	}
+
+	for (uint32 AtlasIndex = 0; AtlasIndex < SortedShadowsForShadowDepthPass.ShadowMapCubemaps.size(); AtlasIndex++)
+	{
+		FSortedShadowMapAtlas& Atlas = SortedShadowsForShadowDepthPass.ShadowMapCubemaps[AtlasIndex];
+
+		for (uint32 ShadowIndex = 0; ShadowIndex < Atlas.Shadows.size(); ShadowIndex++)
+		{
+			FProjectedShadowInfo* ProjectedShadowInfo = Atlas.Shadows[ShadowIndex];
+			FVisibleLightInfo& VisibleLightInfo = VisibleLightInfos[ProjectedShadowInfo->GetLightSceneInfo().Id];
+			ProjectedShadowInfo->GatherDynamicMeshElements(*this, VisibleLightInfo, ReusedViewsArray);
+		}
+	}
+
+	for (uint32 ShadowIndex = 0; ShadowIndex < SortedShadowsForShadowDepthPass.PreshadowCache.Shadows.size(); ShadowIndex++)
+	{
+		FProjectedShadowInfo* ProjectedShadowInfo = SortedShadowsForShadowDepthPass.PreshadowCache.Shadows[ShadowIndex];
+		FVisibleLightInfo& VisibleLightInfo = VisibleLightInfos[ProjectedShadowInfo->GetLightSceneInfo().Id];
+		ProjectedShadowInfo->GatherDynamicMeshElements(*this, VisibleLightInfo, ReusedViewsArray);
+	}
+
+	for (uint32 AtlasIndex = 0; AtlasIndex < SortedShadowsForShadowDepthPass.TranslucencyShadowMapAtlases.size(); AtlasIndex++)
+	{
+		FSortedShadowMapAtlas& Atlas = SortedShadowsForShadowDepthPass.TranslucencyShadowMapAtlases[AtlasIndex];
+
+		for (uint32 ShadowIndex = 0; ShadowIndex < Atlas.Shadows.size(); ShadowIndex++)
+		{
+			FProjectedShadowInfo* ProjectedShadowInfo = Atlas.Shadows[ShadowIndex];
+			FVisibleLightInfo& VisibleLightInfo = VisibleLightInfos[ProjectedShadowInfo->GetLightSceneInfo().Id];
+			ProjectedShadowInfo->GatherDynamicMeshElements(*this, VisibleLightInfo, ReusedViewsArray);
+		}
+	}
 }
 
 void FSceneRenderer::InitDynamicShadows()

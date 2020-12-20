@@ -203,6 +203,7 @@ void FProjectedShadowInfo::RenderOnePassPointLightProjection(int32 ViewIndex, co
 }
 
 
+
 bool FSceneRenderer::RenderShadowProjections(const FLightSceneInfo* LightSceneInfo, PooledRenderTarget* ScreenShadowMaskTexture, bool bProjectingForForwardShading, bool bMobileModulatedProjections)
 {
 	FVisibleLightInfo& VisibleLightInfo = VisibleLightInfos[LightSceneInfo->Id];

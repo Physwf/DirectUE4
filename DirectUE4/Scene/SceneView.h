@@ -153,6 +153,12 @@ public:
 	{
 		return ProjectionScale;
 	}
+	inline void HackOverrideViewMatrixForShadows(const FMatrix& InViewMatrix)
+	{
+		OverriddenTranslatedViewMatrix = ViewMatrix = InViewMatrix;
+		OverriddenInvTranslatedViewMatrix = InViewMatrix.Inverse();
+	}
+
 	inline float GetScreenScale() const
 	{
 		return ScreenScale;
@@ -737,9 +743,9 @@ public:
 	FViewMatrices ViewMatrices;
 private:
 	/** During GetDynamicMeshElements this will be the correct cull volume for shadow stuff */
-	//const FConvexVolume* DynamicMeshElementsShadowCullFrustum;
+	const FConvexVolume* DynamicMeshElementsShadowCullFrustum;
 	/** If the above is non-null, a translation that is applied to world-space before transforming by one of the shadow matrices. */
-	//FVector		PreShadowTranslation;
+	FVector		PreShadowTranslation;
 
 public:
 
@@ -797,6 +803,11 @@ public:
 	inline FVector GetViewUp() const { return ViewMatrices.GetViewMatrix().GetColumn(1); }
 	inline FVector GetViewDirection() const { return ViewMatrices.GetViewMatrix().GetColumn(2); }
 
+	inline const FConvexVolume* GetDynamicMeshElementsShadowCullFrustum() const { return DynamicMeshElementsShadowCullFrustum; }
+	inline void SetDynamicMeshElementsShadowCullFrustum(const FConvexVolume* InDynamicMeshElementsShadowCullFrustum) { DynamicMeshElementsShadowCullFrustum = InDynamicMeshElementsShadowCullFrustum; }
+
+	inline const FVector& GetPreShadowTranslation() const { return PreShadowTranslation; }
+	inline void SetPreShadowTranslation(const FVector& InPreShadowTranslation) { PreShadowTranslation = InPreShadowTranslation; }
 	/** Whether to force two sided rendering for this view. */
 	bool bRenderSceneTwoSided;
 	// The antialiasing method.

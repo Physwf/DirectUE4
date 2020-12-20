@@ -51,15 +51,15 @@ void UWorld::InitWorld()
 
 	StaticMeshActor* Floor = SpawnActor<FloorActor>("Primitives/Floor.fbx");
 	Floor->SetActorLocation(FVector(0, 0, -100));
-	//StaticMeshActor* Sphere = SpawnActor<SphereActor>("Primitives/Sphere.fbx");
-	//Sphere->SetActorLocation(FVector(0,0,100));
+	StaticMeshActor* Sphere = SpawnActor<SphereActor>("Primitives/Sphere.fbx");
+	Sphere->SetActorLocation(FVector(0,0,100));
 	//SkeletalMeshActor* m2 = SpawnActor<SkeletalMeshActor>("./Mannequin/SK_Mannequin.FBX");
 	//Mesh* m1 = SpawnActor<Mesh>("shaderBallNoCrease/shaderBall.fbx");
 	//Mesh* m1 = SpawnActor<Mesh>("k526efluton4-House_15/247_House 15_fbx.fbx");
 
 	SkeletalMeshActor* Mannequin = SpawnActor<SkeletalMeshActor>("Mannequin/SK_Mannequin.FBX","Mannequin/ThirdPersonIdle.FBX");
-	Mannequin->SetActorRotation(FRotator(0, 90.f, 0));
-	Mannequin->SetActorLocation(FVector(0, 0, 0));
+	Mannequin->SetActorRotation(FRotator(0, 0.f, 0));
+	Mannequin->SetActorLocation(FVector(100.f, -100.f, 0));
 
 	Camera* C = SpawnActor<Camera>();
 	C->SetActorLocation(FVector(-400, 0,  0));

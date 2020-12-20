@@ -439,6 +439,8 @@ public:
 
 	bool HasSubjectPrims() const;
 
+	void GatherDynamicMeshElements(FSceneRenderer& Renderer, class FVisibleLightInfo& VisibleLightInfo, std::vector<const FSceneView*>& ReusedViewsArray);
+
 	void SetupShadowDepthView(FSceneRenderer* SceneRenderer);
 
 	const FLightSceneInfo& GetLightSceneInfo() const { return *LightSceneInfo; }
@@ -488,6 +490,14 @@ private:
 	void RenderDepthDynamic(class FSceneRenderer* SceneRenderer, const FViewInfo* FoundView, const FDrawingPolicyRenderState& DrawRenderState);
 
 	template <bool bReflectiveShadowmap> friend void DrawShadowMeshElements(const FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState, const FProjectedShadowInfo& ShadowInfo);
+
+	/** Gathers dynamic mesh elements for the given primitive array. */
+	void GatherDynamicMeshElementsArray(
+		FViewInfo* FoundView,
+		FSceneRenderer& Renderer,
+		PrimitiveArrayType& PrimitiveArray,
+		std::vector<FMeshBatchAndRelevance>& OutDynamicMeshElements,
+		std::vector<const FSceneView*>& ReusedViewsArray);
 
 	friend class FShadowDepthVS;
 	template <bool bRenderingReflectiveShadowMaps> friend class TShadowDepthBasePS;

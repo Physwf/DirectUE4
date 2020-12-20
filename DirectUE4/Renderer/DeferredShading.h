@@ -812,6 +812,7 @@ public:
 
 	void UpdatePrimitivePrecomputedLightingBuffers();
 	void ClearPrimitiveSingleFramePrecomputedLightingBuffers();
+
 public:
 	/** The view family being rendered.  This references the Views array. */
 
