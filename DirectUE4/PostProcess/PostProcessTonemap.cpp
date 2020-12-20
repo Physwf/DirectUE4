@@ -122,7 +122,7 @@ namespace
 			}
 
 			// You most likely need Bloom anyway.
-			CommonPermutationVector.Set<FTonemapperBloomDim>(true);
+			CommonPermutationVector.Set<FTonemapperBloomDim>(false);
 
 			// Grain quantization is pretty important anyway.
 			PermutationVector.Set<FTonemapperGrainQuantizationDim>(true);

@@ -193,7 +193,7 @@ FRenderingCompositePassContext::FRenderingCompositePassContext(const FViewInfo& 
 	, bWasProcessed(false)
 	, bHasHmdMesh(false)
 {
-
+	ReferenceBufferSize = FSceneRenderTargets::Get().GetBufferSizeXY();
 }
 
 FRenderingCompositePassContext::~FRenderingCompositePassContext()
