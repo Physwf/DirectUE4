@@ -131,7 +131,7 @@ public:
 		DestVertex[3].Position = Vector2(-1, GProjectionSignY);
 		DestVertex[3].UV = Vector2(0, 0);
 
-		D3D11DeviceContext->UpdateSubresource(VertexBufferRHI,0,NULL, DestVertex, Size,0);
+		D3D11DeviceContext->UpdateSubresource(VertexBufferRHI,0,NULL, DestVertex, sizeof(FScreenVertex),4);
 
 		//RHIUnlockVertexBuffer(VertexBufferRHI);
 	}

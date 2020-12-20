@@ -2391,6 +2391,14 @@ void RHISetViewport(uint32 MinX, uint32 MinY, float MinZ, uint32 MaxX, uint32 Ma
 {
 	D3D11_VIEWPORT VP = { (FLOAT)MinX ,(FLOAT)MinY ,(FLOAT)MaxX - (FLOAT)MinX,(FLOAT)MaxY - (FLOAT)MinY, MinZ ,MaxZ };
 	D3D11DeviceContext->RSSetViewports(1, &VP);
+
+	D3D11_RECT ScissorRect;
+	ScissorRect.left = MinX;
+	ScissorRect.right = MaxX;
+	ScissorRect.top = MinY;
+	ScissorRect.bottom = MaxY;
+	D3D11DeviceContext->RSSetScissorRects(1,&ScissorRect);
+
 }
 
 void RHISetScissorRect(bool bEnable, uint32 MinX, uint32 MinY, uint32 MaxX, uint32 MaxY)

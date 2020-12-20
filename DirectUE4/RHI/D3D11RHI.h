@@ -182,8 +182,8 @@ public:
 
 template<D3D11_FILL_MODE FillMode = D3D11_FILL_SOLID,
 	D3D11_CULL_MODE CullMode = D3D11_CULL_NONE,
-	bool bEnableLineAA = false,
-	bool bEnableMSAA = false
+	bool bEnableLineAA = FALSE,
+	bool bEnableMSAA = TRUE
 >
 class TStaticRasterizerState : public TStaticStateRHI<TStaticRasterizerState<FillMode, CullMode, bEnableLineAA, bEnableMSAA>, ComPtr<ID3D11RasterizerState>, ID3D11RasterizerState*>
 {
@@ -195,10 +195,13 @@ public:
 		Desc.FillMode = FillMode;
 		Desc.CullMode = CullMode;
 		Desc.DepthBias = 0;
+		Desc.DepthBiasClamp = 0;
+		Desc.DepthClipEnable = TRUE;;
 		Desc.SlopeScaledDepthBias = 0;
 		Desc.AntialiasedLineEnable = bEnableLineAA;
 		Desc.MultisampleEnable = bEnableMSAA;
 		Desc.FrontCounterClockwise = TRUE;
+		Desc.ScissorEnable = TRUE;
 		ID3D11RasterizerState* Result;
 		if (S_OK == D3D11Device->CreateRasterizerState(&Desc, &Result))
 		{

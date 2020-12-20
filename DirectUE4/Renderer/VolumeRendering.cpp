@@ -16,8 +16,9 @@ void RasterizeToVolumeTexture(FVolumeBounds VolumeBounds)
 	const int32 NumInstances = VolumeBounds.MaxZ - VolumeBounds.MinZ;
 	// Render a quad per slice affected by the given bounds
 	//RHICmdList.DrawPrimitive(PT_TriangleStrip, 0, 2, NumInstances);
+	CommitNonComputeShaderConstants();
 	D3D11DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-	D3D11DeviceContext->DrawInstanced(2, NumInstances,0,0);	
+	D3D11DeviceContext->DrawInstanced(4, NumInstances,0,0);	
 	ClearRemderState();
 }
 
