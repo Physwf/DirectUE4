@@ -220,14 +220,14 @@ void InitGPUSkinVertexFactoryComponents(typename VertexFactoryType::FDataType* V
 	VertexFactoryData->TangentBasisComponents[0] = FVertexStreamComponent(
 		VertexBuffers.StaticVertexBuffers->TangentsVertexBufferRHI.Get(),
 		0,
-		sizeof(FVector),
+		sizeof(Vector4)*2,
 		DXGI_FORMAT_R32G32B32_FLOAT,
 		4
 	);
 	VertexFactoryData->TangentBasisComponents[1] = FVertexStreamComponent(
 		VertexBuffers.StaticVertexBuffers->TangentsVertexBufferRHI.Get(),
 		sizeof(Vector4),
-		sizeof(Vector4),
+		sizeof(Vector4) * 2,
 		DXGI_FORMAT_R32G32B32A32_FLOAT,
 		4
 	);
