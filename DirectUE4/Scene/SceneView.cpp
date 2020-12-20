@@ -227,7 +227,7 @@ void FSceneView::SetupViewRectUniformBufferParameters(
 	const FViewMatrices& InPrevViewMatrices) const
 {
 	//checkfSlow(EffectiveViewRect.Area() > 0, TEXT("Invalid-size EffectiveViewRect passed to CreateUniformBufferParameters [%d * %d]."), EffectiveViewRect.Width(), EffectiveViewRect.Height());
-
+	
 	// Calculate the vector used by shaders to convert clip space coordinates to texture space.
 	const float InvBufferSizeX = 1.0f / BufferSize.X;
 	const float InvBufferSizeY = 1.0f / BufferSize.Y;

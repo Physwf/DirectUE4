@@ -292,9 +292,9 @@ public:
 		SetDepthStencilStateForBasePass(DrawRenderState, View, Parameters.Mesh, Parameters.PrimitiveSceneProxy, bEnableReceiveDecalOutput, /*DrawingPolicy.UseDebugViewPS(),*/ nullptr);
 		DrawingPolicy.SetupPipelineState(DrawRenderState, View);
 		CommitGraphicsPipelineState(DrawingPolicy, DrawRenderState, DrawingPolicy.GetBoundShaderStateInput());
-		DrawingPolicy.SetSharedState(DrawRenderState, &View, typename TBasePassDrawingPolicy<LightMapPolicyType>::ContextDataType(Parameters.bIsInstancedStereo));
+		DrawingPolicy.SetSharedState(D3D11DeviceContext, DrawRenderState, &View, typename TBasePassDrawingPolicy<LightMapPolicyType>::ContextDataType(Parameters.bIsInstancedStereo));
 
-		for (int32 BatchElementIndex = 0, Num = Parameters.Mesh.Elements.Num(); BatchElementIndex < Num; BatchElementIndex++)
+		for (uint32 BatchElementIndex = 0, Num = Parameters.Mesh.Elements.size(); BatchElementIndex < Num; BatchElementIndex++)
 		{
 			// We draw instanced static meshes twice when rendering with instanced stereo. Once for each eye.
 			const bool bIsInstancedMesh = Parameters.Mesh.Elements[BatchElementIndex].bIsInstancedMesh;
@@ -307,6 +307,7 @@ public:
 				//BeginMeshDrawEvent(RHICmdList, Parameters.PrimitiveSceneProxy, Parameters.Mesh, MeshEvent, EnumHasAnyFlags(EShowMaterialDrawEventTypes(GShowMaterialDrawEventTypes), EShowMaterialDrawEventTypes::BasePass));
 
 				DrawingPolicy.SetMeshRenderState(
+					D3D11DeviceContext,
 					View,
 					Parameters.PrimitiveSceneProxy,
 					Parameters.Mesh,
@@ -315,14 +316,41 @@ public:
 					typename TBasePassDrawingPolicy<LightMapPolicyType>::ElementDataType(LightMapElementData),
 					typename TBasePassDrawingPolicy<LightMapPolicyType>::ContextDataType()
 				);
-				DrawingPolicy.DrawMesh(View, Parameters.Mesh, BatchElementIndex, Parameters.bIsInstancedStereo);
+				DrawingPolicy.DrawMesh(D3D11DeviceContext, View, Parameters.Mesh, BatchElementIndex, Parameters.bIsInstancedStereo);
 			}
 		}
 	}
 };
 bool FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(const FViewInfo& View, ContextType DrawingContext, const FMeshBatch& Mesh, bool bPreFog, const FDrawingPolicyRenderState& DrawRenderState, const FPrimitiveSceneProxy* PrimitiveSceneProxy, /*FHitProxyId HitProxyId,*/ const bool bIsInstancedStereo /*= false */)
 {
-	return false;
+	// Determine the mesh's material and blend mode.
+	const FMaterial* Material = Mesh.MaterialRenderProxy->GetMaterial();
+	const EBlendMode BlendMode = Material->GetBlendMode();
+
+	// Only draw opaque materials.
+	if (!IsTranslucentBlendMode(BlendMode) && ShouldIncludeDomainInMeshPass(Material->GetMaterialDomain()))
+	{
+		ProcessBasePassMesh(
+			FProcessBasePassMeshParameters(
+				Mesh,
+				Material,
+				PrimitiveSceneProxy,
+				!bPreFog,
+				bIsInstancedStereo
+			),
+			FDrawBasePassDynamicMeshAction(
+				View,
+				Mesh.DitheredLODTransitionAlpha,
+				DrawRenderState//,
+				/*HitProxyId*/
+			)
+		);
+		return true;
+	}
+	else
+	{
+		return false;
+	}
 }
 template <ELightMapPolicyType Policy>
 void GetUniformBasePassShaders(
@@ -576,7 +604,27 @@ bool FSceneRenderer::RenderBasePassStaticDataType(FViewInfo& View, const FDrawin
 
 void FSceneRenderer::RenderBasePassDynamicData(const FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState, bool& bOutDirty)
 {
+	bool bDirty = false;
 
+	SCOPED_DRAW_EVENT(Dynamic);
+
+	FBasePassOpaqueDrawingPolicyFactory::ContextType Context;
+	for (uint32 MeshBatchIndex = 0; MeshBatchIndex < View.DynamicMeshElements.size(); MeshBatchIndex++)
+	{
+		const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicMeshElements[MeshBatchIndex];
+
+		if ((MeshBatchAndRelevance.GetHasOpaqueOrMaskedMaterial() /*|| ViewFamily.EngineShowFlags.Wireframe*/)
+			&& MeshBatchAndRelevance.GetRenderInMainPass())
+		{
+			const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
+			FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(View, Context, MeshBatch, true, DrawRenderState, MeshBatchAndRelevance.PrimitiveSceneProxy/*, MeshBatch.BatchHitProxyId, View.IsInstancedStereoPass()*/);
+		}
+	}
+
+	if (bDirty)
+	{
+		bOutDirty = true;
+	}
 }
 
 bool FSceneRenderer::RenderBasePassView(FViewInfo& View, FExclusiveDepthStencil::Type BasePassDepthStencilAccess, const FDrawingPolicyRenderState& InDrawRenderState)

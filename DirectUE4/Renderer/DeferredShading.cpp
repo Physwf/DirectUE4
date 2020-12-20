@@ -15,6 +15,7 @@
 #include "PrimitiveSceneInfo.h"
 #include "GPUProfiler.h"
 #include "PostProcessing.h"
+#include "PrecomputedVolumetricLightmap.h"
 
 #include <new>
 
@@ -68,7 +69,40 @@ void UpdateNoiseTextureParameters(FViewUniformShaderParameters& ViewUniformShade
 
 void SetupPrecomputedVolumetricLightmapUniformBufferParameters(const FScene* Scene, FViewUniformShaderParameters& ViewUniformShaderParameters)
 {
+	if (Scene && Scene->VolumetricLightmapSceneData.GetLevelVolumetricLightmap())
+	{
+		const FPrecomputedVolumetricLightmapData* VolumetricLightmapData = Scene->VolumetricLightmapSceneData.GetLevelVolumetricLightmap()->Data;
 
+		ViewUniformShaderParameters.VolumetricLightmapIndirectionTexture = OrBlack3DUintIfNull(VolumetricLightmapData->IndirectionTexture.Texture.get());
+		ViewUniformShaderParameters.VolumetricLightmapBrickAmbientVector = OrBlack3DIfNull(VolumetricLightmapData->BrickData.AmbientVector.Texture.get());
+		ViewUniformShaderParameters.VolumetricLightmapBrickSHCoefficients0 = OrBlack3DIfNull(VolumetricLightmapData->BrickData.SHCoefficients[0].Texture.get());
+		ViewUniformShaderParameters.VolumetricLightmapBrickSHCoefficients1 = OrBlack3DIfNull(VolumetricLightmapData->BrickData.SHCoefficients[1].Texture.get());
+		ViewUniformShaderParameters.VolumetricLightmapBrickSHCoefficients2 = OrBlack3DIfNull(VolumetricLightmapData->BrickData.SHCoefficients[2].Texture.get());
+		ViewUniformShaderParameters.VolumetricLightmapBrickSHCoefficients3 = OrBlack3DIfNull(VolumetricLightmapData->BrickData.SHCoefficients[3].Texture.get());
+		ViewUniformShaderParameters.VolumetricLightmapBrickSHCoefficients4 = OrBlack3DIfNull(VolumetricLightmapData->BrickData.SHCoefficients[4].Texture.get());
+		ViewUniformShaderParameters.VolumetricLightmapBrickSHCoefficients5 = OrBlack3DIfNull(VolumetricLightmapData->BrickData.SHCoefficients[5].Texture.get());
+		ViewUniformShaderParameters.SkyBentNormalBrickTexture = OrBlack3DIfNull(VolumetricLightmapData->BrickData.SkyBentNormal.Texture.get());
+		ViewUniformShaderParameters.DirectionalLightShadowingBrickTexture = OrBlack3DIfNull(VolumetricLightmapData->BrickData.DirectionalLightShadowing.Texture.get());
+
+		const FBox& VolumeBounds = VolumetricLightmapData->GetBounds();
+		const FVector InvVolumeSize = FVector(1.0f) / VolumeBounds.GetSize();
+
+		ViewUniformShaderParameters.Constants.VolumetricLightmapWorldToUVScale = InvVolumeSize;
+		ViewUniformShaderParameters.Constants.VolumetricLightmapWorldToUVAdd = -VolumeBounds.Min * InvVolumeSize;
+		ViewUniformShaderParameters.Constants.VolumetricLightmapIndirectionTextureSize = FVector(VolumetricLightmapData->IndirectionTextureDimensions);
+		ViewUniformShaderParameters.Constants.VolumetricLightmapBrickSize = VolumetricLightmapData->BrickSize;
+		ViewUniformShaderParameters.Constants.VolumetricLightmapBrickTexelSize = FVector(1.0f, 1.0f, 1.0f) / FVector(VolumetricLightmapData->BrickDataDimensions);
+	}
+	else
+	{
+		// Resources are initialized in FViewUniformShaderParameters ctor, only need to set defaults for non-resource types
+
+		ViewUniformShaderParameters.Constants.VolumetricLightmapWorldToUVScale = FVector::ZeroVector;
+		ViewUniformShaderParameters.Constants.VolumetricLightmapWorldToUVAdd = FVector::ZeroVector;
+		ViewUniformShaderParameters.Constants.VolumetricLightmapIndirectionTextureSize = FVector::ZeroVector;
+		ViewUniformShaderParameters.Constants.VolumetricLightmapBrickSize = 0;
+		ViewUniformShaderParameters.Constants.VolumetricLightmapBrickTexelSize = FVector::ZeroVector;
+	}
 };
 
 void FViewInfo::SetupUniformBufferParameters(

@@ -234,6 +234,23 @@ private:
 	uint32 FrameIndexMod8;
 
 };
+class FVolumetricLightmapSceneData
+{
+public:
+
+	bool HasData() const { return LevelVolumetricLightmaps.size() > 0; }
+	void AddLevelVolume(const class FPrecomputedVolumetricLightmap* InVolume/*, EShadingPath ShadingPath*/);
+	void RemoveLevelVolume(const class FPrecomputedVolumetricLightmap* InVolume);
+	const FPrecomputedVolumetricLightmap* GetLevelVolumetricLightmap() const
+	{
+		return LevelVolumetricLightmaps.size() > 0 ? LevelVolumetricLightmaps.back() : NULL;
+	}
+
+	//std::map<FVector, FVolumetricLightmapInterpolation> CPUInterpolationCache;
+
+private:
+	std::vector<const FPrecomputedVolumetricLightmap*> LevelVolumetricLightmaps;
+};
 class FScene
 {
 public:
@@ -256,7 +273,9 @@ public:
 
 	void UpdateLightTransform_RenderThread(FLightSceneInfo* LightSceneInfo, const struct FUpdateLightTransformParameters& Parameters);
 	void UpdatePrimitiveTransform_RenderThread(FPrimitiveSceneProxy* PrimitiveSceneProxy, const FBoxSphereBounds& WorldBounds, const FBoxSphereBounds& LocalBounds, const FMatrix& LocalToWorld, const FVector& OwnerPosition);
-
+	
+	void AddPrecomputedVolumetricLightmap(const class FPrecomputedVolumetricLightmap* Volume);
+	void RemovePrecomputedVolumetricLightmap(const class FPrecomputedVolumetricLightmap* Volume);
 
 	void UpdateSkyCaptureContents(const USkyLightComponent* CaptureComponent, bool bCaptureEmissiveOnly, FD3D11Texture2D* SourceCubemap, FD3D11Texture2D* OutProcessedTexture, float& OutAverageBrightness, FSHVectorRGB3& OutIrradianceEnvironmentMap, std::vector<FFloat16Color>* OutRadianceMap);
 
@@ -325,7 +344,7 @@ public:
 	/** Interpolates and caches indirect lighting for dynamic objects. */
 	FIndirectLightingCache IndirectLightingCache;
 
-	//FVolumetricLightmapSceneData VolumetricLightmapSceneData;
+	FVolumetricLightmapSceneData VolumetricLightmapSceneData;
 
 	std::map<int32, FCachedShadowMapData> CachedShadowMaps;
 

@@ -10,6 +10,7 @@
 #include "MeshComponent.h"
 #include "AtmosphereFog.h"
 #include "SkyLight.h"
+#include "PrecomputedVolumetricLightmap.h"
 
 class FloorActor : public StaticMeshActor
 {
@@ -35,6 +36,7 @@ void UWorld::InitWorld()
 {
 	Scene = new FScene(this);
 
+	PrecomputedVolumetricLightmap = new FPrecomputedVolumetricLightmap();
 
 	AAtmosphericFog* Atmosphere = SpawnActor<AAtmosphericFog>();
 	ASkylight* Skylight = SpawnActor<ASkylight>();
@@ -48,6 +50,10 @@ void UWorld::InitWorld()
 	FMeshMapBuildData& MeshBuildData = MapBuildData->AllocateMeshBuildData(0, false);
 	MeshBuildData.LightMap = FLightMap2D::AllocateLightMap();
 	MeshBuildData.ShadowMap = FShadowMap2D::AllocateShadowMap();
+
+	MapBuildData->AllocateLevelPrecomputedVolumetricLightmapBuildData();
+	PrecomputedVolumetricLightmap->AddToScene(Scene, MapBuildData);
+
 
 	StaticMeshActor* Floor = SpawnActor<FloorActor>("Primitives/Floor.fbx");
 	Floor->SetActorLocation(FVector(0, 0, -100));

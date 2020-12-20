@@ -2,7 +2,7 @@
 
 #include "Material.dusf"
 #include "BasePassCommon.dusf"
-#include "LocalVertexFactory.dusf"
+#include "/Generated/VertexFactory.dusf"
 
 struct BasePassVSToPS
 {

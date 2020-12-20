@@ -104,6 +104,7 @@ struct FLinearColor;
 struct FIntRect;
 struct FMatrix;
 class FFloat16Color;
+struct FIntVector;
 
 namespace EAxis
 {
@@ -628,6 +629,7 @@ struct FVector
 	FVector(std::initializer_list<float> list);
 	FVector(const Vector4& V) : X(V.X), Y(V.Y), Z(V.Z) {};
 	explicit FVector(const FLinearColor& InColor);
+	explicit FVector(FIntVector InVector);
 
 	FVector operator+(const FVector& rhs) const;
 	FVector operator-(const FVector& rhs) const;
@@ -644,7 +646,7 @@ struct FVector
 	FVector operator*=(float Value);
 	FVector operator/=(float Value);
 	FVector operator-() const;
-
+	FVector operator/(const FVector& V) const;
 	bool operator==(const FVector& rhs) const;
 	bool operator!=(const FVector& rhs) const;
 

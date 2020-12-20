@@ -1232,7 +1232,7 @@ ID3D11Buffer* RHICreateVertexBuffer(UINT Size, D3D11_USAGE InUsage, UINT BindFla
 	return VertexBufferResource;
 }
 
-std::shared_ptr<FD3D11Texture2D> CreateD3D11Texture2D(uint32 SizeX, uint32 SizeY, uint32 SizeZ, bool bTextureArray, bool bCubeTexture, EPixelFormat Format, uint32 NumMips, uint32 NumSamples, uint32 Flags, FClearValueBinding ClearBindingValue/* = FClearValueBinding::Transparent*/, void* BulkData /*= nullptr*/, uint32 BulkDataSize /*= 0*/)
+std::shared_ptr<FD3D11Texture2D> CreateD3D11Texture2D(uint32 SizeX, uint32 SizeY, uint32 SizeZ, bool bTextureArray, bool bCubeTexture, EPixelFormat Format, uint32 NumMips, uint32 NumSamples, uint32 Flags, FClearValueBinding ClearBindingValue/* = FClearValueBinding::Transparent*/, const void* BulkData /*= nullptr*/, uint32 BulkDataSize /*= 0*/)
 {
 	const bool bSRGB = (Flags & TexCreate_SRGB) != 0;
 
@@ -1646,7 +1646,7 @@ ComPtr<ID3D11ShaderResourceView> RHICreateShaderResourceView(FD3D11Texture3D* Te
 	}
 }
 
-std::shared_ptr<FD3D11Texture3D> CreateD3D11Texture3D(uint32 SizeX, uint32 SizeY, uint32 SizeZ, uint8 Format, uint32 NumMips, uint32 Flags, FClearValueBinding ClearBindingValue /*= FClearValueBinding::Transparent*/, void* BulkData /*= nullptr*/, uint32 BulkDataSize /*= 0*/)
+std::shared_ptr<FD3D11Texture3D> CreateD3D11Texture3D(uint32 SizeX, uint32 SizeY, uint32 SizeZ, uint8 Format, uint32 NumMips, uint32 Flags, FClearValueBinding ClearBindingValue /*= FClearValueBinding::Transparent*/, const void* BulkData /*= nullptr*/, uint32 BulkDataSize /*= 0*/)
 {
 	const bool bSRGB = (Flags & TexCreate_SRGB) != 0;
 

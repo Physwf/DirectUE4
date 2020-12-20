@@ -32,6 +32,8 @@ private:
 	std::vector<Camera*> mCameras;
 	std::vector<AActor*> mAllActors;
 	std::vector<UActorComponent*> ActorComponents;
+
+	class FPrecomputedVolumetricLightmap*			PrecomputedVolumetricLightmap;
 public:
 	FScene* Scene;
 	class UMapBuildDataRegistry* MapBuildData;

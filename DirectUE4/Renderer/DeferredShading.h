@@ -70,6 +70,22 @@ struct FSortedShadowMapAtlas
 	FShadowMapRenderTargetsRefCounted RenderTargets;
 	std::vector<FProjectedShadowInfo*> Shadows;
 };
+inline ID3D11ShaderResourceView* OrBlack2DIfNull(ID3D11ShaderResourceView* Tex)
+{
+	ID3D11ShaderResourceView* Result = Tex ? Tex : GBlackTextureSRV;
+	assert(Result);
+	return Result;
+}
+inline ID3D11ShaderResourceView* OrBlack3DIfNull(FD3D11Texture* Tex)
+{
+	// we fall back to 2D which are unbound es2 parameters
+	return OrBlack2DIfNull(Tex ? Tex->GetShaderResourceView() : GBlackVolumeTextureSRV);
+}
+inline ID3D11ShaderResourceView* OrBlack3DUintIfNull(FD3D11Texture* Tex)
+{
+	// we fall back to 2D which are unbound es2 parameters
+	return OrBlack2DIfNull(Tex ? Tex->GetShaderResourceView() : GBlackVolumeTextureSRV);
+}
 
 struct FSortedShadowMaps
 {
@@ -625,6 +641,7 @@ public:
 		int32 NumTranslucentCascades,
 		FViewUniformShaderParameters& ViewUniformParameters) const
 	{
+		ViewUniformParameters.Init();
 		SetupUniformBufferParameters(SceneContext,
 			ViewMatrices,
 			ViewMatrices,/*PrevViewInfo.ViewMatrices,*/

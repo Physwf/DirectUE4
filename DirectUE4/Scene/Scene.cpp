@@ -235,6 +235,16 @@ void FScene::UpdatePrimitiveTransform_RenderThread(FPrimitiveSceneProxy* Primiti
 	PrimitiveSceneProxy->SetTransform(LocalToWorld, WorldBounds, LocalBounds, OwnerPosition);
 }
 
+void FScene::AddPrecomputedVolumetricLightmap(const class FPrecomputedVolumetricLightmap* Volume)
+{
+	VolumetricLightmapSceneData.AddLevelVolume(Volume/*, Scene->GetShadingPath()*/);
+}
+
+void FScene::RemovePrecomputedVolumetricLightmap(const class FPrecomputedVolumetricLightmap* Volume)
+{
+	VolumetricLightmapSceneData.RemoveLevelVolume(Volume);
+}
+
 // /**  */
 // template<>
 // TStaticMeshDrawList<TBasePassDrawingPolicy<FSelfShadowedTranslucencyPolicy> >& FScene::GetBasePassDrawList<FSelfShadowedTranslucencyPolicy>(EBasePassDrawListType DrawType)
@@ -300,4 +310,18 @@ Microsoft::WRL::ComPtr<PooledRenderTarget>& FSceneViewState::FEyeAdaptationRTMan
 	}
 
 	return RenderTarget[BufferNumber];
+}
+
+void FVolumetricLightmapSceneData::AddLevelVolume(const class FPrecomputedVolumetricLightmap* InVolume/*, EShadingPath ShadingPath*/)
+{
+	LevelVolumetricLightmaps.push_back(InVolume);
+}
+
+void FVolumetricLightmapSceneData::RemoveLevelVolume(const class FPrecomputedVolumetricLightmap* InVolume)
+{
+	auto it = std::find(LevelVolumetricLightmaps.begin(), LevelVolumetricLightmaps.end(),InVolume);
+	if (it != LevelVolumetricLightmaps.end())
+	{
+		LevelVolumetricLightmaps.erase(it);
+	}
 }

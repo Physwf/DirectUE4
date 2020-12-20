@@ -404,6 +404,11 @@ void FMatrix::SetIdentity()
 	M[3][0] = 0; M[3][1] = 0;  M[3][2] = 0;  M[3][3] = 1;
 }
 
+FVector FVector::operator/(const FVector& V) const
+{
+	return FVector(X / V.X, Y / V.Y, Z / V.Z);
+}
+
 float FVector::SizeSquared() const
 {
 	return X * X + Y * Y + Z * Z;
@@ -1051,6 +1056,12 @@ const FVector FVector::RightVector(0.0f, 1.0f, 0.0f);
 
 FVector::FVector(const FLinearColor& InColor)
 	: X(InColor.R), Y(InColor.G), Z(InColor.B)
+{
+
+}
+
+FVector::FVector(FIntVector InVector)
+	: X(InVector.X), Y(InVector.Y), Z(InVector.Z)
 {
 
 }

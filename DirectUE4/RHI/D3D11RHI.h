@@ -1136,28 +1136,28 @@ enum ETextureCreateFlags
 };
 
 ID3D11Buffer* RHICreateVertexBuffer(UINT Size, D3D11_USAGE InUsage, UINT BindFlags, UINT MiscFlags, const void* Data = NULL);
-std::shared_ptr<FD3D11Texture2D> CreateD3D11Texture2D(uint32 SizeX, uint32 SizeY, uint32 SizeZ, bool bTextureArray, bool bCubeTexture, EPixelFormat Format, uint32 NumMips, uint32 NumSamples, uint32 Flags, FClearValueBinding ClearBindingValue = FClearValueBinding::Transparent, void* BulkData = nullptr, uint32 BulkDataSize = 0);
+std::shared_ptr<FD3D11Texture2D> CreateD3D11Texture2D(uint32 SizeX, uint32 SizeY, uint32 SizeZ, bool bTextureArray, bool bCubeTexture, EPixelFormat Format, uint32 NumMips, uint32 NumSamples, uint32 Flags, FClearValueBinding ClearBindingValue = FClearValueBinding::Transparent, const void* BulkData = nullptr, uint32 BulkDataSize = 0);
 ComPtr<ID3D11ShaderResourceView> RHICreateShaderResourceView(FD3D11Texture2D* Texture2DRHI, uint16 MipLevel);
 ComPtr<ID3D11ShaderResourceView> RHICreateShaderResourceView(FD3D11Texture3D* Texture2DRHI, uint16 MipLevel);
 ComPtr<ID3D11ShaderResourceView> RHICreateShaderResourceView(ID3D11Buffer* VertexBuffer, UINT Stride, DXGI_FORMAT Format);
-inline std::shared_ptr<FD3D11Texture2D> RHICreateTexture2D(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 NumSamples, uint32 Flags, FClearValueBinding ClearBindingValue = FClearValueBinding::Transparent, void* BulkData = nullptr, uint32 BulkDataSize = 0)
+inline std::shared_ptr<FD3D11Texture2D> RHICreateTexture2D(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 NumSamples, uint32 Flags, FClearValueBinding ClearBindingValue = FClearValueBinding::Transparent, const void* BulkData = nullptr, uint32 BulkDataSize = 0)
 {
 	return CreateD3D11Texture2D(SizeX, SizeY,1,false,false, (EPixelFormat)Format, NumMips, NumSamples, Flags, ClearBindingValue, BulkData, BulkDataSize);
 }
-inline std::shared_ptr<FD3D11Texture2D> RHICreateTexture2DArray(uint32 SizeX, uint32 SizeY, uint32 SizeZ, uint8 Format, uint32 NumMips, uint32 Flags, FClearValueBinding ClearBindingValue = FClearValueBinding::Transparent, void* BulkData = nullptr, uint32 BulkDataSize = 0)
+inline std::shared_ptr<FD3D11Texture2D> RHICreateTexture2DArray(uint32 SizeX, uint32 SizeY, uint32 SizeZ, uint8 Format, uint32 NumMips, uint32 Flags, FClearValueBinding ClearBindingValue = FClearValueBinding::Transparent, const void* BulkData = nullptr, uint32 BulkDataSize = 0)
 {
 	return CreateD3D11Texture2D(SizeX, SizeY, SizeZ, true, false, (EPixelFormat)Format, NumMips, 1, Flags, ClearBindingValue, BulkData, BulkDataSize);
 }
-inline std::shared_ptr<FD3D11Texture2D> RHICreateTextureCube(uint32 Size, uint8 Format, uint32 NumMips, uint32 Flags, FClearValueBinding ClearBindingValue = FClearValueBinding::Transparent, void* BulkData = nullptr, uint32 BulkDataSize = 0)
+inline std::shared_ptr<FD3D11Texture2D> RHICreateTextureCube(uint32 Size, uint8 Format, uint32 NumMips, uint32 Flags, FClearValueBinding ClearBindingValue = FClearValueBinding::Transparent, const void* BulkData = nullptr, uint32 BulkDataSize = 0)
 {
 	return CreateD3D11Texture2D(Size, Size, 6, false, true, (EPixelFormat)Format, NumMips, 1, Flags, ClearBindingValue, BulkData, BulkDataSize);
 }
-inline std::shared_ptr<FD3D11Texture2D> RHICreateTextureCubeArray(uint32 Size, uint32 ArraySize, uint8 Format, uint32 NumMips, uint32 Flags, FClearValueBinding ClearBindingValue = FClearValueBinding::Transparent, void* BulkData = nullptr, uint32 BulkDataSize = 0)
+inline std::shared_ptr<FD3D11Texture2D> RHICreateTextureCubeArray(uint32 Size, uint32 ArraySize, uint8 Format, uint32 NumMips, uint32 Flags, FClearValueBinding ClearBindingValue = FClearValueBinding::Transparent, const void* BulkData = nullptr, uint32 BulkDataSize = 0)
 {
 	return CreateD3D11Texture2D(Size, Size, 6 * ArraySize, true, true, (EPixelFormat)Format, NumMips, 1, Flags, ClearBindingValue, BulkData, BulkDataSize);
 }
-std::shared_ptr<FD3D11Texture3D> CreateD3D11Texture3D(uint32 SizeX, uint32 SizeY, uint32 SizeZ, uint8 Format, uint32 NumMips, uint32 Flags, FClearValueBinding ClearBindingValue = FClearValueBinding::Transparent, void* BulkData = nullptr, uint32 BulkDataSize = 0);
-inline std::shared_ptr<FD3D11Texture3D> RHICreateTexture3D(uint32 SizeX, uint32 SizeY, uint32 SizeZ, uint8 Format, uint32 NumMips, uint32 Flags, FClearValueBinding ClearBindingValue = FClearValueBinding::Transparent, void* BulkData = nullptr, uint32 BulkDataSize = 0)
+std::shared_ptr<FD3D11Texture3D> CreateD3D11Texture3D(uint32 SizeX, uint32 SizeY, uint32 SizeZ, uint8 Format, uint32 NumMips, uint32 Flags, FClearValueBinding ClearBindingValue = FClearValueBinding::Transparent, const void* BulkData = nullptr, uint32 BulkDataSize = 0);
+inline std::shared_ptr<FD3D11Texture3D> RHICreateTexture3D(uint32 SizeX, uint32 SizeY, uint32 SizeZ, uint8 Format, uint32 NumMips, uint32 Flags, FClearValueBinding ClearBindingValue = FClearValueBinding::Transparent, const void* BulkData = nullptr, uint32 BulkDataSize = 0)
 {
 	return CreateD3D11Texture3D(SizeX, SizeY, SizeZ, Format, NumMips, Flags, ClearBindingValue, BulkData, BulkDataSize);
 }
