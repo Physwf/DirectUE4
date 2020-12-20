@@ -32,6 +32,8 @@ public:
 	virtual UMaterial* GetMaterial(int32 MaterialIndex) const override;
 	virtual FPrimitiveSceneProxy* CreateSceneProxy();
 
+	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
+
 	const class FMeshMapBuildData* GetMeshMapBuildData() const;
 private:
 	class UStaticMesh* StaticMesh;
@@ -161,7 +163,6 @@ public:
 	virtual class UMaterial* GetMaterial(int32 ElementIndex) const override;
 
 	void InitLODInfos();
-
 
 protected:
 	void FlipEditableSpaceBases();

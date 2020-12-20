@@ -279,7 +279,7 @@ namespace GlobalVectorConstants
 * @param Vec	Vector to store XYZ
 * @param Ptr	Unaligned memory pointer
 */
-#define VectorStoreFloat3( Vec, Ptr )	FMemory::Memcpy( Ptr, &(Vec), 12 )
+#define VectorStoreFloat3( Vec, Ptr )	memcpy( Ptr, &(Vec), 12 )
 
 /**
 * Stores the X component of a vector to unaligned memory.
@@ -287,7 +287,7 @@ namespace GlobalVectorConstants
 * @param Vec	Vector to store X
 * @param Ptr	Unaligned memory pointer
 */
-#define VectorStoreFloat1( Vec, Ptr )	FMemory::Memcpy( Ptr, &(Vec), 4 )
+#define VectorStoreFloat1( Vec, Ptr )	memcpy( Ptr, &(Vec), 4 )
 
 /**
 * Replicates one element into all four elements and returns the new vector.

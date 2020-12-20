@@ -43,9 +43,6 @@ void UWorld::InitWorld()
 
 	USkyLightComponent::UpdateSkyCaptureContents(this);
 
-	PointLightActor* l1 = SpawnActor<PointLightActor>();
-	l1->SetActorLocation(FVector(0, 0, 500));
-
 	MapBuildData = new UMapBuildDataRegistry();
 	FMeshMapBuildData& MeshBuildData = MapBuildData->AllocateMeshBuildData(0, false);
 	MeshBuildData.LightMap = FLightMap2D::AllocateLightMap();
@@ -64,8 +61,11 @@ void UWorld::InitWorld()
 	//Mesh* m1 = SpawnActor<Mesh>("k526efluton4-House_15/247_House 15_fbx.fbx");
 
 	SkeletalMeshActor* Mannequin = SpawnActor<SkeletalMeshActor>("Mannequin/SK_Mannequin.FBX","Mannequin/ThirdPersonIdle.FBX");
-	Mannequin->SetActorRotation(FRotator(0, 0.f, 0));
-	Mannequin->SetActorLocation(FVector(100.f, -100.f, 0));
+	Mannequin->SetActorRotation(FRotator(0, 90.f, 0));
+	Mannequin->SetActorLocation(FVector(0.f, -100.f, -48.f));
+
+	PointLightActor* l1 = SpawnActor<PointLightActor>();
+	l1->SetActorLocation(FVector(0, 0, 500));
 
 	Camera* C = SpawnActor<Camera>();
 	C->SetActorLocation(FVector(-400, 0,  0));

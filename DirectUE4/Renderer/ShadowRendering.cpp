@@ -3,6 +3,7 @@
 #include "DeferredShading.h"
 #include "StaticMesh.h"
 #include "RenderTargets.h"
+#include "GPUProfiler.h"
 
 
 void FShadowVolumeBoundProjectionVS::SetParameters(const FSceneView& View, const FProjectedShadowInfo* ShadowInfo)
@@ -254,6 +255,8 @@ bool FSceneRenderer::RenderShadowProjections(const FLightSceneInfo* LightSceneIn
 
 bool FSceneRenderer::RenderShadowProjections(const FLightSceneInfo* LightSceneInfo, PooledRenderTarget* ScreenShadowMaskTexture, bool& bInjectedTranslucentVolume)
 {
+	SCOPED_DRAW_EVENT(ShadowProjectionOnOpaque);
+
 	RenderShadowProjections(LightSceneInfo, ScreenShadowMaskTexture, false, false);
 
 	return true;

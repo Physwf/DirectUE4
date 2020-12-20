@@ -4908,6 +4908,26 @@ bool FBXImporter::BuildStaticMesh(FStaticMeshRenderData& OutRenderData, UStaticM
 		}
 	}
 	LODResource.Indices = std::move(CombinedIndices);
+
+	// Calculate the bounding box.
+	FBox BoundingBox(FVector(0), FVector(0));
+	std::vector<FVector>& BasePositionVertexBuffer = OutRenderData.LODResources[0]->VertexBuffers.PositionVertexBuffer;
+	for (uint32 VertexIndex = 0; VertexIndex < BasePositionVertexBuffer.size(); VertexIndex++)
+	{
+		BoundingBox += BasePositionVertexBuffer[VertexIndex];
+	}
+	BoundingBox.GetCenterAndExtents(OutRenderData.Bounds.Origin, OutRenderData.Bounds.BoxExtent);
+
+	// Calculate the bounding sphere, using the center of the bounding box as the origin.
+	OutRenderData.Bounds.SphereRadius = 0.0f;
+	for (uint32 VertexIndex = 0; VertexIndex < BasePositionVertexBuffer.size(); VertexIndex++)
+	{
+		OutRenderData.Bounds.SphereRadius = FMath::Max(
+			(BasePositionVertexBuffer[VertexIndex] - OutRenderData.Bounds.Origin).Size(),
+			OutRenderData.Bounds.SphereRadius
+		);
+	}
+
 	return true;
 }
 bool AreVerticesEqual(StaticMeshBuildVertex const& A, StaticMeshBuildVertex const& B, float ComparisonThreshold)

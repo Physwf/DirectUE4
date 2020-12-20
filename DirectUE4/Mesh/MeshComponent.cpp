@@ -36,6 +36,23 @@ FPrimitiveSceneProxy* UStaticMeshComponent::CreateSceneProxy()
 	return new FStaticMeshSceneProxy(this,false);
 }
 
+FBoxSphereBounds UStaticMeshComponent::CalcBounds(const FTransform& LocalToWorld) const
+{
+	if (GetStaticMesh())
+	{
+		// Graphics bounds.
+		FBoxSphereBounds NewBounds = GetStaticMesh()->GetBounds().TransformBy(LocalToWorld);
+		NewBounds.BoxExtent *= 1.0f /*BoundsScale*/;
+		NewBounds.SphereRadius *= 1.0f/*BoundsScale*/;
+
+		return NewBounds;
+	}
+	else
+	{
+		return FBoxSphereBounds(LocalToWorld.GetLocation(), FVector::ZeroVector, 0.f);
+	}
+}
+
 const class FMeshMapBuildData* UStaticMeshComponent::GetMeshMapBuildData() const
 {
 	UMapBuildDataRegistry* MapBuildData = GetOwner()->GetWorld()->MapBuildData;

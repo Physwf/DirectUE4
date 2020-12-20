@@ -67,6 +67,8 @@ struct FStaticMeshVertexFactories
 class FStaticMeshRenderData
 {
 public:
+	FBoxSphereBounds Bounds;
+
 	std::vector<FStaticMeshLODResources*> LODResources;
 	std::vector<FStaticMeshVertexFactories*> LODVertexFactories;
 

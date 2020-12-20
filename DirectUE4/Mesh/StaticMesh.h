@@ -53,6 +53,9 @@ public:
 	UMaterial* GetMaterial(int32 MaterialIndex) const;
 
 	void CacheDerivedData();
+	void CalculateExtendedBounds();
+	FBoxSphereBounds GetBounds() const;
+	FBox GetBoundingBox() const;
 
 	const std::multimap<int32, int32>& GetOverlappingCorners() const { return OverlappingCorners; }
 private:
@@ -63,7 +66,9 @@ private:
 	std::multimap<int32, int32> OverlappingCorners;
 
 	class UMaterial* Material;
-	
+
+	FBoxSphereBounds ExtendedBounds;
+
 	friend class FStaticMeshSceneProxy;
 };
 

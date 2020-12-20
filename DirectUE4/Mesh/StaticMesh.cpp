@@ -283,6 +283,8 @@ void UStaticMesh::PostLoad()
 	CacheDerivedData();
 
 	InitResources();
+
+	CalculateExtendedBounds();
 }
 
 void UStaticMesh::GetRenderMeshDescription(const MeshDescription& InOriginalMeshDescription, MeshDescription& OutRenderMeshDescription)
@@ -369,6 +371,26 @@ void UStaticMesh::CacheDerivedData()
 {
 	RenderData = std::make_unique<FStaticMeshRenderData>();
 	RenderData->Cache(this/*, LODSettings*/);
+}
+
+void UStaticMesh::CalculateExtendedBounds()
+{
+	FBoxSphereBounds Bounds;
+	if (RenderData)
+	{
+		Bounds = RenderData->Bounds;
+	}
+	ExtendedBounds = Bounds;
+}
+
+FBoxSphereBounds UStaticMesh::GetBounds() const
+{
+	return ExtendedBounds;
+}
+
+FBox UStaticMesh::GetBoundingBox() const
+{
+	return ExtendedBounds.GetBox();
 }
 
 void RegisterMeshAttributes(MeshDescription& MD)
