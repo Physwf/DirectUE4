@@ -1195,7 +1195,7 @@ void SetRenderTargetAndClear(FD3D11Texture* NewRenderTarget, FD3D11Texture* NewD
 
 }
 
-void ClearRemderState()
+void ClearRenderState()
 {
 	D3D11DeviceContext->VSSetShader(NULL, 0, 0);
 	D3D11DeviceContext->HSSetShader(NULL, 0, 0);
@@ -2307,6 +2307,7 @@ void RHIEndDrawIndexedPrimitiveUP()
 	D3D11DeviceContext->IASetIndexBuffer(DynamicIB.Get(), PendingIndexDataStride == sizeof(uint16) ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT, 0);
 	D3D11DeviceContext->IASetPrimitiveTopology(PendingPrimitiveType);
 	D3D11DeviceContext->DrawIndexed(PendingNumIndices, 0, 0);
+	ClearRenderState();
 
 	PendingPrimitiveType = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
 	PendingNumPrimitives = 0;
@@ -2382,6 +2383,7 @@ void DrawRectangle(float X, float Y, float SizeX, float SizeY, float U, float V,
 	D3D11DeviceContext->IASetIndexBuffer(GScreenRectangleIndexBuffer,DXGI_FORMAT_R16_UINT,0);
 
 	D3D11DeviceContext->DrawIndexed(6, 0, 0);
+	ClearRenderState();
 }
 
 int32 GMaxShadowDepthBufferSizeX = 2048;

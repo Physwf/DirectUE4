@@ -37,7 +37,7 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds, bool bNeedsValidRootMoti
 		NativeUpdateAnimation(DeltaSeconds);
 	}
 
-	//if (bNeedsValidRootMotion || NeedsImmediateUpdate(DeltaSeconds))
+	if (false/*bNeedsValidRootMotion || NeedsImmediateUpdate(DeltaSeconds)*/)
 	{
 		// cant use parallel update, so just do the work here
 		Proxy.UpdateAnimation();

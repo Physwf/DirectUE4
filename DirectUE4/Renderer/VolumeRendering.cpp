@@ -19,6 +19,6 @@ void RasterizeToVolumeTexture(FVolumeBounds VolumeBounds)
 	CommitNonComputeShaderConstants();
 	D3D11DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 	D3D11DeviceContext->DrawInstanced(4, NumInstances,0,0);	
-	ClearRemderState();
+	ClearRenderState();
 }
 

@@ -13,6 +13,9 @@ class UActorComponent
 public:
 	UActorComponent(AActor* InOwner);
 	virtual ~UActorComponent();
+
+	virtual void TickComponent(float DeltaTime/*, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction*/);
+
 protected:
 
 	virtual void OnRegister();

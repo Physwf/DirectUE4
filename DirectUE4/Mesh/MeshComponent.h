@@ -105,6 +105,9 @@ public:
 
 	void SetMasterPoseComponent(USkinnedMeshComponent* NewMasterBoneComponent, bool bForceUpdate = false);
 
+	virtual void TickPose(float DeltaTime, bool bNeedsValidRootMotion);
+	virtual void TickComponent(float DeltaTime/*, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction*/) override;
+
 	virtual void RefreshBoneTransforms(/*FActorComponentTickFunction* TickFunction = NULL*/) = 0;
 protected:
 	virtual void OnRegister() override;
@@ -199,6 +202,9 @@ public:
 	virtual void InitAnim(bool bForceReinit);
 
 	void TickAnimation(float DeltaTime, bool bNeedsValidRootMotion);
+
+	virtual void TickPose(float DeltaTime, bool bNeedsValidRootMotion) override;
+	virtual void TickComponent(float DeltaTime/*, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction*/) override;
 
 	void PerformAnimationEvaluation(const USkeletalMesh* InSkeletalMesh, UAnimInstance* InAnimInstance, std::vector<FTransform>& OutSpaceBases, std::vector<FTransform>& OutBoneSpaceTransforms, FVector& OutRootBoneTranslation, FBlendedHeapCurve& OutCurve) const;
 	void PerformAnimationProcessing(const USkeletalMesh* InSkeletalMesh, UAnimInstance* InAnimInstance, bool bInDoEvaluation, std::vector<FTransform>& OutSpaceBases, std::vector<FTransform>& OutBoneSpaceTransforms, FVector& OutRootBoneTranslation, FBlendedHeapCurve& OutCurve) const;

@@ -38,7 +38,6 @@ void SkeletalMeshActor::PostLoad()
 
 void SkeletalMeshActor::Tick(float fDeltaTime)
 {
-	MeshComponent->TickAnimation(fDeltaTime,false);
-	MeshComponent->RefreshBoneTransforms();
+	MeshComponent->TickComponent(fDeltaTime);
 }
 

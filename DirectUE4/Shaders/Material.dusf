@@ -327,13 +327,13 @@ void CalcPixelMaterialInputs(in out FMaterialPixelParameters Parameters, in out 
     Inputs.EmissiveColor = 0;//Material.VectorExpressions[2].rgb;
 	Inputs.Opacity = 1.00000000;
 	Inputs.OpacityMask = 1.00000000;
-	Inputs.BaseColor = float4(1.0f,1.0f,1.0f,1.0f) + Texture2DSampleLevel(Material.BaseColor,Material.BaseColorSampler,Parameters.TexCoords[0],0).rgb;
-	Inputs.Metallic = 0.20f;
-	Inputs.Specular = 0.50000000;
-	Inputs.Roughness = 0.5f;
+	Inputs.BaseColor = float4(1.0f, 1.0f, 1.0f, 1.0f);// +Texture2DSampleLevel(Material.BaseColor, Material.BaseColorSampler, Parameters.TexCoords[0], 0).rgb;
+	Inputs.Metallic = 0.50f;
+	Inputs.Specular = 0.10000000;
+	Inputs.Roughness = 0.0f;
 	Inputs.Subsurface = 0;
 	Inputs.AmbientOcclusion = 1.00000000;
-	Inputs.Refraction = 0;
+	Inputs.Refraction = 0.0f;
 	Inputs.PixelDepthOffset = 0.00000000;
 }
 

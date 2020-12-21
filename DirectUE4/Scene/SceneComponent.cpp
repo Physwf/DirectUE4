@@ -18,6 +18,11 @@ UActorComponent::~UActorComponent()
 
 }
 
+void UActorComponent::TickComponent(float DeltaTime/*, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction*/)
+{
+
+}
+
 void UActorComponent::OnRegister()
 {
 	bRegistered = true;

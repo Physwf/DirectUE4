@@ -103,6 +103,32 @@ void USkinnedMeshComponent::SetMasterPoseComponent(USkinnedMeshComponent* NewMas
 
 }
 
+void USkinnedMeshComponent::TickPose(float DeltaTime, bool bNeedsValidRootMotion)
+{
+
+}
+
+void USkinnedMeshComponent::TickComponent(float DeltaTime/*, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction*/)
+{
+	//if (ShouldTickPose())
+	{
+		TickPose(DeltaTime, false);
+	}
+
+	//if (ShouldUpdateTransform(bLODHasChanged))
+	{
+		// Do not update bones if we are taking bone transforms from another SkelMeshComp
+// 		if (MasterPoseComponent.IsValid())
+// 		{
+// 			UpdateSlaveComponent();
+// 		}
+// 		else
+		{
+			RefreshBoneTransforms(/*ThisTickFunction*/);
+		}
+	}
+}
+
 void USkinnedMeshComponent::OnRegister()
 {
 	if (!MasterPoseComponent.expired())
@@ -418,6 +444,26 @@ void USkeletalMeshComponent::TickAnimation(float DeltaTime, bool bNeedsValidRoot
 	}
 }
 
+void USkeletalMeshComponent::TickPose(float DeltaTime, bool bNeedsValidRootMotion)
+{
+	USkinnedMeshComponent::TickPose(DeltaTime, bNeedsValidRootMotion);
+
+	//if (ShouldTickAnimation())
+	{
+		// Don't care about roll over, just care about uniqueness (and 32-bits should give plenty).
+		//LastPoseTickFrame = static_cast<uint32>(GFrameCounter);
+
+		//const bool bUseUpdateRateOptimizations = ShouldUseUpdateRateOptimizations();
+		//float TimeAdjustment = bUseUpdateRateOptimizations ? AnimUpdateRateParams->GetTimeAdjustment() : 0.0f;
+		TickAnimation(DeltaTime /*+ TimeAdjustment*/, bNeedsValidRootMotion);
+	}
+}
+
+void USkeletalMeshComponent::TickComponent(float DeltaTime/*, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction*/)
+{
+	USkinnedMeshComponent::TickComponent(DeltaTime);
+}
+
 void USkeletalMeshComponent::PerformAnimationEvaluation(const USkeletalMesh* InSkeletalMesh, UAnimInstance* InAnimInstance, std::vector<FTransform>& OutSpaceBases, std::vector<FTransform>& OutBoneSpaceTransforms, FVector& OutRootBoneTranslation, FBlendedHeapCurve& OutCurve) const
 {
 	PerformAnimationProcessing(InSkeletalMesh, InAnimInstance, true, OutSpaceBases, OutBoneSpaceTransforms, OutRootBoneTranslation, OutCurve);
@@ -433,7 +479,7 @@ void USkeletalMeshComponent::PerformAnimationProcessing(const USkeletalMesh* InS
 	// update anim instance
 	if (InAnimInstance && InAnimInstance->NeedsUpdate())
 	{
-		//InAnimInstance->ParallelUpdateAnimation();
+		InAnimInstance->ParallelUpdateAnimation();
 	}
 // 
 // 	if (ShouldPostUpdatePostProcessInstance())

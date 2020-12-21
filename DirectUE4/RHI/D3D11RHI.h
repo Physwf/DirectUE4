@@ -1565,7 +1565,7 @@ void SetRenderTarget(FD3D11Texture* NewRenderTarget, FD3D11Texture* NewDepthSten
 void SetRenderTargets(uint32 NumRTV, FD3D11Texture** NewRenderTarget, FD3D11Texture* NewDepthStencilTarget, bool bClearColor = false, bool bClearDepth = false, bool bClearStencil = false);
 void SetRenderTargetAndClear(FD3D11Texture* NewRenderTarget, FD3D11Texture* NewDepthStencilTarget);
 
-void ClearRemderState();
+void ClearRenderState();
 enum ECubeFace
 {
 	CubeFace_PosX = 0,

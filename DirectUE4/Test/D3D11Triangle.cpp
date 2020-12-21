@@ -156,4 +156,5 @@ void RenderTriangle()
 
 	//D3D11DeviceContext->DrawIndexed(3, 0, 0);
 	D3D11DeviceContext->Draw(3, 0);
+	ClearRenderState();
 }

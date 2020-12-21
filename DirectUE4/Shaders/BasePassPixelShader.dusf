@@ -1,7 +1,7 @@
 //#include "SHCommon.dusf"
 #include "/Generated/Material.dusf"
 #include "BasePassCommon.dusf"
-#include "LocalVertexFactory.dusf"
+#include "/Generated/VertexFactory.dusf"
 #include "LightmapCommon.dusf"  
 //#include "PlanarReflectionShared.dusf"
 // #include "BRDF.ush"
