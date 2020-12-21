@@ -47,7 +47,10 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds, bool bNeedsValidRootMoti
 
 void UAnimInstance::PostUpdateAnimation()
 {
+	FAnimInstanceProxy& Proxy = GetProxyOnGameThread<FAnimInstanceProxy>();
 
+	Proxy.TickSyncGroupWriteIndex();
+	Proxy.PostUpdate(this);
 }
 
 bool UAnimInstance::NeedsUpdate() const

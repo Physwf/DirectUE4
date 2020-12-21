@@ -35,6 +35,11 @@ struct FAnimInstanceProxy
 		return RequiredBones;
 	}
 
+	void TickSyncGroupWriteIndex()
+	{
+		SyncGroupWriteIndex = GetSyncGroupReadIndex();
+	}
+
 	void EvaluateAnimation(FPoseContext& Output);
 	void EvaluateAnimationNode(FPoseContext& Output);
 

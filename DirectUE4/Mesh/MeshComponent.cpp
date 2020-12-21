@@ -433,7 +433,7 @@ void USkeletalMeshComponent::PerformAnimationProcessing(const USkeletalMesh* InS
 	// update anim instance
 	if (InAnimInstance && InAnimInstance->NeedsUpdate())
 	{
-		InAnimInstance->ParallelUpdateAnimation();
+		//InAnimInstance->ParallelUpdateAnimation();
 	}
 // 
 // 	if (ShouldPostUpdatePostProcessInstance())

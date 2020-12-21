@@ -26,6 +26,15 @@ void FAnimInstanceProxy::PreUpdate(UAnimInstance* InAnimInstance, float DeltaSec
 		}
 	}
 
+	std::vector<FAnimTickRecord>& UngroupedActivePlayers = UngroupedActivePlayerArrays[GetSyncGroupWriteIndex()];
+	UngroupedActivePlayers.clear();
+
+	std::vector<FAnimGroupInstance>& SyncGroups = SyncGroupArrays[GetSyncGroupWriteIndex()];
+	for (uint32 GroupIndex = 0; GroupIndex < SyncGroups.size(); ++GroupIndex)
+	{
+		SyncGroups[GroupIndex].Reset();
+	}
+
 	ComponentTransform = SkeletalMeshComponent->GetComponentTransform();
 	ComponentRelativeTransform = SkeletalMeshComponent->GetRelativeTransform();
 	ActorTransform = SkeletalMeshComponent->GetOwner() ? SkeletalMeshComponent->GetOwner()->GetActorTransform() : FTransform::Identity;
