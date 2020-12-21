@@ -8,6 +8,7 @@
 #include "AnimSequence.h"
 #include "AssetImportData.h"
 #include "AnimTypes.h"
+#include "forsythtriangleorderoptimizer.h"
 
 #include <algorithm>
 
@@ -4722,7 +4723,7 @@ void FBXImporter::BuildSkeletalModelFromChunks(FSkeletalMeshLODModel& LODModel, 
 		std::vector<uint32>& ChunkIndices = SrcChunk->Indices;
 
 		// Reorder the section index buffer for better vertex cache efficiency.
-		//CacheOptimizeIndexBuffer(ChunkIndices);
+		CacheOptimizeIndexBuffer(ChunkIndices);
 
 		// Calculate the number of triangles in the section.  Note that CacheOptimize may change the number of triangles in the index buffer!
 		Section.NumTriangles = ChunkIndices.size() / 3;
@@ -4731,8 +4732,8 @@ void FBXImporter::BuildSkeletalModelFromChunks(FSkeletalMeshLODModel& LODModel, 
 		ChunkVertices.resize(OriginalVertices.size());
 
 		std::vector<int32> IndexCache;
-		IndexCache.resize(ChunkVertices.size());
-		memset(IndexCache.data(), -1, IndexCache.size() * sizeof(std::vector<int32>::value_type));
+		IndexCache.resize(ChunkVertices.size(),-1);
+		//memset(IndexCache.data(), -1, IndexCache.size() * sizeof(std::vector<int32>::value_type));
 		int32 NextAvailableIndex = 0;
 		// Go through the indices and assign them new values that are coherent where possible
 		for (uint32 Index = 0; Index < ChunkIndices.size(); Index++)
@@ -4859,6 +4860,75 @@ void FBXImporter::BuildSkeletalModelFromChunks(FSkeletalMeshLODModel& LODModel, 
 
 	// Compute the required bones for this model.
 	USkeletalMesh::CalculateRequiredBones(LODModel, RefSkeleton, NULL);
+}
+namespace ForsythHelper
+{
+	void OptimizeFaces(
+		const uint8* Indices,
+		bool Is32Bit,
+		const uint32 NumIndices,
+		uint32 NumVertices,
+		uint32* OutIndices,
+		uint16 CacheSize
+	)
+	{
+		if (Is32Bit)
+		{
+			Forsyth::OptimizeFaces((uint32*)Indices, NumIndices, NumVertices, OutIndices, CacheSize);
+		}
+		else
+		{
+			// convert to 32 bit
+			uint32 Idx;
+			std::vector<uint32> NewIndices;
+			NewIndices.resize(NumIndices);
+			for (Idx = 0; Idx < NumIndices; ++Idx)
+			{
+				NewIndices[Idx] = ((uint16*)Indices)[Idx];
+			}
+			Forsyth::OptimizeFaces(NewIndices.data(), NumIndices, NumVertices, OutIndices, CacheSize);
+		}
+
+	}
+
+	template<typename IndexDataType>
+	void CacheOptimizeIndexBuffer(std::vector<IndexDataType>& Indices)
+	{
+		static_assert(sizeof(IndexDataType) == 2 || sizeof(IndexDataType) == 4, "Indices must be short or int.");
+		bool Is32Bit = sizeof(IndexDataType) == 4;
+
+		// Count the number of vertices
+		uint32 NumVertices = 0;
+		for (uint32 Index = 0; Index < Indices.size(); ++Index)
+		{
+			if (Indices[Index] > NumVertices)
+			{
+				NumVertices = Indices[Index];
+			}
+		}
+		NumVertices += 1;
+
+		std::vector<uint32> OptimizedIndices;
+		OptimizedIndices.resize(Indices.size());
+		uint16 CacheSize = 32;
+		OptimizeFaces((uint8*)Indices.data(), Is32Bit, Indices.size(), NumVertices, OptimizedIndices.data(), CacheSize);
+
+		if (Is32Bit)
+		{
+			memcpy(Indices.data(), OptimizedIndices.data(), Indices.size() * sizeof(IndexDataType));
+		}
+		else
+		{
+			for (uint32 I = 0; I < OptimizedIndices.size(); ++I)
+			{
+				Indices[I] = (uint16)OptimizedIndices[I];
+			}
+		}
+	}
+}
+void FBXImporter::CacheOptimizeIndexBuffer(std::vector<uint32>& Indices)
+{
+	ForsythHelper::CacheOptimizeIndexBuffer(Indices);
 }
 
 bool FBXImporter::BuildStaticMesh(FStaticMeshRenderData& OutRenderData, UStaticMesh* Mesh/*, const FStaticMeshLODGroup& LODGroup */)

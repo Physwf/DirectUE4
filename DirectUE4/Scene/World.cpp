@@ -60,9 +60,9 @@ void UWorld::InitWorld()
 	//Mesh* m1 = SpawnActor<Mesh>("shaderBallNoCrease/shaderBall.fbx");
 	//Mesh* m1 = SpawnActor<Mesh>("k526efluton4-House_15/247_House 15_fbx.fbx");
 
-	SkeletalMeshActor* Mannequin = SpawnActor<SkeletalMeshActor>("Mannequin/SK_Mannequin.FBX","Mannequin/ThirdPersonIdle.FBX");
+	SkeletalMeshActor* Mannequin = SpawnActor<SkeletalMeshActor>("Mannequin/SK_Mannequin.FBX","Mannequin/ThirdPersonWalk.FBX");
 	Mannequin->SetActorRotation(FRotator(0, 90.f, 0));
-	Mannequin->SetActorLocation(FVector(0.f, -100.f, -48.f));
+	Mannequin->SetActorLocation(FVector(0.f, -100.f, -45.f));
 
 	PointLightActor* l1 = SpawnActor<PointLightActor>();
 	l1->SetActorLocation(FVector(0, 0, 500));
