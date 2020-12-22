@@ -17,9 +17,9 @@ UE4渲染框架学习作品，基于4.20;
     ~~IndirectLight~~  
     ShadowedLight  
 * Atmosphere
-* Postprocessing
-    TAA
-    Tonemapping
+* Postprocessing  
+    TAA  
+    Tonemapping  
 
 #### 2.顶点工厂
 * LocalVertexFactory  
@@ -35,12 +35,12 @@ UE4渲染框架学习作品，基于4.20;
 
 1.依赖项安装:
   * DirectXTex https://github.com/microsoft/DirectXTex.git
-  * fbxSDK(2018.1)  
+  * fbxSDK(2019.0)  
 
 2.设置环境变量:   
 
     DirectXTexDir=D:/DirectXTex/  
-    FBX_SDK_HOME=C:\Program Files\Autodesk\FBX\FBX SDK\2018.1 
+    FBX_SDK_HOME=C:\Program Files\Autodesk\FBX\FBX SDK\2019.0 
 
 3.编译代码:  
 
@@ -49,6 +49,10 @@ UE4渲染框架学习作品，基于4.20;
     $ mkdir build
     $ cd build
     $ cmake ..
+    Open DirectUE4.sln
+    Set DirectUE as Startup Project
+    Set Work Directory=$(OutDir)
+    Ctrl+Shift+B
 
 4.资源安装  
 
@@ -56,4 +60,5 @@ UE4渲染框架学习作品，基于4.20;
     $ copy resources/dx11demo to DirectUE4/build/Debug
     $ copy resources/Mannequin to DirectUE4/build/Debug
     $ copy resources/Primitives to DirectUE4/build/Debug
+    
 5.run
