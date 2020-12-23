@@ -12,6 +12,7 @@ UE4渲染框架学习作品，基于4.20;
 * PrePass  
 * ShadowPass(Dyanamic Point Light Only)  
 * BasePass  
+* ~~CompositionLighting~~  
 * Lights  
     ~~NoneShadowLights~~  
     ~~IndirectLight~~  
