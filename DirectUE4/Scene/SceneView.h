@@ -68,8 +68,42 @@ struct FViewMatrices
 		ScreenScale = 1.f;
 	}
 	FViewMatrices(const ViewInitOptions& InitOptions);
+
+	inline const FMatrix& GetProjectionNoAAMatrix() const
+	{
+		return ProjectionNoAAMatrix;
+	}
+
+	void SaveProjectionNoAAMatrix()
+	{
+		ProjectionNoAAMatrix = ProjectionMatrix;
+	}
+	void HackAddTemporalAAProjectionJitter(const Vector2& InTemporalAAProjectionJitter)
+	{
+		assert(TemporalAAProjectionJitter.X == 0.0f && TemporalAAProjectionJitter.Y == 0.0f);
+
+		TemporalAAProjectionJitter = InTemporalAAProjectionJitter;
+
+		ProjectionMatrix.M[2][0] += TemporalAAProjectionJitter.X;
+		ProjectionMatrix.M[2][1] += TemporalAAProjectionJitter.Y;
+		InvProjectionMatrix = InvertProjectionMatrix(ProjectionMatrix);
+
+		RecomputeDerivedMatrices();
+	}
+private:
+	inline void RecomputeDerivedMatrices()
+	{
+		// Compute the view projection matrix and its inverse.
+		ViewProjectionMatrix = GetViewMatrix() * GetProjectionMatrix();
+		InvViewProjectionMatrix = GetInvProjectionMatrix() * GetInvViewMatrix();
+
+		// Compute a transform from view origin centered world-space to clip space.
+		TranslatedViewProjectionMatrix = GetTranslatedViewMatrix() * GetProjectionMatrix();
+		InvTranslatedViewProjectionMatrix = GetInvProjectionMatrix() * GetInvTranslatedViewMatrix();
+	}
 private:
 	FMatrix ProjectionMatrix;//ViewToClip
+	FMatrix	ProjectionNoAAMatrix;
 	FMatrix InvProjectionMatrix;//ClipToView
 	FMatrix ViewMatrix;//WorldToView
 	FMatrix InvViewMatrix;//ViewToWorld
@@ -89,7 +123,8 @@ private:
 	Vector2	ProjectionScale;
 
 	float ScreenScale;
-
+	/** TemporalAA jitter offset currently stored in the projection matrix */
+	Vector2	TemporalAAProjectionJitter;
 public:
 	inline const FMatrix& GetProjectionMatrix() const
 	{
@@ -839,6 +874,8 @@ public:
 	float DesiredFOV;
 
 	FConvexVolume ViewFrustum;
+
+	bool bAllowTemporalJitter;
 
 	bool bHasNearClippingPlane;
 

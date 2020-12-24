@@ -177,6 +177,33 @@ public:
 		PooledRenderTarget& RenderTarget = *CombinedLUTRenderTarget.Get();
 		return RenderTarget;
 	}
+	// @param SampleCount 0 or 1 for no TemporalAA 
+	void OnFrameRenderingSetup(uint32 SampleCount, const FSceneViewFamily& Family)
+	{
+		if (!SampleCount)
+		{
+			SampleCount = 1;
+		}
+
+		TemporalAASampleCount = FMath::Min(SampleCount, (uint32)255);
+
+		//if (!Family.bWorldIsPaused)
+		{
+			TemporalAASampleIndex++;
+
+			FrameIndexMod8 = (FrameIndexMod8 + 1) % 8;
+		}
+
+		if (TemporalAASampleIndex >= TemporalAASampleCount)
+		{
+			TemporalAASampleIndex = 0;
+		}
+	}
+	// call after OnFrameRenderingSetup()
+	virtual uint32 GetCurrentTemporalAASampleIndex() const
+	{
+		return TemporalAASampleIndex;
+	}
 private:
 	/** The current frame PreExposure */
 	float PreExposure;
@@ -230,6 +257,10 @@ private:
 
 	ComPtr<PooledRenderTarget> CombinedLUTRenderTarget;
 	bool bValidTonemappingLUT;
+	// if TemporalAA is on this cycles through 0..TemporalAASampleCount-1, ResetViewState() puts it back to 0
+	uint8 TemporalAASampleIndex;
+	// >= 1, 1 means there is no TemporalAA
+	uint8 TemporalAASampleCount;
 	// counts up by one each frame, warped in 0..7 range, ResetViewState() puts it back to 0
 	uint32 FrameIndexMod8;
 

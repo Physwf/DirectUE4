@@ -47,10 +47,93 @@ static int32 FrustumCull(const FScene* Scene, FViewInfo& View)
 	return 0;
 }
 
+float Halton(int32 Index, int32 Base)
+{
+	float Result = 0.0f;
+	float InvBase = 1.0f / Base;
+	float Fraction = InvBase;
+	while (Index > 0)
+	{
+		Result += (Index % Base) * Fraction;
+		Index /= Base;
+		Fraction *= InvBase;
+	}
+	return Result;
+}
+
 void FSceneRenderer::PreVisibilityFrameSetup()
 {
+	// Setup motion blur parameters (also check for camera movement thresholds)
+	for (uint32 ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
+	{
+		FViewInfo& View = Views[ViewIndex];
+		FSceneViewState* ViewState = View.ViewState;
 
+		// Cache the projection matrix b		
+		// Cache the projection matrix before AA is applied
+		View.ViewMatrices.SaveProjectionNoAAMatrix();
+
+		if (View.AntiAliasingMethod == AAM_TemporalAA && ViewState)
+		{
+			// Subpixel jitter for temporal AA
+			int32 TemporalAASamples = 8;// CVarTemporalAASamples.GetValueOnRenderThread();
+
+			if (TemporalAASamples > 1 && View.bAllowTemporalJitter)
+			{
+				float SampleX, SampleY;
+
+				if (TemporalAASamples == 2)
+				{
+				}
+				else if (TemporalAASamples == 3)
+				{
+				}
+				else if (TemporalAASamples == 4)
+				{
+				}
+				else if (TemporalAASamples == 5)
+				{
+				}
+				else if (View.PrimaryScreenPercentageMethod == EPrimaryScreenPercentageMethod::TemporalUpscale)
+				{
+				}
+				else
+				{
+					ViewState->OnFrameRenderingSetup(TemporalAASamples, ViewFamily);
+					uint32 Index = ViewState->GetCurrentTemporalAASampleIndex();
+
+					float u1 = Halton(Index + 1, 2);
+					float u2 = Halton(Index + 1, 3);
+
+					//static auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.TemporalAAFilterSize"));
+					float FilterSize = 1.0f;// CVar->GetFloat();
+
+					// Scale distribution to set non-unit variance
+					// Variance = Sigma^2
+					float Sigma = 0.47f * FilterSize;
+
+					// Window to [-0.5, 0.5] output
+					// Without windowing we could generate samples far away on the infinite tails.
+					float OutWindow = 0.5f;
+					float InWindow = FMath::Exp(-0.5 * FMath::Square(OutWindow / Sigma));
+
+					// Box-Muller transform
+					float Theta = 2.0f * PI * u2;
+					float r = Sigma * FMath::Sqrt(-2.0f * FMath::Loge((1.0f - u1) * InWindow + u1));
+
+					SampleX = r * FMath::Cos(Theta);
+					SampleY = r * FMath::Sin(Theta);
+				}
+
+				View.TemporalJitterPixels.X = SampleX;
+				View.TemporalJitterPixels.Y = SampleY;
+
+				View.ViewMatrices.HackAddTemporalAAProjectionJitter(Vector2(SampleX * 2.0f / View.ViewRect.Width(), SampleY * -2.0f / View.ViewRect.Height()));
+			}
+		}
+	}
 }
+
 template<class T, int TAmplifyFactor = 1>
 struct FRelevancePrimSet
 {

@@ -217,6 +217,7 @@ FSceneView::FSceneView(const ViewInitOptions& InitOptions)
 	ColorScale = FLinearColor::White;
 
 	AntiAliasingMethod = EAntiAliasingMethod::AAM_TemporalAA;
+	bAllowTemporalJitter = true;
 }
 
 void FSceneView::SetupViewRectUniformBufferParameters(
@@ -302,7 +303,7 @@ void FSceneView::SetupCommonViewUniformBufferParameters(
 	ViewUniformParameters.Constants.TranslatedWorldToCameraView = InViewMatrices.GetTranslatedViewMatrix();
 	ViewUniformParameters.Constants.CameraViewToTranslatedWorld = InViewMatrices.GetInvTranslatedViewMatrix();
 	ViewUniformParameters.Constants.ViewToClip = InViewMatrices.GetProjectionMatrix();
-	//ViewUniformParameters.ViewToClipNoAA = InViewMatrices.GetProjectionNoAAMatrix();
+	ViewUniformParameters.Constants.ViewToClipNoAA = InViewMatrices.GetProjectionNoAAMatrix();
 	ViewUniformParameters.Constants.ClipToView = InViewMatrices.GetInvProjectionMatrix();
 	ViewUniformParameters.Constants.ClipToTranslatedWorld = InViewMatrices.GetInvTranslatedViewProjectionMatrix();
 	//ViewUniformParameters.ViewForward = InViewMatrices.GetOverriddenTranslatedViewMatrix().GetColumn(2);

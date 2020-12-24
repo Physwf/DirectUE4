@@ -709,7 +709,7 @@ void FViewInfo::Init()
 	// 	// Disable HDR encoding for editor elements.
 	// 	EditorSimpleElementCollector.BatchedElements.EnableMobileHDREncoding(false);
 	// 
-	// 	TemporalJitterPixels = FVector2D::ZeroVector;
+	TemporalJitterPixels = Vector2::ZeroVector;
 
 	// 	PreExposure = 1.0f;
 	// 	MaterialTextureMipBias = 0.0f;
